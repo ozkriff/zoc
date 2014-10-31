@@ -1,0 +1,12 @@
+[package]
+
+name = "marauder-app"
+version = "0.0.1"
+authors = ["ozkriff <ozkriffgmail.com>"]
+
+[[bin]]
+name = "marauder-app"
+
+[dependencies.marauder]
+path = ".."
+ 

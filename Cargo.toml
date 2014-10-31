@@ -1,0 +1,19 @@
+[package]
+
+name = "marauder"
+version = "0.0.1"
+authors = ["ozkriff <ozkriffgmail.com>"]
+
+[lib]
+name = "marauder"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies.android_glue]
+git = "https://github.com/tomaka/android-rs-glue"
+ 
+[dependencies.gl_generator]
+git = "https://github.com/bjz/gl-rs"
+
+[dependencies.glutin]
+git = "https://github.com/tomaka/glutin"
+features = ["window"]
