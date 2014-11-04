@@ -197,8 +197,6 @@ mod egl {
 
     use native_window;
 
-    // TODO: Figure out how to put macros in a separate module and import when needed.
-
     pub type Display = *const c_void;
     pub const NO_DISPLAY: Display = 0 as Display;
 
@@ -342,8 +340,6 @@ mod egl {
 mod gl {
     use libc::{c_float, c_int, c_uchar, c_uint};
 
-    // TODO: Figure out how to put macros in a separate module and import when needed.
-
     pub type Enum = c_uint;
 
     // Error codes.
@@ -380,8 +376,6 @@ mod gl {
 
 mod input {
     use libc::{c_float, int32_t, size_t};
-
-    // TODO: Figure out how to put macros in a separate module and import when needed.
 
     /// Input event is an opaque structure.
     pub struct Event;
