@@ -1,8 +1,10 @@
 #include <android_native_app_glue.h>
 
+/*
 void c_log_string(int priority, const char *message) {
   __android_log_write(priority, "native-activity", message);
 }
+*/
 
 /* Function implemented in Rust. */
 extern void rust_android_main(struct android_app* app);

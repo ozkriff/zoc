@@ -16,12 +16,6 @@ extern crate native;
 
 use libc::{c_void, int32_t};
 
-// To avoid warning: private type in exported type signature
-pub use app::{AndroidApp, NativeActivity};
-pub use input::Event;
-pub use native_window::NativeWindow;
-pub use sensor::Looper;
-
 #[link(name = "log")]
 extern {
     pub fn __android_log_write(
@@ -213,18 +207,6 @@ mod egl {
 
     // TODO: Figure out how to put macros in a separate module and import when needed.
 
-    /// Logs the error to Android error logging and fails.
-    macro_rules! a_fail(
-        ($msg: expr) => ({
-            log::e($msg);
-            panic!();
-        });
-        ($fmt: expr, $($arg:tt)*) => ({
-            log::e_f(format!($fmt, $($arg)*));
-            panic!();
-        });
-    )
-
     pub type Display = *const c_void;
     pub const NO_DISPLAY: Display = 0 as Display;
 
@@ -370,18 +352,6 @@ mod gl {
 
     // TODO: Figure out how to put macros in a separate module and import when needed.
 
-    /// Logs the error to Android error logging and fails.
-    macro_rules! a_fail(
-        ($msg: expr) => ({
-            log::e($msg);
-            panic!();
-        });
-        ($fmt: expr, $($arg:tt)*) => ({
-            log::e_f(format!($fmt, $($arg)*));
-            panic!();
-        });
-    )
-
     pub type Enum = c_uint;
 
     // Error codes.
@@ -419,21 +389,7 @@ mod gl {
 mod input {
     use libc::{c_float, int32_t, size_t};
 
-    use log;
-
     // TODO: Figure out how to put macros in a separate module and import when needed.
-
-    /// Logs the error to Android error logging and fails.
-    macro_rules! a_fail(
-        ($msg: expr) => ({
-            log::e($msg);
-            panic!();
-        });
-        ($fmt: expr, $($arg:tt)*) => ({
-            log::e_f(format!($fmt, $($arg)*));
-            panic!();
-        });
-    )
 
     /// Input event is an opaque structure.
     pub struct Event;
@@ -456,7 +412,7 @@ mod input {
         match res {
             EVENT_TYPE_KEY => Key,
             EVENT_TYPE_MOTION => Motion,
-            _ => a_fail!("Unknown event type: {}", res),
+            _ => panic!("Unknown event type: {}", res),
         }
     }
 
@@ -500,74 +456,9 @@ mod native_window {
     }
 }
 
-mod log {
-    #![macro_escape]
-
-    use libc::{c_char, c_int};
-
-    /// Logs the error to Android error logging and fails.
-    macro_rules! a_fail(
-        ($msg: expr) => ({
-            log::e($msg);
-            panic!();
-        });
-        ($fmt: expr, $($arg:tt)*) => ({
-            log::e_f(format!($fmt, $($arg)*));
-            panic!();
-        });
-    )
-
-    /// Logs to Android info logging.
-    macro_rules! a_info(
-        ($msg: expr) => ( log::i($msg); );
-        ($fmt: expr, $($arg:tt)*) => (
-            log::i_f(format!($fmt, $($arg)*));
-        );
-    )
-
-    // Logging priorities:
-    const INFO: c_int = 4;
-    const ERROR: c_int = 6;
-
-    // Bridges to Android logging at various priorities.
-    pub fn i(msg: &str) {
-        let c_string = msg.to_c_str();
-        unsafe {
-            c_log_string(INFO, c_string.as_ptr());
-        }
-    }
-
-    pub fn i_f(msg: String) {
-        let c_string = msg.to_c_str();
-        unsafe {
-            c_log_string(INFO, c_string.as_ptr());
-        }
-    }
-
-    pub fn e(msg: &str) {
-        let c_string = msg.to_c_str();
-        unsafe {
-            c_log_string(ERROR, c_string.as_ptr());
-        }
-    }
-
-    pub fn e_f(msg: String) {
-        let c_string = msg.to_c_str();
-        unsafe {
-            c_log_string(ERROR, c_string.as_ptr());
-        }
-    }
-
-    extern {
-        fn c_log_string(priority: c_int, message: *const c_char);
-    }
-}
-
 mod sensor {
     use libc::{c_int, c_void};
     use std::ptr;
-
-    use log;
 
     /**
      * A looper is the state tracking an event loop for a thread.    Loopers do not define event
@@ -657,7 +548,7 @@ mod sensor {
             ALOOPER_POLL_TIMEOUT => Err(PollTimeout),
             ALOOPER_POLL_ERROR => Err(PollError),
             id if id >= 0 => Ok(PollResult { id: id, fd: fd, events: events, data: data }),
-            err => a_fail!("Unknown error from ALooper_pollAll(): {}", err),
+            err => panic!("Unknown error from ALooper_pollAll(): {}", err),
         }
     }
 
@@ -709,7 +600,6 @@ mod engine {
     use gl;
     use input;
     use jni;
-    use log;
     use native_window;
 
     static mut COLOR_COUNTER: i32 = 0;
@@ -801,20 +691,20 @@ mod engine {
         pub fn term(&mut self) {
             self.animating = false;
             self.egl_context = None;    // This closes the existing context via Drop.
-            a_info!("Renderer terminated");
+            println!("Renderer terminated");
         }
 
         /// Handle touch and key input.    Return true if you handled event, false for any default handling.
         pub fn handle_input(&mut self, event: &input::Event) -> bool {
             match input::get_event_type(event) {
                 input::Key => {
-                    a_info!("key");
+                    println!("key");
                     return true;
                 },
                 input::Motion => {
                     let x = input::get_motion_event_x(event, 0);
                     let y = input::get_motion_event_y(event, 0);
-                    a_info!("Touch at ({}, {})", x, y);
+                    println!("Touch at ({}, {})", x, y);
                     return true;
                 },
             }
@@ -857,7 +747,7 @@ mod engine {
         let mut configs = vec!(ptr::null());
         egl::choose_config(display, attribs_config, &mut configs);
         if configs.len() == 0 {
-            a_fail!("choose_config() did not find any configurations");
+            panic!("choose_config() did not find any configurations");
         }
         let config = configs[0];
 
@@ -889,13 +779,13 @@ mod engine {
 
 /// Initialize EGL context for the current display.
 fn init_display(app_ptr: *mut app::AndroidApp, engine: &mut engine::Engine) {
-    a_info!("Renderer initializing...");
+    println!("Renderer initializing...");
     let start_ns = time::precise_time_ns();
     let window = unsafe { (*app_ptr).window };
     let egl_context = box engine::create_egl_context(window);
     engine.init(egl_context);
     let elapsed_ms = (time::precise_time_ns() - start_ns) as f32 / 1000000.0;
-    a_info!("Renderer initialized, {:.3f}ms", elapsed_ms);
+    println!("Renderer initialized, {:.3f}ms", elapsed_ms);
 }
 
 /// Process the next input event.
@@ -903,7 +793,7 @@ fn init_display(app_ptr: *mut app::AndroidApp, engine: &mut engine::Engine) {
 pub extern fn handle_input(app: *mut app::AndroidApp, event_ptr: *const input::Event) -> int32_t {
     let engine_ptr = unsafe { (*app).user_data as *mut engine::Engine };
     if engine_ptr.is_null() {
-        a_fail!("Engine pointer is null");
+        panic!("Engine pointer is null");
     }
     let engine: &mut engine::Engine = unsafe { &mut *engine_ptr };
     let event: &input::Event = unsafe { &*event_ptr };
@@ -922,7 +812,7 @@ pub extern fn handle_input(app: *mut app::AndroidApp, event_ptr: *const input::E
 pub extern fn handle_cmd(app_ptr: *mut app::AndroidApp, command: int32_t) {
     let engine_ptr = unsafe { (*app_ptr).user_data as *mut engine::Engine };
     if engine_ptr.is_null() {
-        a_fail!("Engine pointer is null");
+        panic!("Engine pointer is null");
     }
     let engine: &mut engine::Engine = unsafe { &mut *engine_ptr };
 
@@ -989,7 +879,7 @@ fn rust_event_loop(app_ptr: *mut app::AndroidApp, engine_ptr: *mut engine::Engin
  */
 #[no_mangle]
 pub extern fn glue_main(app_ptr: *mut app::AndroidApp) {
-    a_info!("-------------------------------------------------------------------");
+    println!("-------------------------------------------------------------------");
 
     let app: &mut app::AndroidApp = unsafe { &mut *app_ptr };
     let activity: &app::NativeActivity = unsafe { &*app.activity };
@@ -1025,7 +915,6 @@ pub fn rust_android_main(app: *mut()) {
         // android_glue::android_main2(app, proc() main(app));
         std::io::stdio::set_stdout(box std::io::LineBufferedWriter::new(ToLogWriter));
         std::io::stdio::set_stderr(box std::io::LineBufferedWriter::new(ToLogWriter));
-        // panic!("FUCK");
         println!("println: test");
         write_log("write_log: test");
         glue_main(app as *mut app::AndroidApp);
