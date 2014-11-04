@@ -564,66 +564,10 @@ mod log {
 }
 
 mod sensor {
-    use libc::{c_float, c_int, c_void, int8_t, int32_t, int64_t, uint8_t};
-    use std::default::Default;
-    use std::mem;
+    use libc::{c_int, c_void};
     use std::ptr;
 
     use log;
-
-    // C structure contains unions not representable in Rust, so this is just the
-    // version as it applies to accelerometer.
-    struct Vector {
-        #[allow(dead_code)]
-        x: c_float,
-        #[allow(dead_code)]
-        y: c_float,
-        #[allow(dead_code)]
-        z: c_float,
-        #[allow(dead_code)]
-        status: int8_t,
-        #[allow(dead_code)]
-        reserved: [uint8_t, ..3]
-    }
-
-    impl Default for Vector {
-        fn default() -> Vector {
-            Vector { x: 0.0, y: 0.0, z: 0.0, status: 0, reserved: [0, 0, 0] }
-        }
-    }
-
-    // C structure contains unions not representable in Rust, so this is just the
-    // version as it applies to accelerometer.
-    pub struct Event {
-        #[allow(dead_code)]
-        version: int32_t,    /* size_of(Event) */
-        #[allow(dead_code)]
-        sensor: int32_t,
-        #[allow(dead_code)]
-        event_type: int32_t,
-        #[allow(dead_code)]
-        reserved0: int32_t,
-        #[allow(dead_code)]
-        timestamp: int64_t,
-        #[allow(dead_code)]
-        acceleration: Vector,
-        #[allow(dead_code)]
-        reserved1: [int32_t, ..4]
-    }
-
-    impl Default for Event {
-        fn default() -> Event {
-            Event {
-                version: mem::size_of::<Event>() as int32_t,
-                sensor: 0,
-                event_type: 0,
-                reserved0: 0,
-                timestamp: 0,
-                acceleration: Default::default(),
-                reserved1: [0, 0, 0, 0],
-            }
-        }
-    }
 
     /**
      * A looper is the state tracking an event loop for a thread.    Loopers do not define event
