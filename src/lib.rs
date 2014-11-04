@@ -580,32 +580,8 @@ mod sensor {
 }
 
 mod jni {
-    use libc::{c_void, int32_t};
-
     /// JNI invocation interface.
-    pub struct JavaVm {
-        #[allow(dead_code)]
-        functions: *const JniInvokeInterface,
-    }
-
-    pub struct JniInvokeInterface {
-        #[allow(dead_code)]
-        reserved0: *const c_void,
-        #[allow(dead_code)]
-        reserved1: *const c_void,
-        #[allow(dead_code)]
-        reserved2: *const c_void,
-        #[allow(dead_code)]
-        destroy_java_vm: extern fn(*const JavaVm) -> int32_t,
-        #[allow(dead_code)]
-        attach_current_thread: extern fn(*const JavaVm, *mut *const JniEnv, *const c_void) -> int32_t,
-        #[allow(dead_code)]
-        detach_current_thread: extern fn(*const JavaVm) -> int32_t,
-        #[allow(dead_code)]
-        get_env: extern fn(*const JavaVm, *mut *const c_void, int32_t) -> int32_t,
-        #[allow(dead_code)]
-        attach_current_thread_as_daemon: extern fn(*const JavaVm, *mut *const JniEnv, *const c_void) -> int32_t,
-    }
+    pub struct JavaVm;
 
     /// Opaque structure for the JNI context.
     pub struct JniEnv;
