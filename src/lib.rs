@@ -1041,13 +1041,6 @@ fn rust_event_loop(app_ptr: *mut app::AndroidApp, engine_ptr: *mut engine::Engin
                         process(app_ptr, source as *const app::AndroidPollSource);
                     }
 
-                    /*
-                    // If the sensor has data, process it now.
-                    if poll_result.id == sensor::LOOPER_ID_USER {
-                        engine.handle_sensor_events();
-                    }
-                    */
-
                     // Check if should exit.
                     if app.destroy_requested != 0 {
                         engine.term();
