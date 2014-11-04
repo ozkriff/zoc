@@ -564,15 +564,12 @@ mod log {
 }
 
 mod sensor {
-    use libc::{c_float, c_int, c_void, int8_t, int32_t, int64_t, size_t, ssize_t, uint8_t};
+    use libc::{c_float, c_int, c_void, int8_t, int32_t, int64_t, uint8_t};
     use std::default::Default;
     use std::mem;
     use std::ptr;
 
     use log;
-
-    // Opaque structure.
-    pub struct EventQueue;
 
     // C structure contains unions not representable in Rust, so this is just the
     // version as it applies to accelerometer.
@@ -633,7 +630,6 @@ mod sensor {
     pub const LOOPER_ID_MAIN: c_int = 1;
     #[allow(dead_code)]
     pub const LOOPER_ID_INPUT: c_int = 2;
-    pub const LOOPER_ID_USER: c_int = 3;
 
     /**
      * A looper is the state tracking an event loop for a thread.    Loopers do not define event
@@ -661,22 +657,6 @@ mod sensor {
     // type LooperCallback = extern "C" fn (fd: c_int, events: c_int, data: *const c_void) -> c_int;
     #[allow(dead_code)]
     type LooperCallback = *const c_void;
-
-    /*
-     * Returns the next available event from the queue.    Returns a zero error value if no events are
-     * available and a negative error value when an error has occurred.
-    */
-    pub fn get_event(queue: &EventQueue) -> Result<Event, c_int> {
-        let mut event: Event = Default::default();
-        let res = unsafe {
-            ASensorEventQueue_getEvents(queue, &mut event as *mut Event, 1)
-        };
-        match res {
-            1 => Ok(event),
-            err if err <= 0 => Err(err),
-            n => a_fail!("ASensorEventQueue_getEvents returned a positive result but not 1: {}", n),
-        }
-    }
 
     // Lopper poll result enums:
     /**
@@ -753,10 +733,6 @@ mod sensor {
     }
 
     extern {
-        // We are lying about event queue pointer being const, since otherwise Rust is not happy about
-        // multiple mutable borrows while polling the sensor event queue and couldn't figure it out.
-        fn ASensorEventQueue_getEvents(queue: *const EventQueue, events: *mut Event, count: size_t) -> ssize_t;
-
         fn ALooper_pollAll(timeout_millis: c_int, out_fd: *mut c_int, out_events: *mut c_int, out_data: *mut *const c_void) -> c_int;
     }
 }
@@ -806,7 +782,6 @@ mod engine {
     use jni;
     use log;
     use native_window;
-    use sensor;
 
     static mut COLOR_COUNTER: i32 = 0;
 
@@ -856,7 +831,6 @@ mod engine {
     // TODO: Find a way not to declare all fields public.
     pub struct Engine {
         pub jvm: &'static jni::JavaVm,
-        pub sensor_event_queue: Option<&'static sensor::EventQueue>,
         pub animating: bool,
         pub egl_context: Option<Box<EglContext>>,
     }
@@ -915,30 +889,6 @@ mod engine {
                     return true;
                 },
             }
-        }
-
-        /// Loop and handle all sensor events if any.
-        pub fn handle_sensor_events(&self) {
-            match self.sensor_event_queue {
-                None => (),
-                Some(ref event_queue) => {
-                    'sensor: loop {
-                        match sensor::get_event(*event_queue) {
-                            Ok(ev) => {
-                                self.handle_sensor(&ev);
-                                ()
-                            },
-                            Err(_) => break 'sensor,
-                        }
-                    }
-                }
-            }
-        }
-
-        /// Handle sensor input.
-        #[allow(unused_variable)]
-        fn handle_sensor(&self, event: &sensor::Event) {
-            // Do nothing.
         }
 
         /// Called when window gains input focus.
@@ -1091,10 +1041,12 @@ fn rust_event_loop(app_ptr: *mut app::AndroidApp, engine_ptr: *mut engine::Engin
                         process(app_ptr, source as *const app::AndroidPollSource);
                     }
 
+                    /*
                     // If the sensor has data, process it now.
                     if poll_result.id == sensor::LOOPER_ID_USER {
                         engine.handle_sensor_events();
                     }
+                    */
 
                     // Check if should exit.
                     if app.destroy_requested != 0 {
@@ -1123,7 +1075,6 @@ pub extern fn glue_main(app_ptr: *mut app::AndroidApp) {
 
     let mut engine = engine::Engine {
         jvm: jvm,
-        sensor_event_queue: None,
         animating: false,
         egl_context: None,
     };
