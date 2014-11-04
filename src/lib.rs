@@ -40,14 +40,6 @@ impl Writer for ToLogWriter {
     }
 }
 
-pub fn write_log(message: &str) {
-    message.with_c_str(|message| {
-        b"RustAndroidGlue".with_c_str(|tag| {
-            unsafe { __android_log_write(3, tag, message) };
-        });
-    });
-}
-
 mod app {
     use libc::{c_char, c_int, c_void, int32_t, size_t};
 
@@ -912,11 +904,9 @@ fn main(app: *mut()) {
 #[no_mangle]
 pub fn rust_android_main(app: *mut()) {
     native::start(1, &b"".as_ptr(), proc() {
-        // android_glue::android_main2(app, proc() main(app));
         std::io::stdio::set_stdout(box std::io::LineBufferedWriter::new(ToLogWriter));
         std::io::stdio::set_stderr(box std::io::LineBufferedWriter::new(ToLogWriter));
         println!("println: test");
-        write_log("write_log: test");
         glue_main(app as *mut app::AndroidApp);
     });
 }
