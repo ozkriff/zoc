@@ -625,12 +625,6 @@ mod sensor {
         }
     }
 
-    // Looper id enums:
-    #[allow(dead_code)]
-    pub const LOOPER_ID_MAIN: c_int = 1;
-    #[allow(dead_code)]
-    pub const LOOPER_ID_INPUT: c_int = 2;
-
     /**
      * A looper is the state tracking an event loop for a thread.    Loopers do not define event
      * structures or other such things; rather they are a lower-level facility to attach one or more
@@ -655,7 +649,6 @@ mod sensor {
     // This is the right way but could not make passing null pointers work, neither with 0 as ...,
     // nor with None::<..>.
     // type LooperCallback = extern "C" fn (fd: c_int, events: c_int, data: *const c_void) -> c_int;
-    #[allow(dead_code)]
     type LooperCallback = *const c_void;
 
     // Lopper poll result enums:
@@ -664,9 +657,6 @@ mod sensor {
      * no other file descriptors were ready.
      */
     const ALOOPER_POLL_WAKE: c_int = -1;
-    /// One or more callbacks were executed.
-    #[allow(dead_code)]
-    const ALOOPER_POLL_CALLBACK: c_int = -2;
     /// The timeout expired.
     const ALOOPER_POLL_TIMEOUT: c_int = -3;
     /// An error occurred.
@@ -680,13 +670,8 @@ mod sensor {
     }
 
     enum PollErrorEnum {
-        #[allow(dead_code)]
         PollWake,
-        #[allow(dead_code)]
-        PollCallback,
-        #[allow(dead_code)]
         PollTimeout,
-        #[allow(dead_code)]
         PollError,
     }
 
