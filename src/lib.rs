@@ -572,10 +572,6 @@ mod sensor {
     use log;
 
     // Opaque structure.
-    pub struct Manager;
-    // Opaque structure.
-    pub struct Sensor;
-    // Opaque structure.
     pub struct EventQueue;
 
     // C structure contains unions not representable in Rust, so this is just the
@@ -665,71 +661,6 @@ mod sensor {
     // type LooperCallback = extern "C" fn (fd: c_int, events: c_int, data: *const c_void) -> c_int;
     #[allow(dead_code)]
     type LooperCallback = *const c_void;
-
-    // Sensor type enums:
-    pub const TYPE_ACCELEROMETER: c_int = 1;
-    #[allow(dead_code)]
-    pub const TYPE_MAGNETIC_FIELD: c_int = 2;
-
-    /// Get an unsafe pointer to the sensor manager.    Manager is a singleton.
-    pub fn get_instance() -> &'static Manager {
-        let manager_ptr = unsafe {
-            ASensorManager_getInstance()
-        };
-        assert!(!manager_ptr.is_null());
-        unsafe { &*manager_ptr }
-    }
-
-    /// Returns the default sensor for the given type, or None if no sensor of that type exist.
-    pub fn get_default_sensor(sensor_type: c_int) -> Option<&'static Sensor> {
-        let manager = get_instance();
-        let sensor_ptr = unsafe {
-            ASensorManager_getDefaultSensor(manager, sensor_type)
-        };
-        if sensor_ptr.is_null() {
-            None
-        } else {
-            Some(unsafe { &*sensor_ptr })
-        }
-    }
-
-    /// Creates a new sensor event queue and associates it with a looper.
-    pub fn create_event_queue(looper: *const Looper, ident: c_int) -> &'static EventQueue {
-        let manager = get_instance();
-        let queue_ptr = unsafe {
-            ASensorManager_createEventQueue(manager, looper, ident, ptr::null(), ptr::null())
-        };
-        assert!(!queue_ptr.is_null());
-        unsafe { &*queue_ptr }
-    }
-
-    /// Enable the selected sensor. Returns a negative error code on failure.
-    pub fn enable_sensor(queue: &EventQueue, sensor: &Sensor) -> Result<(), i32> {
-        let res = unsafe {
-            ASensorEventQueue_enableSensor(queue, sensor)
-        };
-        if res >= 0 { Ok(()) } else { Err(res) }
-    }
-
-    /// Disable the selected sensor. Returns a negative error code on failure.
-    pub fn disable_sensor(queue: &EventQueue, sensor: &Sensor) -> Result<(), i32> {
-        let res = unsafe {
-            ASensorEventQueue_disableSensor(queue, sensor)
-        };
-        if res >= 0 { Ok(()) } else { Err(res) }
-    }
-
-    /**
-     * Sets the delivery rate of events in microseconds for the given sensor.    Note that this is
-     * a hint only, generally events will arrive at a higher rate. It is an error to set a rate below
-     * the value returned by ASensor_getMinDelay().    Returns a negative error code on failure.
-     */
-    pub fn set_event_rate(queue: &EventQueue, sensor: &Sensor, usec: int32_t) -> Result<(), i32> {
-        let res = unsafe {
-            ASensorEventQueue_setEventRate(queue, sensor, usec)
-        };
-        if res >= 0 { Ok(()) } else { Err(res) }
-    }
 
     /*
      * Returns the next available event from the queue.    Returns a zero error value if no events are
@@ -822,15 +753,8 @@ mod sensor {
     }
 
     extern {
-        fn ASensorManager_getInstance() -> *const Manager;
-        fn ASensorManager_getDefaultSensor(manager: *const Manager, sensor_type: c_int) -> *const Sensor;
-        fn ASensorManager_createEventQueue(manager: *const Manager, looper: *const Looper, ident: c_int,
-            callback: LooperCallback, data: *const c_void) -> *mut EventQueue;
         // We are lying about event queue pointer being const, since otherwise Rust is not happy about
         // multiple mutable borrows while polling the sensor event queue and couldn't figure it out.
-        fn ASensorEventQueue_enableSensor(queue: *const EventQueue, sensor: *const Sensor) -> c_int;
-        fn ASensorEventQueue_disableSensor(queue: *const EventQueue, sensor: *const Sensor) -> c_int;
-        fn ASensorEventQueue_setEventRate(queue: *const EventQueue, sensor: *const Sensor, usec: int32_t) -> c_int;
         fn ASensorEventQueue_getEvents(queue: *const EventQueue, events: *mut Event, count: size_t) -> ssize_t;
 
         fn ALooper_pollAll(timeout_millis: c_int, out_fd: *mut c_int, out_events: *mut c_int, out_data: *mut *const c_void) -> c_int;
@@ -932,7 +856,6 @@ mod engine {
     // TODO: Find a way not to declare all fields public.
     pub struct Engine {
         pub jvm: &'static jni::JavaVm,
-        pub accelerometer_sensor: Option<&'static sensor::Sensor>,
         pub sensor_event_queue: Option<&'static sensor::EventQueue>,
         pub animating: bool,
         pub egl_context: Option<Box<EglContext>>,
@@ -1021,21 +944,6 @@ mod engine {
         /// Called when window gains input focus.
         pub fn gained_focus(&mut self) {
             self.animating = true;
-
-            // When our app gains focus, we start monitoring the accelerometer.
-            match self.sensor_event_queue {
-                None => (),
-                Some(ref event_queue) => {
-                    match self.accelerometer_sensor {
-                        None => (),
-                        Some(ref sensor) => {
-                            enable_sensor(*event_queue, *sensor);
-                            // Request 60 events per second, in micros.
-                            sensor_event_rate(*event_queue, *sensor, 60);
-                        }
-                    }
-                }
-            }
         }
 
         /// Active when initialized and has focus.
@@ -1045,44 +953,10 @@ mod engine {
 
         /// Called when window loses input focus.
         pub fn lost_focus(&mut self) {
-            // When our app loses focus, we stop monitoring the accelerometer.
-            // This is to avoid consuming battery while not being used.
-            match self.sensor_event_queue {
-                None => (),
-                Some(ref event_queue) => {
-                    match self.accelerometer_sensor {
-                        None => (),
-                        Some(ref sensor) => {
-                            disable_sensor(*event_queue, *sensor);
-                        }
-                    }
-                }
-            };
             // Also stop animating.
             self.animating = false;
             self.draw();
         }
-    }
-
-    fn enable_sensor(event_queue: &sensor::EventQueue, sensor: &sensor::Sensor) {
-        match sensor::enable_sensor(event_queue, sensor) {
-            Ok(_) => (),
-            Err(e) => a_fail!("enable_sensor failed: {}", e),
-        };
-    }
-
-    fn sensor_event_rate(event_queue: &sensor::EventQueue, sensor: &sensor::Sensor, events_per_second: i32) {
-        match sensor::set_event_rate(event_queue, sensor, 1000 * 1000 / events_per_second) {
-            Ok(_) => (),
-            Err(e) => a_fail!("set_event_rate failed: {}", e),
-        };
-    }
-
-    fn disable_sensor(event_queue: &sensor::EventQueue, sensor: &sensor::Sensor) {
-        match sensor::disable_sensor(event_queue, sensor) {
-            Ok(_) => (),
-            Err(e) => a_fail!("disable_sensor failed: {}", e),
-        };
     }
 
     pub fn create_egl_context(window: *const native_window::NativeWindow) -> EglContext {
@@ -1249,8 +1123,7 @@ pub extern fn glue_main(app_ptr: *mut app::AndroidApp) {
 
     let mut engine = engine::Engine {
         jvm: jvm,
-        accelerometer_sensor: sensor::get_default_sensor(sensor::TYPE_ACCELEROMETER),
-        sensor_event_queue: Some(sensor::create_event_queue(app.looper, sensor::LOOPER_ID_USER)),
+        sensor_event_queue: None,
         animating: false,
         egl_context: None,
     };
