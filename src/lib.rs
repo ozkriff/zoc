@@ -382,6 +382,17 @@ mod input {
     /// Input queue is for retrieving input events.
     pub struct Queue;
 
+    // const AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT: uint = 8;
+    const AMOTION_EVENT_ACTION_MASK: int32_t = 0xff;
+    const AMOTION_EVENT_ACTION_DOWN: int32_t = 0;
+    const AMOTION_EVENT_ACTION_UP: int32_t = 1;
+    // const AMOTION_EVENT_ACTION_MOVE: int32_t = 2;
+    const AMOTION_EVENT_ACTION_CANCEL: int32_t = 3;
+    const AMOTION_EVENT_ACTION_OUTSIDE: int32_t = 4;
+    const AMOTION_EVENT_ACTION_POINTER_DOWN: int32_t = 5;
+    const AMOTION_EVENT_ACTION_POINTER_UP: int32_t = 6;
+
+
     // Input event types:
     const EVENT_TYPE_KEY: int32_t = 1;
     const EVENT_TYPE_MOTION: int32_t = 2;
@@ -399,6 +410,30 @@ mod input {
             EVENT_TYPE_KEY => Key,
             EVENT_TYPE_MOTION => Motion,
             _ => panic!("Unknown event type: {}", res),
+        }
+    }
+
+    pub fn touch_event(event: *const Event) {
+        let action = unsafe {
+            AMotionEvent_getAction(event)
+        };
+        let action_code = action & AMOTION_EVENT_ACTION_MASK;
+        // let action_index = action >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+        if action_code == AMOTION_EVENT_ACTION_UP
+            || action_code == AMOTION_EVENT_ACTION_OUTSIDE
+            || action_code == AMOTION_EVENT_ACTION_CANCEL
+        {
+            println!("UP");
+        } else if action == AMOTION_EVENT_ACTION_DOWN {
+            println!("DOWN");
+        // } else if action_code == AMOTION_EVENT_ACTION_POINTER_DOWN && action_index == i {
+        } else if action_code == AMOTION_EVENT_ACTION_POINTER_DOWN {
+            println!("DOWN");
+        // } else if action_code == AMOTION_EVENT_ACTION_POINTER_UP && action_index == i {
+        } else if action_code == AMOTION_EVENT_ACTION_POINTER_UP {
+            println!("UP");
+        } else {
+            // println!("MOVE");
         }
     }
 
@@ -424,6 +459,7 @@ mod input {
      fn AInputEvent_getType(event: *const Event) -> int32_t;
      fn AMotionEvent_getX(event: *const Event, pointer_index: size_t) -> c_float;
      fn AMotionEvent_getY(event: *const Event, pointer_index: size_t) -> c_float;
+     fn AMotionEvent_getAction(motion_event: *const Event) -> int32_t;
     }
 }
 
@@ -691,6 +727,7 @@ mod engine {
                     let x = input::get_motion_event_x(event, 0);
                     let y = input::get_motion_event_y(event, 0);
                     println!("Touch at ({}, {})", x, y);
+                    input::touch_event(event); // ?
                     return true;
                 },
             }
