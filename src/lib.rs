@@ -1,10 +1,4 @@
-#![feature(macro_rules)]
 #![feature(phase)]
-#![feature(globs)]
-
-#![allow(improper_ctypes)]
-
-// #[phase(plugin, link)] extern crate android_glue;
 
 #[phase(plugin)] extern crate gl_generator;
 
@@ -372,6 +366,7 @@ mod input {
     use libc::{c_float, int32_t, size_t};
 
     /// Input event is an opaque structure.
+    #[repr(C)]
     pub struct Event;
     /// Input queue is for retrieving input events.
     pub struct Queue;
@@ -459,6 +454,7 @@ mod input {
 
 mod native_window {
     // Opaque struct for Android native window.
+    #[repr(C)]
     pub struct NativeWindow;
 
     pub fn set_buffers_geometry(window: *const NativeWindow, width: i32, height: i32, format: i32) -> i32 {
@@ -891,7 +887,6 @@ pub extern fn glue_main(app_ptr: *mut app::AndroidApp) {
 
     rust_event_loop(app_ptr, &mut engine as *mut engine::Engine);
 }
-
 
 // =============================================================================
 
