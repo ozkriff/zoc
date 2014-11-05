@@ -425,10 +425,10 @@ mod input {
     }
 
     extern {
-     fn AInputEvent_getType(event: *const Event) -> int32_t;
-     fn AMotionEvent_getX(event: *const Event, pointer_index: size_t) -> c_float;
-     fn AMotionEvent_getY(event: *const Event, pointer_index: size_t) -> c_float;
-     fn AMotionEvent_getAction(motion_event: *const Event) -> int32_t;
+        fn AInputEvent_getType(event: *const Event) -> int32_t;
+        fn AMotionEvent_getX(event: *const Event, pointer_index: size_t) -> c_float;
+        fn AMotionEvent_getY(event: *const Event, pointer_index: size_t) -> c_float;
+        fn AMotionEvent_getAction(motion_event: *const Event) -> int32_t;
     }
 }
 
