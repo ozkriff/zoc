@@ -6,7 +6,7 @@
 
 // #[phase(plugin, link)] extern crate android_glue;
 
-// #[phase(plugin)] extern crate gl_generator;
+#[phase(plugin)] extern crate gl_generator;
 
 extern crate libc;
 extern crate time;
@@ -338,39 +338,33 @@ mod egl {
 }
 
 mod gl {
-    use libc::{c_float, c_int, c_uchar, c_uint};
+    use libc::{c_float, c_int, c_uint};
 
-    pub type Enum = c_uint;
-
-    // Error codes.
-    const NO_ERROR: Enum = 0;
+    pub mod ffi {
+        generate_gl_bindings! {
+            api: "gles2",
+            profile: "core",
+            version: "2.0",
+            generator: "static", // TODO: "static" -> "struct"
+        }
+    }
 
     type Clampf = c_float;
     type Bitfield = c_uint;
     type Int = c_int;
-    type Boolean = c_uchar;
-
-    // glClear mask bits:
-    pub const COLOR_BUFFER_BIT: Enum = 0x00004000;
 
     pub fn clear_color(red: Clampf, green: Clampf, blue: Clampf, alpha: Clampf) {
         unsafe {
-            glClearColor(red, green, blue, alpha);
+            ffi::ClearColor(red, green, blue, alpha);
         }
     }
 
     pub fn clear(mask: Bitfield) {
         unsafe {
-            glClear(mask);
+            ffi::Clear(mask);
         }
-        let err = unsafe { glGetError() };
-        assert!(err == NO_ERROR);
-    }
-
-    extern {
-        fn glGetError() -> Enum;
-        fn glClearColor(red: Clampf, green: Clampf, blue: Clampf, alpha: Clampf);
-        fn glClear(mask: Bitfield);
+        let err = unsafe { ffi::GetError() };
+        assert!(err == ffi::NO_ERROR);
     }
 }
 
@@ -670,7 +664,7 @@ mod engine {
                             _ => if COLOR_COUNTER > 90 { COLOR_COUNTER = -1; }
                         }
                         COLOR_COUNTER += 1;
-                        gl::clear(gl::COLOR_BUFFER_BIT);
+                        gl::clear(gl::ffi::COLOR_BUFFER_BIT);
                     }
 
                     egl_context.swap_buffers();
