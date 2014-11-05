@@ -187,73 +187,44 @@ mod app {
 mod egl {
     use libc::{c_uint, c_void};
     use std::ptr;
-    use std::vec::Vec;
-
     use native_window;
 
     pub type Display = *const c_void;
-    pub const NO_DISPLAY: Display = 0 as Display;
-
     type NativeDisplayType = *const c_void;
-    pub const DEFAULT_DISPLAY: NativeDisplayType = 0 as NativeDisplayType;
-
     pub type Surface = *const c_void;
-    pub const NO_SURFACE: Surface = 0 as Surface;
     pub type Context = *const c_void;
-    pub const NO_CONTEXT: Context = 0 as Context;
-
     pub type Config = *const c_void;
-
-    // Config attributes.
-    pub const BLUE_SIZE: Int = 0x3022;
-    pub const GREEN_SIZE: Int = 0x3023;
-    pub const RED_SIZE: Int = 0x3024;
-    pub const DEPTH_SIZE: Int = 0x3025;
-    pub const NONE: Int =    0x3038;    /* Attrib list terminator */
-    pub const RENDERABLE_TYPE: Int = 0x3040;
-    pub const OPENGL_ES2_BIT: Int = 0x0004;    /* EGL_RENDERABLE_TYPE mask bits */
-    pub const NATIVE_VISUAL_ID: Int = 0x302E;
-
-    // Context attributes.
-    pub const CONTEXT_CLIENT_VERSION: Int = 0x3098;
-
     type NativeWindowType = *const native_window::NativeWindow;
-
-    type Int = i32;
-
-    // Error codes.
-    type Boolean = c_uint;
-    // const FALSE: Boolean = 0;
-    const TRUE: Boolean = 1;
+    type Int = ffi::EGLint;
 
     pub fn get_display(display_id: NativeDisplayType) -> Display {
         unsafe {
-            eglGetDisplay(display_id)
+            ffi::GetDisplay(display_id)
         }
     }
 
     pub fn initialize(display: Display) {
         let res = unsafe {
-            eglInitialize(display, ptr::null_mut(), ptr::null_mut())
+            ffi::Initialize(display, ptr::null_mut(), ptr::null_mut())
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
     pub fn choose_config(display: Display, attribs: &[Int], configs: &mut Vec<Config>) {
         let mut num_config: Int = 0;
         let res = unsafe {
-            eglChooseConfig(display, attribs.as_ptr(), configs.as_mut_ptr(), configs.len() as Int, &mut num_config)
+            ffi::ChooseConfig(display, attribs.as_ptr(), configs.as_mut_ptr(), configs.len() as Int, &mut num_config)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
         configs.truncate(num_config as uint);
     }
 
     pub fn get_config_attrib(display: Display, config: Config, attribute: Int) -> Int {
         let mut result: Int = 0;
         let res = unsafe {
-            eglGetConfigAttrib(display, config, attribute, &mut result)
+            ffi::GetConfigAttrib(display, config, attribute, &mut result)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
         result
     }
 
@@ -261,9 +232,9 @@ mod egl {
         display: Display, config: Config, window: NativeWindowType
     ) -> Surface {
         let res = unsafe {
-            eglCreateWindowSurface(display, config, window, ptr::null())
+            ffi::CreateWindowSurface(display, config, window, ptr::null())
         };
-        assert!(res != NO_SURFACE);
+        assert!(res != ffi::NO_SURFACE);
         res
     }
 
@@ -274,7 +245,7 @@ mod egl {
         attribs: &[Int],
     ) -> Context {
         let res = unsafe {
-            eglCreateContext(display, config, share_context, attribs.as_ptr())
+            ffi::CreateContext(display, config, share_context, attribs.as_ptr())
         };
         assert!(res != ptr::null())
         res
@@ -282,52 +253,61 @@ mod egl {
 
     pub fn make_current(display: Display, draw: Surface, read: Surface, context: Context) {
         let res = unsafe {
-            eglMakeCurrent(display, draw, read, context)
+            ffi::MakeCurrent(display, draw, read, context)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
     pub fn swap_buffers(display: Display, surface: Surface) {
         let res = unsafe {
-            eglSwapBuffers(display, surface)
+            ffi::SwapBuffers(display, surface)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
     pub fn destroy_context(display: Display, context: Context) {
         let res = unsafe {
-            eglDestroyContext(display, context)
+            ffi::DestroyContext(display, context)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
     pub fn destroy_surface(display: Display, surface: Surface) {
         let res = unsafe {
-            eglDestroySurface(display, surface)
+            ffi::DestroySurface(display, surface)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
     pub fn terminate(display: Display) {
         let res = unsafe {
-            eglTerminate(display)
+            ffi::Terminate(display)
         };
-        assert!(res == TRUE);
+        assert!(res == ffi::TRUE as c_uint);
     }
 
-    extern {
-        fn eglGetDisplay(display_id: NativeDisplayType) -> Display;
-        fn eglInitialize(display: Display, major: *mut Int, minor: *mut Int) -> Boolean;
-        fn eglChooseConfig(display: Display, attrib_list: *const Int, configs: *mut Config,
-            config_size: Int, num_config: *mut Int) -> Boolean;
-        fn eglGetConfigAttrib(display: Display, config: Config, attribute: Int, value: *mut Int) -> Boolean;
-        fn eglCreateWindowSurface(display: Display, config: Config, window: NativeWindowType, attrib_list: *const Int) -> Surface;
-        fn eglCreateContext(display: Display, config: Config, share_context: Context, attrib_list: *const Int) -> Context;
-        fn eglMakeCurrent(display: Display, draw: Surface, read: Surface, context: Context) -> Boolean;
-        fn eglSwapBuffers(display: Display, surface: Surface) -> Boolean;
-        fn eglDestroyContext(display: Display, context: Context) -> Boolean;
-        fn eglDestroySurface(display: Display, surface: Surface) -> Boolean;
-        fn eglTerminate(display: Display) -> Boolean;
+    pub mod ffi {
+        #![allow(non_camel_case_types)]
+
+        use libc;
+
+        pub type khronos_utime_nanoseconds_t = khronos_uint64_t;
+        pub type khronos_uint64_t = libc::uint64_t;
+        pub type khronos_ssize_t = libc::c_long;
+        pub type NativeDisplayType = *const libc::c_void;
+        pub type NativePixmapType = *const libc::c_void;
+        pub type NativeWindowType = super::NativeWindowType;
+        pub type EGLNativeDisplayType = *const libc::c_void;
+        pub type EGLNativePixmapType = *const libc::c_void; // FIXME: egl_native_pixmap_t instead
+        pub type EGLNativeWindowType = NativeWindowType;
+        pub type EGLint = libc::int32_t;
+
+        generate_gl_bindings! {
+            api: "egl",
+            profile: "core",
+            version: "1.5",
+            generator: "static"
+        }
     }
 }
 
@@ -602,9 +582,9 @@ mod engine {
     impl Default for EglContext {
         fn default() -> EglContext {
             EglContext {
-                display: egl::NO_DISPLAY,
-                surface: egl::NO_SURFACE,
-                context: egl::NO_CONTEXT,
+                display: egl::ffi::NO_DISPLAY,
+                surface: egl::ffi::NO_SURFACE,
+                context: egl::ffi::NO_CONTEXT,
             }
         }
     }
@@ -617,19 +597,19 @@ mod engine {
 
     impl Drop for EglContext {
         fn drop(&mut self) {
-            if self.display != egl::NO_DISPLAY {
+            if self.display != egl::ffi::NO_DISPLAY {
                 egl::make_current(
-                    self.display, egl::NO_SURFACE, egl::NO_SURFACE, egl::NO_CONTEXT);
-                if self.context != egl::NO_CONTEXT {
+                    self.display, egl::ffi::NO_SURFACE, egl::ffi::NO_SURFACE, egl::ffi::NO_CONTEXT);
+                if self.context != egl::ffi::NO_CONTEXT {
                     egl::destroy_context(self.display, self.context);
-                    self.context = egl::NO_CONTEXT;
+                    self.context = egl::ffi::NO_CONTEXT;
                 }
-                if self.surface != egl::NO_SURFACE {
+                if self.surface != egl::ffi::NO_SURFACE {
                     egl::destroy_surface(self.display, self.surface);
-                    self.surface = egl::NO_SURFACE;
+                    self.surface = egl::ffi::NO_SURFACE;
                 }
                 egl::terminate(self.display);
-                self.display = egl::NO_DISPLAY;
+                self.display = egl::ffi::NO_DISPLAY;
             }
         }
     }
@@ -718,7 +698,7 @@ mod engine {
     }
 
     pub fn create_egl_context(window: *const native_window::NativeWindow) -> EglContext {
-        let display = egl::get_display(egl::DEFAULT_DISPLAY);
+        let display = egl::get_display(egl::ffi::DEFAULT_DISPLAY);
 
         egl::initialize(display);
 
@@ -726,12 +706,13 @@ mod engine {
         // at least 8 bits per color component compatible with OpenGL ES 2.0.    A very simplified
         // selection process, where we pick the first EGLConfig that matches our criteria.
         let attribs_config = [
-            egl::RENDERABLE_TYPE, egl::OPENGL_ES2_BIT,
-            egl::BLUE_SIZE, 8,
-            egl::GREEN_SIZE, 8,
-            egl::RED_SIZE, 8,
-            egl::DEPTH_SIZE, 24,
-            egl::NONE
+            egl::ffi::RENDERABLE_TYPE as i32,
+            egl::ffi::OPENGL_ES2_BIT as i32,
+            egl::ffi::BLUE_SIZE as i32, 8,
+            egl::ffi::GREEN_SIZE as i32, 8,
+            egl::ffi::RED_SIZE as i32, 8,
+            egl::ffi::DEPTH_SIZE as i32, 24,
+            egl::ffi::NONE as i32
         ];
         let mut configs = vec!(ptr::null());
         egl::choose_config(display, attribs_config, &mut configs);
@@ -743,18 +724,18 @@ mod engine {
         // EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is guaranteed to be accepted by
         // ANativeWindow_setBuffersGeometry().    As soon as we picked a EGLConfig, we can safely
         // reconfigure the NativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID.
-        let format = egl::get_config_attrib(display, config, egl::NATIVE_VISUAL_ID);
+        let format = egl::get_config_attrib(display, config, egl::ffi::NATIVE_VISUAL_ID as i32);
 
         native_window::set_buffers_geometry(window, 0, 0, format);
 
         let surface = egl::create_window_surface(display, config, window);
 
         let attribs_context = [
-            egl::CONTEXT_CLIENT_VERSION, 2,
-            egl::NONE
+            egl::ffi::CONTEXT_CLIENT_VERSION as i32, 2,
+            egl::ffi::NONE as i32
         ];
         let context = egl::create_context_with_attribs(
-            display, config, egl::NO_CONTEXT, attribs_context);
+            display, config, egl::ffi::NO_CONTEXT, attribs_context);
 
         egl::make_current(display, surface, surface, context);
 
