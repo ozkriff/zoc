@@ -847,8 +847,7 @@ fn rust_event_loop(app_ptr: *mut app::AndroidApp, engine_ptr: *mut engine::Engin
  * It runs in its own thread, with its own event loop for receiving input events and doing other
  * things.
  */
-#[no_mangle]
-pub extern fn glue_main(app_ptr: *mut app::AndroidApp) {
+fn glue_main(app_ptr: *mut app::AndroidApp) {
     println!("-------------------------------------------------------------------");
 
     let app: &mut app::AndroidApp = unsafe { &mut *app_ptr };
