@@ -6,7 +6,15 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 
 [lib]
 name = "marauder"
-crate-type = ["rlib", "staticlib"]
+crate-type = ["staticlib"]
+# path = "src/lib.rs"
+# path = "src/lib2.rs"
+path = "src/lib3.rs"
+# path = "src/lib4.rs"
+
+[dependencies.glutin]
+features = ["window"]
+git = "https://github.com/tomaka/glutin"
 
 [dependencies.android_glue]
 git = "https://github.com/tomaka/android-rs-glue"
@@ -14,6 +22,5 @@ git = "https://github.com/tomaka/android-rs-glue"
 [dependencies.gl_generator]
 git = "https://github.com/bjz/gl-rs"
 
-[dependencies.glutin]
-git = "https://github.com/tomaka/glutin"
-features = ["window"]
+[dependencies.gl_common]
+git = "https://github.com/bjz/gl-rs"
