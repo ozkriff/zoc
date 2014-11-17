@@ -7,10 +7,6 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 [lib]
 name = "marauder"
 crate-type = ["staticlib"]
-# path = "src/lib.rs"
-# path = "src/lib2.rs"
-path = "src/lib3.rs"
-# path = "src/lib4.rs"
 
 [dependencies.glutin]
 features = ["window"]
