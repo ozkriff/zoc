@@ -4,6 +4,7 @@ extern crate libc;
 extern crate time;
 extern crate native;
 
+#[cfg(target_os = "android")]
 #[phase(plugin, link)]
 extern crate android_glue;
 
@@ -23,7 +24,7 @@ mod gl {
 
 static mut COLOR_COUNTER: i32 = 0;
 
-fn main() {
+pub fn main() {
     let window = glutin::Window::new().unwrap();
     unsafe {
         window.make_current();
@@ -52,6 +53,7 @@ fn main() {
     }
 }
 
+#[cfg(target_os = "android")]
 #[no_mangle]
 pub fn rust_android_main(app: *mut()) {
     android_glue::android_main2(app, proc() main());
