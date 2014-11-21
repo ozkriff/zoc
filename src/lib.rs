@@ -1,8 +1,6 @@
 #![feature(phase)]
 
 extern crate libc;
-extern crate time;
-extern crate native;
 
 #[cfg(target_os = "android")]
 #[phase(plugin, link)]
