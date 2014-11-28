@@ -16,7 +16,7 @@ mod gl {
         api: "gles2",
         profile: "core",
         version: "2.0",
-        generator: "static", // TODO: global? struct?
+        generator: "static_struct",
     }
 }
 
@@ -27,21 +27,22 @@ pub fn main() {
     unsafe {
         window.make_current();
     };
+    let gl = gl::Gles2::load_with(|s| window.get_proc_address(s));
     while !window.is_closed() {
         unsafe {
             match COLOR_COUNTER {
-                0 => gl::ClearColor(0.3, 0.0, 0.0, 1.0),
-                30 => gl::ClearColor(0.0, 0.3, 0.0, 1.0),
-                60 => gl::ClearColor(0.0, 0.0, 0.3, 1.0),
+                0 => gl.ClearColor(0.3, 0.0, 0.0, 1.0),
+                30 => gl.ClearColor(0.0, 0.3, 0.0, 1.0),
+                60 => gl.ClearColor(0.0, 0.0, 0.3, 1.0),
                 _ => if COLOR_COUNTER > 90 { COLOR_COUNTER = -1; }
             }
             COLOR_COUNTER += 1;
         }
         unsafe {
-            assert!(gl::GetError() == 0);
+            assert!(gl.GetError() == 0);
         }
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl.Clear(gl::COLOR_BUFFER_BIT);
         }
         window.swap_buffers();
         let events = window.wait_events().collect::<Vec<_>>();
