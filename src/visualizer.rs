@@ -1,5 +1,3 @@
-extern crate libc;
-
 #[phase(plugin)]
 extern crate gl_generator;
 
