@@ -1,0 +1,7 @@
+android/bin
+android/libs
+android/obj
+android/jni/librust.a
+deps
+target
+.cargo/config
