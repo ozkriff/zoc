@@ -1,10 +1,19 @@
 #![feature(phase)]
+#![feature(macro_rules)]
 
 #[cfg(target_os = "android")]
 #[phase(plugin, link)]
 extern crate android_glue;
 
+extern crate libc;
+
+extern crate cgmath;
+
 mod visualizer;
+mod visualizer_types;
+mod core_types;
+mod mgl;
+mod gl;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();

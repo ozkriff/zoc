@@ -1,25 +1,21 @@
+// See LICENSE file for copyright and license details.
+
 #[phase(plugin)]
 extern crate gl_generator;
 
 extern crate glutin;
+extern crate cgmath;
+extern crate serialize;
 
 use self::glutin::{Event, VirtualKeyCode}; // TODO: why 'self'?
-
-mod gl {
-    generate_gl_bindings! {
-        api: "gles2",
-        profile: "core",
-        version: "2.0",
-        generator: "static_struct",
-    }
-}
-
-static mut COLOR_COUNTER: i32 = 0; // TODO
+use visualizer_types::{Color3};
+use mgl::Mgl;
 
 pub struct Visualizer {
-    gl: gl::Gles2,
+    mgl: Mgl,
     window: glutin::Window,
     should_close: bool,
+    color_counter: i32, // TODO: remove
 }
 
 impl Visualizer {
@@ -28,11 +24,12 @@ impl Visualizer {
         unsafe {
             window.make_current();
         };
-        let gl = gl::Gles2::load_with(|s| window.get_proc_address(s));
+        let mgl = Mgl::new(|s| window.get_proc_address(s));
         Visualizer {
-            gl: gl,
+            mgl: mgl,
             window: window,
             should_close: false,
+            color_counter: 0,
         }
     }
 
@@ -57,18 +54,17 @@ impl Visualizer {
         }
     }
 
-    fn draw(&self) {
-        unsafe {
-            match COLOR_COUNTER {
-                0 => self.gl.ClearColor(0.3, 0.0, 0.0, 1.0),
-                30 => self.gl.ClearColor(0.0, 0.3, 0.0, 1.0),
-                60 => self.gl.ClearColor(0.0, 0.0, 0.3, 1.0),
-                _ => if COLOR_COUNTER > 90 { COLOR_COUNTER = -1; }
-            }
-            COLOR_COUNTER += 1;
-            assert!(self.gl.GetError() == 0);
-            self.gl.Clear(gl::COLOR_BUFFER_BIT);
+    fn draw(&mut self) {
+        match self.color_counter {
+            0 => self.mgl.set_clear_color(Color3{r: 0.5, g: 0.0, b: 0.0}),
+            30 => self.mgl.set_clear_color(Color3{r: 0.0, g: 0.5, b: 0.0}),
+            60 => self.mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.5}),
+            _ => if self.color_counter > 90 {
+                self.color_counter = -1;
+            },
         }
+        self.color_counter += 1;
+        self.mgl.clear_screen();
         self.window.swap_buffers();
     }
 
