@@ -16,6 +16,8 @@ use gl;
 use gl::types::{GLuint, GLint, GLenum};
 use std::ptr;
 
+use gl::Gles2 as Gl;
+
 /*
 pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
 pub const BLACK_3: Color3 = Color3{r: 0.0, g: 0.0, b: 0.0};
@@ -25,12 +27,12 @@ pub const BLACK: Color4 = Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0};
 */
 
 pub struct Mgl {
-    pub gl: gl::Gles2,
+    pub gl: Gl,
 }
 
 impl Mgl {
     pub fn new(get_proc_address: |&str| -> *const c_void) -> Mgl {
-        let gl = gl::Gles2::load_with(|s| get_proc_address(s));
+        let gl = Gl::load_with(|s| get_proc_address(s));
     	Mgl{gl: gl}
     }
 
@@ -251,7 +253,7 @@ pub fn get_2d_screen_matrix(win_size: Size2<MInt>) -> Matrix4<MFloat> {
 }
 */
 
-pub fn compile_shader(gl: &gl::Gles2, src: &str, ty: GLenum) -> GLuint {
+pub fn compile_shader(gl: &Gl, src: &str, ty: GLenum) -> GLuint {
     let shader;
     unsafe {
         shader = gl.CreateShader(ty);
@@ -266,8 +268,7 @@ pub fn compile_shader(gl: &gl::Gles2, src: &str, ty: GLenum) -> GLuint {
     shader
 }
 
-// TODO: Gles2 -> Gl
-pub fn link_program(gl: &gl::Gles2, vs: GLuint, fs: GLuint) -> GLuint {
+pub fn link_program(gl: &Gl, vs: GLuint, fs: GLuint) -> GLuint {
     unsafe {
         let program = gl.CreateProgram();
         gl.AttachShader(program, vs);
