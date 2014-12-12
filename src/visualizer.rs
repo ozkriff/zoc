@@ -113,7 +113,6 @@ impl Visualizer {
             let (w, h) = self.window.get_inner_size().unwrap();
             self.mgl.gl.Viewport(0, 0, w as GLint, h as GLint);
 
-            self.mgl.gl.Clear(gl::COLOR_BUFFER_BIT);
             self.mgl.gl.UseProgram(self.program);
             self.mgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
