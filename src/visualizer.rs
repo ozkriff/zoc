@@ -10,12 +10,34 @@ extern crate serialize;
 use self::glutin::{Event, VirtualKeyCode}; // TODO: why 'self'?
 use visualizer_types::{Color3};
 use mgl::Mgl;
+use mgl;
+use std::mem;
+
+use std::c_str::CString;
+
+// TODO: remove 'gl'
+use gl;
+use gl::types::{GLfloat, GLuint, GLint};
+
+static VS_SRC: &'static str =
+   "#version 100\n\
+    attribute vec2 position;\n\
+    void main() {\n\
+        gl_Position = vec4(position, 0.0, 1.0);\n\
+    }";
+
+static FS_SRC: &'static str =
+   "#version 100\n\
+    void main() {\n\
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
+    }";
 
 pub struct Visualizer {
     mgl: Mgl,
     window: glutin::Window,
     should_close: bool,
     color_counter: i32, // TODO: remove
+    program: GLuint,
 }
 
 impl Visualizer {
@@ -25,11 +47,27 @@ impl Visualizer {
             window.make_current();
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
+        {
+            let version = unsafe {
+                CString::new(mgl.gl.GetString(gl::VERSION) as *const i8, false)
+            };
+            println!("OpenGL version {}", version.as_str().unwrap());
+        }
+        {
+            let version = unsafe {
+                CString::new(mgl.gl.GetString(gl::SHADING_LANGUAGE_VERSION) as *const i8, false)
+            };
+            println!("GLSL ES version {}", version.as_str().unwrap());
+        }
+        let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
+        let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
+        let program = mgl::link_program(&mgl.gl, vs, fs);
         Visualizer {
             mgl: mgl,
             window: window,
             should_close: false,
             color_counter: 0,
+            program: program,
         }
     }
 
@@ -65,6 +103,23 @@ impl Visualizer {
         }
         self.color_counter += 1;
         self.mgl.clear_screen();
+        unsafe {
+            let vertices: [GLfloat, ..3 * 3] = [
+                0.0,  0.5, 0.0,
+                0.5, -0.5, 0.0,
+                -0.5, -0.5, 0.0,
+            ];
+
+            let (w, h) = self.window.get_inner_size().unwrap();
+            self.mgl.gl.Viewport(0, 0, w as GLint, h as GLint);
+
+            self.mgl.gl.Clear(gl::COLOR_BUFFER_BIT);
+            self.mgl.gl.UseProgram(self.program);
+            self.mgl.gl.VertexAttribPointer(
+                0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
+            self.mgl.gl.EnableVertexAttribArray(0);
+            self.mgl.gl.DrawArrays(gl::TRIANGLES, 0, 3);
+        }
         self.window.swap_buffers();
     }
 

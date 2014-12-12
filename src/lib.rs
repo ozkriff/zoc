@@ -12,6 +12,7 @@ extern crate cgmath;
 mod visualizer;
 mod visualizer_types;
 mod core_types;
+mod core_misc;
 mod mgl;
 mod gl;
 

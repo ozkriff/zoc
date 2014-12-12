@@ -5,16 +5,16 @@
 // use std;
 // use gl;
 // use gl::types::{GLuint, GLsizeiptr};
-// use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4};
 // use cgmath::{Vector3, rad, ortho};
-// use core::misc::deg_to_rad;
-// use core::types::{Size2, MInt};
+// use core_misc::deg_to_rad;
+// use core_types::{Size2, MInt};
 // use visualizer::types::{MFloat, Color3, Color4, ScreenPos};
-use visualizer_types::{Color3};
-
+use visualizer_types::{/*MFloat,*/ Color3};
+// use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4};
 use libc::c_void;
-
 use gl;
+use gl::types::{GLuint, GLint, GLenum};
+use std::ptr;
 
 /*
 pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
@@ -48,6 +48,44 @@ impl Mgl {
         self.check();
     }
 
+    /*
+    pub fn set_viewport(&mut self, size: Size2<MInt>) {
+        unsafe {
+            self.gl.Viewport(0, 0, size.w, size.h);
+        }
+        self.check();
+    }
+
+    // TODO: replace with something from cgmath-rs
+    pub fn tr(&self, m: Matrix4<MFloat>, v: Vector3<MFloat>) -> Matrix4<MFloat> {
+        let mut t = Matrix4::<MFloat>::identity();
+        t[3][0] = v.x;
+        t[3][1] = v.y;
+        t[3][2] = v.z;
+        m.mul_m(&t)
+    }
+
+    pub fn scale(&self, m: Matrix4<MFloat>, scale: MFloat) -> Matrix4<MFloat> {
+        let mut t = Matrix4::<MFloat>::identity();
+        t[0][0] = scale;
+        t[1][1] = scale;
+        t[2][2] = scale;
+        m.mul_m(&t)
+    }
+
+    pub fn rot_x(&self, m: Matrix4<MFloat>, angle: MFloat) -> Matrix4<MFloat> {
+        let rad = rad(deg_to_rad(angle));
+        let r = Matrix3::from_angle_x(rad).to_matrix4();
+        m.mul_m(&r)
+    }
+
+    pub fn rot_z(&self, m: Matrix4<MFloat>, angle: MFloat) -> Matrix4<MFloat> {
+        let rad = rad(deg_to_rad(angle));
+        let r = Matrix3::from_angle_z(rad).to_matrix4();
+        m.mul_m(&r)
+    }
+    */
+
     pub fn check(&self) {
         let error_code = unsafe { self.gl.GetError() };
         if error_code != 0 {
@@ -62,7 +100,6 @@ impl Mgl {
             };
             panic!("gl error: {}({})", description, error_code);
         }
-
     }
 }
 
@@ -75,43 +112,14 @@ pub enum MeshRenderMode {
 impl MeshRenderMode {
     fn to_gl_type(&self) -> GLuint {
         match *self {
-            Triangles => gl::TRIANGLES,
-            Lines => gl::LINES,
+            MeshRenderMode::Triangles => gl::TRIANGLES,
+            MeshRenderMode::Lines => gl::LINES,
         }
     }
 }
 */
 
 /*
-// TODO: replace with something from cgmath-rs
-pub fn tr(m: Matrix4<MFloat>, v: Vector3<MFloat>) -> Matrix4<MFloat> {
-    let mut t = Matrix4::<MFloat>::identity();
-    t[3][0] = v.x;
-    t[3][1] = v.y;
-    t[3][2] = v.z;
-    m.mul_m(&t)
-}
-
-pub fn scale(m: Matrix4<MFloat>, scale: MFloat) -> Matrix4<MFloat> {
-    let mut t = Matrix4::<MFloat>::identity();
-    t[0][0] = scale;
-    t[1][1] = scale;
-    t[2][2] = scale;
-    m.mul_m(&t)
-}
-
-pub fn rot_x(m: Matrix4<MFloat>, angle: MFloat) -> Matrix4<MFloat> {
-    let rad = rad(deg_to_rad(angle));
-    let r = Matrix3::from_angle_x(rad).to_matrix4();
-    m.mul_m(&r)
-}
-
-pub fn rot_z(m: Matrix4<MFloat>, angle: MFloat) -> Matrix4<MFloat> {
-    let rad = rad(deg_to_rad(angle));
-    let r = Matrix3::from_angle_z(rad).to_matrix4();
-    m.mul_m(&r)
-}
-
 pub fn init_opengl() {
     verify!(gl::Enable(gl::DEPTH_TEST));
     verify!(gl::Enable(gl::BLEND));
@@ -120,49 +128,52 @@ pub fn init_opengl() {
 */
 
 /*
-pub fn set_viewport(size: Size2<MInt>) {
-    verify!(gl::Viewport(0, 0, size.w, size.h));
-}
-
 pub struct Vao {
     id: GLuint,
 }
 
 impl Vao {
-    pub fn new() -> Vao {
+    pub fn new(mgl: &Mgl) -> Vao {
         let mut id = 0;
         unsafe {
-            verify!(gl::GenVertexArrays(1, &mut id));
+            mgl.gl.GenVertexArrays(1, &mut id);
         }
+        mgl.check();
         let vao = Vao{id: id};
         vao.bind();
         vao
     }
 
     pub fn bind(&self) {
-        verify!(gl::BindVertexArray(self.id));
+        gl.BindVertexArray(self.id);
+        mgl.check();
     }
 
     pub fn unbind(&self) {
-        verify!(gl::BindVertexArray(0));
+        gl.BindVertexArray(0);
+        mgl.check();
     }
 
     pub fn draw_array(&self, mesh_mode: MeshRenderMode, faces_count: MInt) {
         let starting_index = 0;
         let vertices_count = faces_count * 3;
         let mode = mesh_mode.to_gl_type();
-        verify!(gl::DrawArrays(mode, starting_index, vertices_count));
+        gl.DrawArrays(mode, starting_index, vertices_count);
+        mgl.check();
     }
 }
 
 impl Drop for Vao {
     fn drop(&mut self) {
         unsafe {
-            verify!(gl::DeleteVertexArrays(1, &self.id));
+            gl.DeleteVertexArrays(1, &self.id);
         }
+        mgl.check();
     }
 }
+*/
 
+/*
 pub struct Vbo {
     id: GLuint,
 }
@@ -207,7 +218,9 @@ impl Drop for Vbo {
         }
     }
 }
+*/
 
+/*
 pub fn read_pixel_bytes(
     win_size: Size2<MInt>,
     mouse_pos: ScreenPos,
@@ -237,5 +250,36 @@ pub fn get_2d_screen_matrix(win_size: Size2<MInt>) -> Matrix4<MFloat> {
     ortho(left, right, bottom, top, near, far)
 }
 */
+
+pub fn compile_shader(gl: &gl::Gles2, src: &str, ty: GLenum) -> GLuint {
+    let shader;
+    unsafe {
+        shader = gl.CreateShader(ty);
+        src.with_c_str(|ptr| gl.ShaderSource(shader, 1, &ptr, ptr::null()));
+        gl.CompileShader(shader);
+        {
+            let mut status = gl::FALSE as GLint;
+            gl.GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
+            assert!(status == gl::TRUE as GLint);
+        }
+    }
+    shader
+}
+
+// TODO: Gles2 -> Gl
+pub fn link_program(gl: &gl::Gles2, vs: GLuint, fs: GLuint) -> GLuint {
+    unsafe {
+        let program = gl.CreateProgram();
+        gl.AttachShader(program, vs);
+        gl.AttachShader(program, fs);
+        gl.LinkProgram(program);
+        {
+            let mut status = gl::FALSE as GLint;
+            gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);
+            assert!(status == (gl::TRUE as GLint));
+        }
+        program
+    }
+}
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
