@@ -13,8 +13,9 @@ use visualizer_types::{/*MFloat,*/ Color3};
 // use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4};
 use libc::c_void;
 use gl;
-use gl::types::{GLuint, GLint, GLenum};
+use gl::types::{GLuint, GLint, GLenum, GLchar};
 use std::ptr;
+use std::str;
 
 use gl::Gles2 as Gl;
 
@@ -262,7 +263,16 @@ pub fn compile_shader(gl: &Gl, src: &str, ty: GLenum) -> GLuint {
         {
             let mut status = gl::FALSE as GLint;
             gl.GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
-            assert!(status == gl::TRUE as GLint);
+            if status != gl::TRUE as GLint {
+                let mut len = 0;
+                gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+                // subtract 1 to skip the trailing null character
+                let mut buf = Vec::from_elem(len as uint - 1, 0u8);
+                gl.GetShaderInfoLog(
+                    shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
+                panic!("{}", str::from_utf8(buf.as_slice())
+                    .expect("ShaderInfoLog not valid utf8"));
+            }
         }
     }
     shader
@@ -277,7 +287,16 @@ pub fn link_program(gl: &Gl, vs: GLuint, fs: GLuint) -> GLuint {
         {
             let mut status = gl::FALSE as GLint;
             gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);
-            assert!(status == (gl::TRUE as GLint));
+            if status != gl::TRUE as GLint {
+                let mut len: GLint = 0;
+                gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
+                // subtract 1 to skip the trailing null character
+                let mut buf = Vec::from_elem(len as uint - 1, 0u8);
+                gl.GetProgramInfoLog(
+                    program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
+                panic!("{}", str::from_utf8(buf.as_slice())
+                    .expect("ProgramInfoLog not valid utf8"));
+            }
         }
         program
     }
