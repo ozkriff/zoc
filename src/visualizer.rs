@@ -19,6 +19,7 @@ use std::c_str::CString;
 use gl;
 use gl::types::{GLfloat, GLuint, GLint};
 
+// TODO: fix indent
 static VS_SRC: &'static str =
    "#version 100\n\
     attribute vec2 position;\n\
@@ -42,7 +43,7 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let window = glutin::Window::new().unwrap();
+        let window = glutin::Window::new().unwrap(); // TODO: unwrap -> expect
         unsafe {
             window.make_current();
         };
@@ -51,13 +52,13 @@ impl Visualizer {
             let version = unsafe {
                 CString::new(mgl.gl.GetString(gl::VERSION) as *const i8, false)
             };
-            println!("OpenGL version {}", version.as_str().unwrap());
+            println!("OpenGL version {}", version.as_str().unwrap()); // TODO: unwrap -> expect
         }
         {
             let version = unsafe {
                 CString::new(mgl.gl.GetString(gl::SHADING_LANGUAGE_VERSION) as *const i8, false)
             };
-            println!("GLSL ES version {}", version.as_str().unwrap());
+            println!("GLSL ES version {}", version.as_str().unwrap()); // TODO: unwrap -> expect
         }
         let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
         let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
@@ -110,7 +111,7 @@ impl Visualizer {
                 -0.5, -0.5, 0.0,
             ];
 
-            let (w, h) = self.window.get_inner_size().unwrap();
+            let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
             self.mgl.gl.Viewport(0, 0, w as GLint, h as GLint);
 
             self.mgl.gl.UseProgram(self.program);
