@@ -16,6 +16,7 @@ use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
 use std::ptr;
 use std::str;
+use std::c_str::CString;
 
 use gl::Gles2 as Gl;
 
@@ -49,6 +50,13 @@ impl Mgl {
             self.gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         self.check();
+    }
+
+    pub fn get_info(&self, name: GLuint) -> String {
+        let version = unsafe {
+            CString::new(self.gl.GetString(name) as *const i8, false)
+        };
+        String::from_str(version.as_str().unwrap()) // TODO: unwrap -> expect
     }
 
     /*

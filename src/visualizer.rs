@@ -13,8 +13,6 @@ use mgl::Mgl;
 use mgl;
 use std::mem;
 
-use std::c_str::CString;
-
 // TODO: remove 'gl'
 use gl;
 use gl::types::{GLfloat, GLuint, GLint};
@@ -48,18 +46,8 @@ impl Visualizer {
             window.make_current();
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
-        {
-            let version = unsafe {
-                CString::new(mgl.gl.GetString(gl::VERSION) as *const i8, false)
-            };
-            println!("OpenGL version {}", version.as_str().unwrap()); // TODO: unwrap -> expect
-        }
-        {
-            let version = unsafe {
-                CString::new(mgl.gl.GetString(gl::SHADING_LANGUAGE_VERSION) as *const i8, false)
-            };
-            println!("GLSL ES version {}", version.as_str().unwrap()); // TODO: unwrap -> expect
-        }
+        println!("OpenGL version {}", mgl.get_info(gl::VERSION));
+        println!("GLSL ES version {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
         let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
         let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
         let program = mgl::link_program(&mgl.gl, vs, fs);
