@@ -8,6 +8,7 @@ extern crate cgmath;
 extern crate serialize;
 
 use self::glutin::{Event, VirtualKeyCode}; // TODO: why 'self'?
+use core_types::{Size2, MInt};
 use visualizer_types::{Color3};
 use mgl::Mgl;
 use mgl;
@@ -15,7 +16,7 @@ use std::mem;
 
 // TODO: remove 'gl'
 use gl;
-use gl::types::{GLfloat, GLuint, GLint};
+use gl::types::{GLfloat, GLuint};
 
 // TODO: fix indent
 static VS_SRC: &'static str =
@@ -98,10 +99,8 @@ impl Visualizer {
                 0.5, -0.5, 0.0,
                 -0.5, -0.5, 0.0,
             ];
-
             let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
-            self.mgl.gl.Viewport(0, 0, w as GLint, h as GLint);
-
+            self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
             self.mgl.gl.UseProgram(self.program);
             self.mgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));

@@ -7,7 +7,7 @@
 // use gl::types::{GLuint, GLsizeiptr};
 // use cgmath::{Vector3, rad, ortho};
 // use core_misc::deg_to_rad;
-// use core_types::{Size2, MInt};
+use core_types::{Size2, MInt};
 // use visualizer::types::{MFloat, Color3, Color4, ScreenPos};
 use visualizer_types::{/*MFloat,*/ Color3};
 // use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4};
@@ -59,7 +59,6 @@ impl Mgl {
         String::from_str(version.as_str().unwrap()) // TODO: unwrap -> expect
     }
 
-    /*
     pub fn set_viewport(&mut self, size: Size2<MInt>) {
         unsafe {
             self.gl.Viewport(0, 0, size.w, size.h);
@@ -67,6 +66,7 @@ impl Mgl {
         self.check();
     }
 
+    /*
     // TODO: replace with something from cgmath-rs
     pub fn tr(&self, m: Matrix4<MFloat>, v: Vector3<MFloat>) -> Matrix4<MFloat> {
         let mut t = Matrix4::<MFloat>::identity();

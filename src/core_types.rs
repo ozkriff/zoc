@@ -3,13 +3,11 @@
 // use cgmath::{Vector2};
 // use std::cmp::Ord;
 
-/*
 // #[deriving(Decodable)]
 pub struct Size2<T>{
     pub w: T,
     pub h: T,
 }
-*/
 
 pub type MInt = i32;
 
