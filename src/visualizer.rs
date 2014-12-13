@@ -47,8 +47,11 @@ impl Visualizer {
             window.make_current();
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
-        println!("OpenGL version {}", mgl.get_info(gl::VERSION));
-        println!("GLSL ES version {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
+        println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
+        println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
+        println!("GL_VENDOR: {}", mgl.get_info(gl::VENDOR));
+        println!("GL_RENDERER: {}", mgl.get_info(gl::RENDERER));
+        // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
         let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
         let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
         let program = mgl::link_program(&mgl.gl, vs, fs);
