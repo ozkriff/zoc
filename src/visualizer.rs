@@ -18,21 +18,22 @@ use std::mem;
 use gl;
 use gl::types::{GLfloat, GLuint};
 
-// TODO: fix indent
-static VS_SRC: &'static str =
-   "#version 100\n\
+static VS_SRC: &'static str = "\
+    #version 100\n\
     attribute vec2 position;\n\
     void main() {\n\
         gl_Position = vec4(position, 0.0, 1.0);\n\
-    }";
+    }\n\
+";
 
-static FS_SRC: &'static str =
-   "#version 100\n\
+static FS_SRC: &'static str = "\
+    #version 100\n\
     precision mediump float;
     uniform vec4 col;\n\
     void main() {\n\
         gl_FragColor = col;\n\
-    }";
+    }\n\
+";
 
 pub struct Visualizer {
     mgl: Mgl,
