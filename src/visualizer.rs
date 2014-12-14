@@ -9,7 +9,7 @@ extern crate serialize;
 
 use self::glutin::{Event, VirtualKeyCode}; // TODO: why 'self'?
 use core_types::{Size2, MInt};
-use visualizer_types::{Color3};
+use visualizer_types::{Color3, Color4, ColorId};
 use mgl::Mgl;
 use mgl;
 use std::mem;
@@ -28,8 +28,10 @@ static VS_SRC: &'static str =
 
 static FS_SRC: &'static str =
    "#version 100\n\
+    precision mediump float;
+    uniform vec4 col;\n\
     void main() {\n\
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
+        gl_FragColor = col;\n\
     }";
 
 pub struct Visualizer {
@@ -38,6 +40,7 @@ pub struct Visualizer {
     should_close: bool,
     color_counter: i32, // TODO: remove
     program: GLuint,
+    color_unifrom_location: ColorId,
 }
 
 impl Visualizer {
@@ -47,20 +50,26 @@ impl Visualizer {
             window.make_current();
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
+        // TODO: extract to separate func 'print_gl_info'
         println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
         println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
         println!("GL_VENDOR: {}", mgl.get_info(gl::VENDOR));
         println!("GL_RENDERER: {}", mgl.get_info(gl::RENDERER));
         // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
+        // TODO: extract to separate func 'compile_shaders'
         let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
         let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
         let program = mgl::link_program(&mgl.gl, vs, fs);
+        let color_unifrom_location = ColorId {
+            id: mgl.get_uniform(program, "col") as GLuint
+        };
         Visualizer {
             mgl: mgl,
             window: window,
             should_close: false,
             color_counter: 0,
             program: program,
+            color_unifrom_location: color_unifrom_location,
         }
     }
 
@@ -105,6 +114,8 @@ impl Visualizer {
             let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
             self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
             self.mgl.gl.UseProgram(self.program);
+            self.mgl.set_uniform_color(
+                self.color_unifrom_location, Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0});
             self.mgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
             self.mgl.gl.EnableVertexAttribArray(0);
