@@ -43,6 +43,13 @@ fn print_gl_info(mgl: &Mgl) {
     // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
 }
 
+// TODO: Create 'Shader' class
+fn compile_shaders(mgl: &Mgl) -> GLuint {
+    let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
+    let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
+    mgl::link_program(&mgl.gl, vs, fs)
+}
+
 pub struct Visualizer {
     mgl: Mgl,
     window: glutin::Window,
@@ -60,10 +67,7 @@ impl Visualizer {
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
         print_gl_info(&mgl);
-        // TODO: extract to separate func 'compile_shaders'
-        let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
-        let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
-        let program = mgl::link_program(&mgl.gl, vs, fs);
+        let program = compile_shaders(&mgl);
         let color_unifrom_location = ColorId {
             id: mgl.get_uniform(program, "col") as GLuint
         };
