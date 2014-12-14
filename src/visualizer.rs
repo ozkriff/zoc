@@ -35,6 +35,14 @@ static FS_SRC: &'static str = "\
     }\n\
 ";
 
+fn print_gl_info(mgl: &Mgl) {
+    println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
+    println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
+    println!("GL_VENDOR: {}", mgl.get_info(gl::VENDOR));
+    println!("GL_RENDERER: {}", mgl.get_info(gl::RENDERER));
+    // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
+}
+
 pub struct Visualizer {
     mgl: Mgl,
     window: glutin::Window,
@@ -51,12 +59,7 @@ impl Visualizer {
             window.make_current();
         };
         let mgl = Mgl::new(|s| window.get_proc_address(s));
-        // TODO: extract to separate func 'print_gl_info'
-        println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
-        println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
-        println!("GL_VENDOR: {}", mgl.get_info(gl::VENDOR));
-        println!("GL_RENDERER: {}", mgl.get_info(gl::RENDERER));
-        // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
+        print_gl_info(&mgl);
         // TODO: extract to separate func 'compile_shaders'
         let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
         let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
