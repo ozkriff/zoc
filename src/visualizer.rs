@@ -61,7 +61,8 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let window = glutin::Window::new().unwrap(); // TODO: unwrap -> expect
+        let window = glutin::Window::new().ok()
+            .expect("Can`t create window");
         unsafe {
             window.make_current();
         };
@@ -118,7 +119,8 @@ impl Visualizer {
             0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
         ];
-        let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
+        let (w, h) = self.window.get_inner_size()
+            .expect("Can`t get window size");
         self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
         unsafe {
             self.mgl.gl.UseProgram(self.program);

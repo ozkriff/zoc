@@ -56,7 +56,8 @@ impl Mgl {
         let version = unsafe {
             CString::new(self.gl.GetString(name) as *const i8, false)
         };
-        String::from_str(version.as_str().unwrap()) // TODO: unwrap -> expect
+        String::from_str(version.as_str()
+            .expect("Can`t convert gl.GetString result to rust string"))
     }
 
     pub fn set_viewport(&mut self, size: Size2<MInt>) {
