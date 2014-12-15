@@ -113,14 +113,14 @@ impl Visualizer {
         }
         self.color_counter += 1;
         self.mgl.clear_screen();
+        let vertices: [GLfloat, ..3 * 3] = [
+            0.0,  0.5, 0.0,
+            0.5, -0.5, 0.0,
+            -0.5, -0.5, 0.0,
+        ];
+        let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
+        self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
         unsafe {
-            let vertices: [GLfloat, ..3 * 3] = [
-                0.0,  0.5, 0.0,
-                0.5, -0.5, 0.0,
-                -0.5, -0.5, 0.0,
-            ];
-            let (w, h) = self.window.get_inner_size().unwrap(); // TODO: unwrap -> expect
-            self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
             self.mgl.gl.UseProgram(self.program);
             self.mgl.set_uniform_color(
                 self.color_unifrom_location, Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0});
