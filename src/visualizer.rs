@@ -55,6 +55,7 @@ pub struct Visualizer {
     window: glutin::Window,
     should_close: bool,
     color_counter: i32, // TODO: remove
+    test_color: Color4,
     program: GLuint,
     color_unifrom_location: ColorId,
 }
@@ -66,17 +67,19 @@ impl Visualizer {
         unsafe {
             window.make_current();
         };
-        let mgl = Mgl::new(|s| window.get_proc_address(s));
+        let mut mgl = Mgl::new(|s| window.get_proc_address(s));
         print_gl_info(&mgl);
         let program = compile_shaders(&mgl);
         let color_unifrom_location = ColorId {
             id: mgl.get_uniform(program, "col") as GLuint
         };
+        mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         Visualizer {
             mgl: mgl,
             window: window,
             should_close: false,
             color_counter: 0,
+            test_color: Color4{r: 0.0, g: 0.0, b: 0.0, a: 0.0},
             program: program,
             color_unifrom_location: color_unifrom_location,
         }
@@ -103,16 +106,20 @@ impl Visualizer {
         }
     }
 
-    fn draw(&mut self) {
-        match self.color_counter {
-            0 => self.mgl.set_clear_color(Color3{r: 0.5, g: 0.0, b: 0.0}),
-            30 => self.mgl.set_clear_color(Color3{r: 0.0, g: 0.5, b: 0.0}),
-            60 => self.mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.5}),
-            _ => if self.color_counter > 90 {
-                self.color_counter = -1;
-            },
-        }
+    fn update_test_color(&mut self) {
+        self.test_color = match self.color_counter {
+            0 => Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0},
+            30 => Color4{r: 0.0, g: 1.0, b: 0.0, a: 1.0},
+            60 => Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0},
+            _ => self.test_color,
+        };
         self.color_counter += 1;
+        if self.color_counter > 90 {
+            self.color_counter = -1;
+        }
+    }
+
+    fn draw(&mut self) {
         self.mgl.clear_screen();
         let vertices: [GLfloat, ..3 * 3] = [
             0.0,  0.5, 0.0,
@@ -124,8 +131,7 @@ impl Visualizer {
         self.mgl.set_viewport(Size2{w: w as MInt, h: h as MInt});
         unsafe {
             self.mgl.gl.UseProgram(self.program);
-            self.mgl.set_uniform_color(
-                self.color_unifrom_location, Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0});
+            self.mgl.set_uniform_color(self.color_unifrom_location, &self.test_color);
             self.mgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
             self.mgl.gl.EnableVertexAttribArray(0);
@@ -137,6 +143,7 @@ impl Visualizer {
     pub fn tick(&mut self) {
         self.handle_events();
         // self.logic();
+        self.update_test_color();
         self.draw();
         // self.update_time();
     }

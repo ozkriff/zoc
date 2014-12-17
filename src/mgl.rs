@@ -67,9 +67,9 @@ impl Mgl {
         self.check();
     }
 
-    pub fn set_uniform_color(&self, color_id: ColorId, color: Color4) {
+    pub fn set_uniform_color(&self, color_id: ColorId, color: &Color4) {
         unsafe {
-            let data_ptr = mem::transmute(&color);
+            let data_ptr = mem::transmute(color);
             self.gl.Uniform4fv(color_id.id as MInt, 1, data_ptr);
         }
         self.check();
