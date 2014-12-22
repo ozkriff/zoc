@@ -12,7 +12,7 @@ crate-type = ["staticlib", "rlib"]
 features = ["window"]
 git = "https://github.com/tomaka/glutin"
 
-[dependencies.android_glue]
+[target.arm-linux-androideabi.dependencies.android_glue]
 git = "https://github.com/tomaka/android-rs-glue"
  
 [dependencies.gl_generator]
