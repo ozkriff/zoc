@@ -4,12 +4,14 @@ use gl::types::{GLfloat, GLuint};
 // use core_types::{MInt};
 // use cgmath::{Vector3, Vector2};
 
+#[deriving(Copy)]
 pub struct Color3 {
     pub r: MFloat,
     pub g: MFloat,
     pub b: MFloat,
 }
 
+#[deriving(Copy)]
 pub struct Color4 {
     pub r: MFloat,
     pub g: MFloat,
@@ -40,6 +42,7 @@ pub struct Time{pub n: u64}
 pub struct MatId{pub id: GLuint}
 */
 
+#[deriving(Copy)]
 pub struct ColorId{pub id: GLuint}
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
