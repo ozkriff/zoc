@@ -10,7 +10,7 @@ cd android
 ndk-build
 ant debug
 adb install -r bin/RustyCardboard-debug.apk
-adb shell am start -n $APPNAME
 adb logcat -c
+adb shell am start -n $APPNAME
 adb logcat -v time | grep 'RustAndroidGlue\|native-activity'
 
