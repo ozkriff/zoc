@@ -1,8 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#[phase(plugin)]
-extern crate gl_generator;
-
 extern crate glutin;
 extern crate cgmath;
 extern crate serialize;
