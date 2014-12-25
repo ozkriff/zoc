@@ -299,7 +299,7 @@ pub fn compile_shader(gl: &Gl, src: &str, ty: GLenum) -> GLuint {
                 gl.GetShaderInfoLog(
                     shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
                 panic!("{}", str::from_utf8(buf.as_slice())
-                    .expect("ShaderInfoLog not valid utf8"));
+                    .ok().expect("ShaderInfoLog not valid utf8"));
             }
         }
     }
@@ -323,7 +323,7 @@ pub fn link_program(gl: &Gl, vs: GLuint, fs: GLuint) -> GLuint {
                 gl.GetProgramInfoLog(
                     program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
                 panic!("{}", str::from_utf8(buf.as_slice())
-                    .expect("ProgramInfoLog not valid utf8"));
+                    .ok().expect("ProgramInfoLog not valid utf8"));
             }
         }
         program
