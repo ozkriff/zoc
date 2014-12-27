@@ -108,11 +108,14 @@ impl Visualizer {
         println!("{}", events);
         for event in events.iter() {
             match *event {
-                glutin::Event::Closed
-                    | glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::Q))
-                    | glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::Escape))
-                => {
+                glutin::Event::Closed => {
                     self.should_close = true;
+                },
+                glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
+                    glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
+                        self.should_close = true;
+                    }
+                    _ => {},
                 },
                 _ => {},
             }
