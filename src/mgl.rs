@@ -2,14 +2,10 @@
 
 #![macro_escape]
 
-// use std;
-// use gl;
-// use gl::types::{GLuint, GLsizeiptr};
-// use cgmath::{Vector3, rad, ortho};
-// use core_misc::deg_to_rad;
+use core_misc::deg_to_rad;
 use core_types::{Size2, MInt};
-use visualizer_types::{Color3, Color4, ColorId};
-// use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4};
+use visualizer_types::{Color3, Color4, ColorId, MFloat, MatId};
+use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
 use libc::c_void;
 use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
@@ -67,6 +63,15 @@ impl Mgl {
         self.check();
     }
 
+    pub fn set_uniform_mat4f(&self, mat_id: MatId, mat: &Matrix4<MFloat>) {
+        unsafe {
+            let data_ptr = mem::transmute(mat);
+            // TODO: give name to magic parameters
+            self.gl.UniformMatrix4fv(mat_id.id as MInt, 1, gl::FALSE, data_ptr);
+        }
+        self.check();
+    }
+
     pub fn set_uniform_color(&self, color_id: ColorId, color: &Color4) {
         unsafe {
             let data_ptr = mem::transmute(color);
@@ -86,8 +91,12 @@ impl Mgl {
         id
     }
 
-    /*
     // TODO: replace with something from cgmath-rs
+    // from cgmath-rs`s docs:
+    // "Transformations are not usually done directly on matrices, but go
+    // through transformation objects that can be converted to matrices.
+    // Rotations go through the Basis types, which are guaranteed to be
+    // orthogonal matrices."
     pub fn tr(&self, m: Matrix4<MFloat>, v: Vector3<MFloat>) -> Matrix4<MFloat> {
         let mut t = Matrix4::<MFloat>::identity();
         t[3][0] = v.x;
@@ -115,7 +124,6 @@ impl Mgl {
         let r = Matrix3::from_angle_z(rad).to_matrix4();
         m.mul_m(&r)
     }
-    */
 
     pub fn check(&self) {
         let error_code = unsafe { self.gl.GetError() };

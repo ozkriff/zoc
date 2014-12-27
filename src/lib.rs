@@ -9,6 +9,7 @@ extern crate libc;
 
 extern crate cgmath;
 
+mod camera;
 mod visualizer;
 mod visualizer_types;
 mod core_types;

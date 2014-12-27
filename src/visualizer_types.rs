@@ -2,7 +2,7 @@
 
 use gl::types::{GLfloat, GLuint};
 // use core_types::{MInt};
-// use cgmath::{Vector3, Vector2};
+use cgmath::{Vector3};
 
 #[deriving(Copy)]
 pub struct Color3 {
@@ -30,17 +30,20 @@ pub struct Normal{pub v: Vector3<MFloat>}
 
 #[deriving(Clone)]
 pub struct TextureCoord{pub v: Vector2<MFloat>}
+*/
 
 #[deriving(Clone)]
 pub struct WorldPos{pub v: Vector3<MFloat>}
 
+/*
 #[deriving(Clone)]
 pub struct ScreenPos{pub v: Vector2<MInt>}
 
 pub struct Time{pub n: u64}
-
-pub struct MatId{pub id: GLuint}
 */
+
+#[deriving(Copy)]
+pub struct MatId{pub id: GLuint}
 
 #[deriving(Copy)]
 pub struct ColorId{pub id: GLuint}

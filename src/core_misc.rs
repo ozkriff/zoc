@@ -1,14 +1,11 @@
 // See LICENSE file for copyright and license details.
 
-/*
 use std::f32::consts::PI;
-use std::io::File;
-use std::io::fs::PathExtensions;
+// use std::io::File;
+// use std::io::fs::PathExtensions;
 use visualizer_types::{MFloat};
 use std::num::Float;
-*/
 
-/*
 pub fn clamp<T: Float>(n: T, min: T, max: T) -> T {
     match n {
         n if n < min => min,
@@ -25,6 +22,7 @@ pub fn rad_to_deg(n: MFloat) -> MFloat {
     (n * 180.0) / PI
 }
 
+/*
 pub fn read_file(path: &Path) -> String {
     if !path.exists() {
         panic!("Path does not exists: {}", path.display());
