@@ -6,8 +6,8 @@
 extern crate android_glue;
 
 extern crate libc;
-
 extern crate cgmath;
+extern crate "zoc_gl" as gl;
 
 mod camera;
 mod visualizer;
@@ -15,7 +15,6 @@ mod visualizer_types;
 mod core_types;
 mod core_misc;
 mod mgl;
-mod gl;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();

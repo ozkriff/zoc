@@ -3,14 +3,10 @@
 name = "marauder"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
-build = "build.rs"
 
 [lib]
 name = "marauder"
 crate-type = ["staticlib", "rlib"]
-
-[build-dependencies.gl_generator]
-git = "https://github.com/bjz/gl-rs"
 
 [dependencies.glutin]
 features = ["window"]
@@ -21,3 +17,6 @@ git = "https://github.com/tomaka/android-rs-glue"
  
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.zoc_gl]
+path = "./zoc_gl/"
