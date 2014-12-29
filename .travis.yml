@@ -9,6 +9,6 @@ install:
     # TODO: get data: git clone --depth=1 https://github.com/ozkriff/zoc-data ...
 
 script:
-    - cd bin && cargo build
+    - make
 
 # vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
