@@ -1,12 +1,12 @@
 [package]
 
-name = "marauder-app"
+name = "zoc_app"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
 
 [[bin]]
-name = "marauder-app"
+name = "zoc"
 
-[dependencies.marauder]
+[dependencies.zoc]
 path = ".."
  

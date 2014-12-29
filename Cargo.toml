@@ -1,11 +1,11 @@
 [package]
 
-name = "marauder"
+name = "zoc"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
 
 [lib]
-name = "marauder"
+name = "zoc"
 crate-type = ["staticlib", "rlib"]
 
 [dependencies.glutin]
