@@ -3,7 +3,7 @@
 use std::f32::consts::PI;
 // use std::io::File;
 // use std::io::fs::PathExtensions;
-use visualizer_types::{MFloat};
+use visualizer_types::{ZFloat};
 use std::num::Float;
 
 pub fn clamp<T: Float>(n: T, min: T, max: T) -> T {
@@ -14,12 +14,12 @@ pub fn clamp<T: Float>(n: T, min: T, max: T) -> T {
     }
 }
 
-pub fn deg_to_rad(n: MFloat) -> MFloat {
+pub fn deg_to_rad(n: ZFloat) -> ZFloat {
     n * PI / 180.0
 }
 
 /*
-pub fn rad_to_deg(n: MFloat) -> MFloat {
+pub fn rad_to_deg(n: ZFloat) -> ZFloat {
     (n * 180.0) / PI
 }
 */

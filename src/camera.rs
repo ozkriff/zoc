@@ -2,23 +2,23 @@
 
 use std::num::FloatMath;
 use cgmath::{perspective, deg, Matrix4, Vector3};
-use core_types::{MInt, Size2};
+use core_types::{ZInt, Size2};
 use core_misc::{clamp, deg_to_rad};
-use mgl::Mgl;
-use visualizer_types::{MFloat, WorldPos};
+use zgl::Zgl;
+use visualizer_types::{ZFloat, WorldPos};
 
 pub struct Camera {
-    x_angle: MFloat, // TODO: MFloat -> Angle
-    z_angle: MFloat,
+    x_angle: ZFloat, // TODO: ZFloat -> Angle
+    z_angle: ZFloat,
     pos: WorldPos,
     max_pos: WorldPos,
-    zoom: MFloat,
-    projection_mat: Matrix4<MFloat>,
+    zoom: ZFloat,
+    projection_mat: Matrix4<ZFloat>,
 }
 
-fn get_projection_mat(win_size: &Size2<MInt>) -> Matrix4<MFloat> {
+fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
     let fov = deg(45.0f32);
-    let ratio = win_size.w as MFloat / win_size.h as MFloat;
+    let ratio = win_size.w as ZFloat / win_size.h as ZFloat;
     let display_range_min = 0.1;
     let display_range_max = 100.0;
     perspective(
@@ -26,7 +26,7 @@ fn get_projection_mat(win_size: &Size2<MInt>) -> Matrix4<MFloat> {
 }
 
 impl Camera {
-    pub fn new(win_size: &Size2<MInt>) -> Camera {
+    pub fn new(win_size: &Size2<ZInt>) -> Camera {
         Camera {
             x_angle: 45.0,
             z_angle: 0.0,
@@ -37,17 +37,17 @@ impl Camera {
         }
     }
 
-    pub fn mat(&self, mgl: &Mgl) -> Matrix4<MFloat> {
+    pub fn mat(&self, zgl: &Zgl) -> Matrix4<ZFloat> {
         let mut m = self.projection_mat;
-        m = mgl.tr(m, Vector3{x: 0.0, y: 0.0, z: -self.zoom});
-        m = mgl.rot_x(m, -self.x_angle);
-        m = mgl.rot_z(m, -self.z_angle);
-        m = mgl.tr(m, self.pos.v);
+        m = zgl.tr(m, Vector3{x: 0.0, y: 0.0, z: -self.zoom});
+        m = zgl.rot_x(m, -self.x_angle);
+        m = zgl.rot_z(m, -self.z_angle);
+        m = zgl.tr(m, self.pos.v);
         m
     }
 
     // TODO: rename to 'add_horizontal_angle'
-    pub fn add_z_angle(&mut self, angle: MFloat) {
+    pub fn add_z_angle(&mut self, angle: ZFloat) {
         self.z_angle += angle;
         while self.z_angle < 0.0 {
             self.z_angle += 360.0;
@@ -58,7 +58,7 @@ impl Camera {
     }
 
     // TODO: rename to 'add_vertical_angle'
-    pub fn add_x_angle(&mut self, angle: MFloat) {
+    pub fn add_x_angle(&mut self, angle: ZFloat) {
         self.x_angle += angle;
         self.x_angle = clamp(self.x_angle, 30.0, 75.0);
     }
@@ -79,12 +79,12 @@ impl Camera {
         self.max_pos = max_pos;
     }
 
-    pub fn change_zoom(&mut self, ratio: MFloat) {
+    pub fn change_zoom(&mut self, ratio: ZFloat) {
         self.zoom *= ratio;
         self.zoom = clamp(self.zoom, 5.0, 40.0);
     }
 
-    pub fn move_camera(&mut self, angle: MFloat, speed: MFloat) {
+    pub fn move_camera(&mut self, angle: ZFloat, speed: ZFloat) {
         let speed_in_radians = deg_to_rad(self.z_angle - angle);
         let dx = speed_in_radians.sin();
         let dy = speed_in_radians.cos();
@@ -94,7 +94,7 @@ impl Camera {
     }
 
     /*
-    pub fn regenerate_projection_mat(&mut self, win_size: Size2<MInt>) {
+    pub fn regenerate_projection_mat(&mut self, win_size: Size2<ZInt>) {
         self.projection_mat = get_projection_mat(win_size);
     }
     */

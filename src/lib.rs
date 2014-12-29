@@ -14,7 +14,7 @@ mod visualizer;
 mod visualizer_types;
 mod core_types;
 mod core_misc;
-mod mgl;
+mod zgl;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();

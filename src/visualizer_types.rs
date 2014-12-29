@@ -1,42 +1,42 @@
 // See LICENSE file for copyright and license details.
 
 use gl::types::{GLfloat, GLuint};
-use core_types::{MInt};
+use core_types::{ZInt};
 use cgmath::{Vector3, Vector2};
 
 #[deriving(Copy)]
 pub struct Color3 {
-    pub r: MFloat,
-    pub g: MFloat,
-    pub b: MFloat,
+    pub r: ZFloat,
+    pub g: ZFloat,
+    pub b: ZFloat,
 }
 
 #[deriving(Copy)]
 pub struct Color4 {
-    pub r: MFloat,
-    pub g: MFloat,
-    pub b: MFloat,
-    pub a: MFloat,
+    pub r: ZFloat,
+    pub g: ZFloat,
+    pub b: ZFloat,
+    pub a: ZFloat,
 }
 
-pub type MFloat = GLfloat;
+pub type ZFloat = GLfloat;
 
 /*
 #[deriving(Clone)]
-pub struct VertexCoord{pub v: Vector3<MFloat>}
+pub struct VertexCoord{pub v: Vector3<ZFloat>}
 
 #[deriving(Clone)]
-pub struct Normal{pub v: Vector3<MFloat>}
+pub struct Normal{pub v: Vector3<ZFloat>}
 
 #[deriving(Clone)]
-pub struct TextureCoord{pub v: Vector2<MFloat>}
+pub struct TextureCoord{pub v: Vector2<ZFloat>}
 */
 
 #[deriving(Clone)]
-pub struct WorldPos{pub v: Vector3<MFloat>}
+pub struct WorldPos{pub v: Vector3<ZFloat>}
 
 #[deriving(Clone)]
-pub struct ScreenPos{pub v: Vector2<MInt>}
+pub struct ScreenPos{pub v: Vector2<ZInt>}
 
 /*
 pub struct Time{pub n: u64}

@@ -5,10 +5,9 @@ extern crate cgmath;
 extern crate serialize;
 
 use cgmath::{Vector2, Vector3};
-use core_types::{Size2, MInt};
-use visualizer_types::{MFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
-use mgl::Mgl;
-use mgl;
+use core_types::{Size2, ZInt};
+use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
+use zgl::{Zgl, compile_shader, link_program};
 use std::mem;
 use camera::Camera;
 
@@ -34,13 +33,13 @@ static FS_SRC: &'static str = "\
     }\n\
 ";
 
-fn get_win_size(window: &glutin::Window) -> Size2<MInt> {
+fn get_win_size(window: &glutin::Window) -> Size2<ZInt> {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
-    Size2{w: w as MInt, h: h as MInt}
+    Size2{w: w as ZInt, h: h as ZInt}
 }
 
 // TODO: use this
-// fn get_max_camera_pos(map_size: &Size2<MInt>) -> WorldPos {
+// fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
 //     let pos = geom::map_pos_to_world_pos(
 //         MapPos{v: Vector2{x: map_size.w, y: map_size.h}});
 //     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
@@ -50,23 +49,23 @@ fn get_max_camera_pos() -> WorldPos {
     WorldPos{v: Vector3{x: -2.0, y: -2.0, z: 0.0}}
 }
 
-fn print_gl_info(mgl: &Mgl) {
-    println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
-    println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
-    println!("GL_VENDOR: {}", mgl.get_info(gl::VENDOR));
-    println!("GL_RENDERER: {}", mgl.get_info(gl::RENDERER));
-    // println!("GL_EXTENSIONS: {}", mgl.get_info(gl::EXTENSIONS));
+fn print_gl_info(zgl: &Zgl) {
+    println!("GL_VERSION: {}", zgl.get_info(gl::VERSION));
+    println!("GL_SHADING_LANGUAGE_VERSION: {}", zgl.get_info(gl::SHADING_LANGUAGE_VERSION));
+    println!("GL_VENDOR: {}", zgl.get_info(gl::VENDOR));
+    println!("GL_RENDERER: {}", zgl.get_info(gl::RENDERER));
+    // println!("GL_EXTENSIONS: {}", zgl.get_info(gl::EXTENSIONS));
 }
 
 // TODO: Create 'Shader' class
-fn compile_shaders(mgl: &Mgl) -> GLuint {
-    let vs = mgl::compile_shader(&mgl.gl, VS_SRC, gl::VERTEX_SHADER);
-    let fs = mgl::compile_shader(&mgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
-    mgl::link_program(&mgl.gl, vs, fs)
+fn compile_shaders(zgl: &Zgl) -> GLuint {
+    let vs = compile_shader(&zgl.gl, VS_SRC, gl::VERTEX_SHADER);
+    let fs = compile_shader(&zgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
+    link_program(&zgl.gl, vs, fs)
 }
 
 pub struct Visualizer {
-    mgl: Mgl,
+    zgl: Zgl,
     window: glutin::Window,
     should_close: bool,
     color_counter: i32, // TODO: remove
@@ -77,7 +76,7 @@ pub struct Visualizer {
     camera: Camera,
     mouse_pos: ScreenPos,
     is_mouse_lmb_pressed: bool,
-    win_size: Size2<MInt>,
+    win_size: Size2<ZInt>,
 }
 
 impl Visualizer {
@@ -88,20 +87,20 @@ impl Visualizer {
             window.make_current();
         };
         let win_size = get_win_size(&window);
-        let mut mgl = Mgl::new(|s| window.get_proc_address(s));
-        print_gl_info(&mgl);
-        let program = compile_shaders(&mgl);
+        let mut zgl = Zgl::new(|s| window.get_proc_address(s));
+        print_gl_info(&zgl);
+        let program = compile_shaders(&zgl);
         let color_uniform_location = ColorId {
-            id: mgl.get_uniform(program, "col") as GLuint
+            id: zgl.get_uniform(program, "col") as GLuint
         };
         let mvp_uniform_location = MatId {
-            id: mgl.get_uniform(program, "mvp_mat") as GLuint
+            id: zgl.get_uniform(program, "mvp_mat") as GLuint
         };
-        mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
+        zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         let mut camera = Camera::new(&win_size);
         camera.set_max_pos(get_max_camera_pos());
         Visualizer {
-            mgl: mgl,
+            zgl: zgl,
             window: window,
             should_close: false,
             color_counter: 0,
@@ -132,17 +131,17 @@ impl Visualizer {
                     self.should_close = true;
                 },
                 glutin::Event::Resized(w, h) => {
-                    self.win_size = Size2{w: w as MInt, h: h as MInt};
-                    self.mgl.set_viewport(&self.win_size);
+                    self.win_size = Size2{w: w as ZInt, h: h as ZInt};
+                    self.zgl.set_viewport(&self.win_size);
                 },
                 glutin::Event::MouseMoved((x, y)) => {
-                    let new_pos = ScreenPos{v: Vector2{x: x as MInt, y: y as MInt}};
+                    let new_pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                     if self.is_mouse_lmb_pressed {
                         let diff = new_pos.v - self.mouse_pos.v;
-                        let win_w = self.win_size.w as MFloat;
-                        let win_h = self.win_size.h as MFloat;
-                        self.camera.add_z_angle(diff.x as MFloat * (360.0 / win_w));
-                        self.camera.add_x_angle(diff.y as MFloat * (360.0 / win_h));
+                        let win_w = self.win_size.w as ZFloat;
+                        let win_h = self.win_size.h as ZFloat;
+                        self.camera.add_z_angle(diff.x as ZFloat * (360.0 / win_w));
+                        self.camera.add_x_angle(diff.y as ZFloat * (360.0 / win_h));
                     }
                     self.mouse_pos = new_pos;
                 },
@@ -189,25 +188,25 @@ impl Visualizer {
     }
 
     fn draw(&mut self) {
-        self.mgl.clear_screen();
+        self.zgl.clear_screen();
         let vertices: [GLfloat, ..3 * 3] = [
             0.0,  0.5, 0.0,
             0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
         ];
         unsafe {
-            self.mgl.gl.UseProgram(self.program);
+            self.zgl.gl.UseProgram(self.program);
         }
-        self.mgl.set_uniform_color(self.color_uniform_location, &self.test_color);
-        self.mgl.set_uniform_mat4f(
+        self.zgl.set_uniform_color(self.color_uniform_location, &self.test_color);
+        self.zgl.set_uniform_mat4f(
             self.mvp_uniform_location,
-            &self.camera.mat(&self.mgl),
+            &self.camera.mat(&self.zgl),
         );
         unsafe {
-            self.mgl.gl.VertexAttribPointer(
+            self.zgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
-            self.mgl.gl.EnableVertexAttribArray(0);
-            self.mgl.gl.DrawArrays(gl::TRIANGLES, 0, 3);
+            self.zgl.gl.EnableVertexAttribArray(0);
+            self.zgl.gl.DrawArrays(gl::TRIANGLES, 0, 3);
         }
         self.window.swap_buffers();
     }

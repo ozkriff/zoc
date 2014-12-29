@@ -9,17 +9,17 @@ pub struct Size2<T>{
     pub h: T,
 }
 
-pub type MInt = i32;
+pub type ZInt = i32;
 
 /*
 #[deriving(PartialOrd, PartialEq, Eq, Hash, Clone)]
-pub struct PlayerId{pub id: MInt}
+pub struct PlayerId{pub id: ZInt}
 
 #[deriving(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct UnitId{pub id: MInt}
+pub struct UnitId{pub id: ZInt}
 
 #[deriving(PartialEq, Clone, Show)]
-pub struct MapPos{pub v: Vector2<MInt>}
+pub struct MapPos{pub v: Vector2<ZInt>}
 */
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
