@@ -4,8 +4,9 @@ extern crate glutin;
 extern crate cgmath;
 extern crate serialize;
 
+use cgmath::{Vector2, Vector3};
 use core_types::{Size2, MInt};
-use visualizer_types::{Color3, Color4, ColorId, MatId};
+use visualizer_types::{MFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
 use mgl::Mgl;
 use mgl;
 use std::mem;
@@ -38,6 +39,17 @@ fn get_win_size(window: &glutin::Window) -> Size2<MInt> {
     Size2{w: w as MInt, h: h as MInt}
 }
 
+// TODO: use this
+// fn get_max_camera_pos(map_size: &Size2<MInt>) -> WorldPos {
+//     let pos = geom::map_pos_to_world_pos(
+//         MapPos{v: Vector2{x: map_size.w, y: map_size.h}});
+//     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
+// }
+
+fn get_max_camera_pos() -> WorldPos {
+    WorldPos{v: Vector3{x: -2.0, y: -2.0, z: 0.0}}
+}
+
 fn print_gl_info(mgl: &Mgl) {
     println!("GL_VERSION: {}", mgl.get_info(gl::VERSION));
     println!("GL_SHADING_LANGUAGE_VERSION: {}", mgl.get_info(gl::SHADING_LANGUAGE_VERSION));
@@ -63,6 +75,8 @@ pub struct Visualizer {
     color_uniform_location: ColorId,
     mvp_uniform_location: MatId,
     camera: Camera,
+    mouse_pos: ScreenPos,
+    is_mouse_lmb_pressed: bool,
 }
 
 impl Visualizer {
@@ -83,6 +97,8 @@ impl Visualizer {
             id: mgl.get_uniform(program, "mvp_mat") as GLuint
         };
         mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
+        let mut camera = Camera::new(win_size);
+        camera.set_max_pos(get_max_camera_pos());
         Visualizer {
             mgl: mgl,
             window: window,
@@ -92,7 +108,9 @@ impl Visualizer {
             program: program,
             color_uniform_location: color_uniform_location,
             mvp_uniform_location: mvp_uniform_location,
-            camera: Camera::new(win_size),
+            camera: camera,
+            mouse_pos: ScreenPos{v: Vector2::from_value(0)},
+            is_mouse_lmb_pressed: false,
         }
     }
 
@@ -111,10 +129,41 @@ impl Visualizer {
                 glutin::Event::Closed => {
                     self.should_close = true;
                 },
+                // TODO: glutin::Event::Resized(w, h) => {},
+                glutin::Event::MouseMoved((x, y)) => {
+                    let new_pos = ScreenPos{v: Vector2{x: x as MInt, y: y as MInt}};
+                    if self.is_mouse_lmb_pressed {
+                        let diff = new_pos.v - self.mouse_pos.v;
+                        let win_size = get_win_size(&self.window);
+                        let win_w = win_size.w as MFloat;
+                        let win_h = win_size.h as MFloat;
+                        self.camera.add_z_angle(diff.x as MFloat * (360.0 / win_w));
+                        self.camera.add_x_angle(diff.y as MFloat * (360.0 / win_h));
+                    }
+                    self.mouse_pos = new_pos;
+                },
+                glutin::Event::MouseInput(
+                    glutin::ElementState::Pressed,
+                    glutin::MouseButton::LeftMouseButton,
+                ) => {
+                    self.is_mouse_lmb_pressed = true;
+                },
+                glutin::Event::MouseInput(
+                    glutin::ElementState::Released,
+                    glutin::MouseButton::LeftMouseButton,
+                ) => {
+                    self.is_mouse_lmb_pressed = false
+                },
                 glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
                     glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
                         self.should_close = true;
-                    }
+                    },
+                    glutin::VirtualKeyCode::W => self.camera.move_camera(270.0, 0.1),
+                    glutin::VirtualKeyCode::S => self.camera.move_camera(90.0, 0.1),
+                    glutin::VirtualKeyCode::D => self.camera.move_camera(0.0, 0.1),
+                    glutin::VirtualKeyCode::A => self.camera.move_camera(180.0, 0.1),
+                    glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
+                    glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
                     _ => {},
                 },
                 _ => {},
@@ -148,7 +197,6 @@ impl Visualizer {
             self.mgl.gl.UseProgram(self.program);
         }
         self.mgl.set_uniform_color(self.color_uniform_location, &self.test_color);
-        self.camera.add_z_angle(1.0); // TODO: move to events handling
         self.mgl.set_uniform_mat4f(
             self.mvp_uniform_location,
             &self.camera.mat(&self.mgl),
