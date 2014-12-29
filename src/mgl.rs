@@ -105,6 +105,7 @@ impl Mgl {
         m.mul_m(&t)
     }
 
+    /*
     pub fn scale(&self, m: Matrix4<MFloat>, scale: MFloat) -> Matrix4<MFloat> {
         let mut t = Matrix4::<MFloat>::identity();
         t[0][0] = scale;
@@ -112,6 +113,7 @@ impl Mgl {
         t[2][2] = scale;
         m.mul_m(&t)
     }
+    */
 
     pub fn rot_x(&self, m: Matrix4<MFloat>, angle: MFloat) -> Matrix4<MFloat> {
         let rad = rad(deg_to_rad(angle));

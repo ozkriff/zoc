@@ -68,10 +68,12 @@ impl Camera {
         self.pos.v.y = clamp(self.pos.v.y, self.max_pos.v.y, 0.0);
     }
 
+    /*
     pub fn set_pos(&mut self, pos: WorldPos) {
         self.pos = pos;
         self.clamp_pos();
     }
+    */
 
     pub fn set_max_pos(&mut self, max_pos: WorldPos) {
         self.max_pos = max_pos;
@@ -91,9 +93,11 @@ impl Camera {
         self.clamp_pos();
     }
 
+    /*
     pub fn regenerate_projection_mat(&mut self, win_size: Size2<MInt>) {
         self.projection_mat = get_projection_mat(win_size);
     }
+    */
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
