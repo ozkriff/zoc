@@ -56,7 +56,7 @@ impl Mgl {
             .expect("Can`t convert gl.GetString result to rust string"))
     }
 
-    pub fn set_viewport(&mut self, size: Size2<MInt>) {
+    pub fn set_viewport(&mut self, size: &Size2<MInt>) {
         unsafe {
             self.gl.Viewport(0, 0, size.w, size.h);
         }

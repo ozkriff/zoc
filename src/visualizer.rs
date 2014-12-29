@@ -77,6 +77,7 @@ pub struct Visualizer {
     camera: Camera,
     mouse_pos: ScreenPos,
     is_mouse_lmb_pressed: bool,
+    win_size: Size2<MInt>,
 }
 
 impl Visualizer {
@@ -97,7 +98,7 @@ impl Visualizer {
             id: mgl.get_uniform(program, "mvp_mat") as GLuint
         };
         mgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
-        let mut camera = Camera::new(win_size);
+        let mut camera = Camera::new(&win_size);
         camera.set_max_pos(get_max_camera_pos());
         Visualizer {
             mgl: mgl,
@@ -111,6 +112,7 @@ impl Visualizer {
             camera: camera,
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
             is_mouse_lmb_pressed: false,
+            win_size: win_size,
         }
     }
 
@@ -129,14 +131,16 @@ impl Visualizer {
                 glutin::Event::Closed => {
                     self.should_close = true;
                 },
-                // TODO: glutin::Event::Resized(w, h) => {},
+                glutin::Event::Resized(w, h) => {
+                    self.win_size = Size2{w: w as MInt, h: h as MInt};
+                    self.mgl.set_viewport(&self.win_size);
+                },
                 glutin::Event::MouseMoved((x, y)) => {
                     let new_pos = ScreenPos{v: Vector2{x: x as MInt, y: y as MInt}};
                     if self.is_mouse_lmb_pressed {
                         let diff = new_pos.v - self.mouse_pos.v;
-                        let win_size = get_win_size(&self.window);
-                        let win_w = win_size.w as MFloat;
-                        let win_h = win_size.h as MFloat;
+                        let win_w = self.win_size.w as MFloat;
+                        let win_h = self.win_size.h as MFloat;
                         self.camera.add_z_angle(diff.x as MFloat * (360.0 / win_w));
                         self.camera.add_x_angle(diff.y as MFloat * (360.0 / win_h));
                     }
@@ -191,8 +195,6 @@ impl Visualizer {
             0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
         ];
-        let win_size = get_win_size(&self.window);
-        self.mgl.set_viewport(win_size);
         unsafe {
             self.mgl.gl.UseProgram(self.program);
         }

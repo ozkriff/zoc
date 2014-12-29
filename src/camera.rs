@@ -16,7 +16,7 @@ pub struct Camera {
     projection_mat: Matrix4<MFloat>,
 }
 
-fn get_projection_mat(win_size: Size2<MInt>) -> Matrix4<MFloat> {
+fn get_projection_mat(win_size: &Size2<MInt>) -> Matrix4<MFloat> {
     let fov = deg(45.0f32);
     let ratio = win_size.w as MFloat / win_size.h as MFloat;
     let display_range_min = 0.1;
@@ -26,7 +26,7 @@ fn get_projection_mat(win_size: Size2<MInt>) -> Matrix4<MFloat> {
 }
 
 impl Camera {
-    pub fn new(win_size: Size2<MInt>) -> Camera {
+    pub fn new(win_size: &Size2<MInt>) -> Camera {
         Camera {
             x_angle: 45.0,
             z_angle: 0.0,
