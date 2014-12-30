@@ -119,6 +119,54 @@ impl Visualizer {
         !self.should_close
     }
 
+    fn handle_event(&mut self, event: &glutin::Event) {
+        match *event {
+            glutin::Event::Closed => {
+                self.should_close = true;
+            },
+            glutin::Event::Resized(w, h) => {
+                self.win_size = Size2{w: w as ZInt, h: h as ZInt};
+                self.zgl.set_viewport(&self.win_size);
+            },
+            glutin::Event::MouseMoved((x, y)) => {
+                let new_pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                if self.is_mouse_lmb_pressed {
+                    let diff = new_pos.v - self.mouse_pos.v;
+                    let win_w = self.win_size.w as ZFloat;
+                    let win_h = self.win_size.h as ZFloat;
+                    self.camera.add_z_angle(diff.x as ZFloat * (360.0 / win_w));
+                    self.camera.add_x_angle(diff.y as ZFloat * (360.0 / win_h));
+                }
+                self.mouse_pos = new_pos;
+            },
+            glutin::Event::MouseInput(
+                glutin::ElementState::Pressed,
+                glutin::MouseButton::LeftMouseButton,
+            ) => {
+                self.is_mouse_lmb_pressed = true;
+            },
+            glutin::Event::MouseInput(
+                glutin::ElementState::Released,
+                glutin::MouseButton::LeftMouseButton,
+            ) => {
+                self.is_mouse_lmb_pressed = false
+            },
+            glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
+                glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
+                    self.should_close = true;
+                },
+                glutin::VirtualKeyCode::W => self.camera.move_camera(270.0, 0.1),
+                glutin::VirtualKeyCode::S => self.camera.move_camera(90.0, 0.1),
+                glutin::VirtualKeyCode::D => self.camera.move_camera(0.0, 0.1),
+                glutin::VirtualKeyCode::A => self.camera.move_camera(180.0, 0.1),
+                glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
+                glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
+                _ => {},
+            },
+            _ => {},
+        }
+    }
+
     fn handle_events(&mut self) {
         let events = self.window.poll_events().collect::<Vec<_>>();
         if events.is_empty() {
@@ -126,51 +174,7 @@ impl Visualizer {
         }
         println!("{}", events);
         for event in events.iter() {
-            match *event {
-                glutin::Event::Closed => {
-                    self.should_close = true;
-                },
-                glutin::Event::Resized(w, h) => {
-                    self.win_size = Size2{w: w as ZInt, h: h as ZInt};
-                    self.zgl.set_viewport(&self.win_size);
-                },
-                glutin::Event::MouseMoved((x, y)) => {
-                    let new_pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
-                    if self.is_mouse_lmb_pressed {
-                        let diff = new_pos.v - self.mouse_pos.v;
-                        let win_w = self.win_size.w as ZFloat;
-                        let win_h = self.win_size.h as ZFloat;
-                        self.camera.add_z_angle(diff.x as ZFloat * (360.0 / win_w));
-                        self.camera.add_x_angle(diff.y as ZFloat * (360.0 / win_h));
-                    }
-                    self.mouse_pos = new_pos;
-                },
-                glutin::Event::MouseInput(
-                    glutin::ElementState::Pressed,
-                    glutin::MouseButton::LeftMouseButton,
-                ) => {
-                    self.is_mouse_lmb_pressed = true;
-                },
-                glutin::Event::MouseInput(
-                    glutin::ElementState::Released,
-                    glutin::MouseButton::LeftMouseButton,
-                ) => {
-                    self.is_mouse_lmb_pressed = false
-                },
-                glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
-                    glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
-                        self.should_close = true;
-                    },
-                    glutin::VirtualKeyCode::W => self.camera.move_camera(270.0, 0.1),
-                    glutin::VirtualKeyCode::S => self.camera.move_camera(90.0, 0.1),
-                    glutin::VirtualKeyCode::D => self.camera.move_camera(0.0, 0.1),
-                    glutin::VirtualKeyCode::A => self.camera.move_camera(180.0, 0.1),
-                    glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
-                    glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
-                    _ => {},
-                },
-                _ => {},
-            }
+            self.handle_event(event);
         }
     }
 
