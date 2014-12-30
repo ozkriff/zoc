@@ -4,7 +4,7 @@ linux:
 	cd bin && ./make.sh
 
 run: linux
-	./bin/target/zoc
+	RUST_BACKTRACE=1 ./bin/target/zoc
 
 android:
 	cargo build --target arm-linux-androideabi -j 1 -v --release
