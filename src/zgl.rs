@@ -4,16 +4,12 @@
 
 use core_misc::deg_to_rad;
 use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, Color4, ColorId, ZFloat, MatId};
+use visualizer_types::{Color3, ZFloat};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
 use libc::c_void;
 use gl;
-use gl::types::{GLuint, GLint, GLenum, GLchar};
-use std::ptr;
-use std::str;
-use std::mem;
+use gl::types::{GLuint};
 use std::c_str::CString;
-
 use gl::Gles2 as Gl;
 
 /*
@@ -61,34 +57,6 @@ impl Zgl {
             self.gl.Viewport(0, 0, size.w, size.h);
         }
         self.check();
-    }
-
-    pub fn set_uniform_mat4f(&self, mat_id: MatId, mat: &Matrix4<ZFloat>) {
-        unsafe {
-            let data_ptr = mem::transmute(mat);
-            // TODO: give name to magic parameters
-            self.gl.UniformMatrix4fv(mat_id.id as ZInt, 1, gl::FALSE, data_ptr);
-        }
-        self.check();
-    }
-
-    pub fn set_uniform_color(&self, color_id: ColorId, color: &Color4) {
-        unsafe {
-            let data_ptr = mem::transmute(color);
-            self.gl.Uniform4fv(color_id.id as ZInt, 1, data_ptr);
-        }
-        self.check();
-    }
-
-    pub fn get_uniform(&self, progrma_id: GLuint, name: &str) -> GLuint {
-        let id = name.with_c_str(|name| {
-            unsafe {
-                self.gl.GetUniformLocation(progrma_id, name) as GLuint
-            }
-        });
-        assert!(id != -1);
-        self.check();
-        id
     }
 
     // TODO: replace with something from cgmath-rs
@@ -291,53 +259,5 @@ pub fn get_2d_screen_matrix(win_size: Size2<ZInt>) -> Matrix4<ZFloat> {
     ortho(left, right, bottom, top, near, far)
 }
 */
-
-pub fn compile_shader(gl: &Gl, src: &str, ty: GLenum) -> GLuint {
-    let shader;
-    unsafe {
-        shader = gl.CreateShader(ty);
-        src.with_c_str(|ptr| gl.ShaderSource(shader, 1, &ptr, ptr::null()));
-        gl.CompileShader(shader);
-        {
-            let mut status = gl::FALSE as GLint;
-            gl.GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
-            if status != gl::TRUE as GLint {
-                let mut len = 0;
-                gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-                // subtract 1 to skip the trailing null character
-                let mut buf = Vec::from_elem(len as uint - 1, 0u8);
-                gl.GetShaderInfoLog(
-                    shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
-                panic!("{}", str::from_utf8(buf.as_slice())
-                    .ok().expect("ShaderInfoLog not valid utf8"));
-            }
-        }
-    }
-    shader
-}
-
-pub fn link_program(gl: &Gl, vs: GLuint, fs: GLuint) -> GLuint {
-    unsafe {
-        let program = gl.CreateProgram();
-        gl.AttachShader(program, vs);
-        gl.AttachShader(program, fs);
-        gl.LinkProgram(program);
-        {
-            let mut status = gl::FALSE as GLint;
-            gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);
-            if status != gl::TRUE as GLint {
-                let mut len: GLint = 0;
-                gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-                // subtract 1 to skip the trailing null character
-                let mut buf = Vec::from_elem(len as uint - 1, 0u8);
-                gl.GetProgramInfoLog(
-                    program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
-                panic!("{}", str::from_utf8(buf.as_slice())
-                    .ok().expect("ProgramInfoLog not valid utf8"));
-            }
-        }
-        program
-    }
-}
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

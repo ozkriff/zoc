@@ -12,6 +12,7 @@ extern crate "zoc_gl" as gl;
 mod camera;
 mod visualizer;
 mod visualizer_types;
+mod shader;
 mod core_types;
 mod core_misc;
 mod zgl;

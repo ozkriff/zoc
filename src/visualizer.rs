@@ -7,13 +7,14 @@ extern crate serialize;
 use cgmath::{Vector2, Vector3};
 use core_types::{Size2, ZInt};
 use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
-use zgl::{Zgl, compile_shader, link_program};
+use zgl::{Zgl};
 use std::mem;
 use camera::Camera;
+use shader::{Shader};
 
 // TODO: remove 'gl'
 use gl;
-use gl::types::{GLfloat, GLuint};
+use gl::types::{GLfloat};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -57,25 +58,18 @@ fn print_gl_info(zgl: &Zgl) {
     // println!("GL_EXTENSIONS: {}", zgl.get_info(gl::EXTENSIONS));
 }
 
-// TODO: Create 'Shader' class
-fn compile_shaders(zgl: &Zgl) -> GLuint {
-    let vs = compile_shader(&zgl.gl, VS_SRC, gl::VERTEX_SHADER);
-    let fs = compile_shader(&zgl.gl, FS_SRC, gl::FRAGMENT_SHADER);
-    link_program(&zgl.gl, vs, fs)
-}
-
 pub struct Visualizer {
     zgl: Zgl,
     window: glutin::Window,
     should_close: bool,
     color_counter: i32, // TODO: remove
     test_color: Color4,
-    program: GLuint,
+    shader: Shader,
     color_uniform_location: ColorId,
     mvp_uniform_location: MatId,
     camera: Camera,
     mouse_pos: ScreenPos,
-    is_mouse_lmb_pressed: bool,
+    is_mouse_lmb_pressed: bool, // TODO: rename: is_lmb_pressed
     win_size: Size2<ZInt>,
 }
 
@@ -89,13 +83,9 @@ impl Visualizer {
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
         print_gl_info(&zgl);
-        let program = compile_shaders(&zgl);
-        let color_uniform_location = ColorId {
-            id: zgl.get_uniform(program, "col") as GLuint
-        };
-        let mvp_uniform_location = MatId {
-            id: zgl.get_uniform(program, "mvp_mat") as GLuint
-        };
+        let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
+        let color_uniform_location = shader.get_uniform_color(&zgl, "col");
+        let mvp_uniform_location = shader.get_uniform_mat(&zgl, "mvp_mat");
         zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         let mut camera = Camera::new(&win_size);
         camera.set_max_pos(get_max_camera_pos());
@@ -105,7 +95,7 @@ impl Visualizer {
             should_close: false,
             color_counter: 0,
             test_color: Color4{r: 0.0, g: 0.0, b: 0.0, a: 0.0},
-            program: program,
+            shader: shader,
             color_uniform_location: color_uniform_location,
             mvp_uniform_location: mvp_uniform_location,
             camera: camera,
@@ -198,14 +188,12 @@ impl Visualizer {
             0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
         ];
-        unsafe {
-            self.zgl.gl.UseProgram(self.program);
-        }
-        self.zgl.set_uniform_color(self.color_uniform_location, &self.test_color);
-        self.zgl.set_uniform_mat4f(
-            self.mvp_uniform_location,
-            &self.camera.mat(&self.zgl),
-        );
+        self.shader.activate(&self.zgl);
+        self.shader.set_uniform_color(
+            &self.zgl, self.color_uniform_location, &self.test_color);
+        self.shader.set_uniform_mat4f(
+            &self.zgl, self.mvp_uniform_location, &self.camera.mat(&self.zgl));
+        // TODO: hide gl-calls insde zgl
         unsafe {
             self.zgl.gl.VertexAttribPointer(
                 0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
