@@ -14,7 +14,6 @@ use shader::{Shader};
 
 // TODO: remove 'gl'
 use gl;
-use gl::types::{GLfloat};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -183,7 +182,7 @@ impl Visualizer {
 
     fn draw(&mut self) {
         self.zgl.clear_screen();
-        let vertices: [GLfloat, ..3 * 3] = [
+        let vertices: [ZFloat, ..3 * 3] = [
             0.0,  0.5, 0.0,
             0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
