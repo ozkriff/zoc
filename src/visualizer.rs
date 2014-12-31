@@ -56,7 +56,7 @@ pub struct Visualizer {
     mvp_uniform_location: MatId,
     camera: Camera,
     mouse_pos: ScreenPos,
-    is_mouse_lmb_pressed: bool, // TODO: rename: is_lmb_pressed
+    is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
 }
 
@@ -87,7 +87,7 @@ impl Visualizer {
             mvp_uniform_location: mvp_uniform_location,
             camera: camera,
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
-            is_mouse_lmb_pressed: false,
+            is_lmb_pressed: false,
             win_size: win_size,
         }
     }
@@ -107,7 +107,7 @@ impl Visualizer {
             },
             glutin::Event::MouseMoved((x, y)) => {
                 let new_pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
-                if self.is_mouse_lmb_pressed {
+                if self.is_lmb_pressed {
                     let diff = new_pos.v - self.mouse_pos.v;
                     let win_w = self.win_size.w as ZFloat;
                     let win_h = self.win_size.h as ZFloat;
@@ -120,13 +120,13 @@ impl Visualizer {
                 glutin::ElementState::Pressed,
                 glutin::MouseButton::LeftMouseButton,
             ) => {
-                self.is_mouse_lmb_pressed = true;
+                self.is_lmb_pressed = true;
             },
             glutin::Event::MouseInput(
                 glutin::ElementState::Released,
                 glutin::MouseButton::LeftMouseButton,
             ) => {
-                self.is_mouse_lmb_pressed = false;
+                self.is_lmb_pressed = false;
                 let (r, g, b, a) = self.zgl.read_pixel_bytes(
                     &self.win_size, &self.mouse_pos);
                 println!("r: {}, g: {}, b: {}, a: {}", r, g, b, a);
