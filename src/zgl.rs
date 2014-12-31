@@ -2,9 +2,10 @@
 
 #![macro_escape]
 
+use std::mem;
 use core_misc::deg_to_rad;
 use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, ZFloat};
+use visualizer_types::{Color3, ZFloat, ScreenPos};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
 use libc::c_void;
 use gl;
@@ -110,6 +111,28 @@ impl Zgl {
             panic!("gl error: {}({})", description, error_code);
         }
     }
+
+    pub fn read_pixel_bytes(
+        &self,
+        win_size: &Size2<ZInt>,
+        mouse_pos: &ScreenPos,
+    ) -> (ZInt, ZInt, ZInt, ZInt) {
+        let height = win_size.h;
+        let reverted_h = height - mouse_pos.v.y;
+        let data: [u8, ..4] = [0, 0, 0, 0];
+        unsafe {
+            let data_ptr = mem::transmute(&data[0]);
+            self.gl.ReadPixels(
+                mouse_pos.v.x, reverted_h, 1, 1,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                data_ptr
+            );
+        }
+        self.check();
+        (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
+    }
+
 }
 
 /*
@@ -230,26 +253,7 @@ impl Drop for Vbo {
 */
 
 /*
-pub fn read_pixel_bytes(
-    win_size: Size2<ZInt>,
-    mouse_pos: ScreenPos,
-) -> (ZInt, ZInt, ZInt, ZInt) {
-    let height = win_size.h;
-    let reverted_h = height - mouse_pos.v.y;
-    let data: [u8, ..4] = [0, 0, 0, 0]; // mut
-    unsafe {
-        let data_ptr = std::mem::transmute(&data[0]);
-        verify!(gl::ReadPixels(
-            mouse_pos.v.x, reverted_h, 1, 1,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            data_ptr
-        ));
-    }
-    (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
-}
-
-pub fn get_2d_screen_matrix(win_size: Size2<ZInt>) -> Matrix4<ZFloat> {
+pub fn get_2d_screen_matrix(&self, win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
     let left = 0.0;
     let right = win_size.w as ZFloat;
     let bottom = 0.0;

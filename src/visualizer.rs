@@ -138,7 +138,10 @@ impl Visualizer {
                 glutin::ElementState::Released,
                 glutin::MouseButton::LeftMouseButton,
             ) => {
-                self.is_mouse_lmb_pressed = false
+                self.is_mouse_lmb_pressed = false;
+                let (r, g, b, a) = self.zgl.read_pixel_bytes(
+                    &self.win_size, &self.mouse_pos);
+                println!("r: {}, g: {}, b: {}, a: {}", r, g, b, a);
             },
             glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
                 glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
