@@ -8,7 +8,6 @@ use cgmath::{Vector2, Vector3};
 use core_types::{Size2, ZInt};
 use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
 use zgl::{Zgl};
-use std::mem;
 use camera::Camera;
 use shader::{Shader};
 
@@ -195,13 +194,7 @@ impl Visualizer {
             &self.zgl, self.color_uniform_location, &self.test_color);
         self.shader.set_uniform_mat4f(
             &self.zgl, self.mvp_uniform_location, &self.camera.mat(&self.zgl));
-        // TODO: hide gl-calls insde zgl
-        unsafe {
-            self.zgl.gl.VertexAttribPointer(
-                0, 3, gl::FLOAT, gl::FALSE, 0, mem::transmute(&vertices));
-            self.zgl.gl.EnableVertexAttribArray(0);
-            self.zgl.gl.DrawArrays(gl::TRIANGLES, 0, 3);
-        }
+        self.zgl.draw_vertices(&vertices, 3);
         self.window.swap_buffers();
     }
 

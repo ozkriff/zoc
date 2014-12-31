@@ -133,6 +133,25 @@ impl Zgl {
         (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
     }
 
+    // TODO: 'Mesh' class
+    pub fn draw_vertices(&self, vertices: &[ZFloat], vertices_count: ZInt) {
+        unsafe {
+            let attr_id = 0; // TODO: gl.GetAttribLocation(shader, name)
+            let components_count = 3;
+            let is_normalized = gl::FALSE;
+            let stride = 0;
+            self.gl.VertexAttribPointer(
+                attr_id,
+                components_count,
+                gl::FLOAT,
+                is_normalized,
+                stride,
+                mem::transmute(&vertices[0]),
+            );
+            self.gl.EnableVertexAttribArray(0);
+            self.gl.DrawArrays(gl::TRIANGLES, 0, vertices_count);
+        }
+    }
 }
 
 /*
