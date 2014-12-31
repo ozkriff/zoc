@@ -1,10 +1,10 @@
 all: linux
 
 linux:
-	cd bin && ./make.sh
+	cd linux && ./make.sh
 
 run: linux
-	RUST_BACKTRACE=1 ./bin/target/zoc
+	RUST_BACKTRACE=1 ./linux/target/zoc
 
 android:
 	cargo build --target arm-linux-androideabi -j 1 -v --release
