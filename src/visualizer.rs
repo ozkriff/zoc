@@ -11,9 +11,6 @@ use zgl::{Zgl};
 use camera::Camera;
 use shader::{Shader};
 
-// TODO: remove 'gl'
-use gl;
-
 static VS_SRC: &'static str = "\
     #version 100\n\
     uniform mat4 mvp_mat;\n\
@@ -48,14 +45,6 @@ fn get_max_camera_pos() -> WorldPos {
     WorldPos{v: Vector3{x: -2.0, y: -2.0, z: 0.0}}
 }
 
-fn print_gl_info(zgl: &Zgl) {
-    println!("GL_VERSION: {}", zgl.get_info(gl::VERSION));
-    println!("GL_SHADING_LANGUAGE_VERSION: {}", zgl.get_info(gl::SHADING_LANGUAGE_VERSION));
-    println!("GL_VENDOR: {}", zgl.get_info(gl::VENDOR));
-    println!("GL_RENDERER: {}", zgl.get_info(gl::RENDERER));
-    // println!("GL_EXTENSIONS: {}", zgl.get_info(gl::EXTENSIONS));
-}
-
 pub struct Visualizer {
     zgl: Zgl,
     window: glutin::Window,
@@ -80,7 +69,7 @@ impl Visualizer {
         };
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
-        print_gl_info(&zgl);
+        zgl.print_gl_info();
         let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         let color_uniform_location = shader.get_uniform_color(&zgl, "col");
         let mvp_uniform_location = shader.get_uniform_mat(&zgl, "mvp_mat");

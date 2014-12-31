@@ -31,6 +31,14 @@ impl Zgl {
          Zgl{gl: gl}
     }
 
+    pub fn print_gl_info(&self) {
+        println!("GL_VERSION: {}", self.get_info(gl::VERSION));
+        println!("GL_SHADING_LANGUAGE_VERSION: {}", self.get_info(gl::SHADING_LANGUAGE_VERSION));
+        println!("GL_VENDOR: {}", self.get_info(gl::VENDOR));
+        println!("GL_RENDERER: {}", self.get_info(gl::RENDERER));
+        // println!("GL_EXTENSIONS: {}", self.get_info(gl::EXTENSIONS));
+    }
+
     pub fn set_clear_color(&mut self, color: Color3) {
         unsafe {
             self.gl.ClearColor(color.r, color.g, color.b, 1.0);
