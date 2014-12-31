@@ -8,9 +8,9 @@ use visualizer_types::{Color3, ZFloat};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
 use libc::c_void;
 use gl;
+use gl::Gl;
 use gl::types::{GLuint};
 use std::c_str::CString;
-use gl::Gles2 as Gl;
 
 /*
 pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
