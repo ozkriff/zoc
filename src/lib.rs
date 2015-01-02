@@ -9,6 +9,8 @@ extern crate libc;
 extern crate cgmath;
 extern crate "zoc_gl" as gl;
 
+mod core_map;
+mod geom;
 mod camera;
 mod visualizer;
 mod visualizer_types;

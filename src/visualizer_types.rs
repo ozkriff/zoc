@@ -21,10 +21,10 @@ pub struct Color4 {
 
 pub type ZFloat = GLfloat;
 
-/*
 #[deriving(Clone)]
 pub struct VertexCoord{pub v: Vector3<ZFloat>}
 
+/*
 #[deriving(Clone)]
 pub struct Normal{pub v: Vector3<ZFloat>}
 

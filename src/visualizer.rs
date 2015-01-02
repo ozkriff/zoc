@@ -5,11 +5,13 @@ extern crate cgmath;
 extern crate serialize;
 
 use cgmath::{Vector2, Vector3};
-use core_types::{Size2, ZInt};
-use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos};
-use zgl::{Zgl};
+use core_types::{Size2, ZInt, MapPos};
+use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos, VertexCoord};
+use zgl::{Zgl, Mesh};
 use camera::Camera;
 use shader::{Shader};
+use geom;
+use core_map::{MapPosIter};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -34,15 +36,26 @@ fn get_win_size(window: &glutin::Window) -> Size2<ZInt> {
     Size2{w: w as ZInt, h: h as ZInt}
 }
 
-// TODO: use this
-// fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
-//     let pos = geom::map_pos_to_world_pos(
-//         MapPos{v: Vector2{x: map_size.w, y: map_size.h}});
-//     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
-// }
+fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
+    let pos = geom::map_pos_to_world_pos(
+        MapPos{v: Vector2{x: map_size.w, y: map_size.h}});
+    WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
+}
 
-fn get_max_camera_pos() -> WorldPos {
-    WorldPos{v: Vector3{x: -2.0, y: -2.0, z: 0.0}}
+fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
+    let mut vertex_data = Vec::new();
+    for tile_pos in MapPosIter::new(map_size) {
+        let pos = geom::map_pos_to_world_pos(tile_pos);
+        // TODO: range(0, 6) -> some dir iterator
+        for num in range(0i32, 6) {
+            let vertex = geom::index_to_hex_vertex(num);
+            let next_vertex = geom::index_to_hex_vertex(num + 1);
+            vertex_data.push(VertexCoord{v: pos.v + vertex.v});
+            vertex_data.push(VertexCoord{v: pos.v + next_vertex.v});
+            vertex_data.push(VertexCoord{v: pos.v});
+        }
+    }
+    Mesh::new(zgl, vertex_data.as_slice())
 }
 
 pub struct Visualizer {
@@ -58,6 +71,7 @@ pub struct Visualizer {
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
+    mesh: Mesh,
 }
 
 impl Visualizer {
@@ -75,7 +89,9 @@ impl Visualizer {
         let mvp_uniform_location = shader.get_uniform_mat(&zgl, "mvp_mat");
         zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         let mut camera = Camera::new(&win_size);
-        camera.set_max_pos(get_max_camera_pos());
+        let map_size = Size2{w: 5, h: 2};
+        camera.set_max_pos(get_max_camera_pos(&map_size));
+        let mesh = generate_mesh(&map_size, &zgl);
         Visualizer {
             zgl: zgl,
             window: window,
@@ -89,6 +105,7 @@ impl Visualizer {
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
             is_lmb_pressed: false,
             win_size: win_size,
+            mesh: mesh,
         }
     }
 
@@ -173,17 +190,12 @@ impl Visualizer {
 
     fn draw(&mut self) {
         self.zgl.clear_screen();
-        let vertices: [ZFloat, ..3 * 3] = [
-            0.0,  0.5, 0.0,
-            0.5, -0.5, 0.0,
-            -0.5, -0.5, 0.0,
-        ];
         self.shader.activate(&self.zgl);
         self.shader.set_uniform_color(
             &self.zgl, self.color_uniform_location, &self.test_color);
         self.shader.set_uniform_mat4f(
             &self.zgl, self.mvp_uniform_location, &self.camera.mat(&self.zgl));
-        self.zgl.draw_vertices(&vertices, 3);
+        self.mesh.draw(&self.zgl);
         self.window.swap_buffers();
     }
 

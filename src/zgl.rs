@@ -2,15 +2,16 @@
 
 #![macro_escape]
 
+use std::ptr;
 use std::mem;
 use core_misc::deg_to_rad;
 use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, ZFloat, ScreenPos};
+use visualizer_types::{Color3, ZFloat, ScreenPos, VertexCoord};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
 use libc::c_void;
 use gl;
 use gl::Gl;
-use gl::types::{GLuint};
+use gl::types::{GLuint, GLsizeiptr};
 use std::c_str::CString;
 
 /*
@@ -20,6 +21,60 @@ pub const WHITE: Color4 = Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0};
 pub const BLUE: Color4 = Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0};
 pub const BLACK: Color4 = Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0};
 */
+
+pub enum MeshRenderMode {
+    Triangles,
+    // Lines,
+}
+
+impl MeshRenderMode {
+    pub fn to_gl_type(&self) -> GLuint {
+        match *self {
+            MeshRenderMode::Triangles => gl::TRIANGLES,
+            // MeshRenderMode::Lines => gl::LINES,
+        }
+    }
+}
+
+pub struct Mesh {
+    vertex_coords_vbo: Vbo,
+    length: ZInt,
+    mode: MeshRenderMode,
+}
+
+impl Mesh {
+    pub fn new(zgl: &Zgl, data: &[VertexCoord]) -> Mesh {
+        let length = data.len() as ZInt;
+        Mesh {
+            vertex_coords_vbo: Vbo::from_data(zgl, data),
+            length: length,
+            mode: MeshRenderMode::Triangles,
+        }
+    }
+
+    pub fn draw(&self, zgl: &Zgl) {
+        self.vertex_coords_vbo.bind(zgl);
+        unsafe {
+            let attr_id = 0; // TODO: gl.GetAttribLocation(shader, name)
+            let components_count = 3;
+            let is_normalized = gl::FALSE;
+            let stride = 0;
+            zgl.gl.VertexAttribPointer(
+                attr_id,
+                components_count,
+                gl::FLOAT,
+                is_normalized,
+                stride,
+                ptr::null_mut(),
+            );
+            zgl.check();
+            zgl.gl.EnableVertexAttribArray(0); // attr_id?
+            zgl.check();
+            zgl.gl.DrawArrays(self.mode.to_gl_type(), 0, self.length);
+            zgl.check();
+        }
+    }
+}
 
 pub struct Zgl {
     pub gl: Gl,
@@ -140,26 +195,6 @@ impl Zgl {
         self.check();
         (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
     }
-
-    // TODO: 'Mesh' class
-    pub fn draw_vertices(&self, vertices: &[ZFloat], vertices_count: ZInt) {
-        unsafe {
-            let attr_id = 0; // TODO: gl.GetAttribLocation(shader, name)
-            let components_count = 3;
-            let is_normalized = gl::FALSE;
-            let stride = 0;
-            self.gl.VertexAttribPointer(
-                attr_id,
-                components_count,
-                gl::FLOAT,
-                is_normalized,
-                stride,
-                mem::transmute(&vertices[0]),
-            );
-            self.gl.EnableVertexAttribArray(0);
-            self.gl.DrawArrays(gl::TRIANGLES, 0, vertices_count);
-        }
-    }
 }
 
 /*
@@ -232,44 +267,50 @@ impl Drop for Vao {
 }
 */
 
-/*
 pub struct Vbo {
     id: GLuint,
 }
 
-fn get_new_vbo_id() -> GLuint {
-    let mut id = 0;
-    unsafe {
-        verify!(gl::GenBuffers(1, &mut id));
-    }
-    id
-}
-
 impl Vbo {
-    pub fn from_data<T>(data: &[T]) -> Vbo {
-        let vbo = Vbo{id: get_new_vbo_id()};
-        vbo.bind();
-        let size = std::mem::size_of::<T>();
+    pub fn from_data<T>(zgl: &Zgl, data: &[T]) -> Vbo {
+        let vbo = Vbo{id: Vbo::get_new_vbo_id(zgl)};
+        vbo.bind(zgl);
+        let size = mem::size_of::<T>();
         let buf_size = (data.len() * size) as GLsizeiptr;
         if data.len() != 0 {
             unsafe {
-                let data_ptr = std::mem::transmute(&data[0]);
-                verify!(gl::BufferData(
+                let data_ptr = mem::transmute(&data[0]);
+                zgl.gl.BufferData(
                     gl::ARRAY_BUFFER,
                     buf_size,
                     data_ptr,
                     gl::STATIC_DRAW,
-                ));
+                );
+                zgl.check();
             }
         }
         vbo
     }
 
-    pub fn bind(&self) {
-        verify!(gl::BindBuffer(gl::ARRAY_BUFFER, self.id));
+    fn get_new_vbo_id(zgl: &Zgl) -> GLuint {
+        let mut id = 0;
+        unsafe {
+            zgl.gl.GenBuffers(1, &mut id);
+            zgl.check();
+        }
+        id
+    }
+
+    pub fn bind(&self, zgl: &Zgl) {
+        unsafe {
+            zgl.gl.BindBuffer(gl::ARRAY_BUFFER, self.id);
+        }
+        zgl.check();
     }
 }
 
+/*
+// TODO: how to pass Zgl to d-tor?
 impl Drop for Vbo {
     fn drop(&mut self) {
         unsafe {
