@@ -221,52 +221,6 @@ pub fn init_opengl() {
 }
 */
 
-/*
-pub struct Vao {
-    id: GLuint,
-}
-
-impl Vao {
-    pub fn new(zgl: &Zgl) -> Vao {
-        let mut id = 0;
-        unsafe {
-            zgl.gl.GenVertexArrays(1, &mut id);
-        }
-        zgl.check();
-        let vao = Vao{id: id};
-        vao.bind();
-        vao
-    }
-
-    pub fn bind(&self) {
-        gl.BindVertexArray(self.id);
-        zgl.check();
-    }
-
-    pub fn unbind(&self) {
-        gl.BindVertexArray(0);
-        zgl.check();
-    }
-
-    pub fn draw_array(&self, mesh_mode: MeshRenderMode, faces_count: ZInt) {
-        let starting_index = 0;
-        let vertices_count = faces_count * 3;
-        let mode = mesh_mode.to_gl_type();
-        gl.DrawArrays(mode, starting_index, vertices_count);
-        zgl.check();
-    }
-}
-
-impl Drop for Vao {
-    fn drop(&mut self) {
-        unsafe {
-            gl.DeleteVertexArrays(1, &self.id);
-        }
-        zgl.check();
-    }
-}
-*/
-
 pub struct Vbo {
     id: GLuint,
 }
