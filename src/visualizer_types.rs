@@ -4,14 +4,14 @@ use gl::types::{GLfloat, GLuint};
 use core_types::{ZInt};
 use cgmath::{Vector3, Vector2};
 
-#[deriving(Copy)]
+#[deriving(Clone)]
 pub struct Color3 {
     pub r: ZFloat,
     pub g: ZFloat,
     pub b: ZFloat,
 }
 
-#[deriving(Copy)]
+#[deriving(Clone)]
 pub struct Color4 {
     pub r: ZFloat,
     pub g: ZFloat,
@@ -42,10 +42,10 @@ pub struct ScreenPos{pub v: Vector2<ZInt>}
 pub struct Time{pub n: u64}
 */
 
-#[deriving(Copy)]
+#[deriving(Clone)]
 pub struct MatId{pub id: GLuint}
 
-#[deriving(Copy)]
+#[deriving(Clone)]
 pub struct ColorId{pub id: GLuint}
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

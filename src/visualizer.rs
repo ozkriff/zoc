@@ -180,7 +180,7 @@ impl Visualizer {
             0 => Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0},
             30 => Color4{r: 0.0, g: 1.0, b: 0.0, a: 1.0},
             60 => Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0},
-            _ => self.test_color,
+            _ => self.test_color.clone(),
         };
         self.color_counter += 1;
         if self.color_counter > 90 {
@@ -192,9 +192,9 @@ impl Visualizer {
         self.zgl.clear_screen();
         self.shader.activate(&self.zgl);
         self.shader.set_uniform_color(
-            &self.zgl, self.color_uniform_location, &self.test_color);
+            &self.zgl, &self.color_uniform_location, &self.test_color);
         self.shader.set_uniform_mat4f(
-            &self.zgl, self.mvp_uniform_location, &self.camera.mat(&self.zgl));
+            &self.zgl, &self.mvp_uniform_location, &self.camera.mat(&self.zgl));
         self.mesh.draw(&self.zgl);
         self.window.swap_buffers();
     }

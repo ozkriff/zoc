@@ -29,7 +29,7 @@ impl Shader {
         zgl.check();
     }
 
-    pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: MatId, mat: &Matrix4<ZFloat>) {
+    pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
         unsafe {
             let data_ptr = mem::transmute(mat);
             // TODO: give name to magic parameters
@@ -38,7 +38,7 @@ impl Shader {
         zgl.check();
     }
 
-    pub fn set_uniform_color(&self, zgl: &Zgl, color_id: ColorId, color: &Color4) {
+    pub fn set_uniform_color(&self, zgl: &Zgl, color_id: &ColorId, color: &Color4) {
         unsafe {
             let data_ptr = mem::transmute(color);
             zgl.gl.Uniform4fv(color_id.id as ZInt, 1, data_ptr);
