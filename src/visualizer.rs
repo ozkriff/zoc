@@ -169,7 +169,7 @@ impl Visualizer {
         if events.is_empty() {
             return;
         }
-        println!("{}", events);
+        // println!("{}", events);
         for event in events.iter() {
             self.handle_event(event);
         }
