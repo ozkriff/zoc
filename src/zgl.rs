@@ -182,7 +182,7 @@ impl Zgl {
     ) -> (ZInt, ZInt, ZInt, ZInt) {
         let height = win_size.h;
         let reverted_h = height - mouse_pos.v.y;
-        let data: [u8, ..4] = [0, 0, 0, 0];
+        let data: [u8; 4] = [0, 0, 0, 0];
         unsafe {
             let data_ptr = mem::transmute(&data[0]);
             self.gl.ReadPixels(

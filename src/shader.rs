@@ -3,6 +3,7 @@
 use std::mem;
 use std::ptr;
 use std::str;
+use std::c_str::ToCStr;
 use cgmath::{Matrix4};
 use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
@@ -83,7 +84,7 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
             let mut len = 0;
             zgl.gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
             // subtract 1 to skip the trailing null character
-            let mut buf = Vec::from_elem(len as uint - 1, 0u8);
+            let mut buf = Vec::with_capacity(len as uint - 1);
             zgl.gl.GetShaderInfoLog(
                 shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
             panic!("{}", str::from_utf8(buf.as_slice())
@@ -117,7 +118,7 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> GLuint {
             let mut len: GLint = 0;
             zgl.gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
             // subtract 1 to skip the trailing null character
-            let mut buf = Vec::from_elem(len as uint - 1, 0u8);
+            let mut buf = Vec::with_capacity(len as uint - 1);
             zgl.gl.GetProgramInfoLog(
                 program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
             panic!("{}", str::from_utf8(buf.as_slice())
