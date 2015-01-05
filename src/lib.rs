@@ -8,6 +8,8 @@ extern crate android_glue;
 extern crate libc;
 extern crate cgmath;
 extern crate "zoc_gl" as gl;
+extern crate serialize;
+extern crate glutin;
 
 mod core_map;
 mod geom;

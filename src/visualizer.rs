@@ -1,10 +1,7 @@
 // See LICENSE file for copyright and license details.
 
-extern crate glutin;
-extern crate cgmath;
-extern crate serialize;
-
 use cgmath::{Vector2, Vector3, deg};
+use glutin;
 use core_types::{Size2, ZInt, MapPos};
 use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos, VertexCoord};
 use zgl::{Zgl, Mesh};
