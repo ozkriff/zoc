@@ -1,7 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#![macro_escape]
-
 use std::ptr;
 use std::mem;
 use core_types::{Size2, ZInt};
