@@ -5,7 +5,16 @@ use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
 use glutin::ElementState::{Pressed, Released};
 use glutin::MouseButton::{LeftMouseButton};
 use core_types::{Size2, ZInt, MapPos};
-use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos, VertexCoord};
+use visualizer_types::{
+    ZFloat,
+    Color3,
+    Color4,
+    ColorId,
+    MatId,
+    WorldPos,
+    ScreenPos,
+    VertexCoord,
+};
 use zgl::{Zgl, Mesh};
 use camera::Camera;
 use shader::{Shader};
