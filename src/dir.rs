@@ -95,12 +95,13 @@ impl Iterator for DirIter {
     type Item = Dir;
 
     fn next(&mut self) -> Option<Dir> {
-        self.index += 1;
-        if self.index == 6 {
+        let next_dir = if self.index == 6 {
             None
         } else {
             Some(Dir::from_int(self.index))
-        }
+        };
+        self.index += 1;
+        next_dir
     }
 }
 
