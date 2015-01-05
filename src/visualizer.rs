@@ -113,6 +113,19 @@ impl Visualizer {
         !self.should_close
     }
 
+    fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
+        if self.is_lmb_pressed {
+            let diff = pos.v - self.mouse_pos.v;
+            let win_w = self.win_size.w as ZFloat;
+            let win_h = self.win_size.h as ZFloat;
+            self.camera.add_z_angle(
+                deg(diff.x as ZFloat * (360.0 / win_w)));
+            self.camera.add_x_angle(
+                deg(diff.y as ZFloat * (360.0 / win_h)));
+        }
+        self.mouse_pos = pos.clone();
+    }
+
     fn handle_event_key_press(&mut self, key: glutin::VirtualKeyCode) {
         match key {
             glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
@@ -138,15 +151,8 @@ impl Visualizer {
                 self.zgl.set_viewport(&self.win_size);
             },
             glutin::Event::MouseMoved((x, y)) => {
-                let new_pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
-                if self.is_lmb_pressed {
-                    let diff = new_pos.v - self.mouse_pos.v;
-                    let win_w = self.win_size.w as ZFloat;
-                    let win_h = self.win_size.h as ZFloat;
-                    self.camera.add_z_angle(deg(diff.x as ZFloat * (360.0 / win_w)));
-                    self.camera.add_x_angle(deg(diff.y as ZFloat * (360.0 / win_h)));
-                }
-                self.mouse_pos = new_pos;
+                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                self.handle_event_mouse_move(&pos);
             },
             glutin::Event::MouseInput(
                 glutin::ElementState::Pressed,
