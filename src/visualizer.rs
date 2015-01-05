@@ -4,7 +4,7 @@ extern crate glutin;
 extern crate cgmath;
 extern crate serialize;
 
-use cgmath::{Vector2, Vector3};
+use cgmath::{Vector2, Vector3, deg};
 use core_types::{Size2, ZInt, MapPos};
 use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos, VertexCoord};
 use zgl::{Zgl, Mesh};
@@ -113,6 +113,21 @@ impl Visualizer {
         !self.should_close
     }
 
+    fn handle_event_key_press(&mut self, key: glutin::VirtualKeyCode) {
+        match key {
+            glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
+                self.should_close = true;
+            },
+            glutin::VirtualKeyCode::W => self.camera.move_camera(deg(270.0), 0.1),
+            glutin::VirtualKeyCode::S => self.camera.move_camera(deg(90.0), 0.1),
+            glutin::VirtualKeyCode::D => self.camera.move_camera(deg(0.0), 0.1),
+            glutin::VirtualKeyCode::A => self.camera.move_camera(deg(180.0), 0.1),
+            glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
+            glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
+            _ => {},
+        }
+    }
+
     fn handle_event(&mut self, event: &glutin::Event) {
         match *event {
             glutin::Event::Closed => {
@@ -128,8 +143,8 @@ impl Visualizer {
                     let diff = new_pos.v - self.mouse_pos.v;
                     let win_w = self.win_size.w as ZFloat;
                     let win_h = self.win_size.h as ZFloat;
-                    self.camera.add_z_angle(diff.x as ZFloat * (360.0 / win_w));
-                    self.camera.add_x_angle(diff.y as ZFloat * (360.0 / win_h));
+                    self.camera.add_z_angle(deg(diff.x as ZFloat * (360.0 / win_w)));
+                    self.camera.add_x_angle(deg(diff.y as ZFloat * (360.0 / win_h)));
                 }
                 self.mouse_pos = new_pos;
             },
@@ -148,17 +163,10 @@ impl Visualizer {
                     &self.win_size, &self.mouse_pos);
                 println!("r: {}, g: {}, b: {}, a: {}", r, g, b, a);
             },
-            glutin::Event::KeyboardInput(_, _, Some(key)) => match key {
-                glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
-                    self.should_close = true;
-                },
-                glutin::VirtualKeyCode::W => self.camera.move_camera(270.0, 0.1),
-                glutin::VirtualKeyCode::S => self.camera.move_camera(90.0, 0.1),
-                glutin::VirtualKeyCode::D => self.camera.move_camera(0.0, 0.1),
-                glutin::VirtualKeyCode::A => self.camera.move_camera(180.0, 0.1),
-                glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
-                glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
-                _ => {},
+            glutin::Event::KeyboardInput(
+                glutin::ElementState::Released, _, Some(key)) =>
+            {
+                self.handle_event_key_press(key);
             },
             _ => {},
         }

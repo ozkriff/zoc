@@ -4,10 +4,9 @@
 
 use std::ptr;
 use std::mem;
-use core_misc::deg_to_rad;
 use core_types::{Size2, ZInt};
 use visualizer_types::{Color3, ZFloat, ScreenPos, VertexCoord};
-use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad};
+use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad};
 use libc::c_void;
 use gl;
 use gl::Gl;
@@ -147,14 +146,14 @@ impl Zgl {
     }
     */
 
-    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: ZFloat) -> Matrix4<ZFloat> {
-        let rad = rad(deg_to_rad(angle));
+    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: Deg<ZFloat>) -> Matrix4<ZFloat> {
+        let rad = angle.to_rad();
         let r = Matrix3::from_angle_x(rad).to_matrix4();
         m.mul_m(&r)
     }
 
-    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: ZFloat) -> Matrix4<ZFloat> {
-        let rad = rad(deg_to_rad(angle));
+    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: Deg<ZFloat>) -> Matrix4<ZFloat> {
+        let rad = angle.to_rad();
         let r = Matrix3::from_angle_z(rad).to_matrix4();
         m.mul_m(&r)
     }

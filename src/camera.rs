@@ -1,15 +1,15 @@
 // See LICENSE file for copyright and license details.
 
 use std::num::FloatMath;
-use cgmath::{perspective, deg, Matrix4, Vector3};
+use cgmath::{perspective, deg, Matrix4, Vector3, Deg, ToRad};
 use core_types::{ZInt, Size2};
-use core_misc::{clamp, deg_to_rad};
+use core_misc::{clamp};
 use zgl::Zgl;
 use visualizer_types::{ZFloat, WorldPos};
 
 pub struct Camera {
-    x_angle: ZFloat, // TODO: ZFloat -> Angle
-    z_angle: ZFloat,
+    x_angle: Deg<ZFloat>,
+    z_angle: Deg<ZFloat>,
     pos: WorldPos,
     max_pos: WorldPos,
     zoom: ZFloat,
@@ -28,8 +28,8 @@ fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
 impl Camera {
     pub fn new(win_size: &Size2<ZInt>) -> Camera {
         Camera {
-            x_angle: 45.0,
-            z_angle: 0.0,
+            x_angle: deg(45.0),
+            z_angle: deg(0.0),
             pos: WorldPos{v: Vector3::from_value(0.0)},
             max_pos: WorldPos{v: Vector3::from_value(0.0)},
             zoom: 10.0,
@@ -47,20 +47,21 @@ impl Camera {
     }
 
     // TODO: rename to 'add_horizontal_angle'
-    pub fn add_z_angle(&mut self, angle: ZFloat) {
-        self.z_angle += angle;
-        while self.z_angle < 0.0 {
-            self.z_angle += 360.0;
+    pub fn add_z_angle(&mut self, angle: Deg<ZFloat>) {
+        self.z_angle = self.z_angle + angle; // TODO: cgmath: Deg: '+='
+        while self.z_angle < deg(0.0) {
+            self.z_angle = self.z_angle + deg(360.0);
         }
-        while self.z_angle > 360.0 {
-            self.z_angle -= 360.0;
+        while self.z_angle > deg(360.0) {
+            self.z_angle = self.z_angle - deg(360.0);
         }
     }
 
     // TODO: rename to 'add_vertical_angle'
-    pub fn add_x_angle(&mut self, angle: ZFloat) {
-        self.x_angle += angle;
-        self.x_angle = clamp(self.x_angle, 30.0, 75.0);
+    pub fn add_x_angle(&mut self, angle: Deg<ZFloat>) {
+        // self.x_angle += angle;
+        self.x_angle = self.x_angle + angle;
+        self.x_angle = deg(clamp(self.x_angle.s, 30.0, 75.0));
     }
 
     fn clamp_pos(&mut self) {
@@ -84,8 +85,8 @@ impl Camera {
         self.zoom = clamp(self.zoom, 5.0, 40.0);
     }
 
-    pub fn move_camera(&mut self, angle: ZFloat, speed: ZFloat) {
-        let speed_in_radians = deg_to_rad(self.z_angle - angle);
+    pub fn move_camera(&mut self, angle: Deg<ZFloat>, speed: ZFloat) {
+        let speed_in_radians = (self.z_angle - angle).to_rad().s;
         let dx = speed_in_radians.sin();
         let dy = speed_in_radians.cos();
         self.pos.v.x -= dy * speed * self.zoom;

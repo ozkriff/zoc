@@ -1,28 +1,18 @@
 // See LICENSE file for copyright and license details.
 
-use std::f32::consts::PI;
+use std::cmp;
 // use std::io::File;
 // use std::io::fs::PathExtensions;
-use visualizer_types::{ZFloat};
-use std::num::Float;
 
-pub fn clamp<T: Float>(n: T, min: T, max: T) -> T {
+pub fn clamp<T>(n: T, min: T, max: T) -> T
+    where T: Copy + cmp::PartialOrd
+{
     match n {
         n if n < min => min,
         n if n > max => max,
         n => n,
     }
 }
-
-pub fn deg_to_rad(n: ZFloat) -> ZFloat {
-    n * PI / 180.0
-}
-
-/*
-pub fn rad_to_deg(n: ZFloat) -> ZFloat {
-    (n * 180.0) / PI
-}
-*/
 
 /*
 pub fn read_file(path: &Path) -> String {
