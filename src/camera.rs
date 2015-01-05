@@ -46,8 +46,7 @@ impl Camera {
         m
     }
 
-    // TODO: rename to 'add_horizontal_angle'
-    pub fn add_z_angle(&mut self, angle: Deg<ZFloat>) {
+    pub fn add_horizontal_angle(&mut self, angle: Deg<ZFloat>) {
         self.z_angle = self.z_angle + angle; // TODO: cgmath: Deg: '+='
         while self.z_angle < deg(0.0) {
             self.z_angle = self.z_angle + deg(360.0);
@@ -57,8 +56,7 @@ impl Camera {
         }
     }
 
-    // TODO: rename to 'add_vertical_angle'
-    pub fn add_x_angle(&mut self, angle: Deg<ZFloat>) {
+    pub fn add_vertical_angle(&mut self, angle: Deg<ZFloat>) {
         self.x_angle = self.x_angle + angle;
         self.x_angle = clamp(self.x_angle, deg(30.0), deg(75.0));
     }

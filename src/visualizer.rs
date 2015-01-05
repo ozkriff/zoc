@@ -126,9 +126,9 @@ impl Visualizer {
             let diff = pos.v - self.mouse_pos.v;
             let win_w = self.win_size.w as ZFloat;
             let win_h = self.win_size.h as ZFloat;
-            self.camera.add_z_angle(
+            self.camera.add_horizontal_angle(
                 deg(diff.x as ZFloat * (360.0 / win_w)));
-            self.camera.add_x_angle(
+            self.camera.add_vertical_angle(
                 deg(diff.y as ZFloat * (360.0 / win_h)));
         }
         self.mouse_pos = pos.clone();
