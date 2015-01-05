@@ -1,7 +1,9 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2, Vector3, deg};
-use glutin;
+use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
+use glutin::ElementState::{Pressed, Released};
+use glutin::MouseButton::{LeftMouseButton};
 use core_types::{Size2, ZInt, MapPos};
 use visualizer_types::{ZFloat, Color3, Color4, ColorId, MatId, WorldPos, ScreenPos, VertexCoord};
 use zgl::{Zgl, Mesh};
@@ -28,7 +30,7 @@ static FS_SRC: &'static str = "\
     }\n\
 ";
 
-fn get_win_size(window: &glutin::Window) -> Size2<ZInt> {
+fn get_win_size(window: &Window) -> Size2<ZInt> {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
     Size2{w: w as ZInt, h: h as ZInt}
 }
@@ -57,7 +59,7 @@ fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
 
 pub struct Visualizer {
     zgl: Zgl,
-    window: glutin::Window,
+    window: Window,
     should_close: bool,
     color_counter: i32, // TODO: remove
     test_color: Color4,
@@ -73,7 +75,7 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let window_builder = glutin::WindowBuilder::new().with_gl_version((2, 0));
+        let window_builder = WindowBuilder::new().with_gl_version((2, 0));
         let window = window_builder.build().ok().expect("Can`t create window");
         unsafe {
             window.make_current();
@@ -123,52 +125,44 @@ impl Visualizer {
         self.mouse_pos = pos.clone();
     }
 
-    fn handle_event_key_press(&mut self, key: glutin::VirtualKeyCode) {
+    fn handle_event_key_press(&mut self, key: VirtualKeyCode) {
         match key {
-            glutin::VirtualKeyCode::Q | glutin::VirtualKeyCode::Escape => {
+            VirtualKeyCode::Q | VirtualKeyCode::Escape => {
                 self.should_close = true;
             },
-            glutin::VirtualKeyCode::W => self.camera.move_camera(deg(270.0), 0.1),
-            glutin::VirtualKeyCode::S => self.camera.move_camera(deg(90.0), 0.1),
-            glutin::VirtualKeyCode::D => self.camera.move_camera(deg(0.0), 0.1),
-            glutin::VirtualKeyCode::A => self.camera.move_camera(deg(180.0), 0.1),
-            glutin::VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
-            glutin::VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
+            VirtualKeyCode::W => self.camera.move_camera(deg(270.0), 0.1),
+            VirtualKeyCode::S => self.camera.move_camera(deg(90.0), 0.1),
+            VirtualKeyCode::D => self.camera.move_camera(deg(0.0), 0.1),
+            VirtualKeyCode::A => self.camera.move_camera(deg(180.0), 0.1),
+            VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
+            VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
             _ => {},
         }
     }
 
-    fn handle_event(&mut self, event: &glutin::Event) {
+    fn handle_event(&mut self, event: &Event) {
         match *event {
-            glutin::Event::Closed => {
+            Event::Closed => {
                 self.should_close = true;
             },
-            glutin::Event::Resized(w, h) => {
+            Event::Resized(w, h) => {
                 self.win_size = Size2{w: w as ZInt, h: h as ZInt};
                 self.zgl.set_viewport(&self.win_size);
             },
-            glutin::Event::MouseMoved((x, y)) => {
+            Event::MouseMoved((x, y)) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 self.handle_event_mouse_move(&pos);
             },
-            glutin::Event::MouseInput(
-                glutin::ElementState::Pressed,
-                glutin::MouseButton::LeftMouseButton,
-            ) => {
+            Event::MouseInput(Pressed, LeftMouseButton) => {
                 self.is_lmb_pressed = true;
             },
-            glutin::Event::MouseInput(
-                glutin::ElementState::Released,
-                glutin::MouseButton::LeftMouseButton,
-            ) => {
+            Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
                 let (r, g, b, a) = self.zgl.read_pixel_bytes(
                     &self.win_size, &self.mouse_pos);
                 println!("r: {}, g: {}, b: {}, a: {}", r, g, b, a);
             },
-            glutin::Event::KeyboardInput(
-                glutin::ElementState::Released, _, Some(key)) =>
-            {
+            Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
             },
             _ => {},
