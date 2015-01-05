@@ -59,9 +59,8 @@ impl Camera {
 
     // TODO: rename to 'add_vertical_angle'
     pub fn add_x_angle(&mut self, angle: Deg<ZFloat>) {
-        // self.x_angle += angle;
         self.x_angle = self.x_angle + angle;
-        self.x_angle = deg(clamp(self.x_angle.s, 30.0, 75.0));
+        self.x_angle = clamp(self.x_angle, deg(30.0), deg(75.0));
     }
 
     fn clamp_pos(&mut self) {
