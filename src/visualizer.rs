@@ -20,6 +20,7 @@ use camera::Camera;
 use shader::{Shader};
 use geom;
 use core_map::{MapPosIter};
+use dir::{DirIter};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -54,8 +55,8 @@ fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
     let mut vertex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
         let pos = geom::map_pos_to_world_pos(tile_pos);
-        // TODO: range(0, 6) -> some dir iterator
-        for num in range(0i32, 6) {
+        for dir in DirIter::new() {
+            let num = dir.to_int();
             let vertex = geom::index_to_hex_vertex(num);
             let next_vertex = geom::index_to_hex_vertex(num + 1);
             vertex_data.push(VertexCoord{v: pos.v + vertex.v});
