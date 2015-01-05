@@ -31,10 +31,12 @@ impl Shader {
     }
 
     pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
+        let count = 1;
+        let transpose = gl::FALSE;
         unsafe {
             let data_ptr = mem::transmute(mat);
-            // TODO: give name to magic parameters
-            zgl.gl.UniformMatrix4fv(mat_id.id as ZInt, 1, gl::FALSE, data_ptr);
+            zgl.gl.UniformMatrix4fv(
+                mat_id.id as ZInt, count, transpose, data_ptr);
         }
         zgl.check();
     }
