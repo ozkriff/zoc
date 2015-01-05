@@ -1,5 +1,6 @@
 #![feature(phase)]
 #![feature(macro_rules)]
+#![feature(associated_types)]
 
 #[cfg(target_os = "android")]
 #[phase(plugin, link)]

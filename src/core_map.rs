@@ -18,7 +18,9 @@ impl MapPosIter {
     }
 }
 
-impl Iterator<MapPos> for MapPosIter {
+impl Iterator for MapPosIter {
+    type Item = MapPos;
+
     fn next(&mut self) -> Option<MapPos> {
         let current_pos = if self.cursor.v.y >= self.map_size.h {
             None
