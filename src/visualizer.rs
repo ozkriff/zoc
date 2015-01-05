@@ -38,7 +38,7 @@ fn get_win_size(window: &glutin::Window) -> Size2<ZInt> {
 
 fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     let pos = geom::map_pos_to_world_pos(
-        MapPos{v: Vector2{x: map_size.w, y: map_size.h}});
+        MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
