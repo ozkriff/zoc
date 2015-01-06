@@ -99,7 +99,7 @@ impl Visualizer {
         let mvp_uniform_location = shader.get_uniform_mat(&zgl, "mvp_mat");
         zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         let mut camera = Camera::new(&win_size);
-        let map_size = Size2{w: 5, h: 2};
+        let map_size = Size2{w: 5, h: 8};
         camera.set_max_pos(get_max_camera_pos(&map_size));
         let mesh = generate_mesh(&map_size, &zgl);
         Visualizer {
