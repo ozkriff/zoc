@@ -141,12 +141,24 @@ impl Visualizer {
             VirtualKeyCode::Q | VirtualKeyCode::Escape => {
                 self.should_close = true;
             },
-            VirtualKeyCode::W => self.camera.move_camera(deg(270.0), 0.1),
-            VirtualKeyCode::S => self.camera.move_camera(deg(90.0), 0.1),
-            VirtualKeyCode::D => self.camera.move_camera(deg(0.0), 0.1),
-            VirtualKeyCode::A => self.camera.move_camera(deg(180.0), 0.1),
-            VirtualKeyCode::Minus => self.camera.change_zoom(1.3),
-            VirtualKeyCode::Equals => self.camera.change_zoom(0.7),
+            VirtualKeyCode::W | VirtualKeyCode::Up => {
+                self.camera.move_camera(deg(270.0), 0.1);
+            },
+            VirtualKeyCode::S | VirtualKeyCode::Down => {
+                self.camera.move_camera(deg(90.0), 0.1);
+            },
+            VirtualKeyCode::D | VirtualKeyCode::Right => {
+                self.camera.move_camera(deg(0.0), 0.1);
+            },
+            VirtualKeyCode::A | VirtualKeyCode::Left => {
+                self.camera.move_camera(deg(180.0), 0.1);
+            },
+            VirtualKeyCode::Minus => {
+                self.camera.change_zoom(1.3);
+            },
+            VirtualKeyCode::Equals => {
+                self.camera.change_zoom(0.7);
+            },
             _ => {},
         }
     }
