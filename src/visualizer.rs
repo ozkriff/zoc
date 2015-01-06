@@ -15,7 +15,8 @@ use visualizer_types::{
     ScreenPos,
     VertexCoord,
 };
-use zgl::{Zgl, Mesh};
+use zgl::{Zgl};
+use mesh::{Mesh};
 use camera::Camera;
 use shader::{Shader};
 use geom;
@@ -210,7 +211,7 @@ impl Visualizer {
             &self.zgl, &self.color_uniform_location, &self.test_color);
         self.shader.set_uniform_mat4f(
             &self.zgl, &self.mvp_uniform_location, &self.camera.mat(&self.zgl));
-        self.mesh.draw(&self.zgl);
+        self.mesh.draw(&self.zgl, &self.shader);
         self.window.swap_buffers();
     }
 

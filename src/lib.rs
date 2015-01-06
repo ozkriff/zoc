@@ -12,6 +12,7 @@ extern crate "zoc_gl" as gl;
 extern crate serialize;
 extern crate glutin;
 
+mod mesh;
 mod core_map;
 mod geom;
 mod camera;

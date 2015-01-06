@@ -30,6 +30,17 @@ impl Shader {
         zgl.check();
     }
 
+    pub fn get_attr_location(&self, zgl: &Zgl, name: &str) -> GLuint {
+        let attr_id = name.with_c_str(|name| {
+            unsafe {
+                zgl.gl.GetAttribLocation(self.id, name)
+            }
+        });
+        zgl.check();
+        assert!(attr_id >= 0);
+        attr_id as GLuint
+    }
+
     pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
         let count = 1;
         let transpose = gl::FALSE;

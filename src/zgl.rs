@@ -1,9 +1,8 @@
 // See LICENSE file for copyright and license details.
 
-use std::ptr;
 use std::mem;
 use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, ZFloat, ScreenPos, VertexCoord};
+use visualizer_types::{Color3, ZFloat, ScreenPos};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad};
 use libc::c_void;
 use gl;
@@ -18,60 +17,6 @@ pub const WHITE: Color4 = Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0};
 pub const BLUE: Color4 = Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0};
 pub const BLACK: Color4 = Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0};
 */
-
-pub enum MeshRenderMode {
-    Triangles,
-    // Lines,
-}
-
-impl MeshRenderMode {
-    pub fn to_gl_type(&self) -> GLuint {
-        match *self {
-            MeshRenderMode::Triangles => gl::TRIANGLES,
-            // MeshRenderMode::Lines => gl::LINES,
-        }
-    }
-}
-
-pub struct Mesh {
-    vertex_coords_vbo: Vbo,
-    length: ZInt,
-    mode: MeshRenderMode,
-}
-
-impl Mesh {
-    pub fn new(zgl: &Zgl, data: &[VertexCoord]) -> Mesh {
-        let length = data.len() as ZInt;
-        Mesh {
-            vertex_coords_vbo: Vbo::from_data(zgl, data),
-            length: length,
-            mode: MeshRenderMode::Triangles,
-        }
-    }
-
-    pub fn draw(&self, zgl: &Zgl) {
-        self.vertex_coords_vbo.bind(zgl);
-        unsafe {
-            let attr_id = 0; // TODO: gl.GetAttribLocation(shader, name)
-            let components_count = 3;
-            let is_normalized = gl::FALSE;
-            let stride = 0;
-            zgl.gl.VertexAttribPointer(
-                attr_id,
-                components_count,
-                gl::FLOAT,
-                is_normalized,
-                stride,
-                ptr::null_mut(),
-            );
-            zgl.check();
-            zgl.gl.EnableVertexAttribArray(0); // attr_id?
-            zgl.check();
-            zgl.gl.DrawArrays(self.mode.to_gl_type(), 0, self.length);
-            zgl.check();
-        }
-    }
-}
 
 pub struct Zgl {
     pub gl: Gl,
@@ -193,22 +138,6 @@ impl Zgl {
         (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
     }
 }
-
-/*
-pub enum MeshRenderMode {
-    Triangles,
-    Lines,
-}
-
-impl MeshRenderMode {
-    fn to_gl_type(&self) -> GLuint {
-        match *self {
-            MeshRenderMode::Triangles => gl::TRIANGLES,
-            MeshRenderMode::Lines => gl::LINES,
-        }
-    }
-}
-*/
 
 /*
 pub fn init_opengl() {
