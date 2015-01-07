@@ -1,3 +1,5 @@
+// See LICENSE file for copyright and license details.
+
 #![feature(phase)]
 #![feature(macro_rules)]
 #![feature(associated_types)]
