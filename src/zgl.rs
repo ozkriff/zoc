@@ -2,7 +2,7 @@
 
 use std::mem;
 use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, ZFloat, ScreenPos};
+use visualizer_types::{Color3, ZFloat, ScreenPos, AttrId};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad};
 use libc::c_void;
 use gl;
@@ -17,6 +17,20 @@ pub const WHITE: Color4 = Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0};
 pub const BLUE: Color4 = Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0};
 pub const BLACK: Color4 = Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0};
 */
+
+pub enum MeshRenderMode {
+    Triangles,
+    // Lines,
+}
+
+impl MeshRenderMode {
+    pub fn to_gl_type(&self) -> GLuint {
+        match *self {
+            MeshRenderMode::Triangles => gl::TRIANGLES,
+            // MeshRenderMode::Lines => gl::LINES,
+        }
+    }
+}
 
 pub struct Zgl {
     pub gl: Gl,
@@ -136,6 +150,21 @@ impl Zgl {
         }
         self.check();
         (data[0] as ZInt, data[1] as ZInt, data[2] as ZInt, data[3] as ZInt)
+    }
+
+    pub fn draw_arrays(&self, mode: &MeshRenderMode, length: ZInt) {
+        let starting_index = 0;
+        unsafe {
+            self.gl.DrawArrays(mode.to_gl_type(), starting_index, length);
+        }
+        self.check();
+    }
+
+    pub fn enable_vertex_attrib_array(&self, attr_id: &AttrId) {
+        unsafe {
+            self.gl.EnableVertexAttribArray(attr_id.id);
+        }
+        self.check();
     }
 }
 

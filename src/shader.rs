@@ -9,10 +9,22 @@ use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
 use zgl::{Zgl};
 use core_types::{ZInt};
-use visualizer_types::{ZFloat, Color4, ColorId, MatId};
+use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId};
+
+fn get_attr_location(program_id: GLuint, zgl: &Zgl, name: &str) -> AttrId {
+    let attr_id = name.with_c_str(|name| {
+        unsafe {
+            zgl.gl.GetAttribLocation(program_id, name)
+        }
+    });
+    zgl.check();
+    assert!(attr_id >= 0);
+    AttrId{id: attr_id as GLuint}
+}
 
 pub struct Shader {
-    id: GLuint,
+    program_id: GLuint,
+    position_attr_id: AttrId,
 }
 
 impl Shader {
@@ -20,25 +32,40 @@ impl Shader {
         let vs = compile_shader(zgl, vs_src, gl::VERTEX_SHADER);
         let fs = compile_shader(zgl, fs_src, gl::FRAGMENT_SHADER);
         let program_id = link_program(zgl, vs, fs);
-        Shader{id: program_id}
+        let position_attr_id = get_attr_location(program_id, zgl, "position");
+        zgl.enable_vertex_attrib_array(&position_attr_id);
+        Shader {
+            program_id: program_id,
+            position_attr_id: position_attr_id,
+        }
     }
 
-    pub fn activate(&self, zgl: &Zgl) {
+    // TODO: add some arg to spec what attr user needs
+    pub fn get_position_attr_id(&self) -> AttrId {
+        self.position_attr_id.clone()
+    }
+
+    pub fn enable_attr(&self, zgl: &Zgl, attr_id: &AttrId, components_count: ZInt) {
+        let is_normalized = gl::FALSE;
+        let stride = 0;
         unsafe {
-            zgl.gl.UseProgram(self.id);
+            zgl.gl.VertexAttribPointer(
+                attr_id.id,
+                components_count,
+                gl::FLOAT,
+                is_normalized,
+                stride,
+                ptr::null_mut(),
+            );
         }
         zgl.check();
     }
 
-    pub fn get_attr_location(&self, zgl: &Zgl, name: &str) -> GLuint {
-        let attr_id = name.with_c_str(|name| {
-            unsafe {
-                zgl.gl.GetAttribLocation(self.id, name)
-            }
-        });
+    pub fn activate(&self, zgl: &Zgl) {
+        unsafe {
+            zgl.gl.UseProgram(self.program_id);
+        }
         zgl.check();
-        assert!(attr_id >= 0);
-        attr_id as GLuint
     }
 
     pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
@@ -73,7 +100,7 @@ impl Shader {
     fn get_uniform(&self, zgl: &Zgl, name: &str) -> GLuint {
         let id = name.with_c_str(|name| {
             unsafe {
-                zgl.gl.GetUniformLocation(self.id, name) as GLuint
+                zgl.gl.GetUniformLocation(self.program_id, name) as GLuint
             }
         });
         assert!(id != -1);
@@ -87,6 +114,7 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
     unsafe {
         shader = zgl.gl.CreateShader(ty);
         zgl.check();
+        // TODO: 'ptr' -> 'src'
         src.with_c_str(|ptr| zgl.gl.ShaderSource(shader, 1, &ptr, ptr::null()));
         zgl.check();
         zgl.gl.CompileShader(shader);
