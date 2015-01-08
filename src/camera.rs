@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::num::FloatMath;
+use std::num::Float;
 use cgmath::{perspective, deg, Matrix4, Vector3, Deg, ToRad};
 use core_types::{ZInt, Size2};
 use core_misc::{clamp};

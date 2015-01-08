@@ -8,7 +8,7 @@ use libc::c_void;
 use gl;
 use gl::Gl;
 use gl::types::{GLuint, GLsizeiptr};
-use std::c_str::CString;
+use std::ffi;
 
 /*
 pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
@@ -37,7 +37,9 @@ pub struct Zgl {
 }
 
 impl Zgl {
-    pub fn new(get_proc_address: |&str| -> *const c_void) -> Zgl {
+    pub fn new<F>(get_proc_address: F) -> Zgl
+        where F: Fn(&str) -> *const c_void
+    {
         let gl = Gl::load_with(|s| get_proc_address(s));
          Zgl{gl: gl}
     }
@@ -65,11 +67,10 @@ impl Zgl {
     }
 
     pub fn get_info(&self, name: GLuint) -> String {
-        let version = unsafe {
-            CString::new(self.gl.GetString(name) as *const i8, false)
-        };
-        String::from_str(version.as_str()
-            .expect("Can`t convert gl.GetString result to rust string"))
+        unsafe {
+            let version = self.gl.GetString(name) as *const i8;
+            String::from_utf8_lossy(ffi::c_str_to_bytes(&version)).into_owned()
+        }
     }
 
     pub fn set_viewport(&mut self, size: &Size2<ZInt>) {

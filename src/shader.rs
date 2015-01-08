@@ -3,7 +3,7 @@
 use std::mem;
 use std::ptr;
 use std::str;
-use std::c_str::ToCStr;
+use std::ffi::CString;
 use cgmath::{Matrix4};
 use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
@@ -12,11 +12,10 @@ use core_types::{ZInt};
 use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId};
 
 fn get_attr_location(program_id: GLuint, zgl: &Zgl, name: &str) -> AttrId {
-    let attr_id = name.with_c_str(|name| {
-        unsafe {
-            zgl.gl.GetAttribLocation(program_id, name)
-        }
-    });
+    let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
+    let attr_id = unsafe {
+        zgl.gl.GetAttribLocation(program_id, name_c)
+    };
     zgl.check();
     assert!(attr_id >= 0);
     AttrId{id: attr_id as GLuint}
@@ -98,11 +97,10 @@ impl Shader {
     }
 
     fn get_uniform(&self, zgl: &Zgl, name: &str) -> GLuint {
-        let id = name.with_c_str(|name| {
-            unsafe {
-                zgl.gl.GetUniformLocation(self.program_id, name) as GLuint
-            }
-        });
+        let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
+        let id = unsafe {
+            zgl.gl.GetUniformLocation(self.program_id, name_c) as GLuint
+        };
         assert!(id != -1);
         zgl.check();
         id
@@ -114,8 +112,8 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
     unsafe {
         shader = zgl.gl.CreateShader(ty);
         zgl.check();
-        // TODO: 'ptr' -> 'src'
-        src.with_c_str(|ptr| zgl.gl.ShaderSource(shader, 1, &ptr, ptr::null()));
+        let src_c = CString::from_slice(src.as_bytes()).as_slice_with_nul().as_ptr();
+        zgl.gl.ShaderSource(shader, 1, &src_c, ptr::null());
         zgl.check();
         zgl.gl.CompileShader(shader);
         zgl.check();

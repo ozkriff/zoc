@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI, FRAC_PI_2};
-use std::num::{/*Int, Float,*/ FloatMath};
+use std::num::{/*Int,*/ Float};
 use cgmath::{Vector2, Vector3, Vector};
 use core_types::{ZInt, MapPos};
 // use core_misc::{rad_to_deg};
