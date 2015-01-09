@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::iter;
 use std::mem;
 use std::ptr;
 use std::str;
@@ -112,7 +113,8 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
     unsafe {
         shader = zgl.gl.CreateShader(ty);
         zgl.check();
-        let src_c = CString::from_slice(src.as_bytes()).as_slice_with_nul().as_ptr();
+        let src_c = CString::from_slice(src.as_bytes())
+            .as_slice_with_nul().as_ptr();
         zgl.gl.ShaderSource(shader, 1, &src_c, ptr::null());
         zgl.check();
         zgl.gl.CompileShader(shader);
@@ -122,12 +124,12 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
         if status != gl::TRUE as GLint {
             let mut len = 0;
             zgl.gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-            // subtract 1 to skip the trailing null character
-            let mut buf = Vec::with_capacity(len as uint - 1);
-            zgl.gl.GetShaderInfoLog(
-                shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
-            panic!("{}", str::from_utf8(buf.as_slice())
-                .ok().expect("ShaderInfoLog not valid utf8"));
+            let mut err_log = String::with_capacity(len as uint);
+            err_log.extend(iter::repeat('\0').take(len as uint));
+            let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
+            zgl.gl.GetShaderInfoLog(shader, len, &mut len, raw_ptr);
+            err_log.truncate(len as uint);
+            panic!("{}", err_log);
         }
     }
     shader
@@ -154,14 +156,14 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> GLuint {
         let mut status = gl::FALSE as GLint;
         zgl.gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);
         if status != gl::TRUE as GLint {
-            let mut len: GLint = 0;
+            let mut len = 0;
             zgl.gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-            // subtract 1 to skip the trailing null character
-            let mut buf = Vec::with_capacity(len as uint - 1);
-            zgl.gl.GetProgramInfoLog(
-                program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
-            panic!("{}", str::from_utf8(buf.as_slice())
-                .ok().expect("ProgramInfoLog not valid utf8"));
+            let mut err_log = String::with_capacity(len as uint);
+            err_log.extend(iter::repeat('\0').take(len as uint));
+            let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
+            zgl.gl.GetProgramInfoLog(program, len, &mut len, raw_ptr);
+            err_log.truncate(len as uint);
+            panic!("{}", err_log);
         }
         program
     }
