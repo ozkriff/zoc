@@ -3,7 +3,7 @@
 use core_types::{ZInt};
 use visualizer_types::{VertexCoord};
 use zgl::{Zgl, Vbo, MeshRenderMode};
-use shader::{Shader};
+use shader::{GeneralShader};
 
 pub struct Mesh {
     vertex_coords_vbo: Vbo,
@@ -22,9 +22,9 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self, zgl: &Zgl, shader: &Shader) {
+    pub fn draw(&self, zgl: &Zgl, shader: &GeneralShader) {
         self.vertex_coords_vbo.bind(zgl);
-        shader.enable_attr(zgl, &shader.get_position_attr_id(), 3);
+        shader.prepare(zgl);
         zgl.draw_arrays(&self.mode, self.length);
     }
 }

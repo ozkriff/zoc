@@ -51,4 +51,8 @@ pub struct ColorId{pub id: GLuint}
 #[derive(Clone)]
 pub struct AttrId{pub id: GLuint}
 
+/// Stores result of glLinkProgram
+#[derive(Clone)]
+pub struct ProgramId{pub id: GLuint}
+
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

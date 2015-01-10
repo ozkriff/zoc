@@ -22,7 +22,7 @@ pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
 }
 */
 
-pub fn map_pos_to_world_pos(i: MapPos) -> WorldPos {
+pub fn map_pos_to_world_pos(i: &MapPos) -> WorldPos {
     let v = Vector2 {
         x: (i.v.x as ZFloat) * HEX_IN_RADIUS * 2.0,
         y: (i.v.y as ZFloat) * HEX_EX_RADIUS * 1.5,

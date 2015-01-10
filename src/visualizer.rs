@@ -26,9 +26,9 @@ use dir::{DirIter};
 static VS_SRC: &'static str = "\
     #version 100\n\
     uniform mat4 mvp_mat;\n\
-    attribute vec2 position;\n\
+    attribute vec3 position;\n\
     void main() {\n\
-        gl_Position = mvp_mat * vec4(position, 0.0, 1.0);\n\
+        gl_Position = mvp_mat * vec4(position, 1.0);\n\
     }\n\
 ";
 
@@ -48,14 +48,14 @@ fn get_win_size(window: &Window) -> Size2<ZInt> {
 
 fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     let pos = geom::map_pos_to_world_pos(
-        MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
+        &MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
 fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
     let mut vertex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
-        let pos = geom::map_pos_to_world_pos(tile_pos);
+        let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in DirIter::new() {
             let num = dir.to_int();
             let vertex = geom::index_to_hex_vertex(num);
@@ -95,8 +95,10 @@ impl Visualizer {
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
         zgl.print_gl_info();
         let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        let color_uniform_location = shader.get_uniform_color(&zgl, "col");
-        let mvp_uniform_location = shader.get_uniform_mat(&zgl, "mvp_mat");
+        let color_uniform_location = shader.base()
+            .get_uniform_color(&zgl, "col");
+        let mvp_uniform_location = shader.base()
+            .get_uniform_mat(&zgl, "mvp_mat");
         zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
         let mut camera = Camera::new(&win_size);
         let map_size = Size2{w: 5, h: 8};
@@ -218,10 +220,10 @@ impl Visualizer {
 
     fn draw(&mut self) {
         self.zgl.clear_screen();
-        self.shader.activate(&self.zgl);
-        self.shader.set_uniform_color(
+        self.shader.base().activate(&self.zgl);
+        self.shader.base().set_uniform_color(
             &self.zgl, &self.color_uniform_location, &self.test_color);
-        self.shader.set_uniform_mat4f(
+        self.shader.base().set_uniform_mat4f(
             &self.zgl, &self.mvp_uniform_location, &self.camera.mat(&self.zgl));
         self.mesh.draw(&self.zgl, &self.shader);
         self.window.swap_buffers();

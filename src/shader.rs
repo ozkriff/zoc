@@ -3,19 +3,28 @@
 use std::iter;
 use std::mem;
 use std::ptr;
-use std::str;
 use std::ffi::CString;
 use cgmath::{Matrix4};
 use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
 use zgl::{Zgl};
 use core_types::{ZInt};
-use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId};
+use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId, ProgramId};
 
-fn get_attr_location(program_id: GLuint, zgl: &Zgl, name: &str) -> AttrId {
+pub trait GeneralShader {
+    fn prepare(&self, zgl: &Zgl);
+}
+
+impl GeneralShader for Shader {
+    fn prepare(&self, zgl: &Zgl) {
+        self.base().enable_attr(zgl, self.get_position_attr_id(), 3);
+    }
+}
+
+fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
     let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
     let attr_id = unsafe {
-        zgl.gl.GetAttribLocation(program_id, name_c)
+        zgl.gl.GetAttribLocation(program_id.id, name_c)
     };
     zgl.check();
     assert!(attr_id >= 0);
@@ -23,26 +32,42 @@ fn get_attr_location(program_id: GLuint, zgl: &Zgl, name: &str) -> AttrId {
 }
 
 pub struct Shader {
-    program_id: GLuint,
+    base: BaseShader,
     position_attr_id: AttrId,
 }
 
 impl Shader {
     pub fn new(zgl: &Zgl, vs_src: &str, fs_src: &str) -> Shader {
-        let vs = compile_shader(zgl, vs_src, gl::VERTEX_SHADER);
-        let fs = compile_shader(zgl, fs_src, gl::FRAGMENT_SHADER);
-        let program_id = link_program(zgl, vs, fs);
-        let position_attr_id = get_attr_location(program_id, zgl, "position");
+        let base = BaseShader::new(zgl, vs_src, fs_src);
+        let position_attr_id = get_attr_location(&base.program_id, zgl, "position");
         zgl.enable_vertex_attrib_array(&position_attr_id);
         Shader {
-            program_id: program_id,
+            base: base,
             position_attr_id: position_attr_id,
         }
     }
 
-    // TODO: add some arg to spec what attr user needs
-    pub fn get_position_attr_id(&self) -> AttrId {
-        self.position_attr_id.clone()
+    pub fn get_position_attr_id(&self) -> &AttrId {
+        &self.position_attr_id
+    }
+
+    pub fn base(&self) -> &BaseShader {
+        &self.base
+    }
+}
+
+pub struct BaseShader {
+    program_id: ProgramId,
+}
+
+impl BaseShader {
+    pub fn new(zgl: &Zgl, vs_src: &str, fs_src: &str) -> BaseShader {
+        let vs = compile_shader(zgl, vs_src, gl::VERTEX_SHADER);
+        let fs = compile_shader(zgl, fs_src, gl::FRAGMENT_SHADER);
+        let program_id = link_program(zgl, vs, fs);
+        BaseShader {
+            program_id: program_id,
+        }
     }
 
     pub fn enable_attr(&self, zgl: &Zgl, attr_id: &AttrId, components_count: ZInt) {
@@ -63,7 +88,8 @@ impl Shader {
 
     pub fn activate(&self, zgl: &Zgl) {
         unsafe {
-            zgl.gl.UseProgram(self.program_id);
+            assert!(zgl.gl.IsProgram(self.program_id.id) != gl::FALSE);
+            zgl.gl.UseProgram(self.program_id.id);
         }
         zgl.check();
     }
@@ -100,7 +126,7 @@ impl Shader {
     fn get_uniform(&self, zgl: &Zgl, name: &str) -> GLuint {
         let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
         let id = unsafe {
-            zgl.gl.GetUniformLocation(self.program_id, name_c) as GLuint
+            zgl.gl.GetUniformLocation(self.program_id.id, name_c) as GLuint
         };
         assert!(id != -1);
         zgl.check();
@@ -135,9 +161,9 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
     shader
 }
 
-fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> GLuint {
+fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> ProgramId {
     unsafe {
-        let program = zgl.gl.CreateProgram();
+        let program = zgl.gl.CreateProgram(); // TODO: 'program' -> 'program_id'
         zgl.check();
         zgl.gl.AttachShader(program, vs);
         zgl.check();
@@ -165,7 +191,8 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> GLuint {
             err_log.truncate(len as uint);
             panic!("{}", err_log);
         }
-        program
+        assert!(zgl.gl.IsProgram(program) != gl::FALSE);
+        ProgramId{id: program}
     }
 }
 
