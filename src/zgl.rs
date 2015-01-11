@@ -33,7 +33,7 @@ impl MeshRenderMode {
 }
 
 pub struct Zgl {
-    pub gl: Gl,
+    pub gl: Gl, // TODO: make private
 }
 
 impl Zgl {
@@ -41,7 +41,7 @@ impl Zgl {
         where F: Fn(&str) -> *const c_void
     {
         let gl = Gl::load_with(|s| get_proc_address(s));
-         Zgl{gl: gl}
+        Zgl{gl: gl}
     }
 
     pub fn print_gl_info(&self) {
@@ -146,7 +146,7 @@ impl Zgl {
                 mouse_pos.v.x, reverted_h, 1, 1,
                 gl::RGBA,
                 gl::UNSIGNED_BYTE,
-                data_ptr
+                data_ptr,
             );
         }
         self.check();
