@@ -52,7 +52,7 @@ impl Zgl {
         // println!("GL_EXTENSIONS: {}", self.get_info(gl::EXTENSIONS));
     }
 
-    pub fn set_clear_color(&mut self, color: Color3) {
+    pub fn set_clear_color(&mut self, color: &Color3) {
         unsafe {
             self.gl.ClearColor(color.r, color.g, color.b, 1.0);
         }

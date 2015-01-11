@@ -11,16 +11,6 @@ use zgl::{Zgl};
 use core_types::{ZInt};
 use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId, ProgramId};
 
-pub trait GeneralShader {
-    fn prepare(&self, zgl: &Zgl);
-}
-
-impl GeneralShader for Shader {
-    fn prepare(&self, zgl: &Zgl) {
-        self.base().enable_attr(zgl, self.get_position_attr_id(), 3);
-    }
-}
-
 fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
     let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
     let attr_id = unsafe {
@@ -31,43 +21,49 @@ fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
     AttrId{id: attr_id as GLuint}
 }
 
+fn get_uniform(program_id: &ProgramId, zgl: &Zgl, name: &str) -> GLuint {
+    let name_c = CString::from_slice(name.as_bytes())
+        .as_slice_with_nul().as_ptr();
+    let id = unsafe {
+        zgl.gl.GetUniformLocation(program_id.id, name_c) as GLuint
+    };
+    assert!(id != -1);
+    zgl.check();
+    id
+}
+
 pub struct Shader {
-    base: BaseShader,
+    program_id: ProgramId,
+    mvp_uniform_location: MatId,
     position_attr_id: AttrId,
+    color_attr_id: Option<AttrId>,
 }
 
 impl Shader {
     pub fn new(zgl: &Zgl, vs_src: &str, fs_src: &str) -> Shader {
-        let base = BaseShader::new(zgl, vs_src, fs_src);
-        let position_attr_id = get_attr_location(&base.program_id, zgl, "position");
-        zgl.enable_vertex_attrib_array(&position_attr_id);
-        Shader {
-            base: base,
-            position_attr_id: position_attr_id,
-        }
-    }
-
-    pub fn get_position_attr_id(&self) -> &AttrId {
-        &self.position_attr_id
-    }
-
-    pub fn base(&self) -> &BaseShader {
-        &self.base
-    }
-}
-
-pub struct BaseShader {
-    program_id: ProgramId,
-}
-
-impl BaseShader {
-    pub fn new(zgl: &Zgl, vs_src: &str, fs_src: &str) -> BaseShader {
         let vs = compile_shader(zgl, vs_src, gl::VERTEX_SHADER);
         let fs = compile_shader(zgl, fs_src, gl::FRAGMENT_SHADER);
         let program_id = link_program(zgl, vs, fs);
-        BaseShader {
+        let mvp_uniform_location = MatId {
+            id: get_uniform(&program_id, zgl, "mvp_mat"),
+        };
+        let position_attr_id = get_attr_location(
+            &program_id, zgl, "position");
+        zgl.enable_vertex_attrib_array(&position_attr_id);
+        Shader {
             program_id: program_id,
+            mvp_uniform_location: mvp_uniform_location,
+            position_attr_id: position_attr_id,
+            color_attr_id: None,
         }
+    }
+
+    // TODO: Rename
+    pub fn enable_color(&mut self, zgl: &Zgl) {
+        let color_attr_id = get_attr_location(
+            &self.program_id, zgl, "a_color");
+        zgl.enable_vertex_attrib_array(&color_attr_id);
+        self.color_attr_id = Some(color_attr_id);
     }
 
     pub fn enable_attr(&self, zgl: &Zgl, attr_id: &AttrId, components_count: ZInt) {
@@ -94,6 +90,22 @@ impl BaseShader {
         zgl.check();
     }
 
+    pub fn get_position_attr_id(&self) -> &AttrId {
+        &self.position_attr_id
+    }
+
+    pub fn get_color_attr_id(&self) -> &AttrId {
+        self.color_attr_id.as_ref().expect("Can`t get color vbo")
+    }
+
+    pub fn prepare_pos(&self, zgl: &Zgl) {
+        self.enable_attr(zgl, self.get_position_attr_id(), 3);
+    }
+
+    pub fn prepare_color(&self, zgl: &Zgl) {
+        self.enable_attr(zgl, self.get_color_attr_id(), 3);
+    }
+
     pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
         let count = 1;
         let transpose = gl::FALSE;
@@ -114,23 +126,12 @@ impl BaseShader {
     }
 
     pub fn get_uniform_color(&self, zgl: &Zgl, name: &str) -> ColorId {
-        let id = self.get_uniform(zgl, name);
-        ColorId{id: id as GLuint}
+        let id = get_uniform(&self.program_id, zgl, name);
+        ColorId{id: id}
     }
 
-    pub fn get_uniform_mat(&self, zgl: &Zgl, name: &str) -> MatId {
-        let id = self.get_uniform(zgl, name);
-        MatId{id: id as GLuint}
-    }
-
-    fn get_uniform(&self, zgl: &Zgl, name: &str) -> GLuint {
-        let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
-        let id = unsafe {
-            zgl.gl.GetUniformLocation(self.program_id.id, name_c) as GLuint
-        };
-        assert!(id != -1);
-        zgl.check();
-        id
+    pub fn get_mvp_mat(&self) -> &MatId {
+        &self.mvp_uniform_location
     }
 }
 
@@ -177,7 +178,7 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> ProgramId {
         zgl.check();
         zgl.gl.UseProgram(program);
         zgl.check();
-        zgl.gl.DeleteProgram(program); // mark for deletion
+        // zgl.gl.DeleteProgram(program); // mark for deletion // TODO: d-tor?
         zgl.check();
         let mut status = gl::FALSE as GLint;
         zgl.gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);

@@ -23,6 +23,7 @@ mod core_types;
 mod core_misc;
 mod zgl;
 mod dir;
+mod picker;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();

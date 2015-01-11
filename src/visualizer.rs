@@ -10,7 +10,6 @@ use visualizer_types::{
     Color3,
     Color4,
     ColorId,
-    MatId,
     WorldPos,
     ScreenPos,
     VertexCoord,
@@ -22,6 +21,9 @@ use shader::{Shader};
 use geom;
 use core_map::{MapPosIter};
 use dir::{DirIter};
+use picker::{TilePicker, PickResult};
+
+static BG_COLOR: Color3 = Color3{r: 0.0, g: 0.0, b: 0.4};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -76,12 +78,12 @@ pub struct Visualizer {
     test_color: Color4,
     shader: Shader,
     color_uniform_location: ColorId,
-    mvp_uniform_location: MatId,
     camera: Camera,
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
     mesh: Mesh,
+    picker: TilePicker,
 }
 
 impl Visualizer {
@@ -95,15 +97,13 @@ impl Visualizer {
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
         zgl.print_gl_info();
         let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        let color_uniform_location = shader.base()
-            .get_uniform_color(&zgl, "col");
-        let mvp_uniform_location = shader.base()
-            .get_uniform_mat(&zgl, "mvp_mat");
-        zgl.set_clear_color(Color3{r: 0.0, g: 0.0, b: 0.4});
+        let color_uniform_location = shader.get_uniform_color(&zgl, "col");
+        zgl.set_clear_color(&BG_COLOR);
         let mut camera = Camera::new(&win_size);
         let map_size = Size2{w: 5, h: 8};
         camera.set_max_pos(get_max_camera_pos(&map_size));
         let mesh = generate_mesh(&map_size, &zgl);
+        let picker = TilePicker::new(&zgl, &map_size);
         Visualizer {
             zgl: zgl,
             window: window,
@@ -112,12 +112,12 @@ impl Visualizer {
             test_color: Color4{r: 0.0, g: 0.0, b: 0.0, a: 0.0},
             shader: shader,
             color_uniform_location: color_uniform_location,
-            mvp_uniform_location: mvp_uniform_location,
             camera: camera,
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
             is_lmb_pressed: false,
             win_size: win_size,
             mesh: mesh,
+            picker: picker,
         }
     }
 
@@ -219,19 +219,37 @@ impl Visualizer {
     }
 
     fn draw(&mut self) {
+        self.zgl.set_clear_color(&BG_COLOR);
         self.zgl.clear_screen();
-        self.shader.base().activate(&self.zgl);
-        self.shader.base().set_uniform_color(
+        self.shader.activate(&self.zgl);
+        self.shader.set_uniform_color(
             &self.zgl, &self.color_uniform_location, &self.test_color);
-        self.shader.base().set_uniform_mat4f(
-            &self.zgl, &self.mvp_uniform_location, &self.camera.mat(&self.zgl));
+        self.shader.set_uniform_mat4f(
+            &self.zgl,
+            self.shader.get_mvp_mat(),
+            &self.camera.mat(&self.zgl),
+        );
         self.mesh.draw(&self.zgl, &self.shader);
         self.window.swap_buffers();
+    }
+
+    fn pick_tile(&mut self) {
+        let pick_result = self.picker.pick_tile(
+            &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
+        match pick_result {
+            PickResult::Nothing => {
+                println!("PICKED: nothing");
+            },
+            PickResult::MapPos(map_pos) => {
+                println!("PICKED: x: {}, y: {}", map_pos.v.x, map_pos.v.y);
+            },
+        }
     }
 
     pub fn tick(&mut self) {
         self.handle_events();
         // self.logic();
+        self.pick_tile();
         self.update_test_color();
         self.draw();
         // self.update_time();
