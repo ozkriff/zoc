@@ -151,11 +151,11 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
         if status != gl::TRUE as GLint {
             let mut len = 0;
             zgl.gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-            let mut err_log = String::with_capacity(len as uint);
-            err_log.extend(iter::repeat('\0').take(len as uint));
+            let mut err_log = String::with_capacity(len as usize);
+            err_log.extend(iter::repeat('\0').take(len as usize));
             let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
             zgl.gl.GetShaderInfoLog(shader, len, &mut len, raw_ptr);
-            err_log.truncate(len as uint);
+            err_log.truncate(len as usize);
             panic!("{}", err_log);
         }
     }
@@ -185,11 +185,11 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> ProgramId {
         if status != gl::TRUE as GLint {
             let mut len = 0;
             zgl.gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-            let mut err_log = String::with_capacity(len as uint);
-            err_log.extend(iter::repeat('\0').take(len as uint));
+            let mut err_log = String::with_capacity(len as usize);
+            err_log.extend(iter::repeat('\0').take(len as usize));
             let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
             zgl.gl.GetProgramInfoLog(program, len, &mut len, raw_ptr);
-            err_log.truncate(len as uint);
+            err_log.truncate(len as usize);
             panic!("{}", err_log);
         }
         assert!(zgl.gl.IsProgram(program) != gl::FALSE);

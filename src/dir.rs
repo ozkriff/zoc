@@ -44,7 +44,7 @@ impl Dir {
             Dir::West,
             Dir::NorthWest,
         ];
-        dirs[n as uint]
+        dirs[n as usize]
     }
 
     pub fn to_int(&self) -> ZInt {
@@ -63,7 +63,7 @@ impl Dir {
         // assert!(from.distance(to) == 1);
         let diff = to.v - from.v;
         for i in range(0u, 6) {
-            if diff == DIR_TO_POS_DIFF[(from.v.y % 2) as uint][i] {
+            if diff == DIR_TO_POS_DIFF[(from.v.y % 2) as usize][i] {
                 return Dir::from_int(i as ZInt);
             }
         }
@@ -75,7 +75,7 @@ impl Dir {
         let subtable_index = if is_odd_row { 1 } else { 0 };
         let direction_index = dir.to_int();
         assert!(direction_index >= 0 && direction_index < 6);
-        let difference = DIR_TO_POS_DIFF[subtable_index][direction_index as uint];
+        let difference = DIR_TO_POS_DIFF[subtable_index][direction_index as usize];
         MapPos{v: pos.v + difference}
     }
     */

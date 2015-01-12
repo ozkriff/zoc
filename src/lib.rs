@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(phase)]
+#![allow(unstable)] // TODO: remove this
 
 #[cfg(target_os = "android")]
 #[macro_use]
