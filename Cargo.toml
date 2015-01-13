@@ -4,9 +4,6 @@ name = "zoc"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
 
-[[bin]]
-name = "zoc"
-
 [lib]
 name = "zoc"
 crate-type = ["staticlib", "rlib"]

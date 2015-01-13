@@ -1,10 +1,10 @@
 all: zoc
 
 zoc:
-	cargo build --verbose -j 1
+	cd client && cargo build --verbose -j 1
 
 run: zoc
-	RUST_BACKTRACE=1 ./target/zoc
+	RUST_BACKTRACE=1 ./client/target/zoc
 
 android:
 	cargo build --target arm-linux-androideabi -j 1 -v --release
