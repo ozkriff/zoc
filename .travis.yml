@@ -4,7 +4,7 @@ language: rust
 
 install:
     # some native deps
-    - sudo apt-get install libXxf86vm-dev
+    - sudo apt-get install libXxf86vm-dev libxcursor-dev
 
     # TODO: get data: git clone --depth=1 https://github.com/ozkriff/zoc-data ...
 
