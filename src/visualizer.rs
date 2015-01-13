@@ -237,9 +237,7 @@ impl Visualizer {
         let pick_result = self.picker.pick_tile(
             &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
         match pick_result {
-            PickResult::Nothing => {
-                println!("PICKED: nothing");
-            },
+            PickResult::Nothing => {},
             PickResult::MapPos(map_pos) => {
                 println!("PICKED: x: {}, y: {}", map_pos.v.x, map_pos.v.y);
             },
