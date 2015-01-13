@@ -1,14 +1,14 @@
-all: linux
+all: zoc
 
-linux:
-	cd linux && ./make.sh
+zoc:
+	cargo build --verbose -j 1
 
-run: linux
-	RUST_BACKTRACE=1 ./linux/target/zoc
+run: zoc
+	RUST_BACKTRACE=1 ./target/zoc
 
 android:
 	cargo build --target arm-linux-androideabi -j 1 -v --release
 	cp target/arm-linux-androideabi/release/libzoc-*.a android/jni/librust.a
 	cd android && ./make.sh
 
-.PHONY: all linux run android
+.PHONY: all zoc run android
