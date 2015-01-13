@@ -164,36 +164,36 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
 
 fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> ProgramId {
     unsafe {
-        let program = zgl.gl.CreateProgram(); // TODO: 'program' -> 'program_id'
+        let program_id = zgl.gl.CreateProgram();
         zgl.check();
-        zgl.gl.AttachShader(program, vs);
+        zgl.gl.AttachShader(program_id, vs);
         zgl.check();
-        zgl.gl.AttachShader(program, fs);
+        zgl.gl.AttachShader(program_id, fs);
         zgl.check();
-        zgl.gl.LinkProgram(program);
+        zgl.gl.LinkProgram(program_id);
         zgl.check();
         zgl.gl.DeleteShader(vs);
         zgl.check();
         zgl.gl.DeleteShader(fs);
         zgl.check();
-        zgl.gl.UseProgram(program);
+        zgl.gl.UseProgram(program_id);
         zgl.check();
-        // zgl.gl.DeleteProgram(program); // mark for deletion // TODO: d-tor?
+        // zgl.gl.DeleteProgram(program_id); // mark for deletion // TODO: d-tor?
         zgl.check();
         let mut status = gl::FALSE as GLint;
-        zgl.gl.GetProgramiv(program, gl::LINK_STATUS, &mut status);
+        zgl.gl.GetProgramiv(program_id, gl::LINK_STATUS, &mut status);
         if status != gl::TRUE as GLint {
             let mut len = 0;
-            zgl.gl.GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
+            zgl.gl.GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
             let mut err_log = String::with_capacity(len as usize);
             err_log.extend(iter::repeat('\0').take(len as usize));
             let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
-            zgl.gl.GetProgramInfoLog(program, len, &mut len, raw_ptr);
+            zgl.gl.GetProgramInfoLog(program_id, len, &mut len, raw_ptr);
             err_log.truncate(len as usize);
             panic!("{}", err_log);
         }
-        assert!(zgl.gl.IsProgram(program) != gl::FALSE);
-        ProgramId{id: program}
+        assert!(zgl.gl.IsProgram(program_id) != gl::FALSE);
+        ProgramId{id: program_id}
     }
 }
 
