@@ -1,12 +1,19 @@
 # See LICENSE file for copyright and license details.
 
-language: rust
+language: python # actually i need rust
 
 install:
     # some native deps
     - sudo apt-get install libXxf86vm-dev libxcursor-dev
 
-    # TODO: get data: git clone --depth=1 https://github.com/ozkriff/zoc-data ...
+    # TODO: get data:
+    - git clone --depth=1 https://github.com/ozkriff/zoc_data data
+
+before_script:
+    # install latest rust and cargo
+    - curl -sS https://static.rust-lang.org/rustup.sh | sudo sh
+    - rustc --version
+    - cargo --version
 
 script:
     - make
