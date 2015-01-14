@@ -37,6 +37,7 @@ pub struct Shader {
     mvp_uniform_location: MatId,
     position_attr_id: AttrId,
     color_attr_id: Option<AttrId>,
+    texture_coords_attr_id: Option<AttrId>,
 }
 
 impl Shader {
@@ -55,15 +56,24 @@ impl Shader {
             mvp_uniform_location: mvp_uniform_location,
             position_attr_id: position_attr_id,
             color_attr_id: None,
+            texture_coords_attr_id: None,
         }
     }
 
-    // TODO: Rename
+    // TODO: convert to Builder pattern (see WindowBuilder in glutin)
     pub fn enable_color(&mut self, zgl: &Zgl) {
         let color_attr_id = get_attr_location(
             &self.program_id, zgl, "a_color");
         zgl.enable_vertex_attrib_array(&color_attr_id);
         self.color_attr_id = Some(color_attr_id);
+    }
+
+    // TODO: Rename
+    pub fn enable_texture_coords(&mut self, zgl: &Zgl) {
+        let texture_coords_attr_id = get_attr_location(
+            &self.program_id, zgl, "in_texture_coordinates");
+        zgl.enable_vertex_attrib_array(&texture_coords_attr_id);
+        self.texture_coords_attr_id = Some(texture_coords_attr_id);
     }
 
     pub fn enable_attr(&self, zgl: &Zgl, attr_id: &AttrId, components_count: ZInt) {
@@ -90,20 +100,19 @@ impl Shader {
         zgl.check();
     }
 
-    pub fn get_position_attr_id(&self) -> &AttrId {
-        &self.position_attr_id
-    }
-
-    pub fn get_color_attr_id(&self) -> &AttrId {
-        self.color_attr_id.as_ref().expect("Can`t get color vbo")
-    }
-
     pub fn prepare_pos(&self, zgl: &Zgl) {
-        self.enable_attr(zgl, self.get_position_attr_id(), 3);
+        self.enable_attr(zgl, &self.position_attr_id, 3);
     }
 
     pub fn prepare_color(&self, zgl: &Zgl) {
-        self.enable_attr(zgl, self.get_color_attr_id(), 3);
+        let attr_id = self.color_attr_id.as_ref().expect("Can`t get color vbo");
+        self.enable_attr(zgl, attr_id, 3);
+    }
+
+    pub fn prepare_texture_coords(&self, zgl: &Zgl) {
+        let attr_id = self.texture_coords_attr_id.as_ref()
+            .expect("Can`t get texture coords vbo");
+        self.enable_attr(zgl, attr_id, 2);
     }
 
     pub fn set_uniform_mat4f(&self, zgl: &Zgl, mat_id: &MatId, mat: &Matrix4<ZFloat>) {
@@ -128,6 +137,12 @@ impl Shader {
     pub fn get_uniform_color(&self, zgl: &Zgl, name: &str) -> ColorId {
         let id = get_uniform(&self.program_id, zgl, name);
         ColorId{id: id}
+    }
+
+    // TODO: GLint -> ...
+    pub fn get_uniform_texture(&self, zgl: &Zgl, name: &str) -> GLint {
+        let id = get_uniform(&self.program_id, zgl, name);
+        id as GLint
     }
 
     pub fn get_mvp_mat(&self) -> &MatId {

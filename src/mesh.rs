@@ -1,13 +1,16 @@
 // See LICENSE file for copyright and license details.
 
 use core_types::{ZInt};
-use visualizer_types::{VertexCoord, Color3};
+use visualizer_types::{VertexCoord, TextureCoord, Color3};
 use zgl::{Zgl, Vbo, MeshRenderMode};
 use shader::{Shader};
+use texture::{Texture};
 
 pub struct Mesh {
     vertex_coords_vbo: Vbo,
     colors_vbo: Option<Vbo>,
+    texture_coords_vbo: Option<Vbo>,
+    texture: Option<Texture>,
     length: ZInt,
     mode: MeshRenderMode,
 }
@@ -19,6 +22,8 @@ impl Mesh {
         Mesh {
             vertex_coords_vbo: vertex_coords_vbo,
             colors_vbo: None,
+            texture_coords_vbo: None,
+            texture: None,
             length: length,
             mode: MeshRenderMode::Triangles,
         }
@@ -26,6 +31,12 @@ impl Mesh {
 
     pub fn add_colors(&mut self, zgl: &Zgl, colors: &[Color3]) {
         self.colors_vbo = Some(Vbo::from_data(zgl, colors));
+    }
+
+    pub fn add_texture(&mut self, zgl: &Zgl, texture: Texture, data: &[TextureCoord]) {
+        assert_eq!(self.length, data.len() as ZInt);
+        self.texture_coords_vbo = Some(Vbo::from_data(zgl, data));
+        self.texture = Some(texture);
     }
 
     pub fn draw(&self, zgl: &Zgl, shader: &Shader) {
@@ -36,6 +47,16 @@ impl Mesh {
                 .expect("Can`t get color vbo");
             colors_vbo.bind(zgl);
             shader.prepare_color(zgl);
+        }
+        if self.texture_coords_vbo.is_some() {
+            let texture_coords_vbo = self.texture_coords_vbo.as_ref()
+                .expect("Can`t get color vbo");
+            texture_coords_vbo.bind(zgl);
+            shader.prepare_texture_coords(zgl);
+        }
+        match self.texture {
+            Some(ref texture) => texture.enable(zgl, shader),
+            None => {},
         }
         zgl.draw_arrays(&self.mode, self.length);
     }

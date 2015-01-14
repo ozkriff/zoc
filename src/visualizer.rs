@@ -13,6 +13,7 @@ use visualizer_types::{
     WorldPos,
     ScreenPos,
     VertexCoord,
+    TextureCoord,
 };
 use zgl::{Zgl};
 use mesh::{Mesh};
@@ -22,6 +23,7 @@ use geom;
 use core_map::{MapPosIter};
 use dir::{DirIter};
 use picker::{TilePicker, PickResult};
+use texture::{Texture};
 
 static BG_COLOR: Color3 = Color3{r: 0.0, g: 0.0, b: 0.4};
 
@@ -29,17 +31,23 @@ static VS_SRC: &'static str = "\
     #version 100\n\
     uniform mat4 mvp_mat;\n\
     attribute vec3 position;\n\
+    attribute vec2 in_texture_coordinates;\n\
+    varying vec2 texture_coordinates;\n\
     void main() {\n\
         gl_Position = mvp_mat * vec4(position, 1.0);\n\
+        texture_coordinates = in_texture_coordinates;\n\
     }\n\
 ";
 
 static FS_SRC: &'static str = "\
     #version 100\n\
-    precision mediump float;
-    uniform vec4 col;\n\
+    precision mediump float;\n\
+    uniform sampler2D basic_texture;\n\
+    uniform vec4 basic_color;
+    varying vec2 texture_coordinates;\n\
     void main() {\n\
-        gl_FragColor = col;\n\
+        gl_FragColor = basic_color\n\
+            * texture2D(basic_texture, texture_coordinates);\n\
     }\n\
 ";
 
@@ -56,6 +64,7 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
 
 fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
     let mut vertex_data = Vec::new();
+    let mut tex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in DirIter::new() {
@@ -65,17 +74,21 @@ fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
             vertex_data.push(VertexCoord{v: pos.v + vertex.v});
             vertex_data.push(VertexCoord{v: pos.v + next_vertex.v});
             vertex_data.push(VertexCoord{v: pos.v});
+            tex_data.push(TextureCoord{v: Vector2{x: 0.0, y: 0.0}});
+            tex_data.push(TextureCoord{v: Vector2{x: 1.0, y: 0.0}});
+            tex_data.push(TextureCoord{v: Vector2{x: 0.5, y: 0.5}});
         }
     }
-    Mesh::new(zgl, vertex_data.as_slice())
+    let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
+    let tex = Texture::new(zgl, &Path::new("data/floor.png"));
+    mesh.add_texture(zgl, tex, tex_data.as_slice());
+    mesh
 }
 
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
     should_close: bool,
-    color_counter: i32, // TODO: remove
-    test_color: Color4,
     shader: Shader,
     color_uniform_location: ColorId,
     camera: Camera,
@@ -96,8 +109,11 @@ impl Visualizer {
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
         zgl.print_gl_info();
-        let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        let color_uniform_location = shader.get_uniform_color(&zgl, "col");
+        let mut shader = Shader::new(&zgl, VS_SRC, FS_SRC);
+        shader.enable_texture_coords(&zgl);
+        shader.activate(&zgl);
+        let color_uniform_location = shader.get_uniform_color(
+            &zgl, "basic_color");
         zgl.set_clear_color(&BG_COLOR);
         let mut camera = Camera::new(&win_size);
         let map_size = Size2{w: 5, h: 8};
@@ -108,8 +124,6 @@ impl Visualizer {
             zgl: zgl,
             window: window,
             should_close: false,
-            color_counter: 0,
-            test_color: Color4{r: 0.0, g: 0.0, b: 0.0, a: 0.0},
             shader: shader,
             color_uniform_location: color_uniform_location,
             camera: camera,
@@ -205,25 +219,14 @@ impl Visualizer {
         }
     }
 
-    fn update_test_color(&mut self) {
-        self.test_color = match self.color_counter {
-            0 => Color4{r: 1.0, g: 0.0, b: 0.0, a: 1.0},
-            30 => Color4{r: 0.0, g: 1.0, b: 0.0, a: 1.0},
-            60 => Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0},
-            _ => self.test_color.clone(),
-        };
-        self.color_counter += 1;
-        if self.color_counter > 90 {
-            self.color_counter = -1;
-        }
-    }
-
     fn draw(&mut self) {
         self.zgl.set_clear_color(&BG_COLOR);
         self.zgl.clear_screen();
         self.shader.activate(&self.zgl);
         self.shader.set_uniform_color(
-            &self.zgl, &self.color_uniform_location, &self.test_color);
+            &self.zgl, &self.color_uniform_location,
+            &Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0},
+        );
         self.shader.set_uniform_mat4f(
             &self.zgl,
             self.shader.get_mvp_mat(),
@@ -248,7 +251,6 @@ impl Visualizer {
         self.handle_events();
         // self.logic();
         self.pick_tile();
-        self.update_test_color();
         self.draw();
         // self.update_time();
     }

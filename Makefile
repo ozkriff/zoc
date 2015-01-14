@@ -7,6 +7,8 @@ run: zoc
 	RUST_BACKTRACE=1 ./client/target/zoc
 
 android:
+	rm -rf android/assets/*
+	cp -r data android/assets/data
 	cargo build --target arm-linux-androideabi -j 1 -v --release
 	cp target/arm-linux-androideabi/release/libzoc-*.a android/jni/librust.a
 	cd android && ./make.sh

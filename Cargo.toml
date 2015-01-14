@@ -18,5 +18,8 @@ git = "https://github.com/tomaka/android-rs-glue"
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs"
 
+[dependencies.image]
+git = "https://github.com/PistonDevelopers/image"
+
 [dependencies.zoc_gl]
 path = "./zoc_gl/"

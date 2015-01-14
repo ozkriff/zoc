@@ -11,6 +11,7 @@ extern crate cgmath;
 extern crate "zoc_gl" as gl;
 extern crate serialize;
 extern crate glutin;
+extern crate image;
 
 mod mesh;
 mod core_map;
@@ -24,6 +25,8 @@ mod core_misc;
 mod zgl;
 mod dir;
 mod picker;
+mod texture;
+mod fs;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();
