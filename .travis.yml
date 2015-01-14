@@ -6,8 +6,8 @@ install:
     # some native deps
     - sudo apt-get install libXxf86vm-dev libxcursor-dev
 
-    # get data
-    - git clone --depth=1 git@bitbucket.org:ozkriff/zoc_data.git data
+    # TODO: get data
+    # - git clone --depth=1 git@bitbucket.org:ozkriff/zoc_data.git data
 
 before_script:
     # install latest rust and cargo
