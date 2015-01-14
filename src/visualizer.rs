@@ -24,6 +24,7 @@ use core_map::{MapPosIter};
 use dir::{DirIter};
 use picker::{TilePicker, PickResult};
 use texture::{Texture};
+use obj;
 
 static BG_COLOR: Color3 = Color3{r: 0.0, g: 0.0, b: 0.4};
 
@@ -85,6 +86,16 @@ fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
     mesh
 }
 
+fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
+    let tex_path = Path::new(format!("data/{}.png", name).as_slice());
+    let obj_path = Path::new(format!("data/{}.obj", name).as_slice());
+    let tex = Texture::new(zgl, &tex_path);
+    let obj = obj::Model::new(&obj_path);
+    let mut mesh = Mesh::new(zgl, obj.build().as_slice());
+    mesh.add_texture(zgl, tex, obj.build_tex_coord().as_slice());
+    mesh
+}
+
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
@@ -95,8 +106,9 @@ pub struct Visualizer {
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
-    mesh: Mesh,
+    mesh: Mesh, // TODO: map_mesh
     picker: TilePicker,
+    unit_mesh: Mesh,
 }
 
 impl Visualizer {
@@ -108,6 +120,7 @@ impl Visualizer {
         };
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
+        zgl.init_opengl();
         zgl.print_gl_info();
         let mut shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         shader.enable_texture_coords(&zgl);
@@ -120,6 +133,8 @@ impl Visualizer {
         camera.set_max_pos(get_max_camera_pos(&map_size));
         let mesh = generate_mesh(&map_size, &zgl);
         let picker = TilePicker::new(&zgl, &map_size);
+        let unit_mesh = load_unit_mesh(&zgl, "tank");
+        // let unit_mesh = load_unit_mesh(&zgl, "soldier");
         Visualizer {
             zgl: zgl,
             window: window,
@@ -132,6 +147,7 @@ impl Visualizer {
             win_size: win_size,
             mesh: mesh,
             picker: picker,
+            unit_mesh: unit_mesh,
         }
     }
 
@@ -233,6 +249,7 @@ impl Visualizer {
             &self.camera.mat(&self.zgl),
         );
         self.mesh.draw(&self.zgl, &self.shader);
+        self.unit_mesh.draw(&self.zgl, &self.shader);
         self.window.swap_buffers();
     }
 

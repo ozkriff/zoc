@@ -27,6 +27,7 @@ mod dir;
 mod picker;
 mod texture;
 mod fs;
+mod obj;
 
 pub fn main() {
     let mut visualizer = visualizer::Visualizer::new();

@@ -24,10 +24,8 @@ pub type ZFloat = GLfloat;
 #[derive(Clone)]
 pub struct VertexCoord{pub v: Vector3<ZFloat>}
 
-/*
 #[derive(Clone)]
 pub struct Normal{pub v: Vector3<ZFloat>}
-*/
 
 #[derive(Clone)]
 pub struct TextureCoord{pub v: Vector2<ZFloat>}

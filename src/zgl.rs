@@ -44,6 +44,15 @@ impl Zgl {
         Zgl{gl: gl}
     }
 
+    pub fn init_opengl(&self) {
+        unsafe {
+            self.gl.Enable(gl::DEPTH_TEST);
+        }
+        self.check();
+        // verify!(gl::Enable(gl::BLEND));
+        // verify!(gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA));
+    }
+
     pub fn print_gl_info(&self) {
         println!("GL_VERSION: {}", self.get_info(gl::VERSION));
         println!("GL_SHADING_LANGUAGE_VERSION: {}", self.get_info(gl::SHADING_LANGUAGE_VERSION));
@@ -168,14 +177,6 @@ impl Zgl {
         self.check();
     }
 }
-
-/*
-pub fn init_opengl() {
-    verify!(gl::Enable(gl::DEPTH_TEST));
-    verify!(gl::Enable(gl::BLEND));
-    verify!(gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA));
-}
-*/
 
 pub struct Vbo {
     id: GLuint,
