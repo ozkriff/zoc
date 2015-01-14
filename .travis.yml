@@ -7,7 +7,7 @@ install:
     - sudo apt-get install libXxf86vm-dev libxcursor-dev
 
     # TODO: get data:
-    - git clone --depth=1 https://github.com/ozkriff/zoc_data data
+    - git clone --depth=1 https://bitbucket.org/ozkriff/zoc_data data
 
 before_script:
     # install latest rust and cargo
