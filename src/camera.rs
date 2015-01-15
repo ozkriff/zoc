@@ -58,7 +58,7 @@ impl Camera {
 
     pub fn add_vertical_angle(&mut self, angle: Deg<ZFloat>) {
         self.x_angle = self.x_angle + angle;
-        self.x_angle = clamp(self.x_angle, deg(30.0), deg(75.0));
+        self.x_angle = clamp(self.x_angle, deg(10.0), deg(50.0));
     }
 
     fn clamp_pos(&mut self) {
@@ -86,8 +86,11 @@ impl Camera {
         let speed_in_radians = (self.z_angle - angle).to_rad().s;
         let dx = speed_in_radians.sin();
         let dy = speed_in_radians.cos();
-        self.pos.v.x -= dy * speed * self.zoom;
-        self.pos.v.y -= dx * speed * self.zoom;
+        // TODO: handle zoom
+        // self.pos.v.x -= dy * speed * self.zoom;
+        // self.pos.v.y -= dx * speed * self.zoom;
+        self.pos.v.x -= dy * speed;
+        self.pos.v.y -= dx * speed;
         self.clamp_pos();
     }
 

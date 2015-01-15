@@ -26,7 +26,9 @@ use picker::{TilePicker, PickResult};
 use texture::{Texture};
 use obj;
 
-static BG_COLOR: Color3 = Color3{r: 0.0, g: 0.0, b: 0.4};
+const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
+const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
+const CAMERA_MOVE_SPEED_KEY: ZFloat = geom::HEX_EX_RADIUS;
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -160,33 +162,47 @@ impl Visualizer {
     }
 
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
-        if self.is_lmb_pressed {
-            let diff = pos.v - self.mouse_pos.v;
-            let win_w = self.win_size.w as ZFloat;
-            let win_h = self.win_size.h as ZFloat;
+        if !self.is_lmb_pressed {
+            return;
+        }
+        let diff = pos.v - self.mouse_pos.v;
+        let win_w = self.win_size.w as ZFloat;
+        let win_h = self.win_size.h as ZFloat;
+        if pos.v.x > self.win_size.w / 2 {
+            let per_x_pixel = 180.0 / win_w;
+            // TODO: get max angles from camera
+            let per_y_pixel = (40.0) / win_h;
             self.camera.add_horizontal_angle(
-                deg(diff.x as ZFloat * (360.0 / win_w)));
+                deg(diff.x as ZFloat * per_x_pixel));
             self.camera.add_vertical_angle(
-                deg(diff.y as ZFloat * (360.0 / win_h)));
+                deg(diff.y as ZFloat * per_y_pixel));
+        } else {
+            let per_x_pixel = CAMERA_MOVE_SPEED / win_w;
+            let per_y_pixel = CAMERA_MOVE_SPEED / win_h;
+            self.camera.move_camera(
+                deg(180.0), diff.x as ZFloat * per_x_pixel);
+            self.camera.move_camera(
+                deg(270.0), diff.y as ZFloat * per_y_pixel);
         }
     }
 
     fn handle_event_key_press(&mut self, key: VirtualKeyCode) {
+        let s = CAMERA_MOVE_SPEED_KEY;
         match key {
             VirtualKeyCode::Q | VirtualKeyCode::Escape => {
                 self.should_close = true;
             },
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                self.camera.move_camera(deg(270.0), 0.1);
+                self.camera.move_camera(deg(270.0), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.camera.move_camera(deg(90.0), 0.1);
+                self.camera.move_camera(deg(90.0), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.camera.move_camera(deg(0.0), 0.1);
+                self.camera.move_camera(deg(0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.camera.move_camera(deg(180.0), 0.1);
+                self.camera.move_camera(deg(180.0), s);
             },
             VirtualKeyCode::Minus => {
                 self.camera.change_zoom(1.3);
