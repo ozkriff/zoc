@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::num::{SignedInt};
 use cgmath::{Vector2, Vector3, deg};
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
 use glutin::ElementState::{Pressed, Released};
@@ -114,6 +115,7 @@ pub struct Visualizer {
     map_pos_under_cursor: Option<MapPos>,
     selected_map_pos: Option<MapPos>,
     just_pressed_lmb: bool,
+    last_press_pos: ScreenPos,
 }
 
 impl Visualizer {
@@ -156,6 +158,7 @@ impl Visualizer {
             map_pos_under_cursor: None,
             selected_map_pos: None,
             just_pressed_lmb: false,
+            last_press_pos: ScreenPos{v: Vector2::from_value(0)},
         }
     }
 
@@ -237,11 +240,15 @@ impl Visualizer {
             Event::MouseInput(Pressed, LeftMouseButton) => {
                 self.is_lmb_pressed = true;
                 self.just_pressed_lmb = true;
+                self.last_press_pos = self.mouse_pos.clone();
             },
             Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
-                if let Some(ref pos) = self.map_pos_under_cursor {
-                    self.selected_map_pos = Some(pos.clone());
+                let x = self.mouse_pos.v.x - self.last_press_pos.v.x;
+                let y = self.mouse_pos.v.y - self.last_press_pos.v.y;
+                let tolerance = 10;
+                if x.abs() < tolerance && y.abs() < tolerance {
+                    self.selected_map_pos = self.map_pos_under_cursor.clone();
                 }
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
