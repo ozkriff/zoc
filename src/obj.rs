@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
 use std::str::{Words, Split, FromStr};
-use std::io::{BufferedReader, File};
 use cgmath::{Vector3, Vector2};
 use core_types::{ZInt};
 use visualizer_types::{VertexCoord, TextureCoord, Normal};
+use fs;
 
 struct Face {
     vertex: [ZInt; 3],
@@ -102,8 +102,7 @@ impl Model {
     }
 
     fn read(&mut self, path: &Path) {
-        let mut file = BufferedReader::new(File::open(path));
-        for line in file.lines() {
+        for line in fs::load(path).lines() {
             match line {
                 Ok(line) => self.read_line(line.as_slice()),
                 Err(msg) => panic!("Obj: read error: {}", msg),
