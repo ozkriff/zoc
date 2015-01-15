@@ -110,6 +110,7 @@ pub struct Visualizer {
     picker: TilePicker,
     unit_mesh: Mesh,
     map_pos_under_cursor: Option<MapPos>,
+    just_pressed_lmb: bool,
 }
 
 impl Visualizer {
@@ -150,6 +151,7 @@ impl Visualizer {
             picker: picker,
             unit_mesh: unit_mesh,
             map_pos_under_cursor: None,
+            just_pressed_lmb: false,
         }
     }
 
@@ -167,7 +169,6 @@ impl Visualizer {
             self.camera.add_vertical_angle(
                 deg(diff.y as ZFloat * (360.0 / win_h)));
         }
-        self.mouse_pos = pos.clone();
     }
 
     fn handle_event_key_press(&mut self, key: VirtualKeyCode) {
@@ -208,10 +209,16 @@ impl Visualizer {
             },
             Event::MouseMoved((x, y)) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
-                self.handle_event_mouse_move(&pos);
+                if self.just_pressed_lmb {
+                    self.just_pressed_lmb = false;
+                } else {
+                    self.handle_event_mouse_move(&pos);
+                }
+                self.mouse_pos = pos.clone();
             },
             Event::MouseInput(Pressed, LeftMouseButton) => {
                 self.is_lmb_pressed = true;
+                self.just_pressed_lmb = true;
             },
             Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
@@ -234,7 +241,7 @@ impl Visualizer {
         if events.is_empty() {
             return;
         }
-        // println!("{}", events);
+        // println!("{:?}", events);
         for event in events.iter() {
             self.handle_event(event);
         }
