@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
-use core_types::{ZInt};
-use visualizer_types::{VertexCoord, TextureCoord, Color3};
-use zgl::{Zgl, Vbo, MeshRenderMode};
-use shader::{Shader};
-use texture::{Texture};
+use core::types::{ZInt};
+use visualizer::types::{VertexCoord, TextureCoord, Color3};
+use visualizer::zgl::{Zgl, Vbo, MeshRenderMode};
+use visualizer::shader::{Shader};
+use visualizer::texture::{Texture};
 
 pub struct Mesh {
     vertex_coords_vbo: Vbo,

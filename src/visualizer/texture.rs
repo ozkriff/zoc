@@ -6,10 +6,10 @@ use image::{GenericImage};
 use gl;
 use gl::types::{GLint, GLuint, GLsizei};
 // use cgmath::{Vector2};
-use shader::{Shader};
-// use core_types::{Size2, ZInt};
-use zgl::{Zgl};
-use fs;
+use visualizer::shader::{Shader};
+// use core::types::{Size2, ZInt};
+use visualizer::zgl::{Zgl};
+use core::fs;
 
 pub struct Texture {
     id: GLuint,

@@ -3,9 +3,9 @@
 use std::f32::consts::{PI, FRAC_PI_2};
 use std::num::{/*Int,*/ Float};
 use cgmath::{Vector2, Vector3, Vector};
-use core_types::{ZInt, MapPos};
-// use core_misc::{rad_to_deg};
-use visualizer_types::{WorldPos, ZFloat, VertexCoord};
+use core::types::{ZInt, MapPos};
+// use core::misc::{rad_to_deg};
+use visualizer::types::{WorldPos, ZFloat, VertexCoord};
 
 pub const HEX_EX_RADIUS: ZFloat = 1.0;
 

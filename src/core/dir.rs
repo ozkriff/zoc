@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 // use cgmath::{Vector2};
-use core_types::{ZInt/*, MapPos*/};
+use core::types::{ZInt/*, MapPos*/};
 
 pub enum Dir {
   NorthEast,

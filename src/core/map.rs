@@ -2,7 +2,7 @@
 
 // use std::num::{Float, SignedInt};
 use cgmath::{Vector2};
-use core_types::{Size2, ZInt, MapPos};
+use core::types::{Size2, ZInt, MapPos};
 
 pub struct MapPosIter {
     cursor: MapPos,

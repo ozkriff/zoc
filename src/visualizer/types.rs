@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use gl::types::{GLfloat, GLuint};
-use core_types::{ZInt};
+use core::types::{ZInt};
 use cgmath::{Vector3, Vector2};
 
 #[derive(Clone)]

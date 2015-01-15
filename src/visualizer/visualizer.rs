@@ -5,8 +5,8 @@ use cgmath::{Vector2, Vector3, deg};
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
 use glutin::ElementState::{Pressed, Released};
 use glutin::MouseButton::{LeftMouseButton};
-use core_types::{Size2, ZInt, MapPos};
-use visualizer_types::{
+use core::types::{Size2, ZInt, MapPos};
+use visualizer::types::{
     ZFloat,
     Color3,
     Color4,
@@ -16,16 +16,16 @@ use visualizer_types::{
     VertexCoord,
     TextureCoord,
 };
-use zgl::{Zgl};
-use mesh::{Mesh};
-use camera::Camera;
-use shader::{Shader};
-use geom;
-use core_map::{MapPosIter};
-use dir::{DirIter};
-use picker::{TilePicker, PickResult};
-use texture::{Texture};
-use obj;
+use visualizer::zgl::{Zgl};
+use visualizer::mesh::{Mesh};
+use visualizer::camera::Camera;
+use visualizer::shader::{Shader};
+use visualizer::geom;
+use core::map::{MapPosIter};
+use core::dir::{DirIter};
+use visualizer::picker::{TilePicker, PickResult};
+use visualizer::texture::{Texture};
+use visualizer::obj;
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
 const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;

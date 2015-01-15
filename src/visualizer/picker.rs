@@ -1,17 +1,17 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2};
-use core_map::{MapPosIter};
-use core_types::{ZInt, Size2, MapPos, /*UnitId*/};
+use core::map::{MapPosIter};
+use core::types::{ZInt, Size2, MapPos, /*UnitId*/};
 // use core::fs::FileSystem;
 // use game_state::GameState;
-use zgl::{Zgl};
-use camera::{Camera};
-use geom;
-use mesh::{Mesh};
-use visualizer_types::{Color3, ZFloat, VertexCoord, ScreenPos};
-use shader::{Shader};
-use dir::{DirIter};
+use visualizer::zgl::{Zgl};
+use visualizer::camera::{Camera};
+use visualizer::geom;
+use visualizer::mesh::{Mesh};
+use visualizer::types::{Color3, ZFloat, VertexCoord, ScreenPos};
+use visualizer::shader::{Shader};
+use core::dir::{DirIter};
 
 static VS_SRC: &'static str = "\
     #version 100\n\

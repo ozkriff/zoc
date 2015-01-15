@@ -1,8 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use std::mem;
-use core_types::{Size2, ZInt};
-use visualizer_types::{Color3, ZFloat, ScreenPos, AttrId};
+use core::types::{Size2, ZInt};
+use visualizer::types::{Color3, ZFloat, ScreenPos, AttrId};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad};
 use libc::c_void;
 use gl;

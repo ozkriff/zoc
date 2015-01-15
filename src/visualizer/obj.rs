@@ -2,9 +2,9 @@
 
 use std::str::{Words, Split, FromStr};
 use cgmath::{Vector3, Vector2};
-use core_types::{ZInt};
-use visualizer_types::{VertexCoord, TextureCoord, Normal};
-use fs;
+use core::types::{ZInt};
+use visualizer::types::{VertexCoord, TextureCoord, Normal};
+use core::fs;
 
 struct Face {
     vertex: [ZInt; 3],

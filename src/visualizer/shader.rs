@@ -7,9 +7,9 @@ use std::ffi::CString;
 use cgmath::{Matrix4};
 use gl;
 use gl::types::{GLuint, GLint, GLenum, GLchar};
-use zgl::{Zgl};
-use core_types::{ZInt};
-use visualizer_types::{ZFloat, Color4, ColorId, MatId, AttrId, ProgramId};
+use visualizer::zgl::{Zgl};
+use core::types::{ZInt};
+use visualizer::types::{ZFloat, Color4, ColorId, MatId, AttrId, ProgramId};
 
 fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
     let name_c = CString::from_slice(name.as_bytes()).as_slice_with_nul().as_ptr();
