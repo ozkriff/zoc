@@ -63,7 +63,7 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
-fn generate_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
+fn generate_map_mesh(map_size: &Size2<ZInt>, zgl: &Zgl) -> Mesh {
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
@@ -106,7 +106,7 @@ pub struct Visualizer {
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
-    mesh: Mesh, // TODO: map_mesh
+    map_mesh: Mesh,
     picker: TilePicker,
     unit_mesh: Mesh,
 }
@@ -131,7 +131,7 @@ impl Visualizer {
         let mut camera = Camera::new(&win_size);
         let map_size = Size2{w: 5, h: 8};
         camera.set_max_pos(get_max_camera_pos(&map_size));
-        let mesh = generate_mesh(&map_size, &zgl);
+        let map_mesh = generate_map_mesh(&map_size, &zgl);
         let picker = TilePicker::new(&zgl, &map_size);
         let unit_mesh = load_unit_mesh(&zgl, "tank");
         // let unit_mesh = load_unit_mesh(&zgl, "soldier");
@@ -145,7 +145,7 @@ impl Visualizer {
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
             is_lmb_pressed: false,
             win_size: win_size,
-            mesh: mesh,
+            map_mesh: map_mesh,
             picker: picker,
             unit_mesh: unit_mesh,
         }
@@ -248,7 +248,7 @@ impl Visualizer {
             self.shader.get_mvp_mat(),
             &self.camera.mat(&self.zgl),
         );
-        self.mesh.draw(&self.zgl, &self.shader);
+        self.map_mesh.draw(&self.zgl, &self.shader);
         self.unit_mesh.draw(&self.zgl, &self.shader);
         self.window.swap_buffers();
     }
