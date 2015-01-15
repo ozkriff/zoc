@@ -109,6 +109,7 @@ pub struct Visualizer {
     map_mesh: Mesh,
     picker: TilePicker,
     unit_mesh: Mesh,
+    map_pos_under_cursor: Option<MapPos>,
 }
 
 impl Visualizer {
@@ -148,6 +149,7 @@ impl Visualizer {
             map_mesh: map_mesh,
             picker: picker,
             unit_mesh: unit_mesh,
+            map_pos_under_cursor: None,
         }
     }
 
@@ -213,9 +215,12 @@ impl Visualizer {
             },
             Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
-                let (r, g, b, a) = self.zgl.read_pixel_bytes(
-                    &self.win_size, &self.mouse_pos);
-                println!("r: {}, g: {}, b: {}, a: {}", r, g, b, a);
+                match self.map_pos_under_cursor {
+                    Some(ref pos) => {
+                        println!("Pos: x: {}, y: {}", pos.v.x, pos.v.y);
+                    },
+                    None => {},
+                }
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
@@ -256,11 +261,9 @@ impl Visualizer {
     fn pick_tile(&mut self) {
         let pick_result = self.picker.pick_tile(
             &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
-        match pick_result {
-            PickResult::Nothing => {},
-            PickResult::MapPos(map_pos) => {
-                println!("PICKED: x: {}, y: {}", map_pos.v.x, map_pos.v.y);
-            },
+        self.map_pos_under_cursor = match pick_result {
+            PickResult::Nothing => None,
+            PickResult::MapPos(map_pos) => Some(map_pos),
         }
     }
 
