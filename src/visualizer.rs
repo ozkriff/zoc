@@ -112,6 +112,7 @@ pub struct Visualizer {
     picker: TilePicker,
     unit_mesh: Mesh,
     map_pos_under_cursor: Option<MapPos>,
+    selected_map_pos: Option<MapPos>,
     just_pressed_lmb: bool,
 }
 
@@ -153,6 +154,7 @@ impl Visualizer {
             picker: picker,
             unit_mesh: unit_mesh,
             map_pos_under_cursor: None,
+            selected_map_pos: None,
             just_pressed_lmb: false,
         }
     }
@@ -238,11 +240,8 @@ impl Visualizer {
             },
             Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
-                match self.map_pos_under_cursor {
-                    Some(ref pos) => {
-                        println!("Pos: x: {}, y: {}", pos.v.x, pos.v.y);
-                    },
-                    None => {},
+                if let Some(ref pos) = self.map_pos_under_cursor {
+                    self.selected_map_pos = Some(pos.clone());
                 }
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
@@ -277,7 +276,14 @@ impl Visualizer {
             &self.camera.mat(&self.zgl),
         );
         self.map_mesh.draw(&self.zgl, &self.shader);
-        self.unit_mesh.draw(&self.zgl, &self.shader);
+        if let Some(ref map_pos) = self.selected_map_pos {
+            let pos = geom::map_pos_to_world_pos(map_pos);
+            let m = self.camera.mat(&self.zgl).clone();
+            let m = self.zgl.tr(m, pos.v);
+            self.shader.set_uniform_mat4f(
+                &self.zgl, self.shader.get_mvp_mat(), &m);
+            self.unit_mesh.draw(&self.zgl, &self.shader);
+        }
         self.window.swap_buffers();
     }
 
