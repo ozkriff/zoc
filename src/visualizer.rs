@@ -173,7 +173,7 @@ impl Visualizer {
         let diff = pos.v - self.mouse_pos.v;
         let win_w = self.win_size.w as ZFloat;
         let win_h = self.win_size.h as ZFloat;
-        if pos.v.x > self.win_size.w / 2 {
+        if self.last_press_pos.v.x > self.win_size.w / 2 {
             let per_x_pixel = 180.0 / win_w;
             // TODO: get max angles from camera
             let per_y_pixel = (40.0) / win_h;
