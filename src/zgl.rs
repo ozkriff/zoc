@@ -96,7 +96,7 @@ impl Zgl {
     // Rotations go through the Basis types, which are guaranteed to be
     // orthogonal matrices."
     pub fn tr(&self, m: Matrix4<ZFloat>, v: Vector3<ZFloat>) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::<ZFloat>::identity();
+        let mut t = Matrix4::identity();
         t[3][0] = v.x;
         t[3][1] = v.y;
         t[3][2] = v.z;
@@ -105,7 +105,7 @@ impl Zgl {
 
     /*
     pub fn scale(&self, m: Matrix4<ZFloat>, scale: ZFloat) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::<ZFloat>::identity();
+        let mut t = Matrix4::identity();
         t[0][0] = scale;
         t[1][1] = scale;
         t[2][2] = scale;
