@@ -21,5 +21,8 @@ git = "https://github.com/bjz/cgmath-rs"
 [dependencies.image]
 git = "https://github.com/PistonDevelopers/image"
 
+[dependencies.stb_tt]
+git = "https://github.com/ozkriff/stb-tt-rs"
+
 [dependencies.zoc_gl]
 path = "./zoc_gl/"

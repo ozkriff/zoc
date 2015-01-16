@@ -12,5 +12,6 @@ pub mod zgl; // TODO: not pub
 pub mod picker;
 pub mod texture;
 pub mod obj;
+pub mod font_stash;
 
 // vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:

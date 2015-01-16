@@ -12,11 +12,12 @@ extern crate "zoc_gl" as gl;
 extern crate serialize;
 extern crate glutin;
 extern crate image;
+extern crate stb_tt;
 
 use visualizer::{Visualizer};
 
 mod core;
-mod visualizer; // TODO: reexport Visualizer
+mod visualizer;
 
 pub fn main() {
     let mut visualizer = Visualizer::new();

@@ -26,6 +26,7 @@ use core::dir::{DirIter};
 use visualizer::picker::{TilePicker, PickResult};
 use visualizer::texture::{Texture};
 use visualizer::obj;
+use visualizer::font_stash::{FontStash};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
 const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
@@ -116,6 +117,8 @@ pub struct Visualizer {
     selected_map_pos: Option<MapPos>,
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
+    font_stash: FontStash,
+    map_text_mesh: Mesh,
 }
 
 impl Visualizer {
@@ -142,6 +145,10 @@ impl Visualizer {
         let picker = TilePicker::new(&zgl, &map_size);
         let unit_mesh = load_unit_mesh(&zgl, "tank");
         // let unit_mesh = load_unit_mesh(&zgl, "soldier");
+        let font_size = 40.0;
+        let mut font_stash = FontStash::new(
+            &zgl, &Path::new("data/DroidSerif-Regular.ttf"), font_size);
+        let map_text_mesh = font_stash.get_mesh(&zgl, "test text");
         Visualizer {
             zgl: zgl,
             window: window,
@@ -159,6 +166,8 @@ impl Visualizer {
             selected_map_pos: None,
             just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector2::from_value(0)},
+            font_stash: font_stash,
+            map_text_mesh: map_text_mesh,
         }
     }
 
@@ -269,12 +278,22 @@ impl Visualizer {
         }
     }
 
+   fn draw_3d_text(&mut self) {
+        let m = self.camera.mat(&self.zgl);
+        let m = self.zgl.scale(m, 1.0 / self.font_stash.get_size());
+        let m = self.zgl.rot_x(m, deg(90.0));
+        self.shader.set_uniform_mat4f(
+            &self.zgl, self.shader.get_mvp_mat(), &m);
+        self.map_text_mesh.draw(&self.zgl, &self.shader);
+    }
+
     fn draw(&mut self) {
         self.zgl.set_clear_color(&BG_COLOR);
         self.zgl.clear_screen();
         self.shader.activate(&self.zgl);
         self.shader.set_uniform_color(
-            &self.zgl, &self.color_uniform_location,
+            &self.zgl,
+            &self.color_uniform_location,
             &Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0},
         );
         self.shader.set_uniform_mat4f(
@@ -291,6 +310,12 @@ impl Visualizer {
                 &self.zgl, self.shader.get_mvp_mat(), &m);
             self.unit_mesh.draw(&self.zgl, &self.shader);
         }
+        self.shader.set_uniform_color(
+            &self.zgl,
+            &self.color_uniform_location,
+            &Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0},
+        );
+        self.draw_3d_text();
         self.window.swap_buffers();
     }
 

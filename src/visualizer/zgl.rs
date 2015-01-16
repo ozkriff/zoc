@@ -49,8 +49,14 @@ impl Zgl {
             self.gl.Enable(gl::DEPTH_TEST);
         }
         self.check();
-        // verify!(gl::Enable(gl::BLEND));
-        // verify!(gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA));
+        unsafe {
+            self.gl.Enable(gl::BLEND);
+        }
+        self.check();
+        unsafe {
+            self.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        }
+        self.check();
     }
 
     pub fn print_gl_info(&self) {
@@ -103,7 +109,6 @@ impl Zgl {
         m.mul_m(&t)
     }
 
-    /*
     pub fn scale(&self, m: Matrix4<ZFloat>, scale: ZFloat) -> Matrix4<ZFloat> {
         let mut t = Matrix4::identity();
         t[0][0] = scale;
@@ -111,7 +116,6 @@ impl Zgl {
         t[2][2] = scale;
         m.mul_m(&t)
     }
-    */
 
     pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: Deg<ZFloat>) -> Matrix4<ZFloat> {
         let rad = angle.to_rad();

@@ -1,16 +1,18 @@
 // See LICENSE file for copyright and license details.
 
+use std::iter::{repeat};
 use std::mem;
 use image;
 use image::{GenericImage};
 use gl;
 use gl::types::{GLint, GLuint, GLsizei};
-// use cgmath::{Vector2};
+use cgmath::{Vector2};
 use visualizer::shader::{Shader};
-// use core::types::{Size2, ZInt};
+use core::types::{Size2, ZInt};
 use visualizer::zgl::{Zgl};
 use core::fs;
 
+#[derive(Clone)]
 pub struct Texture {
     id: GLuint,
 }
@@ -20,9 +22,9 @@ impl Texture {
         load_texture(zgl, path)
     }
 
-    // pub fn new_empty(size: Size2<ZInt>) -> Texture {
-    //     get_empty_texture(size)
-    // }
+    pub fn new_empty(zgl: &Zgl, size: Size2<ZInt>) -> Texture {
+        get_empty_texture(zgl, size)
+    }
 
     pub fn enable(&self, zgl: &Zgl, shader: &Shader) {
         let basic_texture_loc = shader.get_uniform_texture(zgl, "basic_texture");
@@ -44,7 +46,6 @@ impl Texture {
         zgl.check();
     }
 
-    /*
     pub fn set_sub_image(
         &self,
         zgl: &Zgl,
@@ -72,7 +73,6 @@ impl Texture {
             zgl.check();
         }
     }
-    */
 }
 
 fn load_image(path: &Path) -> image::DynamicImage {
@@ -81,19 +81,22 @@ fn load_image(path: &Path) -> image::DynamicImage {
         .ok().expect("Can`t open img")
 }
 
-/*
 fn get_empty_texture(zgl: &Zgl, size: Size2<ZInt>) -> Texture {
     let s = size.w;
     assert_eq!(size.w, size.h);
-    let data = Vec::from_elem((s * s) as uint * 4, 0u8);
+    let data: Vec<_> = repeat(0u8).take((s * s) as usize * 4 ).collect();
     let mut id = 0;
     unsafe {
         zgl.gl.GenTextures(1, &mut id);
         zgl.check();
     };
-    zgl.gl.ActiveTexture(gl::TEXTURE0);
+    unsafe {
+        zgl.gl.ActiveTexture(gl::TEXTURE0);
+    }
     zgl.check();
-    zgl.gl.BindTexture(gl::TEXTURE_2D, id);
+    unsafe {
+        zgl.gl.BindTexture(gl::TEXTURE_2D, id);
+    }
     zgl.check();
     let format = gl::RGBA;
     unsafe {
@@ -112,15 +115,18 @@ fn get_empty_texture(zgl: &Zgl, size: Size2<ZInt>) -> Texture {
         );
         zgl.check();
     }
-    zgl.gl.TexParameteri(gl::TEXTURE_2D,
-        gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+    unsafe {
+        zgl.gl.TexParameteri(gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+    }
     zgl.check();
-    zgl.gl.TexParameteri(gl::TEXTURE_2D,
-        gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+    unsafe {
+        zgl.gl.TexParameteri(gl::TEXTURE_2D,
+            gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+    }
     zgl.check();
     Texture{id: id}
 }
-*/
 
 fn load_texture(zgl: &Zgl, path: &Path) -> Texture {
     let img = load_image(path);

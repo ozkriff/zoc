@@ -28,6 +28,7 @@ pub fn read_file(path: &Path) -> String {
         Err(msg) => panic!("Not valid utf8 in file {}: {}", path.display(), msg),
     }
 }
+*/
 
 pub fn add_quad_to_vec<T: Clone>(v: &mut Vec<T>, v1: T, v2: T, v3: T, v4: T) {
     v.push(v1.clone());
@@ -37,6 +38,5 @@ pub fn add_quad_to_vec<T: Clone>(v: &mut Vec<T>, v1: T, v2: T, v3: T, v4: T) {
     v.push(v3);
     v.push(v4);
 }
-*/
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
