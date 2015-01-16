@@ -59,7 +59,6 @@ impl FontStash {
         self.size
     }
 
-    /*
     pub fn get_text_size(&mut self, zgl: &Zgl, text: &str) -> (ScreenPos, Size2<ZInt>) {
         let mut size = Size2{w: 0, h: 0};
         let mut pos = ScreenPos{v: Vector2{x: 0, y: 0}};
@@ -78,7 +77,6 @@ impl FontStash {
         }
         (pos, size)
     }
-    */
 
     pub fn get_mesh(&mut self, zgl: &Zgl, text: &str) -> Mesh {
         let mut vertex_data = Vec::new();

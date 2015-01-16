@@ -13,5 +13,6 @@ mod picker;
 mod texture;
 mod obj;
 mod font_stash;
+mod gui;
 
 // vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:

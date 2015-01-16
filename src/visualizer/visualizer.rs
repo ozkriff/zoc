@@ -27,6 +27,7 @@ use visualizer::picker::{TilePicker, PickResult};
 use visualizer::texture::{Texture};
 use visualizer::obj;
 use visualizer::font_stash::{FontStash};
+use visualizer::gui::{ButtonManager, Button, ButtonId};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
 const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
@@ -119,6 +120,9 @@ pub struct Visualizer {
     last_press_pos: ScreenPos,
     font_stash: FontStash,
     map_text_mesh: Mesh,
+    button_manager: ButtonManager,
+    button_end_turn_id: ButtonId,
+    button_test_id: ButtonId,
 }
 
 impl Visualizer {
@@ -149,6 +153,19 @@ impl Visualizer {
         let mut font_stash = FontStash::new(
             &zgl, &Path::new("data/DroidSerif-Regular.ttf"), font_size);
         let map_text_mesh = font_stash.get_mesh(&zgl, "test text");
+        let mut button_manager = ButtonManager::new();
+        let button_end_turn_id = button_manager.add_button(Button::new(
+            &zgl,
+            "end turn",
+            &mut font_stash,
+            ScreenPos{v: Vector2{x: 10, y: 60}})
+        );
+        let button_test_id = button_manager.add_button(Button::new(
+            &zgl,
+            "test",
+            &mut font_stash,
+            ScreenPos{v: Vector2{x: 10, y: 10}})
+        );
         Visualizer {
             zgl: zgl,
             window: window,
@@ -168,6 +185,9 @@ impl Visualizer {
             last_press_pos: ScreenPos{v: Vector2::from_value(0)},
             font_stash: font_stash,
             map_text_mesh: map_text_mesh,
+            button_manager: button_manager,
+            button_end_turn_id: button_end_turn_id,
+            button_test_id: button_test_id,
         }
     }
 
@@ -228,6 +248,29 @@ impl Visualizer {
         }
     }
 
+    fn handle_event_button_press(&mut self, button_id: &ButtonId) {
+        if *button_id == self.button_end_turn_id {
+            println!("end turn");
+        } else if *button_id == self.button_test_id {
+            println!("test");
+        } else {
+            panic!("BUTTON ID ERROR");
+        }
+    }
+
+    fn get_clicked_button_id(&self) -> Option<ButtonId> {
+        self.button_manager.get_clicked_button_id(
+            &self.mouse_pos, &self.win_size)
+    }
+
+    /// Check if this was a tap or swipe
+    fn is_tap(&self, pos: &ScreenPos) -> bool {
+        let x = pos.v.x - self.last_press_pos.v.x;
+        let y = pos.v.y - self.last_press_pos.v.y;
+        let tolerance = 10;
+        x.abs() < tolerance && y.abs() < tolerance
+    }
+
     fn handle_event(&mut self, event: &Event) {
         match *event {
             Event::Closed => {
@@ -253,11 +296,12 @@ impl Visualizer {
             },
             Event::MouseInput(Released, LeftMouseButton) => {
                 self.is_lmb_pressed = false;
-                let x = self.mouse_pos.v.x - self.last_press_pos.v.x;
-                let y = self.mouse_pos.v.y - self.last_press_pos.v.y;
-                let tolerance = 10;
-                if x.abs() < tolerance && y.abs() < tolerance {
-                    self.selected_map_pos = self.map_pos_under_cursor.clone();
+                if self.is_tap(&self.mouse_pos) {
+                    if let Some(button_id) = self.get_clicked_button_id() {
+                        self.handle_event_button_press(&button_id);
+                    } else {
+                        self.selected_map_pos = self.map_pos_under_cursor.clone();
+                    }
                 }
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
@@ -316,6 +360,12 @@ impl Visualizer {
             &Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0},
         );
         self.draw_3d_text();
+        self.button_manager.draw(
+            &self.zgl,
+            &self.win_size,
+            &self.shader,
+            self.shader.get_mvp_mat(),
+        );
         self.window.swap_buffers();
     }
 

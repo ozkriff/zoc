@@ -3,7 +3,7 @@
 use std::mem;
 use core::types::{Size2, ZInt};
 use visualizer::types::{Color3, ZFloat, ScreenPos, AttrId};
-use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad};
+use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad, ortho};
 use libc::c_void;
 use gl;
 use gl::Gl;
@@ -180,6 +180,16 @@ impl Zgl {
         }
         self.check();
     }
+
+    pub fn get_2d_screen_matrix(&self, win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
+        let left = 0.0;
+        let right = win_size.w as ZFloat;
+        let bottom = 0.0;
+        let top = win_size.h as ZFloat;
+        let near = -1.0;
+        let far = 1.0;
+        ortho(left, right, bottom, top, near, far)
+    }
 }
 
 pub struct Vbo {
@@ -232,18 +242,6 @@ impl Drop for Vbo {
             verify!(gl::DeleteBuffers(1, &self.id));
         }
     }
-}
-*/
-
-/*
-pub fn get_2d_screen_matrix(&self, win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
-    let left = 0.0;
-    let right = win_size.w as ZFloat;
-    let bottom = 0.0;
-    let top = win_size.h as ZFloat;
-    let near = -1.0;
-    let far = 1.0;
-    ortho(left, right, bottom, top, near, far)
 }
 */
 
