@@ -129,7 +129,6 @@ fn build_walkable_mesh(zgl: &Zgl, pathfinder: &Pathfinder) -> Mesh {
     mesh
 }
 
-
 fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
     let n = 0.2;
     let vertex_data = vec!(
