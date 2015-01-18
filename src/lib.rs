@@ -1,12 +1,14 @@
 // See LICENSE file for copyright and license details.
 
 #![allow(unstable)] // TODO: remove this
+#![feature(box_syntax)]
 
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
 
 extern crate libc;
+extern crate time;
 extern crate cgmath;
 extern crate "zoc_gl" as gl;
 extern crate serialize;

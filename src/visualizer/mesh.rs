@@ -6,6 +6,9 @@ use visualizer::zgl::{Zgl, Vbo, MeshRenderMode};
 use visualizer::shader::{Shader};
 use visualizer::texture::{Texture};
 
+#[derive(Clone)]
+pub struct MeshId{pub id: ZInt}
+
 pub struct Mesh {
     vertex_coords_vbo: Vbo,
     colors_vbo: Option<Vbo>,
@@ -37,6 +40,10 @@ impl Mesh {
         assert_eq!(self.length, data.len() as ZInt);
         self.texture_coords_vbo = Some(Vbo::from_data(zgl, data));
         self.texture = Some(texture);
+    }
+
+    pub fn set_mode(&mut self, mode: MeshRenderMode) {
+        self.mode = mode;
     }
 
     pub fn draw(&self, zgl: &Zgl, shader: &Shader) {

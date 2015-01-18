@@ -14,5 +14,9 @@ mod texture;
 mod obj;
 mod font_stash;
 mod gui;
+mod scene;
+mod event_visualizer;
+mod unit_type_visual_info;
+mod selection;
 
 // vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:

@@ -11,13 +11,11 @@ pub struct Size2<T>{
 
 pub type ZInt = i32;
 
-/*
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
 pub struct PlayerId{pub id: ZInt}
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct UnitId{pub id: ZInt}
-*/
 
 #[derive(PartialEq, Clone, Show)]
 pub struct MapPos{pub v: Vector2<ZInt>}

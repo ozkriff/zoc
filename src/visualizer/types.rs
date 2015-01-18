@@ -36,9 +36,8 @@ pub struct WorldPos{pub v: Vector3<ZFloat>}
 #[derive(Clone)]
 pub struct ScreenPos{pub v: Vector2<ZInt>}
 
-/*
+#[derive(Clone)]
 pub struct Time{pub n: u64}
-*/
 
 #[derive(Clone)]
 pub struct MatId{pub id: GLuint}

@@ -14,6 +14,7 @@ pub fn clamp<T>(n: T, min: T, max: T) -> T
     }
 }
 
+// TODO: Delete this
 /*
 pub fn read_file(path: &Path) -> String {
     if !path.exists() {

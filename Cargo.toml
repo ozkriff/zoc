@@ -26,3 +26,6 @@ git = "https://github.com/ozkriff/stb-tt-rs"
 
 [dependencies.zoc_gl]
 path = "./zoc_gl/"
+
+[dependencies]
+time = "*"

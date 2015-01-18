@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-// use std::num::{Float, SignedInt};
+use std::num::{Float, SignedInt};
 use cgmath::{Vector2};
 use core::types::{Size2, ZInt, MapPos};
 
@@ -36,14 +36,12 @@ impl Iterator for MapPosIter {
     }
 }
 
-/*
-pub fn distance(from: MapPos, to: MapPos) -> ZInt {
+pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
     let to = to.v;
     let from = from.v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);
     let dy = to.y - from.y;
     (dx.abs() + dy.abs() + (dx - dy).abs()) / 2
 }
-*/
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

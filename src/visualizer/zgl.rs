@@ -2,7 +2,7 @@
 
 use std::mem;
 use core::types::{Size2, ZInt};
-use visualizer::types::{Color3, ZFloat, ScreenPos, AttrId};
+use visualizer::types::{Color3, Color4, ZFloat, ScreenPos, AttrId};
 use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad, ortho};
 use libc::c_void;
 use gl;
@@ -10,24 +10,22 @@ use gl::Gl;
 use gl::types::{GLuint, GLsizeiptr};
 use std::ffi;
 
-/*
-pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
+// pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
 pub const BLACK_3: Color3 = Color3{r: 0.0, g: 0.0, b: 0.0};
 pub const WHITE: Color4 = Color4{r: 1.0, g: 1.0, b: 1.0, a: 1.0};
 pub const BLUE: Color4 = Color4{r: 0.0, g: 0.0, b: 1.0, a: 1.0};
 pub const BLACK: Color4 = Color4{r: 0.0, g: 0.0, b: 0.0, a: 1.0};
-*/
 
 pub enum MeshRenderMode {
     Triangles,
-    // Lines,
+    Lines,
 }
 
 impl MeshRenderMode {
     pub fn to_gl_type(&self) -> GLuint {
         match *self {
             MeshRenderMode::Triangles => gl::TRIANGLES,
-            // MeshRenderMode::Lines => gl::LINES,
+            MeshRenderMode::Lines => gl::LINES,
         }
     }
 }
