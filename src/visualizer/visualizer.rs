@@ -578,6 +578,7 @@ impl Visualizer {
             },
             Event::Resized(w, h) => {
                 self.win_size = Size2{w: w as ZInt, h: h as ZInt};
+                self.camera.regenerate_projection_mat(&self.win_size);
                 self.zgl.set_viewport(&self.win_size);
             },
             Event::MouseMoved((x, y)) => {

@@ -94,11 +94,9 @@ impl Camera {
         self.clamp_pos();
     }
 
-    /*
-    pub fn regenerate_projection_mat(&mut self, win_size: Size2<ZInt>) {
+    pub fn regenerate_projection_mat(&mut self, win_size: &Size2<ZInt>) {
         self.projection_mat = get_projection_mat(win_size);
     }
-    */
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
