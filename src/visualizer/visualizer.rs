@@ -405,7 +405,8 @@ impl Visualizer {
             (Some(defender_id), Some(attacker_id)) => {
                 let state = &self.game_states[*self.core.player_id()];
                 let attacker = &state.units[attacker_id];
-                if attacker.attacked {
+                if attacker.attack_points <= 0 {
+                    println!("No attack points");
                     return;
                 }
                 let defender = &state.units[defender_id];
@@ -417,6 +418,7 @@ impl Visualizer {
                     weapon_type.max_distance
                 };
                 if distance(&attacker.pos, &defender.pos) > max_distance {
+                    println!("Out of range");
                     return;
                 }
                 self.core.do_command(Command::AttackUnit {

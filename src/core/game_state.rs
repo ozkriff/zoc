@@ -28,9 +28,9 @@ impl<'a> GameState {
     fn refresh_units(&mut self, object_types: &ObjectTypes, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
-                unit.move_points = object_types
-                    .get_unit_type(&unit.type_id).move_points;
-                unit.attacked = false;
+                let unit_type = object_types.get_unit_type(&unit.type_id);
+                unit.move_points = unit_type.move_points;
+                unit.attack_points = unit_type.attack_points;
             }
         }
     }
@@ -50,15 +50,16 @@ impl<'a> GameState {
             },
             CoreEvent::CreateUnit{ref unit_id, ref pos, ref type_id, ref player_id} => {
                 assert!(self.units.get(unit_id).is_none());
-                let move_points
-                    = object_types.get_unit_type(type_id).move_points;
+                let unit_type = object_types.get_unit_type(type_id);
+                let move_points = unit_type.move_points;
+                let attack_points = unit_type.move_points;
                 self.units.insert(unit_id.clone(), Unit {
                     id: unit_id.clone(),
                     pos: pos.clone(),
                     player_id: player_id.clone(),
                     type_id: type_id.clone(),
                     move_points: move_points,
-                    attacked: false,
+                    attack_points: attack_points,
                 });
             },
             CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ref killed} => {
@@ -67,8 +68,8 @@ impl<'a> GameState {
                     self.units.remove(defender_id);
                 }
                 let unit = self.units.get_mut(attacker_id).unwrap();
-                assert!(!unit.attacked);
-                unit.attacked = true;
+                assert!(unit.attack_points >= 1);
+                unit.attack_points -= 1;
             },
         }
     }

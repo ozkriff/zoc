@@ -61,6 +61,7 @@ pub struct UnitType {
     pub weapon_skill: ZInt,
     pub weapon_type_id: WeaponTypeId,
     pub move_points: ZInt,
+    pub attack_points: ZInt,
 }
 
 #[derive(Clone)]
@@ -72,7 +73,7 @@ pub struct Unit {
     pub player_id: PlayerId,
     pub type_id: UnitTypeId,
     pub move_points: ZInt,
-    pub attacked: bool,
+    pub attack_points: ZInt,
 }
 
 pub struct ObjectTypes {
@@ -123,6 +124,7 @@ impl ObjectTypes {
             weapon_skill: 5,
             weapon_type_id: cannon_id,
             move_points: 5,
+            attack_points: 3,
         });
         self.unit_types.push(UnitType {
             name: "soldier".to_string(),
@@ -134,6 +136,7 @@ impl ObjectTypes {
             weapon_skill: 5,
             weapon_type_id: rifle_id,
             move_points: 3,
+            attack_points: 4,
         });
     }
 
