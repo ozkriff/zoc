@@ -116,7 +116,7 @@ fn build_walkable_mesh(zgl: &Zgl, pathfinder: &Pathfinder) -> Mesh {
     let map_size = map.get_size();
     let mut vertex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
-        if let Some(ref parent_dir) = map.tile(&tile_pos).parent {
+        if let &Some(ref parent_dir) = map.tile(&tile_pos).parent() {
             let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
             let world_pos_from = geom::map_pos_to_world_pos(&tile_pos);
             let world_pos_to = geom::map_pos_to_world_pos(&tile_pos_to);
@@ -456,6 +456,7 @@ impl Visualizer {
         if unit.move_points == 0 {
             return;
         }
+        // TODO: path?
         let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
         let path = pf.get_path(pos);
         if path.len() < 2 {

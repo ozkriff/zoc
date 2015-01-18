@@ -6,6 +6,7 @@ use visualizer::geom;
 use core::types::{MapPos, UnitId};
 use core::game_state::GameState;
 use core::core;
+use core::pathfinder::{MapPath};
 use visualizer::mesh::{MeshId};
 use visualizer::scene::{
     Scene,
@@ -75,10 +76,10 @@ impl EventMoveVisualizer {
         _: &GameState,
         unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
-        path: Vec<MapPos>,
-    ) -> Box<EventVisualizer+'static> {
+        path: MapPath,
+    ) -> Box<EventVisualizer + 'static> {
         let mut world_path = Vec::new();
-        for map_pos in path.iter() {
+        for &(_, ref map_pos) in path.nodes().iter() {
             let world_pos = geom::map_pos_to_world_pos(map_pos);
             world_path.push(world_pos);
         }

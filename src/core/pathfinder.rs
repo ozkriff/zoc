@@ -5,9 +5,41 @@ use core::core::{Unit};
 use core::game_state::{GameState};
 use core::dir::{Dir};
 
+#[derive(Clone)]
+pub struct MoveCost{pub n: ZInt}
+
+#[derive(Clone)]
+pub struct MapPath {
+    nodes: Vec<(MoveCost, MapPos)>,
+    total_cost: MoveCost,
+}
+
+impl MapPath {
+    pub fn len(&self) -> ZInt {
+        self.nodes.len() as ZInt
+    }
+
+    pub fn destination(&self) -> &MapPos {
+        let &(_, ref pos) = self.nodes.last().unwrap();
+        pos
+    }
+
+    pub fn nodes(&self) -> &Vec<(MoveCost, MapPos)> {
+        &self.nodes
+    }
+
+    pub fn total_cost(&self) -> &MoveCost {
+        &self.total_cost
+    }
+}
+
 struct Tile {
-    pub cost: ZInt, // TODO: ZInt  -> TileCost
-    pub parent: Option<Dir>,
+    cost: MoveCost,
+    parent: Option<Dir>,
+}
+
+impl Tile {
+    pub fn parent(&self) -> &Option<Dir> { &self.parent }
 }
 
 struct Map {
@@ -15,8 +47,8 @@ struct Map {
     tiles: Vec<Tile>,
 }
 
-fn max_cost() -> ZInt {
-    30000
+fn max_cost() -> MoveCost {
+    MoveCost{n: 30000}
 }
 
 impl<'a> Map {
@@ -49,7 +81,7 @@ fn create_tiles(tiles_count: ZInt) -> Vec<Tile> {
     let mut tiles = Vec::new();
     for _ in range(0, tiles_count) {
         tiles.push(Tile {
-            cost: 0,
+            cost: MoveCost{n: 0},
             parent: None,
         });
     }
@@ -79,12 +111,13 @@ impl Pathfinder {
         original_pos: &MapPos,
         neighbour_pos: &MapPos
     ) {
-        let old_cost = self.map.tile(original_pos).cost;
+        let old_cost = self.map.tile(original_pos).cost.clone();
         let tile = self.map.tile_mut(neighbour_pos);
-        let new_cost = old_cost + 1;
+        let new_cost = MoveCost{n: old_cost.n + 1}; // TODO: '1' -> 'terrain cost'
         let units_count = state.units_at(neighbour_pos).len();
-        if tile.cost > new_cost && units_count == 0
-            && new_cost <= unit.move_points
+        if tile.cost.n > new_cost.n
+            && units_count == 0
+            && new_cost.n <= unit.move_points
         {
             tile.cost = new_cost;
             tile.parent = Some(Dir::get_dir_from_to(
@@ -119,7 +152,7 @@ impl Pathfinder {
 
     fn push_start_pos_to_queue(&mut self, start_pos: MapPos) {
         let start_tile = self.map.tile_mut(&start_pos);
-        start_tile.cost = 0;
+        start_tile.cost = MoveCost{n: 0};
         start_tile.parent = None;
         self.queue.push(start_pos);
     }
@@ -134,19 +167,26 @@ impl Pathfinder {
         }
     }
 
-    pub fn get_path(&self, destination: &MapPos) -> Vec<MapPos> {
+    pub fn get_path(&self, destination: &MapPos) -> MapPath {
+        let mut total_cost = MoveCost{n: 0};
         let mut path = Vec::new();
         let mut pos = destination.clone();
         assert!(self.map.is_inboard(&pos));
-        path.push(destination.clone());
-        while self.map.tile(&pos).cost != 0 {
-            let parent_dir = self.map.tile(&pos).parent.as_ref().unwrap().clone(); // TODO: ?!
+        path.push((MoveCost{n: 0}, destination.clone()));
+        while self.map.tile(&pos).cost.n != 0 {
+            let parent_dir = self.map.tile(&pos)
+                .parent().as_ref().unwrap().clone(); // TODO: ?!
             pos = Dir::get_neighbour_pos(&pos, &parent_dir);
             assert!(self.map.is_inboard(&pos));
-            path.push(pos.clone());
+            let cost = MoveCost{n: 1};
+            total_cost.n += cost.n;
+            path.push((cost, pos.clone()));
         }
         path.reverse();
-        path
+        MapPath {
+            nodes: path,
+            total_cost: total_cost,
+        }
     }
 }
 

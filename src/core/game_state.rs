@@ -38,11 +38,12 @@ impl<'a> GameState {
     pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
         match *event {
             CoreEvent::Move{ref unit_id, ref path} => {
-                let pos = path.last().unwrap().clone();
+                let pos = path.destination().clone();
                 let unit = self.units.get_mut(unit_id).unwrap();
                 unit.pos = pos;
                 assert!(unit.move_points > 0);
-                unit.move_points = 0;
+                unit.move_points -= path.total_cost().n;
+                assert!(unit.move_points >= 0);
             },
             CoreEvent::EndTurn{new_id: _, old_id: ref new_player_id} => {
                 self.refresh_units(object_types, new_player_id);

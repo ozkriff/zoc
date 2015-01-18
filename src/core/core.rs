@@ -6,10 +6,11 @@ use cgmath::{Vector2};
 use core::types::{/*Size2,*/ ZInt, UnitId, PlayerId, MapPos};
 use core::game_state::GameState;
 use core::map::{distance};
+use core::pathfinder::{MapPath};
 
 #[derive(Clone)]
 pub enum Command {
-    Move{unit_id: UnitId, path: Vec<MapPos>},
+    Move{unit_id: UnitId, path: MapPath},
     EndTurn,
     CreateUnit{pos: MapPos},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
@@ -17,7 +18,7 @@ pub enum Command {
 
 #[derive(Clone)]
 pub enum CoreEvent {
-    Move{unit_id: UnitId, path: Vec<MapPos>},
+    Move{unit_id: UnitId, path: MapPath},
     EndTurn{old_id: PlayerId, new_id: PlayerId},
     CreateUnit {
         unit_id: UnitId,
