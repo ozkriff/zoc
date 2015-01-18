@@ -61,9 +61,8 @@ impl Mesh {
             texture_coords_vbo.bind(zgl);
             shader.prepare_texture_coords(zgl);
         }
-        match self.texture {
-            Some(ref texture) => texture.enable(zgl, shader),
-            None => {},
+        if let Some(ref texture) = self.texture {
+            texture.enable(zgl, shader);
         }
         zgl.draw_arrays(&self.mode, self.length);
     }
