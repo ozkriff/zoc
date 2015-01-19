@@ -1,7 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use core::types::{ZInt, MapPos, Size2};
-use core::core::{Unit};
+use core::core::{Core, Unit, UnitClass};
+use core::map;
 use core::game_state::{GameState};
 use core::dir::{Dir};
 
@@ -104,16 +105,41 @@ impl Pathfinder {
         &self.map
     }
 
+    fn tile_cost(
+        &self,
+        core: &Core,
+        state: &GameState,
+        unit: &Unit,
+        pos: &MapPos,
+    ) -> ZInt { // TODO: ZInt -> MoveCost
+        let unit_type = core.object_types.get_unit_type(&unit.type_id);
+        let tile = state.map.tile(pos);
+        match unit_type.class {
+            UnitClass::Infantry => match tile {
+                &map::Tile::Plain => 1,
+                &map::Tile::Trees => 2,
+                &map::Tile::Building => 2,
+            },
+            UnitClass::Vehicle => match tile {
+                &map::Tile::Plain => 1,
+                &map::Tile::Trees => 5,
+                &map::Tile::Building => 10,
+            },
+        }
+    }
+
     fn process_neighbour_pos(
         &mut self,
+        core: &Core,
         state: &GameState,
         unit: &Unit,
         original_pos: &MapPos,
         neighbour_pos: &MapPos
     ) {
         let old_cost = self.map.tile(original_pos).cost.clone();
+        let tile_cost = self.tile_cost(core, state, unit, neighbour_pos);
         let tile = self.map.tile_mut(neighbour_pos);
-        let new_cost = MoveCost{n: old_cost.n + 1}; // TODO: '1' -> 'terrain cost'
+        let new_cost = MoveCost{n: old_cost.n + tile_cost};
         let units_count = state.units_at(neighbour_pos).len();
         if tile.cost.n > new_cost.n
             && units_count == 0
@@ -135,6 +161,7 @@ impl Pathfinder {
 
     fn try_to_push_neighbours(
         &mut self,
+        core: &Core,
         state: &GameState,
         unit: &Unit,
         pos: MapPos,
@@ -145,7 +172,7 @@ impl Pathfinder {
             let neighbour_pos = Dir::get_neighbour_pos(&pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {
                 self.process_neighbour_pos(
-                    state, unit, &pos, &neighbour_pos);
+                    core, state, unit, &pos, &neighbour_pos);
             }
         }
     }
@@ -157,13 +184,13 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, state: &GameState, unit: &Unit) {
+    pub fn fill_map(&mut self, core: &Core, state: &GameState, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos.clone());
         while self.queue.len() != 0 {
             let pos = self.queue.remove(0);
-            self.try_to_push_neighbours(state, unit, pos);
+            self.try_to_push_neighbours(core, state, unit, pos);
         }
     }
 

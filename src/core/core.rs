@@ -3,7 +3,7 @@
 use std::rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use cgmath::{Vector2};
-use core::types::{/*Size2,*/ ZInt, UnitId, PlayerId, MapPos};
+use core::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use core::game_state::GameState;
 use core::map::{distance};
 use core::pathfinder::{MapPath};
@@ -176,8 +176,7 @@ pub struct Core {
     current_player_id: PlayerId,
     core_event_list: Vec<CoreEvent>,
     event_lists: HashMap<PlayerId, Vec<CoreEvent>>,
-    // map_size: Size2<ZInt>,
-    object_types: ObjectTypes,
+    pub object_types: ObjectTypes, // TODO: remove 'pub'
 }
 
 fn get_event_lists() -> HashMap<PlayerId, Vec<CoreEvent>> {
@@ -196,14 +195,13 @@ fn get_players_list() -> Vec<Player> {
 
 impl Core {
     pub fn new() -> Core {
-        // let map_size = Size2{w: 10, h: 12};
+        let map_size = Size2{w: 6, h: 8};
         let mut core = Core {
-            game_state: GameState::new(),
+            game_state: GameState::new(&map_size),
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
             core_event_list: Vec::new(),
             event_lists: get_event_lists(),
-            // map_size: map_size,
             object_types: ObjectTypes::new(),
         };
         core.get_units();
@@ -245,11 +243,9 @@ impl Core {
         self.do_core_event(event);
     }
 
-    /*
     pub fn map_size(&self) -> &Size2<ZInt> {
-        &self.map_size
+        self.game_state.map.size()
     }
-    */
 
     fn get_unit<'a>(&'a self, id: &UnitId) -> &'a Unit {
         match self.game_state.units.get(id) {
@@ -358,9 +354,11 @@ impl Core {
                 })
             },
             Command::Move{unit_id, path} => {
+                // TODO: do some checks?
                 Some(CoreEvent::Move{unit_id: unit_id, path: path})
             },
             Command::AttackUnit{attacker_id, defender_id} => {
+                // TODO: do some checks?
                 self.command_attack_unit_to_event(attacker_id, defender_id)
             },
         }

@@ -2,16 +2,19 @@
 
 use std::collections::{HashMap};
 use core::core::{ObjectTypes, Unit, CoreEvent};
-use core::types::{PlayerId, UnitId, MapPos};
+use core::map::{Map};
+use core::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
 
 pub struct GameState {
     pub units: HashMap<UnitId, Unit>,
+    pub map: Map,
 }
 
 impl<'a> GameState {
-    pub fn new() -> GameState {
+    pub fn new(map_size: &Size2<ZInt>) -> GameState {
         GameState {
             units: HashMap::new(),
+            map: Map::new(map_size)
         }
     }
 

@@ -3,7 +3,7 @@
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
-use cgmath::{Vector2, Vector3, deg, Matrix4};
+use cgmath::{Vector2, Vector3, Vector, deg, Matrix4};
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
 use glutin::ElementState::{Pressed, Released};
 use glutin::MouseButton::{LeftMouseButton};
@@ -24,7 +24,7 @@ use visualizer::mesh::{Mesh, MeshId};
 use visualizer::camera::Camera;
 use visualizer::shader::{Shader};
 use visualizer::geom;
-use core::map::{MapPosIter, distance};
+use core::map::{Map, MapPosIter, distance, Tile};
 use core::dir::{DirIter, Dir};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
@@ -87,11 +87,40 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
+fn generate_trees(zgl: &Zgl, map: &Map) -> Mesh {
+    let map_size = map.size();
+    let mut vertex_data = Vec::new();
+    for tile_pos in MapPosIter::new(map_size) {
+        match map.tile(&tile_pos) {
+            &Tile::Plain => {},
+            &Tile::Trees => {
+                let trees_count = 3;
+                for i in range(0, trees_count) {
+                    let world_pos = geom::map_pos_to_world_pos(&tile_pos);
+                    let c1 = VertexCoord {
+                        v: geom::index_to_circle_vertex(trees_count, i).v.mul_s(0.65),
+                    };
+                    let mut c2 = c1.clone();
+                    c2.v.z += 1.5;
+                    vertex_data.push(VertexCoord{v: world_pos.v + c1.v});
+                    vertex_data.push(VertexCoord{v: world_pos.v + c2.v});
+                }
+            },
+            &Tile::Building => {
+                // TODO
+            },
+        }
+    }
+    let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
+    mesh.set_mode(MeshRenderMode::Lines);
+    mesh
+}
+
 // TODO: Replace all Size2<ZInt> with aliases
-fn generate_map_mesh(zgl: &Zgl, map_size: &Size2<ZInt>) -> Mesh {
+fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
-    for tile_pos in MapPosIter::new(map_size) {
+    for tile_pos in MapPosIter::new(map.size()) {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in DirIter::new() {
             let num = dir.to_int();
@@ -165,10 +194,13 @@ fn get_scenes(players_count: ZInt) -> HashMap<PlayerId, Scene> {
     m
 }
 
-fn get_game_states(players_count: ZInt) -> HashMap<PlayerId, GameState> {
+fn get_game_states(
+    players_count: ZInt,
+    map_size: &Size2<ZInt>,
+) -> HashMap<PlayerId, GameState> {
     let mut m = HashMap::new();
     for i in range(0, players_count) {
-        m.insert(PlayerId{id: i}, GameState::new());
+        m.insert(PlayerId{id: i}, GameState::new(map_size));
     }
     m
 }
@@ -201,6 +233,7 @@ fn get_unit_mesh_id<'a> (
 
 struct MeshIdManager {
     map_mesh_id: MeshId,
+    trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
     marker_2_mesh_id: MeshId,
@@ -286,17 +319,27 @@ impl Visualizer {
             &zgl, "basic_color");
         zgl.set_clear_color(&BG_COLOR);
         let mut camera = Camera::new(&win_size);
-        let map_size = Size2{w: 5, h: 8};
-        camera.set_max_pos(get_max_camera_pos(&map_size));
         let core = Core::new();
-        let game_states = get_game_states(players_count);
+        let map_size = core.map_size().clone();
+        camera.set_max_pos(get_max_camera_pos(&map_size));
+        let game_states = get_game_states(players_count, &map_size);
         let picker = TilePicker::new(
             &zgl, &game_states[*core.player_id()], &map_size);
 
         let mut meshes = Vec::new();
 
         let map_mesh_id = add_mesh(
-            &mut meshes, generate_map_mesh(&zgl, &map_size));
+            &mut meshes,
+            generate_map_mesh(&zgl, &game_states[*core.player_id()].map),
+        );
+
+        let trees_mesh_id = add_mesh(
+            &mut meshes,
+            generate_trees(&zgl, &game_states[*core.player_id()].map),
+        );
+
+        // TODO: generate trees and buildings
+
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&zgl));
         let shell_mesh_id = add_mesh(
@@ -330,6 +373,7 @@ impl Visualizer {
         );
         let mesh_ids = MeshIdManager {
             map_mesh_id: map_mesh_id,
+            trees_mesh_id: trees_mesh_id,
             shell_mesh_id: shell_mesh_id,
             marker_1_mesh_id: marker_1_mesh_id,
             marker_2_mesh_id: marker_2_mesh_id,
@@ -435,7 +479,7 @@ impl Visualizer {
             self.selected_unit_id = Some(unit_id.clone());
             let state = &self.game_states[*self.core.player_id()];
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            pf.fill_map(state, &state.units[*unit_id]);
+            pf.fill_map(&self.core, state, &state.units[*unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             self.selection_manager.create_selection_marker(
@@ -672,6 +716,12 @@ impl Visualizer {
                 &self.zgl, &self.color_uniform_location, &zgl::BLUE);
             walkable_mesh.draw(&self.zgl, &self.shader);
         }
+        {
+            self.shader.set_uniform_color(
+                &self.zgl, &self.color_uniform_location, &zgl::RED);
+            let id = self.mesh_ids.trees_mesh_id.id as usize;
+            self.meshes[id].draw(&self.zgl, &self.shader);
+        }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             event_visualizer.draw(scene, &self.dtime);
@@ -794,7 +844,7 @@ impl Visualizer {
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            pf.fill_map(state, &state.units[*selected_unit_id]);
+            pf.fill_map(&self.core, state, &state.units[*selected_unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
             self.selection_manager.move_selection_marker(state, scene);
         }
