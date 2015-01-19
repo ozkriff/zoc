@@ -220,8 +220,12 @@ impl Core {
         let p_id_1 = PlayerId{id: 1};
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 0}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &soldier_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 2, y: 0}}, &tank_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 2, y: 2}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 5, y: 7}}, &tank_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 5, y: 6}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 5, y: 5}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 5, y: 4}}, &soldier_id, &p_id_1);
     }
 
     fn get_new_unit_id(&self) -> UnitId {
