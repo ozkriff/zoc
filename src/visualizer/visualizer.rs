@@ -281,7 +281,6 @@ pub struct Visualizer {
     map_text_mesh: Mesh,
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
-    button_test_id: ButtonId,
     dtime: Time,
     last_time: Time,
     // TODO: join in one structure?
@@ -363,12 +362,6 @@ impl Visualizer {
             &zgl,
             "end turn",
             &mut font_stash,
-            ScreenPos{v: Vector2{x: 10, y: 60}})
-        );
-        let button_test_id = button_manager.add_button(Button::new(
-            &zgl,
-            "test",
-            &mut font_stash,
             ScreenPos{v: Vector2{x: 10, y: 10}})
         );
         let mesh_ids = MeshIdManager {
@@ -396,7 +389,6 @@ impl Visualizer {
             map_text_mesh: map_text_mesh,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
-            button_test_id: button_test_id,
             dtime: Time{n: 0},
             last_time: Time{n: precise_time_ns()},
             game_states: game_states,
@@ -597,8 +589,6 @@ impl Visualizer {
     fn handle_event_button_press(&mut self, button_id: &ButtonId) {
         if *button_id == self.button_end_turn_id {
             self.end_turn();
-        } else if *button_id == self.button_test_id {
-            println!("test");
         } else {
             panic!("BUTTON ID ERROR");
         }
