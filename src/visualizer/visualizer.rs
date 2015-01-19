@@ -661,7 +661,7 @@ impl Visualizer {
         self.map_text_mesh.draw(&self.zgl, &self.shader);
     }
 
-    fn scene<'a>(&'a self) -> &'a Scene {
+    fn scene(&self) -> &Scene {
         &self.scenes[*self.core.player_id()]
     }
 
