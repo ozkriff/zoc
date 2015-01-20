@@ -403,25 +403,25 @@ impl Core {
         &self,
         attacker_id: UnitId,
         defender_id: UnitId
-    ) -> Option<CoreEvent> {
+    ) -> Vec<CoreEvent> {
         let attacker = &self.game_state.units[attacker_id];
         let defender = &self.game_state.units[defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
         if distance(&attacker.pos, &defender.pos) <= weapon_type.max_distance {
             let hit = self.hit_test(&attacker_id, &defender_id);
-            Some(CoreEvent::AttackUnit {
+            vec![CoreEvent::AttackUnit {
                 attacker_id: attacker_id,
                 defender_id: defender_id,
                 killed: hit,
-            })
+            }]
         } else {
-            None
+            Vec::new()
         }
     }
 
-    // TODO: Option -> Vec
-    fn command_to_event(&self, command: Command) -> Option<CoreEvent> {
+    fn command_to_event(&self, command: Command) -> Vec<CoreEvent> {
+        let mut events = Vec::new();
         match command {
             Command::EndTurn => {
                 let old_id = self.current_player_id.id;
@@ -431,35 +431,40 @@ impl Core {
                 } else {
                     old_id + 1
                 };
-                Some(CoreEvent::EndTurn {
+                events.push(CoreEvent::EndTurn {
                     old_id: PlayerId{id: old_id},
                     new_id: PlayerId{id: new_id},
-                })
+                });
             },
             Command::CreateUnit{pos} => {
-                Some(CoreEvent::CreateUnit {
+                events.push(CoreEvent::CreateUnit {
                     unit_id: self.get_new_unit_id(),
                     pos: pos,
                     type_id: self.object_types.get_unit_type_id("soldier"),
                     player_id: self.current_player_id.clone(),
-                })
+                });
             },
             Command::Move{unit_id, path} => {
                 // TODO: do some checks?
-                Some(CoreEvent::Move{unit_id: unit_id, path: path})
+                events.push(CoreEvent::Move{unit_id: unit_id, path: path});
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
-                self.command_attack_unit_to_event(attacker_id, defender_id)
+                let e = self.command_attack_unit_to_event(
+                    attacker_id, defender_id);
+                events.push_all(e.as_slice());
             },
-        }
+        };
+        events
     }
 
     pub fn do_command(&mut self, command: Command) {
-        if let Some(event) = self.command_to_event(command) {
-            self.do_core_event(event);
-        } else {
+        let events = self.command_to_event(command);
+        if events.is_empty() {
             println!("BAD COMMAND!");
+        }
+        for event in events.into_iter() {
+            self.do_core_event(event);
         }
     }
 
