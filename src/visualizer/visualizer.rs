@@ -494,12 +494,9 @@ impl Visualizer {
         if unit.move_points == 0 {
             return;
         }
-        // TODO: path?
         let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-        let path = pf.get_path(pos);
-        if path.len() < 2 {
-            return;
-        }
+        let path = pf.get_path(pos).expect("Can not reach that point");
+        assert!(path.len() >= 2);
         self.core.do_command(Command::Move{unit_id: unit_id, path: path});
     }
 
