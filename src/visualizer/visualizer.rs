@@ -820,6 +820,9 @@ impl Visualizer {
         let vis = self.make_event_visualizer(&event);
         self.event = Some(event);
         self.event_visualizer = Some(vis);
+        let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
+        self.selection_manager.deselect(scene);
+        self.walkable_mesh = None;
     }
 
     fn end_event_visualization(&mut self) {
@@ -836,7 +839,8 @@ impl Visualizer {
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
             pf.fill_map(&self.core, state, &state.units[*selected_unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
-            self.selection_manager.move_selection_marker(state, scene);
+            self.selection_manager.create_selection_marker(
+                state, scene, selected_unit_id);
         }
         self.picker.update_units(&self.zgl, state);
     }
