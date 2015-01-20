@@ -38,10 +38,12 @@ impl SelectionManager {
         WorldPos{v: geom::lift(geom::map_pos_to_world_pos(&map_pos).v)}
     }
 
+    /*
     pub fn move_selection_marker(&self, state: &GameState, scene: &mut Scene) {
         let node = scene.node(&SELECTION_NODE_ID);
         node.pos = self.get_pos(state);
     }
+    */
 
     pub fn create_selection_marker(
         &mut self,

@@ -6,7 +6,8 @@ use cgmath::{Vector2};
 use core::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use core::game_state::GameState;
 use core::map::{distance};
-use core::pathfinder::{MapPath};
+use core::pathfinder::{MapPath, Pathfinder};
+use core::dir::{Dir};
 
 #[derive(Clone)]
 pub enum Command {
@@ -31,6 +32,7 @@ pub enum CoreEvent {
 
 pub struct Player {
     pub id: PlayerId,
+    pub is_ai: bool,
 }
 
 #[derive(Clone)]
@@ -76,6 +78,7 @@ pub struct Unit {
     pub attack_points: ZInt,
 }
 
+// TODO: Rename?
 pub struct ObjectTypes {
     unit_types: Vec<UnitType>,
     weapon_types: Vec<WeaponType>,
@@ -168,6 +171,83 @@ impl ObjectTypes {
         }
         panic!("No weapon type with name \"{}\"", name);
     }
+
+    pub fn get_unit_max_attack_dist(&self, unit: &Unit) -> ZInt {
+        let attacker_type = self.get_unit_type(&unit.type_id);
+        let weapon_type = &self
+            .weapon_types[attacker_type.weapon_type_id.id as usize];
+        weapon_type.max_distance
+    }
+}
+
+struct Ai {
+    id: PlayerId,
+    state: GameState,
+    pathfinder: Pathfinder,
+}
+
+impl Ai {
+    fn new(id: &PlayerId, map_size: &Size2<ZInt>) -> Ai {
+        Ai {
+            id: id.clone(),
+            state: GameState::new(map_size),
+            pathfinder: Pathfinder::new(map_size),
+        }
+    }
+
+    fn get_command(&mut self, object_types: &ObjectTypes) -> Command {
+        {
+            // println!("ai::get_command:: AttackUnit");
+            for (_, unit) in self.state.units.iter() {
+                if unit.player_id != self.id {
+                    continue;
+                }
+                if unit.attack_points <= 0 {
+                    continue;
+                }
+                for (_, target) in self.state.units.iter() {
+                    if target.player_id == self.id {
+                        continue;
+                    }
+                    let max_distance = object_types.get_unit_max_attack_dist(unit);
+                    if distance(&unit.pos, &target.pos) > max_distance {
+                        continue;
+                    }
+                    return Command::AttackUnit {
+                        attacker_id: unit.id.clone(),
+                        defender_id: target.id.clone(),
+                    };
+                }
+            }
+        }
+        {
+            // TODO: move to enemy units
+            // println!("ai::get_command:: Move");
+            for (_, unit) in self.state.units.iter() {
+                if unit.player_id != self.id {
+                    continue;
+                }
+                self.pathfinder.fill_map(object_types, &self.state, unit);
+                let dir = Dir::from_int(thread_rng().gen_range(0, 6));
+                let destination = Dir::get_neighbour_pos(&unit.pos, &dir);
+                if !self.state.map.is_inboard(&destination) {
+                    continue;
+                }
+                if self.state.is_tile_occupied(&destination) {
+                    continue;
+                }
+                let path = match self.pathfinder.get_path(&destination) {
+                    Some(path) => path,
+                    None => continue,
+                };
+                if path.total_cost().n > unit.move_points {
+                    continue;
+                }
+                return Command::Move{unit_id: unit.id.clone(), path: path};
+            }
+        }
+        return Command::EndTurn;
+    }
 }
 
 pub struct Core {
@@ -177,6 +257,7 @@ pub struct Core {
     core_event_list: Vec<CoreEvent>,
     event_lists: HashMap<PlayerId, Vec<CoreEvent>>,
     pub object_types: ObjectTypes, // TODO: remove 'pub'
+    ai: Ai,
 }
 
 fn get_event_lists() -> HashMap<PlayerId, Vec<CoreEvent>> {
@@ -188,8 +269,8 @@ fn get_event_lists() -> HashMap<PlayerId, Vec<CoreEvent>> {
 
 fn get_players_list() -> Vec<Player> {
     vec!(
-        Player{id: PlayerId{id: 0}},
-        Player{id: PlayerId{id: 1}},
+        Player{id: PlayerId{id: 0}, is_ai: false},
+        Player{id: PlayerId{id: 1}, is_ai: true},
     )
 }
 
@@ -203,6 +284,7 @@ impl Core {
             core_event_list: Vec::new(),
             event_lists: get_event_lists(),
             object_types: ObjectTypes::new(),
+            ai: Ai::new(&PlayerId{id:1}, &map_size),
         };
         core.get_units();
         core
@@ -300,6 +382,10 @@ impl Core {
         true
     }
 
+    pub fn player(&self) -> &Player {
+        &self.players[self.player_id().id as usize]
+    }
+
     pub fn player_id(&self) -> &PlayerId {
         &self.current_player_id
     }
@@ -334,6 +420,7 @@ impl Core {
         }
     }
 
+    // TODO: Option -> Vec
     fn command_to_event(&self, command: Command) -> Option<CoreEvent> {
         match command {
             Command::EndTurn => {
@@ -371,12 +458,28 @@ impl Core {
     pub fn do_command(&mut self, command: Command) {
         if let Some(event) = self.command_to_event(command) {
             self.do_core_event(event);
+        } else {
+            println!("BAD COMMAND!");
         }
     }
 
     fn do_core_event(&mut self, core_event: CoreEvent) {
         self.core_event_list.push(core_event);
         self.make_events();
+    }
+
+    fn do_ai(&mut self) {
+        loop {
+            while let Some(event) = self.get_event() {
+                self.ai.state.apply_event(&self.object_types, &event);
+            }
+            let command = self.ai.get_command(&self.object_types);
+            self.do_command(command.clone());
+            match command {
+                Command::EndTurn => return,
+                _ => {},
+            }
+        }
     }
 
     fn apply_event(&mut self, event: &CoreEvent) {
@@ -387,12 +490,15 @@ impl Core {
                         if self.current_player_id == *old_id {
                             self.current_player_id = player.id.clone();
                         }
-                        return;
+                        break;
                     }
+                }
+                if self.player().is_ai && *new_id == *self.player_id() {
+                    self.do_ai();
                 }
             },
             _ => {},
-        }
+        };
     }
 
     fn make_events(&mut self) {

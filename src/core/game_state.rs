@@ -28,6 +28,10 @@ impl<'a> GameState {
         units
     }
 
+    pub fn is_tile_occupied(&self, pos: &MapPos) -> bool {
+        self.units_at(pos).len() > 0
+    }
+
     fn refresh_units(&mut self, object_types: &ObjectTypes, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {

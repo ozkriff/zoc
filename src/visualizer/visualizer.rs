@@ -421,7 +421,7 @@ impl Visualizer {
 
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
         let state = &self.game_states[*self.core.player_id()];
-        state.units_at(pos).len() > 0
+        state.is_tile_occupied(pos)
     }
 
     /*
@@ -446,13 +446,8 @@ impl Visualizer {
                     return;
                 }
                 let defender = &state.units[defender_id];
-                let max_distance = {
-                    let attacker_type = self.core.object_types()
-                        .get_unit_type(&attacker.type_id);
-                    let weapon_type = self.core.get_weapon_type(
-                        &attacker_type.weapon_type_id);
-                    weapon_type.max_distance
-                };
+                let max_distance = self.core.object_types
+                    .get_unit_max_attack_dist(attacker);
                 if distance(&attacker.pos, &defender.pos) > max_distance {
                     println!("Out of range");
                     return;
@@ -471,7 +466,7 @@ impl Visualizer {
             self.selected_unit_id = Some(unit_id.clone());
             let state = &self.game_states[*self.core.player_id()];
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            pf.fill_map(&self.core, state, &state.units[*unit_id]);
+            pf.fill_map(&self.core.object_types, state, &state.units[*unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             self.selection_manager.create_selection_marker(
@@ -834,7 +829,8 @@ impl Visualizer {
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            pf.fill_map(&self.core, state, &state.units[*selected_unit_id]);
+            let unit = &state.units[*selected_unit_id];
+            pf.fill_map(&self.core.object_types, state, unit);
             self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
             self.selection_manager.create_selection_marker(
                 state, scene, selected_unit_id);

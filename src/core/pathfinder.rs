@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use core::types::{ZInt, MapPos, Size2};
-use core::core::{Core, Unit, UnitClass};
+use core::core::{ObjectTypes, Unit, UnitClass};
 use core::map;
 use core::game_state::{GameState};
 use core::dir::{Dir};
@@ -48,9 +48,7 @@ struct Map {
     tiles: Vec<Tile>,
 }
 
-fn max_cost() -> MoveCost {
-    MoveCost{n: 30000}
-}
+const MAX_COST: MoveCost = MoveCost{n: 30000};
 
 impl<'a> Map {
     pub fn tile_mut(&'a mut self, pos: &MapPos) -> &'a mut Tile {
@@ -59,6 +57,7 @@ impl<'a> Map {
     }
 
     pub fn tile(&'a self, pos: &MapPos) -> &'a Tile {
+        assert!(self.is_inboard(pos));
         &self.tiles[(pos.v.x + pos.v.y * self.size.w) as usize]
     }
 
@@ -107,12 +106,12 @@ impl Pathfinder {
 
     fn tile_cost(
         &self,
-        core: &Core,
+        object_types: &ObjectTypes,
         state: &GameState,
         unit: &Unit,
         pos: &MapPos,
     ) -> ZInt { // TODO: ZInt -> MoveCost
-        let unit_type = core.object_types.get_unit_type(&unit.type_id);
+        let unit_type = object_types.get_unit_type(&unit.type_id);
         let tile = state.map.tile(pos);
         match unit_type.class {
             UnitClass::Infantry => match tile {
@@ -130,14 +129,14 @@ impl Pathfinder {
 
     fn process_neighbour_pos(
         &mut self,
-        core: &Core,
+        object_types: &ObjectTypes,
         state: &GameState,
         unit: &Unit,
         original_pos: &MapPos,
         neighbour_pos: &MapPos
     ) {
         let old_cost = self.map.tile(original_pos).cost.clone();
-        let tile_cost = self.tile_cost(core, state, unit, neighbour_pos);
+        let tile_cost = self.tile_cost(object_types, state, unit, neighbour_pos);
         let tile = self.map.tile_mut(neighbour_pos);
         let new_cost = MoveCost{n: old_cost.n + tile_cost};
         let units_count = state.units_at(neighbour_pos).len();
@@ -154,14 +153,14 @@ impl Pathfinder {
 
     fn clean_map(&mut self) {
         for tile in self.map.tiles.iter_mut() {
-            tile.cost = max_cost();
+            tile.cost = MAX_COST;
             tile.parent = None;
         }
     }
 
     fn try_to_push_neighbours(
         &mut self,
-        core: &Core,
+        object_types: &ObjectTypes,
         state: &GameState,
         unit: &Unit,
         pos: MapPos,
@@ -172,7 +171,7 @@ impl Pathfinder {
             let neighbour_pos = Dir::get_neighbour_pos(&pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {
                 self.process_neighbour_pos(
-                    core, state, unit, &pos, &neighbour_pos);
+                    object_types, state, unit, &pos, &neighbour_pos);
             }
         }
     }
@@ -184,36 +183,46 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, core: &Core, state: &GameState, unit: &Unit) {
+    pub fn fill_map(&mut self, object_types: &ObjectTypes, state: &GameState, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos.clone());
         while self.queue.len() != 0 {
             let pos = self.queue.remove(0);
-            self.try_to_push_neighbours(core, state, unit, pos);
+            self.try_to_push_neighbours(object_types, state, unit, pos);
         }
     }
 
-    pub fn get_path(&self, destination: &MapPos) -> MapPath {
+    pub fn is_reacheble(&self, pos: &MapPos) -> bool {
+        self.map.tile(pos).cost.n != MAX_COST.n
+    }
+
+    pub fn get_path(&self, destination: &MapPos) -> Option<MapPath> {
         let mut total_cost = MoveCost{n: 0};
         let mut path = Vec::new();
         let mut pos = destination.clone();
+        if self.map.tile(&pos).cost.n == MAX_COST.n {
+            return None;
+        }
         assert!(self.map.is_inboard(&pos));
         path.push((MoveCost{n: 0}, destination.clone()));
         while self.map.tile(&pos).cost.n != 0 {
-            let parent_dir = self.map.tile(&pos)
-                .parent().as_ref().unwrap().clone(); // TODO: ?!
-            pos = Dir::get_neighbour_pos(&pos, &parent_dir);
+            let parent_dir = match self.map.tile(&pos).parent() {
+                &Some(ref dir) => dir,
+                &None => return None,
+            };
+            pos = Dir::get_neighbour_pos(&pos, parent_dir);
             assert!(self.map.is_inboard(&pos));
-            let cost = MoveCost{n: 1};
+            // let tile_cost = self.tile_cost(object_types, state, unit, pos); // TODO: use actual cost
+            let cost = MoveCost{n: 1}; // ...
             total_cost.n += cost.n;
             path.push((cost, pos.clone()));
         }
         path.reverse();
-        MapPath {
+        Some(MapPath {
             nodes: path,
             total_cost: total_cost,
-        }
+        })
     }
 }
 

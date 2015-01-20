@@ -13,6 +13,7 @@ pub enum Tile {
     Building,
 }
 
+// TODO: Replace with generic map: Map<PathfinderTile>
 pub struct Map {
     tiles: Vec<Tile>,
     size: Size2<ZInt>,
@@ -45,6 +46,12 @@ impl Map {
     pub fn tile(&self, pos: &MapPos) -> &Tile {
         let index = self.size.w * pos.v.y + pos.v.x;
         &self.tiles[index as usize]
+    }
+
+    pub fn is_inboard(&self, pos: &MapPos) -> bool {
+        let x = pos.v.x;
+        let y = pos.v.y;
+        x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
     }
 }
 
