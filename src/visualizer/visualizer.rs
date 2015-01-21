@@ -495,7 +495,6 @@ impl Visualizer {
         self.core.do_command(Command::Move{unit_id: unit_id, path: path});
     }
 
-
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
         if !self.is_lmb_pressed {
             return;
