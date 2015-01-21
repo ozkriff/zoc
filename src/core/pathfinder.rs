@@ -16,9 +16,9 @@ pub struct MapPath {
 }
 
 impl MapPath {
-    pub fn len(&self) -> ZInt {
-        self.nodes.len() as ZInt
-    }
+    // pub fn len(&self) -> ZInt {
+    //     self.nodes.len() as ZInt
+    // }
 
     pub fn destination(&self) -> &MapPos {
         let &(_, ref pos) = self.nodes.last().unwrap();

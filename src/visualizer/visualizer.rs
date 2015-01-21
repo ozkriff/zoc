@@ -490,9 +490,12 @@ impl Visualizer {
             return;
         }
         let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-        let path = pf.get_path(pos).expect("Can not reach that point");
-        assert!(path.len() >= 2);
-        self.core.do_command(Command::Move{unit_id: unit_id, path: path});
+        if let Some(path) = pf.get_path(pos) {
+            self.core.do_command(
+                Command::Move{unit_id: unit_id, path: path});
+        } else {
+            println!("Can not reach that tile");
+        }
     }
 
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
