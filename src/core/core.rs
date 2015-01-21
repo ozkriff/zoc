@@ -508,9 +508,11 @@ impl Core {
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos);
                 events.push_all(e.as_slice());
-                let pos = &self.game_state.units[attacker_id].pos;
-                events.push_all(
-                    self.reaction_fire(&attacker_id, pos).as_slice());
+                if !e.is_empty() && !is_target_dead(&e[0]) {
+                    let pos = &self.game_state.units[attacker_id].pos;
+                    events.push_all(
+                        self.reaction_fire(&attacker_id, pos).as_slice());
+                }
             },
         };
         events
