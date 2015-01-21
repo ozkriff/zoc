@@ -193,9 +193,11 @@ impl Pathfinder {
         }
     }
 
-    pub fn is_reacheble(&self, pos: &MapPos) -> bool {
+    /*
+    pub fn is_reachable(&self, pos: &MapPos) -> bool {
         self.map.tile(pos).cost.n != MAX_COST.n
     }
+    */
 
     pub fn get_path(&self, destination: &MapPos) -> Option<MapPath> {
         let mut total_cost = MoveCost{n: 0};
