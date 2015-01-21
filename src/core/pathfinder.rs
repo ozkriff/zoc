@@ -200,14 +200,15 @@ impl Pathfinder {
     */
 
     pub fn get_path(&self, destination: &MapPos) -> Option<MapPath> {
-        let mut total_cost = MoveCost{n: 0};
+        let total_cost = self.map.tile(destination).cost.clone();
         let mut path = Vec::new();
         let mut pos = destination.clone();
         if self.map.tile(&pos).cost.n == MAX_COST.n {
             return None;
         }
         assert!(self.map.is_inboard(&pos));
-        path.push((MoveCost{n: 0}, destination.clone()));
+        let start_cost = self.map.tile(&pos).cost.clone();
+        path.push((start_cost, pos.clone()));
         while self.map.tile(&pos).cost.n != 0 {
             let parent_dir = match self.map.tile(&pos).parent() {
                 &Some(ref dir) => dir,
@@ -215,9 +216,7 @@ impl Pathfinder {
             };
             pos = Dir::get_neighbour_pos(&pos, parent_dir);
             assert!(self.map.is_inboard(&pos));
-            // let tile_cost = self.tile_cost(object_types, state, unit, pos); // TODO: use actual cost
-            let cost = MoveCost{n: 1}; // ...
-            total_cost.n += cost.n;
+            let cost = self.map.tile(&pos).cost.clone();
             path.push((cost, pos.clone()));
         }
         path.reverse();
