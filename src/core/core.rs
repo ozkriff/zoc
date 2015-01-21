@@ -180,6 +180,17 @@ impl ObjectTypes {
     }
 }
 
+fn is_target_dead(event: &CoreEvent) -> bool {
+    match event {
+        &CoreEvent::AttackUnit {
+            attacker_id: _,
+            defender_id: _,
+            ref killed,
+        } => *killed,
+        _ => panic!("wrong event type"),
+    }
+}
+
 struct Ai {
     id: PlayerId,
     state: GameState,
@@ -304,10 +315,13 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 5, y: 7}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 5, y: 6}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 5, y: 5}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 5, y: 4}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 4, y: 0}}, &tank_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 4, y: 1}}, &tank_id, &p_id_1);
     }
 
     fn get_new_unit_id(&self) -> UnitId {
@@ -402,13 +416,16 @@ impl Core {
     fn command_attack_unit_to_event(
         &self,
         attacker_id: UnitId,
-        defender_id: UnitId
+        defender_id: UnitId,
+        pos: &MapPos, // TODO: get pos from unit
+        // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
         let attacker = &self.game_state.units[attacker_id];
-        let defender = &self.game_state.units[defender_id];
+        // let defender = &self.game_state.units[defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
-        if distance(&attacker.pos, &defender.pos) <= weapon_type.max_distance {
+        // if distance(&attacker.pos, &defender.pos) < weapon_type.max_distance {
+        if distance(&attacker.pos, pos) <= weapon_type.max_distance {
             let hit = self.hit_test(&attacker_id, &defender_id);
             vec![CoreEvent::AttackUnit {
                 attacker_id: attacker_id,
@@ -420,6 +437,37 @@ impl Core {
         }
     }
 
+    fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos) -> Vec<CoreEvent> {
+        let mut events = Vec::new();
+        for (_, enemy_unit) in self.game_state.units.iter() {
+            // TODO: check if unit is still alive
+            if enemy_unit.player_id == self.current_player_id {
+                continue;
+            }
+            if enemy_unit.attack_points <= 0 {
+                continue;
+            }
+            let max_distance = self.object_types
+                .get_unit_max_attack_dist(enemy_unit);
+            if distance(&enemy_unit.pos, pos) > max_distance {
+                continue;
+            }
+            let e = self.command_attack_unit_to_event(
+                // enemy_unit.id.clone(), unit_id.clone());
+                enemy_unit.id.clone(), unit_id.clone(), pos);
+            events.push_all(e.as_slice());
+            if e.is_empty() {
+                continue;
+            }
+            if is_target_dead(&e[0]) {
+                break;
+            }
+        }
+        events
+    }
+
+    // TODO: rename: simulation_step?
+    // Apply events immidietly after addid event to array.
     fn command_to_event(&self, command: Command) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         match command {
@@ -444,15 +492,25 @@ impl Core {
                     player_id: self.current_player_id.clone(),
                 });
             },
-            Command::Move{unit_id, path} => {
+            Command::Move{ref unit_id, ref path} => {
                 // TODO: do some checks?
-                events.push(CoreEvent::Move{unit_id: unit_id, path: path});
+                events.push(CoreEvent::Move {
+                    unit_id: unit_id.clone(),
+                    path: path.clone(),
+                });
+                let &(_, ref dest) = path.nodes().last().unwrap();
+                events.push_all(
+                    self.reaction_fire(unit_id, dest).as_slice());
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
+                let defender_pos = &self.game_state.units[defender_id].pos;
                 let e = self.command_attack_unit_to_event(
-                    attacker_id, defender_id);
+                    attacker_id.clone(), defender_id, defender_pos);
                 events.push_all(e.as_slice());
+                let pos = &self.game_state.units[attacker_id].pos;
+                events.push_all(
+                    self.reaction_fire(&attacker_id, pos).as_slice());
             },
         };
         events

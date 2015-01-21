@@ -827,12 +827,13 @@ impl Visualizer {
         self.event_visualizer = None;
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {
-            let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            let unit = &state.units[*selected_unit_id];
-            pf.fill_map(&self.core.object_types, state, unit);
-            self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
-            self.selection_manager.create_selection_marker(
-                state, scene, selected_unit_id);
+            if let Some(unit) = state.units.get(selected_unit_id) {
+                let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
+                pf.fill_map(&self.core.object_types, state, unit);
+                self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
+                self.selection_manager.create_selection_marker(
+                    state, scene, selected_unit_id);
+            }
         }
         self.picker.update_units(&self.zgl, state);
     }

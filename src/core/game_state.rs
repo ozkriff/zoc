@@ -46,7 +46,8 @@ impl<'a> GameState {
         match *event {
             CoreEvent::Move{ref unit_id, ref path} => {
                 let pos = path.destination().clone();
-                let unit = self.units.get_mut(unit_id).unwrap();
+                let unit = self.units.get_mut(unit_id)
+                    .expect("BAD MOVE UNIT ID");
                 unit.pos = pos;
                 assert!(unit.move_points > 0);
                 unit.move_points -= path.total_cost().n;
@@ -74,9 +75,10 @@ impl<'a> GameState {
                     assert!(self.units.get(defender_id).is_some());
                     self.units.remove(defender_id);
                 }
-                let unit = self.units.get_mut(attacker_id).unwrap();
-                assert!(unit.attack_points >= 1);
-                unit.attack_points -= 1;
+                if let Some(unit) = self.units.get_mut(attacker_id) {
+                    assert!(unit.attack_points >= 1);
+                    unit.attack_points -= 1;
+                }
             },
         }
     }
