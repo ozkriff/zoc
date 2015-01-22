@@ -825,12 +825,26 @@ impl Visualizer {
         let state = self.game_states.get_mut(
             self.core.player_id()).unwrap();
         self.event_visualizer.as_mut().unwrap().end(scene, state);
+        // TODO: simplify
+        // handle case when attacker is selected_unit and dies from reaction fire
+        match self.event.as_ref().unwrap() {
+            &CoreEvent::AttackUnit{attacker_id: _, ref defender_id, ref killed} => {
+                if self.selected_unit_id.is_some()
+                    && *self.selected_unit_id.as_ref().unwrap() == *defender_id
+                    && *killed
+                {
+                    self.selected_unit_id = None;
+                }
+            },
+            _ => {},
+        }
         state.apply_event(
             self.core.object_types(), self.event.as_ref().unwrap());
         self.event_visualizer = None;
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {
             if let Some(unit) = state.units.get(selected_unit_id) {
+                // TODO: do this only if this is last unshowed CoreEvent
                 let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
                 pf.fill_map(&self.core.object_types, state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
