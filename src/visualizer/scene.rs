@@ -12,8 +12,10 @@ pub const MIN_MARKER_NODE_ID: NodeId = NodeId{id: MAX_UNIT_NODE_ID.id + 1};
 pub const MAX_MARKER_NODE_ID: NodeId = NodeId{id: MAX_UNIT_NODE_ID.id * 2};
 pub const SHELL_NODE_ID: NodeId = NodeId{id: MAX_MARKER_NODE_ID.id + 1};
 pub const SELECTION_NODE_ID: NodeId = NodeId{id: SHELL_NODE_ID.id + 1};
+pub const MIN_MAP_OBJECT_NODE_ID: NodeId = NodeId{id: SELECTION_NODE_ID.id + 1};
+// pub const MAX_MAP_OBJECT_NODE_ID: NodeId = NodeId{id: MIN_MAP_OBJECT_NODE_ID.id + 100}; // TODO: 100?
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct NodeId{pub id: ZInt}
 
 pub struct SceneNode {

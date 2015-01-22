@@ -1,9 +1,10 @@
 // See LICENSE file for copyright and license details.
 
+use std::rand::{thread_rng, Rng};
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
-use cgmath::{Vector2, Vector3, Vector, deg, Matrix4};
+use cgmath::{Vector2, Vector3, deg, Matrix4};
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
 use glutin::ElementState::{Pressed, Released};
 use glutin::MouseButton::{LeftMouseButton};
@@ -34,7 +35,7 @@ use visualizer::texture::{Texture};
 use visualizer::obj;
 use visualizer::font_stash::{FontStash};
 use visualizer::gui::{ButtonManager, Button, ButtonId};
-use visualizer::scene::{Scene, SceneNode};
+use visualizer::scene::{Scene, SceneNode, MIN_MAP_OBJECT_NODE_ID};
 use visualizer::event_visualizer::{
     EventVisualizer,
     EventMoveVisualizer,
@@ -85,35 +86,6 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     let pos = geom::map_pos_to_world_pos(
         &MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
-}
-
-fn generate_trees(zgl: &Zgl, map: &Map) -> Mesh {
-    let map_size = map.size();
-    let mut vertex_data = Vec::new();
-    for tile_pos in MapPosIter::new(map_size) {
-        match map.tile(&tile_pos) {
-            &Tile::Plain => {},
-            &Tile::Trees => {
-                let trees_count = 3;
-                for i in range(0, trees_count) {
-                    let world_pos = geom::map_pos_to_world_pos(&tile_pos);
-                    let c1 = VertexCoord {
-                        v: geom::index_to_circle_vertex(trees_count, i).v.mul_s(0.65),
-                    };
-                    let mut c2 = c1.clone();
-                    c2.v.z += 1.5;
-                    vertex_data.push(VertexCoord{v: world_pos.v + c1.v});
-                    vertex_data.push(VertexCoord{v: world_pos.v + c2.v});
-                }
-            },
-            &Tile::Building => {
-                // TODO
-            },
-        }
-    }
-    let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
-    mesh.set_mode(MeshRenderMode::Lines);
-    mesh
 }
 
 // TODO: Replace all Size2<ZInt> with aliases
@@ -233,7 +205,7 @@ fn get_unit_mesh_id<'a> (
 
 struct MeshIdManager {
     map_mesh_id: MeshId,
-    trees_mesh_id: MeshId,
+    trees_mesh_id: MeshId, // TODO: load actual trees mesh
     shell_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
     marker_2_mesh_id: MeshId,
@@ -331,14 +303,8 @@ impl Visualizer {
             &mut meshes,
             generate_map_mesh(&zgl, &game_states[*core.player_id()].map),
         );
-
         let trees_mesh_id = add_mesh(
-            &mut meshes,
-            generate_trees(&zgl, &game_states[*core.player_id()].map),
-        );
-
-        // TODO: generate trees and buildings
-
+            &mut meshes, load_unit_mesh(&zgl, "trees"));
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&zgl));
         let shell_mesh_id = add_mesh(
@@ -371,7 +337,7 @@ impl Visualizer {
             marker_1_mesh_id: marker_1_mesh_id,
             marker_2_mesh_id: marker_2_mesh_id,
         };
-        Visualizer {
+        let mut visualizer = Visualizer {
             zgl: zgl,
             window: window,
             should_close: false,
@@ -404,6 +370,28 @@ impl Visualizer {
             selected_unit_id: None,
             selection_manager: SelectionManager::new(selection_marker_mesh_id),
             walkable_mesh: None,
+        };
+        visualizer.add_map_objects();
+        visualizer
+    }
+
+    fn add_map_objects(&mut self) {
+        let state = &self.game_states[*self.core.player_id()];
+        let map = &state.map;
+        let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
+        let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
+        for tile_pos in MapPosIter::new(map.size()) {
+            if let &Tile::Trees = map.tile(&tile_pos) {
+                let pos = geom::map_pos_to_world_pos(&tile_pos);
+                let rot = deg(thread_rng().gen_range(0.0, 360.0));
+                scene.nodes.insert(node_id.clone(), SceneNode {
+                    pos: pos,
+                    rot: rot,
+                    mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
+                    children: Vec::new(),
+                });
+                node_id.id += 1;
+            }
         }
     }
 
@@ -699,12 +687,6 @@ impl Visualizer {
             self.shader.set_uniform_color(
                 &self.zgl, &self.color_uniform_location, &zgl::BLUE);
             walkable_mesh.draw(&self.zgl, &self.shader);
-        }
-        {
-            self.shader.set_uniform_color(
-                &self.zgl, &self.color_uniform_location, &zgl::RED);
-            let id = self.mesh_ids.trees_mesh_id.id as usize;
-            self.meshes[id].draw(&self.zgl, &self.shader);
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
