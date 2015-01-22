@@ -12,10 +12,13 @@ pub struct MoveCost{pub n: ZInt}
 #[derive(Clone)]
 pub struct MapPath {
     nodes: Vec<(MoveCost, MapPos)>,
-    total_cost: MoveCost,
 }
 
 impl MapPath {
+    pub fn new(nodes: Vec<(MoveCost, MapPos)>) -> MapPath {
+        MapPath{nodes: nodes}
+    }
+
     // pub fn len(&self) -> ZInt {
     //     self.nodes.len() as ZInt
     // }
@@ -30,7 +33,8 @@ impl MapPath {
     }
 
     pub fn total_cost(&self) -> &MoveCost {
-        &self.total_cost
+        let &(ref total_cost, _) = self.nodes.last().unwrap();
+        total_cost
     }
 }
 
@@ -200,7 +204,6 @@ impl Pathfinder {
     */
 
     pub fn get_path(&self, destination: &MapPos) -> Option<MapPath> {
-        let total_cost = self.map.tile(destination).cost.clone();
         let mut path = Vec::new();
         let mut pos = destination.clone();
         if self.map.tile(&pos).cost.n == MAX_COST.n {
@@ -222,7 +225,6 @@ impl Pathfinder {
         path.reverse();
         Some(MapPath {
             nodes: path,
-            total_cost: total_cost,
         })
     }
 }
