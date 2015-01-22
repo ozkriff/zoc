@@ -466,6 +466,26 @@ impl Core {
         events
     }
 
+    fn reaction_fire_move(&self, path: &MapPath, unit_id: &UnitId) -> Vec<CoreEvent> {
+        let mut events = Vec::new();
+        let len = path.nodes().len();
+        'path_loop: for i in range(1, len) {
+            let (_, ref pos) = path.nodes()[i];
+            let e = self.reaction_fire(unit_id, pos);
+            if !e.is_empty() {
+                let mut new_nodes = path.nodes().clone();
+                new_nodes.truncate(i + 1);
+                events.push(CoreEvent::Move {
+                    unit_id: unit_id.clone(),
+                    path: MapPath::new(new_nodes),
+                });
+                events.push_all(e.as_slice());
+                break 'path_loop;
+            }
+        }
+        events
+    }
+
     // TODO: rename: simulation_step?
     // Apply events immidietly after addid event to array.
     fn command_to_event(&self, command: Command) -> Vec<CoreEvent> {
@@ -494,13 +514,15 @@ impl Core {
             },
             Command::Move{ref unit_id, ref path} => {
                 // TODO: do some checks?
-                events.push(CoreEvent::Move {
-                    unit_id: unit_id.clone(),
-                    path: path.clone(),
-                });
-                let &(_, ref dest) = path.nodes().last().unwrap();
-                events.push_all(
-                    self.reaction_fire(unit_id, dest).as_slice());
+                let e = self.reaction_fire_move(path, unit_id);
+                if e.is_empty() {
+                    events.push(CoreEvent::Move {
+                        unit_id: unit_id.clone(),
+                        path: path.clone(),
+                    });
+                } else {
+                    events.push_all(e.as_slice());
+                }
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
