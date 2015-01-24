@@ -45,6 +45,7 @@ struct Tile {
 
 impl Tile {
     pub fn parent(&self) -> &Option<Dir> { &self.parent }
+    pub fn cost(&self) -> &MoveCost { &self.cost }
 }
 
 struct Map {
@@ -144,10 +145,7 @@ impl Pathfinder {
         let tile = self.map.tile_mut(neighbour_pos);
         let new_cost = MoveCost{n: old_cost.n + tile_cost};
         let units_count = state.units_at(neighbour_pos).len();
-        if tile.cost.n > new_cost.n
-            && units_count == 0
-            && new_cost.n <= unit.move_points
-        {
+        if tile.cost.n > new_cost.n && units_count == 0 {
             tile.cost = new_cost;
             tile.parent = Some(Dir::get_dir_from_to(
                 neighbour_pos, original_pos));

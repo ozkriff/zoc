@@ -112,11 +112,14 @@ fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
     mesh
 }
 
-fn build_walkable_mesh(zgl: &Zgl, pathfinder: &Pathfinder) -> Mesh {
-    let map = pathfinder.get_map();
+fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, move_points: ZInt) -> Mesh {
+    let map = pf.get_map();
     let map_size = map.get_size();
     let mut vertex_data = Vec::new();
     for tile_pos in MapPosIter::new(map_size) {
+        if map.tile(&tile_pos).cost().n > move_points {
+            continue;
+        }
         if let &Some(ref parent_dir) = map.tile(&tile_pos).parent() {
             let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
             let world_pos_from = geom::map_pos_to_world_pos(&tile_pos);
@@ -446,7 +449,7 @@ impl Visualizer {
                 });
             },
             _ => {},
-       }
+        }
     }
 
     fn select_unit(&mut self) {
@@ -455,7 +458,8 @@ impl Visualizer {
             let state = &self.game_states[*self.core.player_id()];
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
             pf.fill_map(&self.core.object_types, state, &state.units[*unit_id]);
-            self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
+            self.walkable_mesh = Some(build_walkable_mesh(
+                &self.zgl, pf, state.units[*unit_id].move_points));
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             self.selection_manager.create_selection_marker(
                 state, scene, unit_id);
@@ -474,11 +478,12 @@ impl Visualizer {
         }
         let state = &self.game_states[*self.core.player_id()];
         let unit = &state.units[unit_id];
-        if unit.move_points == 0 {
-            return;
-        }
         let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
         if let Some(path) = pf.get_path(pos) {
+            if path.total_cost(). n > unit.move_points {
+                println!("path cost > unit.move_points");
+                return;
+            }
             self.core.do_command(
                 Command::Move{unit_id: unit_id, path: path});
         } else {
@@ -829,7 +834,8 @@ impl Visualizer {
                 // TODO: do this only if this is last unshowed CoreEvent
                 let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
                 pf.fill_map(&self.core.object_types, state, unit);
-                self.walkable_mesh = Some(build_walkable_mesh(&self.zgl, pf));
+                self.walkable_mesh = Some(build_walkable_mesh(
+                    &self.zgl, pf, unit.move_points));
                 self.selection_manager.create_selection_marker(
                     state, scene, selected_unit_id);
             }
