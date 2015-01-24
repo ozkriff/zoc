@@ -82,6 +82,11 @@ fn get_win_size(window: &Window) -> Size2<ZInt> {
     Size2{w: w as ZInt, h: h as ZInt}
 }
 
+fn get_initial_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
+    let pos = get_max_camera_pos(map_size);
+    WorldPos{v: Vector3{x: pos.v.x / 2.0, y: pos.v.y / 2.0, z: 0.0}}
+}
+
 fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     let pos = geom::map_pos_to_world_pos(
         &MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
@@ -296,6 +301,7 @@ impl Visualizer {
         let core = Core::new();
         let map_size = core.map_size().clone();
         camera.set_max_pos(get_max_camera_pos(&map_size));
+        camera.set_pos(get_initial_camera_pos(&map_size));
         let game_states = get_game_states(players_count, &map_size);
         let picker = TilePicker::new(
             &zgl, &game_states[*core.player_id()], &map_size);
