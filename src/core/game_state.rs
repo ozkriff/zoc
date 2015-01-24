@@ -60,7 +60,7 @@ impl<'a> GameState {
                 assert!(self.units.get(unit_id).is_none());
                 let unit_type = object_types.get_unit_type(type_id);
                 let move_points = unit_type.move_points;
-                let attack_points = unit_type.move_points;
+                let attack_points = unit_type.attack_points;
                 self.units.insert(unit_id.clone(), Unit {
                     id: unit_id.clone(),
                     pos: pos.clone(),
