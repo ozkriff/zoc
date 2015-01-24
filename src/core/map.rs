@@ -27,10 +27,11 @@ impl Map {
             tiles: tiles,
             size: size.clone(),
         };
-        *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 3}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 2, y: 3}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 3, y: 3}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 3, y: 4}}) = Tile::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Tile::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Tile::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Tile::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Tile::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Tile::Trees;
         map
     }
 

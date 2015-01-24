@@ -42,9 +42,19 @@ impl<'a> GameState {
         }
     }
 
+    /*
+    fn add_passive_ap(&mut self, player_id: &PlayerId) {
+        for (_, unit) in self.units.iter_mut() {
+            if unit.player_id == *player_id {
+                unit.attack_points += 1;
+            }
+        }
+    }
+    */
+
     pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
-        match *event {
-            CoreEvent::Move{ref unit_id, ref path} => {
+        match event {
+            &CoreEvent::Move{ref unit_id, ref path} => {
                 let pos = path.destination().clone();
                 let unit = self.units.get_mut(unit_id)
                     .expect("BAD MOVE UNIT ID");
@@ -53,10 +63,16 @@ impl<'a> GameState {
                 unit.move_points -= path.total_cost().n;
                 assert!(unit.move_points >= 0);
             },
-            CoreEvent::EndTurn{new_id: _, old_id: ref new_player_id} => {
-                self.refresh_units(object_types, new_player_id);
+            &CoreEvent::EndTurn{ref new_id, old_id: _} => {
+                self.refresh_units(object_types, new_id);
+                // self.add_passive_ap(old_id);
             },
-            CoreEvent::CreateUnit{ref unit_id, ref pos, ref type_id, ref player_id} => {
+            &CoreEvent::CreateUnit {
+                ref unit_id,
+                ref pos,
+                ref type_id,
+                ref player_id,
+            } => {
                 assert!(self.units.get(unit_id).is_none());
                 let unit_type = object_types.get_unit_type(type_id);
                 let move_points = unit_type.move_points;
@@ -70,7 +86,11 @@ impl<'a> GameState {
                     attack_points: attack_points,
                 });
             },
-            CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ref killed} => {
+            &CoreEvent::AttackUnit {
+                ref attacker_id,
+                ref defender_id,
+                ref killed,
+            } => {
                 if *killed {
                     assert!(self.units.get(defender_id).is_some());
                     self.units.remove(defender_id);

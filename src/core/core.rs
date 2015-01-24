@@ -127,7 +127,7 @@ impl ObjectTypes {
             weapon_skill: 5,
             weapon_type_id: cannon_id,
             move_points: 5,
-            attack_points: 3,
+            attack_points: 2,
         });
         self.unit_types.push(UnitType {
             name: "soldier".to_string(),
@@ -139,7 +139,7 @@ impl ObjectTypes {
             weapon_skill: 5,
             weapon_type_id: rifle_id,
             move_points: 3,
-            attack_points: 4,
+            attack_points: 2,
         });
     }
 
@@ -278,6 +278,7 @@ impl Ai {
                 if unit.player_id != self.id {
                     continue;
                 }
+                // println!("id: {}, ap: {}", unit.id.id, unit.attack_points);
                 if unit.attack_points <= 0 {
                     continue;
                 }
@@ -350,7 +351,7 @@ fn get_players_list() -> Vec<Player> {
 
 impl Core {
     pub fn new() -> Core {
-        let map_size = Size2{w: 6, h: 8};
+        let map_size = Size2{w: 10, h: 8};
         let mut core = Core {
             game_state: GameState::new(&map_size),
             players: get_players_list(),
@@ -374,17 +375,18 @@ impl Core {
         let soldier_id = self.object_types.get_unit_type_id("soldier");
         let p_id_0 = PlayerId{id: 0};
         let p_id_1 = PlayerId{id: 1};
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 0}}, &tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &soldier_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 5, y: 7}}, &tank_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 5, y: 6}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 5, y: 5}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 5, y: 4}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 4, y: 0}}, &tank_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 4, y: 1}}, &tank_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
     }
 
     fn get_new_unit_id(&self) -> UnitId {
@@ -551,7 +553,7 @@ impl Core {
     }
 
     // TODO: rename: simulation_step?
-    // Apply events immidietly after addid event to array.
+    // Apply events immidietly after adding event to array.
     fn command_to_event(&self, command: Command) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         match command {
