@@ -18,5 +18,6 @@ mod scene;
 mod event_visualizer;
 mod unit_type_visual_info;
 mod selection;
+mod move_helper;
 
 // vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:

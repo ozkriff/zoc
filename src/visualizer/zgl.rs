@@ -100,7 +100,7 @@ impl Zgl {
     // through transformation objects that can be converted to matrices.
     // Rotations go through the Basis types, which are guaranteed to be
     // orthogonal matrices."
-    pub fn tr(&self, m: Matrix4<ZFloat>, v: Vector3<ZFloat>) -> Matrix4<ZFloat> {
+    pub fn tr(&self, m: Matrix4<ZFloat>, v: &Vector3<ZFloat>) -> Matrix4<ZFloat> {
         let mut t = Matrix4::identity();
         t[3][0] = v.x;
         t[3][1] = v.y;
@@ -116,13 +116,13 @@ impl Zgl {
         m.mul_m(&t)
     }
 
-    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: Deg<ZFloat>) -> Matrix4<ZFloat> {
+    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: &Deg<ZFloat>) -> Matrix4<ZFloat> {
         let rad = angle.to_rad();
         let r = Matrix3::from_angle_x(rad).to_matrix4();
         m.mul_m(&r)
     }
 
-    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: Deg<ZFloat>) -> Matrix4<ZFloat> {
+    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: &Deg<ZFloat>) -> Matrix4<ZFloat> {
         let rad = angle.to_rad();
         let r = Matrix3::from_angle_z(rad).to_matrix4();
         m.mul_m(&r)

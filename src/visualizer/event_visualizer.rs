@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::rand::{thread_rng, Rng};
-use cgmath::{Vector3, Vector, EuclideanVector, deg};
+use cgmath::{Vector3, Vector, deg};
 use visualizer::geom;
 use core::types::{MapPos, UnitId};
 use core::game_state::GameState;
@@ -17,6 +17,7 @@ use visualizer::scene::{
 };
 use visualizer::types::{ZFloat, WorldPos, Time};
 use visualizer::unit_type_visual_info::{UnitTypeVisualInfo};
+use visualizer::move_helper::{MoveHelper};
 
 fn unit_id_to_node_id(unit_id: &UnitId) -> NodeId {
     NodeId{id: unit_id.id}
@@ -222,48 +223,6 @@ impl EventVisualizer for EventCreateUnitVisualizer {
     }
 
     fn end(&mut self, _: &mut Scene, _: &GameState) {}
-}
-
-pub struct MoveHelper {
-    to: WorldPos,
-    current: WorldPos,
-    dist: ZFloat,
-    current_dist: ZFloat,
-    dir: Vector3<ZFloat>,
-}
-
-impl MoveHelper {
-    // TODO: speed: ZFloat -> Speed (add 'Speed' to src/visualizer/types.rs
-    pub fn new(
-        from: WorldPos,
-        to: WorldPos,
-        speed: ZFloat,
-    ) -> MoveHelper {
-        let dir = to.v.sub_v(&from.v).normalize();
-        let dist = geom::dist(&from, &to);
-        MoveHelper {
-            to: to,
-            current: from,
-            dist: dist,
-            current_dist: 0.0,
-            dir: dir.mul_s(speed),
-        }
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.current_dist >= self.dist
-    }
-
-    pub fn step(&mut self, dtime: &Time) -> WorldPos {
-        let dt = dtime.n as ZFloat / 1000000000.0;
-        let step = self.dir.mul_s(dt);
-        self.current_dist += step.length();
-        self.current.v.add_self_v(&step);
-        if self.is_finished() {
-            self.current = self.to.clone();
-        }
-        self.current.clone()
-    }
 }
 
 fn vec3_z(z: ZFloat) -> Vector3<ZFloat> {

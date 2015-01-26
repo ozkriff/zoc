@@ -29,7 +29,7 @@ impl Button {
         Button {
             pos: pos,
             size: size,
-            mesh: font_stash.get_mesh(zgl, label),
+            mesh: font_stash.get_mesh(zgl, label, false),
         }
     }
 
@@ -106,7 +106,7 @@ impl ButtonManager {
                 z: 0.0,
             };
             shader.set_uniform_mat4f(
-                zgl, mvp_mat_id, &zgl.tr(m, text_offset));
+                zgl, mvp_mat_id, &zgl.tr(m, &text_offset));
             button.draw(zgl, shader);
         }
     }

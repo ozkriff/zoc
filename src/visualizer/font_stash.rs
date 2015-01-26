@@ -78,11 +78,17 @@ impl FontStash {
         (pos, size)
     }
 
-    pub fn get_mesh(&mut self, zgl: &Zgl, text: &str) -> Mesh {
+    // TODO: fix centred hack
+    pub fn get_mesh(&mut self, zgl: &Zgl, text: &str, centred: bool) -> Mesh {
         let mut vertex_data = Vec::new();
         let mut tex_data = Vec::new();
         let s = self.texture_size as ZFloat;
-        let mut i = 0.0;
+        let mut i = if centred {
+            let (_, Size2{w, h: _}) = self.get_text_size(zgl, text);
+            (-w / 2) as ZFloat
+        } else {
+            0.0
+        };
         for c in text.chars() {
             let glyph = self.get_glyph(zgl, c);
             let w = glyph.size.w as ZFloat;

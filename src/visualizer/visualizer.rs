@@ -48,6 +48,7 @@ use visualizer::unit_type_visual_info::{
     UnitTypeVisualInfoManager,
 };
 use visualizer::selection::{SelectionManager, get_selection_mesh};
+use visualizer::move_helper::{MoveHelper};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
 const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
@@ -243,22 +244,100 @@ fn get_unit_type_visual_info(
     unit_type_visual_info
 }
 
+struct MapText {
+    move_helper: MoveHelper,
+    mesh: Mesh,
+    scale: ZFloat, // TODO: move to MapTextManager?
+}
+
+pub struct MapTextManager {
+    meshes: HashMap<ZInt, MapText>,
+    i: ZInt,
+}
+
+impl MapTextManager {
+    fn new() -> Self {
+        MapTextManager {
+            meshes: HashMap::new(),
+            i: 0,
+        }
+    }
+
+    fn add_text(
+        &mut self,
+        zgl: &Zgl,
+        font_stash: &mut FontStash,
+        text: &str,
+        pos: &MapPos,
+    ) {
+        let from = geom::map_pos_to_world_pos(pos);
+        let mut to = from.clone();
+        to.v.z += 2.0;
+        let mesh = font_stash.get_mesh(zgl, text, true);
+        self.meshes.insert(self.i, MapText {
+            mesh: mesh,
+            move_helper: MoveHelper::new(from, to, 1.0),
+            scale: 1.0 / font_stash.get_size(),
+        });
+        self.i += 1;
+    }
+
+    fn delete_old(&mut self) {
+        let mut bad_keys = Vec::new();
+        for (key, map_text) in self.meshes.iter() {
+            if map_text.move_helper.is_finished() {
+                bad_keys.push(*key);
+            }
+        }
+        for key in bad_keys.iter() {
+            self.meshes.remove(key);
+        }
+    }
+
+    fn draw(
+        &mut self,
+        zgl: &Zgl,
+        camera: &Camera,
+        shader: &Shader,
+        dtime: &Time,
+    ) {
+        use gl; // TODO: ???
+        unsafe {
+            zgl.gl.Disable(gl::DEPTH_TEST);
+        }
+        for (_, map_text) in self.meshes.iter_mut() {
+            let pos = map_text.move_helper.step(dtime);
+            let m = camera.mat(zgl);
+            let m = zgl.tr(m, &pos.v);
+            let m = zgl.scale(m, map_text.scale);
+            let m = zgl.rot_z(m, camera.get_z_angle());
+            let m = zgl.rot_x(m, &deg(90.0));
+            shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);
+            map_text.mesh.draw(zgl, shader);
+        }
+        unsafe {
+            zgl.gl.Enable(gl::DEPTH_TEST);
+        }
+        self.delete_old();
+    }
+}
+
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
     should_close: bool,
     shader: Shader,
-    color_uniform_location: ColorId,
+    color_uniform_location: ColorId, // TODO: -> 'basic_color_loc'
     camera: Camera,
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
     picker: TilePicker,
-    map_pos_under_cursor: Option<MapPos>,
+    map_pos_under_cursor: Option<MapPos>, // TODO: Rename to 'clicked_pos'
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
     font_stash: FontStash,
-    map_text_mesh: Mesh,
+    map_text_manager: MapTextManager,
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
     dtime: Time,
@@ -331,7 +410,6 @@ impl Visualizer {
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
             &zgl, &Path::new("data/DroidSerif-Regular.ttf"), font_size);
-        let map_text_mesh = font_stash.get_mesh(&zgl, "test text");
         let mut button_manager = ButtonManager::new();
         let button_end_turn_id = button_manager.add_button(Button::new(
             &zgl,
@@ -361,7 +439,6 @@ impl Visualizer {
             just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector2::from_value(0)},
             font_stash: font_stash,
-            map_text_mesh: map_text_mesh,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
             dtime: Time{n: 0},
@@ -379,6 +456,7 @@ impl Visualizer {
             selected_unit_id: None,
             selection_manager: SelectionManager::new(selection_marker_mesh_id),
             walkable_mesh: None,
+            map_text_manager: MapTextManager::new(),
         };
         visualizer.add_map_objects();
         visualizer
@@ -540,6 +618,16 @@ impl Visualizer {
             VirtualKeyCode::A | VirtualKeyCode::Left => {
                 self.camera.move_camera(deg(180.0), s);
             },
+            VirtualKeyCode::K => {
+                if let Some(ref map_pos_under_cursor) = self.map_pos_under_cursor {
+                    self.map_text_manager.add_text(
+                        &self.zgl,
+                        &mut self.font_stash,
+                        "TEST",
+                        map_pos_under_cursor,
+                    );
+                }
+            },
             VirtualKeyCode::Minus => {
                 self.camera.change_zoom(1.3);
             },
@@ -645,15 +733,6 @@ impl Visualizer {
         }
     }
 
-   fn draw_3d_text(&mut self) {
-        let m = self.camera.mat(&self.zgl);
-        let m = self.zgl.scale(m, 1.0 / self.font_stash.get_size());
-        let m = self.zgl.rot_x(m, deg(90.0));
-        self.shader.set_uniform_mat4f(
-            &self.zgl, self.shader.get_mvp_mat(), &m);
-        self.map_text_mesh.draw(&self.zgl, &self.shader);
-    }
-
     fn scene(&self) -> &Scene {
         &self.scenes[*self.core.player_id()]
     }
@@ -663,8 +742,8 @@ impl Visualizer {
         node: &SceneNode,
         m: Matrix4<ZFloat>,
     ) {
-        let m = self.zgl.tr(m, node.pos.v);
-        let m = self.zgl.rot_z(m, node.rot);
+        let m = self.zgl.tr(m, &node.pos.v);
+        let m = self.zgl.rot_z(m, &node.rot);
         if let Some(ref mesh_id) = node.mesh_id {
             self.shader.set_uniform_mat4f(
                 &self.zgl, self.shader.get_mvp_mat(), &m);
@@ -717,7 +796,8 @@ impl Visualizer {
         self.draw_scene();
         self.shader.set_uniform_color(
             &self.zgl, &self.color_uniform_location, &zgl::BLACK);
-        self.draw_3d_text();
+        self.map_text_manager.draw(
+            &self.zgl, &self.camera, &self.shader, &self.dtime);
         self.button_manager.draw(
             &self.zgl,
             &self.win_size,

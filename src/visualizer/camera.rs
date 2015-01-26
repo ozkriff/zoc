@@ -39,10 +39,10 @@ impl Camera {
 
     pub fn mat(&self, zgl: &Zgl) -> Matrix4<ZFloat> {
         let mut m = self.projection_mat;
-        m = zgl.tr(m, Vector3{x: 0.0, y: 0.0, z: -self.zoom});
-        m = zgl.rot_x(m, -self.x_angle);
-        m = zgl.rot_z(m, -self.z_angle);
-        m = zgl.tr(m, self.pos.v);
+        m = zgl.tr(m, &Vector3{x: 0.0, y: 0.0, z: -self.zoom});
+        m = zgl.rot_x(m, &-self.x_angle);
+        m = zgl.rot_z(m, &-self.z_angle);
+        m = zgl.tr(m, &self.pos.v);
         m
     }
 
@@ -78,6 +78,10 @@ impl Camera {
     pub fn change_zoom(&mut self, ratio: ZFloat) {
         self.zoom *= ratio;
         self.zoom = clamp(self.zoom, 5.0, 40.0);
+    }
+
+    pub fn get_z_angle(&self) -> &Deg<ZFloat> {
+        &self.z_angle
     }
 
     pub fn move_camera(&mut self, angle: Deg<ZFloat>, speed: ZFloat) {
