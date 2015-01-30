@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
-use std::io::{MemReader};
+use std::old_io::{MemReader};
 
 #[cfg(not(target_os = "android"))]
 pub fn load(path: &Path) -> MemReader {
-    use std::io::fs::{File};
+    use std::old_io::fs::{File};
 
     let buf = File::open(path).read_to_end()
         .ok().expect("Can`t open file");

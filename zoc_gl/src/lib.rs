@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![allow(unstable)]
+#![feature(libc)]
 
 pub use Gles2 as Gl;
 

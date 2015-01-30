@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![allow(unstable)] // TODO: remove this
+#![feature(rand, hash, path, io, libc, core, std_misc, collections)] // TODO
 #![feature(box_syntax)]
 
 #[cfg(target_os = "android")]
@@ -11,7 +11,6 @@ extern crate libc;
 extern crate time;
 extern crate cgmath;
 extern crate "zoc_gl" as gl;
-extern crate serialize;
 extern crate glutin;
 extern crate image;
 extern crate stb_tt;
