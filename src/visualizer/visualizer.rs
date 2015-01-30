@@ -360,7 +360,9 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let window_builder = WindowBuilder::new().with_gl_version((2, 0));
+        let window_builder = WindowBuilder::new()
+            .with_title(format!("Zone of Control"))
+            .with_gl_version((2, 0));
         let window = window_builder.build().ok().expect("Can`t create window");
         unsafe {
             window.make_current();
