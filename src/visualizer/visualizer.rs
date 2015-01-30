@@ -48,7 +48,7 @@ use visualizer::unit_type_visual_info::{
     UnitTypeVisualInfoManager,
 };
 use visualizer::selection::{SelectionManager, get_selection_mesh};
-use visualizer::move_helper::{MoveHelper};
+use visualizer::map_text::{MapTextManager};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
 const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
@@ -242,84 +242,6 @@ fn get_unit_type_visual_info(
         move_speed: 2.0,
     });
     unit_type_visual_info
-}
-
-struct MapText {
-    move_helper: MoveHelper,
-    mesh: Mesh,
-    scale: ZFloat, // TODO: move to MapTextManager?
-}
-
-pub struct MapTextManager {
-    meshes: HashMap<ZInt, MapText>,
-    i: ZInt,
-}
-
-impl MapTextManager {
-    fn new() -> Self {
-        MapTextManager {
-            meshes: HashMap::new(),
-            i: 0,
-        }
-    }
-
-    fn add_text(
-        &mut self,
-        zgl: &Zgl,
-        font_stash: &mut FontStash,
-        text: &str,
-        pos: &MapPos,
-    ) {
-        let from = geom::map_pos_to_world_pos(pos);
-        let mut to = from.clone();
-        to.v.z += 2.0;
-        let mesh = font_stash.get_mesh(zgl, text, true);
-        self.meshes.insert(self.i, MapText {
-            mesh: mesh,
-            move_helper: MoveHelper::new(from, to, 1.0),
-            scale: 1.0 / font_stash.get_size(),
-        });
-        self.i += 1;
-    }
-
-    fn delete_old(&mut self) {
-        let mut bad_keys = Vec::new();
-        for (key, map_text) in self.meshes.iter() {
-            if map_text.move_helper.is_finished() {
-                bad_keys.push(*key);
-            }
-        }
-        for key in bad_keys.iter() {
-            self.meshes.remove(key);
-        }
-    }
-
-    fn draw(
-        &mut self,
-        zgl: &Zgl,
-        camera: &Camera,
-        shader: &Shader,
-        dtime: &Time,
-    ) {
-        use gl; // TODO: ???
-        unsafe {
-            zgl.gl.Disable(gl::DEPTH_TEST);
-        }
-        for (_, map_text) in self.meshes.iter_mut() {
-            let pos = map_text.move_helper.step(dtime);
-            let m = camera.mat(zgl);
-            let m = zgl.tr(m, &pos.v);
-            let m = zgl.scale(m, map_text.scale);
-            let m = zgl.rot_z(m, camera.get_z_angle());
-            let m = zgl.rot_x(m, &deg(90.0));
-            shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);
-            map_text.mesh.draw(zgl, shader);
-        }
-        unsafe {
-            zgl.gl.Enable(gl::DEPTH_TEST);
-        }
-        self.delete_old();
-    }
 }
 
 pub struct Visualizer {
@@ -851,7 +773,7 @@ impl Visualizer {
                     path.clone(),
                 )
             },
-            &CoreEvent::EndTurn{old_id: _, new_id: _} => {
+            &CoreEvent::EndTurn{..} => {
                 EventEndTurnVisualizer::new()
             },
             &CoreEvent::CreateUnit {
@@ -872,14 +794,23 @@ impl Visualizer {
                     get_marker_mesh_id(&self.mesh_ids, player_id),
                 )
             },
-            &CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ref killed} => {
+            &CoreEvent::AttackUnit {
+                ref attacker_id,
+                ref defender_id,
+                ref killed,
+                ref mode,
+            } => {
                 EventAttackUnitVisualizer::new(
+                    &self.zgl,
                     scene,
                     state,
                     attacker_id.clone(),
                     defender_id.clone(),
                     killed.clone(),
+                    mode.clone(),
                     self.mesh_ids.shell_mesh_id.clone(),
+                    &mut self.map_text_manager,
+                    &mut self.font_stash,
                 )
             },
         }
@@ -903,7 +834,7 @@ impl Visualizer {
         // TODO: simplify
         // handle case when attacker is selected_unit and dies from reaction fire
         match self.event.as_ref().unwrap() {
-            &CoreEvent::AttackUnit{attacker_id: _, ref defender_id, ref killed} => {
+            &CoreEvent::AttackUnit{ref defender_id, ref killed, ..} => {
                 if self.selected_unit_id.is_some()
                     && *self.selected_unit_id.as_ref().unwrap() == *defender_id
                     && *killed

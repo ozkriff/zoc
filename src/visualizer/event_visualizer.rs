@@ -18,6 +18,9 @@ use visualizer::scene::{
 use visualizer::types::{ZFloat, WorldPos, Time};
 use visualizer::unit_type_visual_info::{UnitTypeVisualInfo};
 use visualizer::move_helper::{MoveHelper};
+use visualizer::map_text::{MapTextManager};
+use visualizer::font_stash::{FontStash};
+use visualizer::zgl::{Zgl};
 
 fn unit_id_to_node_id(unit_id: &UnitId) -> NodeId {
     NodeId{id: unit_id.id}
@@ -29,10 +32,12 @@ fn marker_id(unit_id: &UnitId) -> NodeId {
 
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
+    // fn draw(&mut self, scene: &mut Scene, dtime: &Time, map_text: &MapTextManager);
     fn draw(&mut self, scene: &mut Scene, dtime: &Time);
     fn end(&mut self, scene: &mut Scene, state: &GameState);
 }
 
+// TODO: store CoreEvent
 pub struct EventMoveVisualizer {
     unit_id: UnitId,
     path: Vec<WorldPos>,
@@ -90,7 +95,7 @@ impl EventMoveVisualizer {
         node.rot = geom::get_rot_angle(
             &world_path[0], &world_path[1]);
         let move_helper = MoveHelper::new(
-            world_path[0].clone(), world_path[1].clone(), speed);
+            &world_path[0], &world_path[1], speed);
         let mut vis = box EventMoveVisualizer {
             unit_id: unit_id.clone(),
             path: world_path,
@@ -103,8 +108,8 @@ impl EventMoveVisualizer {
 
     fn update_waypoint(&mut self, node: &mut SceneNode) {
         self.move_helper = MoveHelper::new(
-            self.current_waypoint().clone(),
-            self.next_waypoint().clone(),
+            self.current_waypoint(),
+            self.next_waypoint(),
             self.speed,
         );
         node.rot = geom::get_rot_angle(
@@ -203,7 +208,7 @@ impl EventCreateUnitVisualizer {
             mesh_id: Some(marker_mesh_id.clone()),
             children: Vec::new(),
         });
-        let move_helper = MoveHelper::new(from, to, 1.0);
+        let move_helper = MoveHelper::new(&from, &to, 1.0);
         box EventCreateUnitVisualizer {
             id: id,
             move_helper: move_helper,
@@ -238,28 +243,43 @@ pub struct EventAttackUnitVisualizer {
 
 impl EventAttackUnitVisualizer {
     pub fn new(
+        zgl: &Zgl,
         scene: &mut Scene,
         _: &GameState,
         attacker_id: UnitId,
         defender_id: UnitId,
         killed: bool,
-        shell_mesh_id: MeshId
+        mode: core::FireMode,
+        shell_mesh_id: MeshId,
+        map_text: &mut MapTextManager,
+        font_stash: &mut FontStash,
     ) -> Box<EventVisualizer+'static> {
         let node_id = unit_id_to_node_id(&defender_id);
-        let from = scene.nodes[node_id].pos.clone();
+        let from = scene.nodes[node_id].pos.clone(); // TODO: from <-> to
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
-        let move_helper = MoveHelper::new(from, to, 1.0);
+        let move_helper = MoveHelper::new(&from, &to, 1.0);
+        let attacker_pos = scene.nodes[unit_id_to_node_id(&attacker_id)].pos.clone();
+        let defender_pos = scene.nodes[unit_id_to_node_id(&defender_id)].pos.clone();
         let shell_move = {
-            let from = scene.nodes[unit_id_to_node_id(&attacker_id)].pos.clone();
-            let to = scene.nodes[unit_id_to_node_id(&defender_id)].pos.clone();
             scene.nodes.insert(SHELL_NODE_ID, SceneNode {
                 pos: from.clone(),
                 rot: deg(0.0),
                 mesh_id: Some(shell_mesh_id),
                 children: Vec::new(),
             });
-            MoveHelper::new(from, to.clone(), 10.0)
+            MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
         };
+        if killed {
+            map_text.add_text_to_world_pos(zgl, font_stash, "-1", &defender_pos);
+        } else {
+            map_text.add_text_to_world_pos(zgl, font_stash, "miss", &defender_pos);
+        }
+        match mode {
+            core::FireMode::Reactive => {
+                map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);
+            },
+            core::FireMode::Active => {},
+        }
         box EventAttackUnitVisualizer {
             defender_id: defender_id,
             killed: killed,

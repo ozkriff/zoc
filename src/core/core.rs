@@ -18,6 +18,12 @@ pub enum Command {
 }
 
 #[derive(Clone)]
+pub enum FireMode {
+    Active,
+    Reactive,
+}
+
+#[derive(Clone)]
 pub enum CoreEvent {
     Move{unit_id: UnitId, path: MapPath},
     EndTurn{old_id: PlayerId, new_id: PlayerId},
@@ -27,7 +33,12 @@ pub enum CoreEvent {
         type_id: UnitTypeId,
         player_id: PlayerId,
     },
-    AttackUnit{attacker_id: UnitId, defender_id: UnitId, killed: bool},
+    AttackUnit {
+        attacker_id: UnitId,
+        defender_id: UnitId,
+        mode: FireMode,
+        killed: bool,
+    },
 }
 
 pub struct Player {
@@ -182,11 +193,7 @@ impl ObjectTypes {
 
 fn is_target_dead(event: &CoreEvent) -> bool {
     match event {
-        &CoreEvent::AttackUnit {
-            attacker_id: _,
-            defender_id: _,
-            ref killed,
-        } => *killed,
+        &CoreEvent::AttackUnit{ref killed, ..} => *killed,
         _ => panic!("wrong event type"),
     }
 }
@@ -484,6 +491,7 @@ impl Core {
         attacker_id: UnitId,
         defender_id: UnitId,
         pos: &MapPos, // TODO: get pos from unit
+        fire_mode: FireMode,
         // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
         let attacker = &self.game_state.units[attacker_id];
@@ -497,6 +505,7 @@ impl Core {
                 attacker_id: attacker_id,
                 defender_id: defender_id,
                 killed: hit,
+                mode: fire_mode,
             }]
         } else {
             Vec::new()
@@ -519,8 +528,7 @@ impl Core {
                 continue;
             }
             let e = self.command_attack_unit_to_event(
-                // enemy_unit.id.clone(), unit_id.clone());
-                enemy_unit.id.clone(), unit_id.clone(), pos);
+                enemy_unit.id.clone(), unit_id.clone(), pos, FireMode::Reactive);
             events.push_all(e.as_slice());
             if e.is_empty() {
                 continue;
@@ -594,7 +602,7 @@ impl Core {
                 // TODO: do some checks?
                 let defender_pos = &self.game_state.units[defender_id].pos;
                 let e = self.command_attack_unit_to_event(
-                    attacker_id.clone(), defender_id, defender_pos);
+                    attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
                 events.push_all(e.as_slice());
                 if !e.is_empty() && !is_target_dead(&e[0]) {
                     let pos = &self.game_state.units[attacker_id].pos;

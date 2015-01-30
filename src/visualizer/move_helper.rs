@@ -14,12 +14,12 @@ pub struct MoveHelper {
 
 impl MoveHelper {
     // TODO: speed: ZFloat -> Speed (add 'Speed' to src/visualizer/types.rs
-    pub fn new(from: WorldPos, to: WorldPos, speed: ZFloat) -> MoveHelper {
+    pub fn new(from: &WorldPos, to: &WorldPos, speed: ZFloat) -> MoveHelper {
         let dir = to.v.sub_v(&from.v).normalize();
-        let dist = geom::dist(&from, &to);
+        let dist = geom::dist(from, to);
         MoveHelper {
-            to: to,
-            current: from,
+            to: to.clone(),
+            current: from.clone(),
             dist: dist,
             current_dist: 0.0,
             dir: dir.mul_s(speed),

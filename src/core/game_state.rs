@@ -90,6 +90,7 @@ impl<'a> GameState {
                 ref attacker_id,
                 ref defender_id,
                 ref killed,
+                ..
             } => {
                 if *killed {
                     assert!(self.units.get(defender_id).is_some());
