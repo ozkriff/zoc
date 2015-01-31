@@ -1,7 +1,6 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2};
-use core::map::{MapPosIter};
 use core::types::{ZInt, Size2, MapPos, UnitId};
 use core::game_state::GameState;
 use visualizer::zgl;
@@ -51,7 +50,6 @@ pub enum PickResult {
 pub struct TilePicker {
     shader: Shader,
     mesh: Mesh,
-    map_size: Size2<ZInt>,
 }
 
 fn tile_color(state: &GameState, pos: &MapPos) -> Color3 {
@@ -70,10 +68,10 @@ fn tile_color(state: &GameState, pos: &MapPos) -> Color3 {
     }
 }
 
-fn get_mesh(zgl: &Zgl, state: &GameState, map_size: &Size2<ZInt>) -> Mesh {
+fn get_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
     let mut c_data = Vec::new();
     let mut v_data = Vec::new();
-    for tile_pos in MapPosIter::new(map_size) {
+    for tile_pos in state.map.get_iter() {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in DirIter::new() {
             let num = dir.to_int();
@@ -94,21 +92,20 @@ fn get_mesh(zgl: &Zgl, state: &GameState, map_size: &Size2<ZInt>) -> Mesh {
 }
 
 impl TilePicker {
-    pub fn new(zgl: &Zgl, state: &GameState, map_size: &Size2<ZInt>) -> TilePicker {
+    pub fn new(zgl: &Zgl, state: &GameState) -> TilePicker {
         let mut shader = Shader::new(zgl, VS_SRC, FS_SRC);
         shader.enable_color(zgl);
         shader.activate(zgl);
-        let mesh = get_mesh(zgl, state, map_size);
+        let mesh = get_mesh(zgl, state);
         let tile_picker = TilePicker {
             mesh: mesh,
             shader: shader,
-            map_size: map_size.clone(),
         };
         tile_picker
     }
 
     pub fn update_units(&mut self, zgl: &Zgl, state: &GameState) {
-        self.mesh = get_mesh(zgl, state, &self.map_size);
+        self.mesh = get_mesh(zgl, state);
     }
 
     pub fn pick_tile(

@@ -54,6 +54,10 @@ impl Map {
         let y = pos.v.y;
         x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
     }
+
+    pub fn get_iter(&self) -> MapPosIter {
+        MapPosIter::new(self.size())
+    }
 }
 
 pub struct MapPosIter {
@@ -62,7 +66,7 @@ pub struct MapPosIter {
 }
 
 impl MapPosIter {
-    pub fn new(map_size: &Size2<ZInt>) -> MapPosIter {
+    fn new(map_size: &Size2<ZInt>) -> MapPosIter {
         MapPosIter {
             cursor: MapPos{v: Vector2::from_value(0)},
             map_size: map_size.clone(),

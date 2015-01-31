@@ -25,7 +25,7 @@ use visualizer::mesh::{Mesh, MeshId};
 use visualizer::camera::Camera;
 use visualizer::shader::{Shader};
 use visualizer::geom;
-use core::map::{Map, MapPosIter, distance, Tile};
+use core::map::{Map, distance, Tile};
 use core::dir::{DirIter, Dir};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
@@ -98,7 +98,7 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
 fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
-    for tile_pos in MapPosIter::new(map.size()) {
+    for tile_pos in map.get_iter() {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in DirIter::new() {
             let num = dir.to_int();
@@ -118,15 +118,13 @@ fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
     mesh
 }
 
-fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, move_points: ZInt) -> Mesh {
-    let map = pf.get_map();
-    let map_size = map.get_size();
+fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, map: &Map, move_points: ZInt) -> Mesh {
     let mut vertex_data = Vec::new();
-    for tile_pos in MapPosIter::new(map_size) {
-        if map.tile(&tile_pos).cost().n > move_points {
+    for tile_pos in map.get_iter() {
+        if pf.get_map().tile(&tile_pos).cost().n > move_points {
             continue;
         }
-        if let &Some(ref parent_dir) = map.tile(&tile_pos).parent() {
+        if let &Some(ref parent_dir) = pf.get_map().tile(&tile_pos).parent() {
             let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
             let world_pos_from = geom::map_pos_to_world_pos(&tile_pos);
             let world_pos_to = geom::map_pos_to_world_pos(&tile_pos_to);
@@ -306,8 +304,7 @@ impl Visualizer {
         camera.set_max_pos(get_max_camera_pos(&map_size));
         camera.set_pos(get_initial_camera_pos(&map_size));
         let game_states = get_game_states(players_count, &map_size);
-        let picker = TilePicker::new(
-            &zgl, &game_states[*core.player_id()], &map_size);
+        let picker = TilePicker::new(&zgl, &game_states[*core.player_id()]);
 
         let mut meshes = Vec::new();
 
@@ -391,7 +388,7 @@ impl Visualizer {
         let map = &state.map;
         let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
         let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
-        for tile_pos in MapPosIter::new(map.size()) {
+        for tile_pos in map.get_iter() {
             if let &Tile::Trees = map.tile(&tile_pos) {
                 let pos = geom::map_pos_to_world_pos(&tile_pos);
                 let rot = deg(thread_rng().gen_range(0.0, 360.0));
@@ -467,7 +464,7 @@ impl Visualizer {
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
             pf.fill_map(&self.core.object_types, state, &state.units[*unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(
-                &self.zgl, pf, state.units[*unit_id].move_points));
+                &self.zgl, pf, &state.map, state.units[*unit_id].move_points));
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             self.selection_manager.create_selection_marker(
                 state, scene, unit_id);
@@ -854,7 +851,7 @@ impl Visualizer {
                 let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
                 pf.fill_map(&self.core.object_types, state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(
-                    &self.zgl, pf, unit.move_points));
+                    &self.zgl, pf, &state.map, unit.move_points));
                 self.selection_manager.create_selection_marker(
                     state, scene, selected_unit_id);
             }

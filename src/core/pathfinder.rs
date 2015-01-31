@@ -72,9 +72,11 @@ impl<'a> Map {
         x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
     }
 
+    /*
     pub fn get_size(&self) -> &Size2<ZInt> {
         &self.size
     }
+    */
 }
 
 pub struct Pathfinder {
