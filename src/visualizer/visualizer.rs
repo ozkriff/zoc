@@ -212,7 +212,7 @@ fn get_unit_mesh_id<'a> (
 
 struct MeshIdManager {
     map_mesh_id: MeshId,
-    trees_mesh_id: MeshId, // TODO: load actual trees mesh
+    trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
     marker_2_mesh_id: MeshId,
@@ -247,13 +247,13 @@ pub struct Visualizer {
     window: Window,
     should_close: bool,
     shader: Shader,
-    color_uniform_location: ColorId, // TODO: -> 'basic_color_loc'
+    basic_color_id: ColorId,
     camera: Camera,
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     win_size: Size2<ZInt>,
     picker: TilePicker,
-    map_pos_under_cursor: Option<MapPos>, // TODO: Rename to 'clicked_pos'
+    clicked_pos: Option<MapPos>,
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
     font_stash: FontStash,
@@ -295,7 +295,7 @@ impl Visualizer {
         let mut shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         shader.enable_texture_coords(&zgl);
         shader.activate(&zgl);
-        let color_uniform_location = shader.get_uniform_color(
+        let basic_color_id = shader.get_uniform_color(
             &zgl, "basic_color");
         zgl.set_clear_color(&BG_COLOR);
         let mut camera = Camera::new(&win_size);
@@ -350,13 +350,13 @@ impl Visualizer {
             window: window,
             should_close: false,
             shader: shader,
-            color_uniform_location: color_uniform_location,
+            basic_color_id: basic_color_id,
             camera: camera,
             mouse_pos: ScreenPos{v: Vector2::from_value(0)},
             is_lmb_pressed: false,
             win_size: win_size,
             picker: picker,
-            map_pos_under_cursor: None,
+            clicked_pos: None,
             just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector2::from_value(0)},
             font_stash: font_stash,
@@ -422,7 +422,7 @@ impl Visualizer {
 
     /*
     fn create_unit(&mut self) {
-        if let Some(ref pos) = self.map_pos_under_cursor {
+        if let Some(ref pos) = self.clicked_pos {
             if self.is_tile_occupied(pos) {
                 return;
             }
@@ -473,7 +473,7 @@ impl Visualizer {
     }
 
     fn move_unit(&mut self) {
-        let pos = self.map_pos_under_cursor.as_ref().unwrap();
+        let pos = self.clicked_pos.as_ref().unwrap();
         let unit_id = match self.selected_unit_id {
             Some(ref unit_id) => unit_id.clone(),
             None => return,
@@ -540,12 +540,12 @@ impl Visualizer {
                 self.camera.move_camera(deg(180.0), s);
             },
             VirtualKeyCode::K => {
-                if let Some(ref map_pos_under_cursor) = self.map_pos_under_cursor {
+                if let Some(ref clicked_pos) = self.clicked_pos {
                     self.map_text_manager.add_text(
                         &self.zgl,
                         &mut self.font_stash,
                         "TEST",
-                        map_pos_under_cursor,
+                        clicked_pos,
                     );
                 }
             },
@@ -571,7 +571,7 @@ impl Visualizer {
             self.handle_event_button_press(&button_id);
         }
         self.pick_tile();
-        if self.map_pos_under_cursor.is_some() {
+        if self.clicked_pos.is_some() {
             self.move_unit();
         }
         if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
@@ -691,12 +691,12 @@ impl Visualizer {
 
     fn draw_scene(&mut self) {
         self.shader.set_uniform_color(
-            &self.zgl, &self.color_uniform_location, &zgl::WHITE);
+            &self.zgl, &self.basic_color_id, &zgl::WHITE);
         self.draw_scene_nodes();
         self.draw_map();
         if let Some(ref walkable_mesh) = self.walkable_mesh {
             self.shader.set_uniform_color(
-                &self.zgl, &self.color_uniform_location, &zgl::BLUE);
+                &self.zgl, &self.basic_color_id, &zgl::BLUE);
             walkable_mesh.draw(&self.zgl, &self.shader);
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
@@ -716,7 +716,7 @@ impl Visualizer {
         );
         self.draw_scene();
         self.shader.set_uniform_color(
-            &self.zgl, &self.color_uniform_location, &zgl::BLACK);
+            &self.zgl, &self.basic_color_id, &zgl::BLACK);
         self.map_text_manager.draw(
             &self.zgl, &self.camera, &self.shader, &self.dtime);
         self.button_manager.draw(
@@ -733,11 +733,11 @@ impl Visualizer {
             &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
         match pick_result {
             PickResult::MapPos(pos) => {
-                self.map_pos_under_cursor = Some(pos);
+                self.clicked_pos = Some(pos);
                 self.unit_under_cursor_id = None;
             },
             PickResult::UnitId(id) => {
-                self.map_pos_under_cursor = None;
+                self.clicked_pos = None;
                 self.unit_under_cursor_id = Some(id);
             },
             PickResult::Nothing => {},
