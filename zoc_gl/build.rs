@@ -5,17 +5,23 @@
 extern crate gl_generator;
 extern crate khronos_api;
 
+#[cfg(target_os = "windows")]
+const GENERATOR: gl_generator::StructGenerator = gl_generator::StructGenerator;
+
+#[cfg(not(target_os = "windows"))]
+const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStructGenerator;
+
 fn main() {
     let dest = Path::new(std::os::getenv("OUT_DIR").unwrap());
     let mut file = std::old_io::File::create(&dest.join("gl_bindings.rs")).unwrap();
     gl_generator::generate_bindings(
-        gl_generator::StaticStructGenerator, // TODO: use StructGenerator on win32
+        GENERATOR,
         gl_generator::registry::Ns::Gles2,
         khronos_api::GL_XML,
         vec![],
         "2.0",
         "core",
-        &mut file
+        &mut file,
     ).unwrap();
 }
 

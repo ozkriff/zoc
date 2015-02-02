@@ -725,6 +725,9 @@ impl Visualizer {
             &self.shader,
             self.shader.get_mvp_mat(),
         );
+        // You must call glFlush before swap_buffers, or else
+        // on Windows 8 nothing will be visible on the window.
+        self.zgl.flush();
         self.window.swap_buffers();
     }
 
