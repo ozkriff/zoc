@@ -3,14 +3,15 @@
 use cgmath::{Vector2};
 use core::types::{ZInt, MapPos};
 
-#[derive(Clone)]
+// TODO: fix indentation
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Dir {
-  NorthEast,
-  East,
   SouthEast,
-  SouthWest,
-  West,
+  East,
+  NorthEast,
   NorthWest,
+  West,
+  SouthWest,
 }
 
 const DIR_TO_POS_DIFF: [[Vector2<ZInt>; 6]; 2] = [
@@ -36,24 +37,24 @@ impl Dir {
     pub fn from_int(n: ZInt) -> Dir {
         assert!(n >= 0 && n < 6);
         let dirs = [
-            Dir::NorthEast,
-            Dir::East,
             Dir::SouthEast,
-            Dir::SouthWest,
-            Dir::West,
+            Dir::East,
+            Dir::NorthEast,
             Dir::NorthWest,
+            Dir::West,
+            Dir::SouthWest,
         ];
         dirs[n as usize]
     }
 
     pub fn to_int(&self) -> ZInt {
         match *self {
-            Dir::NorthEast => 0,
+            Dir::SouthEast => 0,
             Dir::East => 1,
-            Dir::SouthEast => 2,
-            Dir::SouthWest => 3,
+            Dir::NorthEast => 2,
+            Dir::NorthWest => 3,
             Dir::West => 4,
-            Dir::NorthWest => 5,
+            Dir::SouthWest => 5,
         }
     }
 
@@ -68,8 +69,9 @@ impl Dir {
         panic!("impossible positions: {:?}, {:?}", from, to); // TODO: remove ':?'
     }
 
+    // TODO: take '&self'
     pub fn get_neighbour_pos(pos: &MapPos, dir: &Dir) -> MapPos {
-        let is_odd_row = pos.v.y % 2 == 1;
+        let is_odd_row = pos.v.y % 2 != 0;
         let subtable_index = if is_odd_row { 1 } else { 0 };
         let direction_index = dir.to_int();
         assert!(direction_index >= 0 && direction_index < 6);
@@ -82,17 +84,15 @@ pub struct DirIter {
     index: ZInt,
 }
 
-impl DirIter {
-    pub fn new() -> Self {
-        DirIter{index: 0}
-    }
+pub fn dirs() -> DirIter {
+    DirIter{index: 0}
 }
 
 impl Iterator for DirIter {
     type Item = Dir;
 
     fn next(&mut self) -> Option<Dir> {
-        let next_dir = if self.index == 6 {
+        let next_dir = if self.index > 5 {
             None
         } else {
             Some(Dir::from_int(self.index))

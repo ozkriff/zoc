@@ -3,6 +3,9 @@ all: zoc
 zoc:
 	cd client && cargo build --verbose -j 1
 
+test:
+	cargo test --verbose -j 1
+
 run: zoc
 	RUST_BACKTRACE=1 ./client/target/zoc
 

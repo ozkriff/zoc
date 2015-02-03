@@ -26,7 +26,7 @@ use visualizer::camera::Camera;
 use visualizer::shader::{Shader};
 use visualizer::geom;
 use core::map::{Map, distance, Tile};
-use core::dir::{DirIter, Dir};
+use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::core::{Core, UnitTypeId, CoreEvent, Command};
@@ -100,7 +100,7 @@ fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
     let mut tex_data = Vec::new();
     for tile_pos in map.get_iter() {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
-        for dir in DirIter::new() {
+        for dir in dirs() {
             let num = dir.to_int();
             let vertex = geom::index_to_hex_vertex(num);
             let next_vertex = geom::index_to_hex_vertex(num + 1);

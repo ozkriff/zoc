@@ -10,7 +10,7 @@ use visualizer::geom;
 use visualizer::mesh::{Mesh};
 use visualizer::types::{Color3, ZFloat, VertexCoord, ScreenPos};
 use visualizer::shader::{Shader};
-use core::dir::{DirIter};
+use core::dir::{dirs};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -73,7 +73,7 @@ fn get_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
     let mut v_data = Vec::new();
     for tile_pos in state.map.get_iter() {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
-        for dir in DirIter::new() {
+        for dir in dirs() {
             let num = dir.to_int();
             let vertex = geom::index_to_hex_vertex(num);
             let next_vertex = geom::index_to_hex_vertex(num + 1);

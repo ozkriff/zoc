@@ -16,6 +16,6 @@ before_script:
     - cargo --version
 
 script:
-    - make
+    - make test zoc
 
 # vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

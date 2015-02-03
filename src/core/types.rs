@@ -17,7 +17,7 @@ pub struct PlayerId{pub id: ZInt}
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct UnitId{pub id: ZInt}
 
-#[derive(PartialEq, Clone, Show)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct MapPos{pub v: Vector2<ZInt>}
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
