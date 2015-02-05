@@ -21,12 +21,12 @@ pub struct Model {
 
 fn parse_word<T: FromStr>(words: &mut Words) -> T {
     let str = words.next().expect("Can not read next word");
-    str.parse().expect("Can not convert from string")
+    str.parse().ok().expect("Can not convert from string")
 }
 
 fn parse_charsplit<T: FromStr>(words: &mut Split<char>) -> T {
     let str = words.next().expect("Can not read next word");
-    str.parse().expect("Can not convert from string")
+    str.parse().ok().expect("Can not convert from string")
 }
 
 impl Model {
@@ -71,7 +71,7 @@ impl Model {
             normal: [0, 0, 0],
         };
         let mut i = 0;
-        for group in *words {
+        for group in words.by_ref() {
             let mut w = group.split('/');
             face.vertex[i] = parse_charsplit(&mut w);
             face.texture[i] = parse_charsplit(&mut w);
