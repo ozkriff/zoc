@@ -6,4 +6,4 @@ deps
 target
 .cargo/config
 *.swp
-data
+assets
