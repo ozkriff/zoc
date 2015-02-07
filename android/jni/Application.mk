@@ -1,3 +1,0 @@
-APP_OPTIM := debug
-APP_PLATFORM := android-14
-NDK_TOOLCHAIN_VERSION := 4.8

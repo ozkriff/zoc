@@ -20,6 +20,9 @@ use visualizer::{Visualizer};
 mod core;
 mod visualizer;
 
+#[cfg(target_os = "android")]
+android_start!(main);
+
 pub fn main() {
     let mut visualizer = Visualizer::new();
     while visualizer.is_running() {

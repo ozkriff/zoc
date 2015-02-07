@@ -4,9 +4,8 @@ name = "zoc"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
 
-[lib]
+[[bin]]
 name = "zoc"
-crate-type = ["staticlib", "rlib"]
 
 [dependencies.glutin]
 features = ["window"]

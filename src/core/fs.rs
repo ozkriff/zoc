@@ -6,7 +6,7 @@ use std::old_io::{MemReader};
 pub fn load(path: &Path) -> MemReader {
     use std::old_io::fs::{File};
 
-    let buf = File::open(path).read_to_end()
+    let buf = File::open(&Path::new("assets").join(&path)).read_to_end()
         .ok().expect("Can`t open file");
     MemReader::new(buf)
 }

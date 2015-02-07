@@ -71,7 +71,7 @@ impl SelectionManager {
 }
 
 pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
-    let tex = Texture::new(zgl, &Path::new("data/shell.png"));
+    let tex = Texture::new(zgl, &Path::new("shell.png"));
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
     let scale_1 = 0.6;

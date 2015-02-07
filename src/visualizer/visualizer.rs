@@ -113,7 +113,7 @@ fn generate_map_mesh(zgl: &Zgl, map: &Map) -> Mesh {
         }
     }
     let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
-    let tex = Texture::new(zgl, &Path::new("data/floor.png"));
+    let tex = Texture::new(zgl, &Path::new("floor.png"));
     mesh.add_texture(zgl, tex, tex_data.as_slice());
     mesh
 }
@@ -156,8 +156,8 @@ fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
 }
 
 fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
-    let tex_path = Path::new(format!("data/{}.png", name).as_slice());
-    let obj_path = Path::new(format!("data/{}.obj", name).as_slice());
+    let tex_path = Path::new(format!("{}.png", name).as_slice());
+    let obj_path = Path::new(format!("{}.obj", name).as_slice());
     let tex = Texture::new(zgl, &tex_path);
     let obj = obj::Model::new(&obj_path);
     let mut mesh = Mesh::new(zgl, obj.build().as_slice());
@@ -317,11 +317,11 @@ impl Visualizer {
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&zgl));
         let shell_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("data/shell.png")));
+            &mut meshes, get_marker(&zgl, &Path::new("shell.png")));
         let marker_1_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("data/flag1.png")));
+            &mut meshes, get_marker(&zgl, &Path::new("flag1.png")));
         let marker_2_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("data/flag2.png")));
+            &mut meshes, get_marker(&zgl, &Path::new("flag2.png")));
 
         let unit_type_visual_info
             = get_unit_type_visual_info(&zgl, &mut meshes);
@@ -330,7 +330,7 @@ impl Visualizer {
         let pathfinders = get_pathfinders(players_count, &map_size);
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
-            &zgl, &Path::new("data/DroidSerif-Regular.ttf"), font_size);
+            &zgl, &Path::new("DroidSerif-Regular.ttf"), font_size);
         let mut button_manager = ButtonManager::new();
         let button_end_turn_id = button_manager.add_button(Button::new(
             &zgl,
