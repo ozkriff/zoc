@@ -5,9 +5,8 @@ use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
 use cgmath::{Vector2, Vector3, deg, Matrix4};
-use glutin::{Window, WindowBuilder, VirtualKeyCode, Event};
+use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
-use glutin::MouseButton::{LeftMouseButton};
 use core::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use visualizer::types::{
     ZFloat,
@@ -628,12 +627,12 @@ impl Visualizer {
                 }
                 self.mouse_pos = pos.clone();
             },
-            Event::MouseInput(Pressed, LeftMouseButton) => {
+            Event::MouseInput(Pressed, MouseButton::Left) => {
                 self.is_lmb_pressed = true;
                 self.just_pressed_lmb = true;
                 self.last_press_pos = self.mouse_pos.clone();
             },
-            Event::MouseInput(Released, LeftMouseButton) => {
+            Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_released();
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
