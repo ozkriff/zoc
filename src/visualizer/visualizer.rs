@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};

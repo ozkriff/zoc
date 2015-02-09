@@ -44,7 +44,7 @@ impl Dir {
             Dir::West,
             Dir::SouthWest,
         ];
-        dirs[n as usize]
+        dirs[n as usize].clone()
     }
 
     pub fn to_int(&self) -> ZInt {

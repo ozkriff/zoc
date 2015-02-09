@@ -1,12 +1,13 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(rand, hash, path, io, libc, core, std_misc, collections)] // TODO
+#![feature(hash, path, io, core, std_misc, collections)] // TODO
 #![feature(box_syntax)]
 
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
 
+extern crate rand;
 extern crate libc;
 extern crate time;
 extern crate cgmath;

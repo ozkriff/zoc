@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use cgmath::{Vector2};
 use core::types::{Size2, ZInt, UnitId, PlayerId, MapPos};

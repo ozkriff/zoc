@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, deg};
 use visualizer::geom;
 use core::types::{MapPos, UnitId};

@@ -28,3 +28,5 @@ path = "./zoc_gl/"
 
 [dependencies]
 time = "*"
+rand = "*"
+libc = "*"
