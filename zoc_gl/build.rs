@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(io, os, path)]
+#![feature(io, path, env)]
 
 extern crate gl_generator;
 extern crate khronos_api;
@@ -12,7 +12,7 @@ const GENERATOR: gl_generator::StructGenerator = gl_generator::StructGenerator;
 const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStructGenerator;
 
 fn main() {
-    let dest = Path::new(std::os::getenv("OUT_DIR").unwrap());
+    let dest = Path::new(std::env::var_string("OUT_DIR").unwrap());
     let mut file = std::old_io::File::create(&dest.join("gl_bindings.rs")).unwrap();
     gl_generator::generate_bindings(
         GENERATOR,
