@@ -1,20 +1,38 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
+use cgmath::{Vector2};
 use core::core::{ObjectTypes, Unit, CoreEvent};
-use core::map::{Map};
+use core::map::{Map, Terrain};
 use core::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
+use core::fov;
 
 pub struct GameState {
+    // TODO: remove 'pub'?
     pub units: HashMap<UnitId, Unit>,
-    pub map: Map,
+    pub map: Map<Terrain>,
+    pub fow: Map<bool>, // Fog of War map
+    pub player_id: Option<PlayerId>,
 }
 
 impl<'a> GameState {
-    pub fn new(map_size: &Size2<ZInt>) -> GameState {
+    // TODO: Remove 'player_id'
+    pub fn new(map_size: &Size2<ZInt>, player_id: Option<&PlayerId>) -> GameState {
+        let mut map = Map::new(map_size, Terrain::Plain);
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Terrain::Trees;
         GameState {
             units: HashMap::new(),
-            map: Map::new(map_size)
+            map: map,
+            fow: Map::new(map_size, false),
+            player_id: if let Some(player_id) = player_id {
+                Some(player_id.clone())
+            } else {
+                None
+            },
         }
     }
 
@@ -52,6 +70,22 @@ impl<'a> GameState {
     }
     */
 
+    pub fn clear_fow(&mut self) {
+        for pos in self.fow.get_iter() {
+            *self.fow.tile_mut(&pos) = false;
+        }
+    }
+
+    fn update_fow(&mut self) {
+        let player_id = self.player_id.as_ref().unwrap();
+        for (_, unit) in self.units.iter() {
+            if unit.player_id == *player_id {
+                *self.fow.tile_mut(&unit.pos) = true;
+                fov::fov(&self.map, &mut self.fow, &unit.pos);
+            }
+        }
+    }
+
     pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
         match event {
             &CoreEvent::Move{ref unit_id, ref path} => {
@@ -62,8 +96,21 @@ impl<'a> GameState {
                 assert!(unit.move_points > 0);
                 unit.move_points -= path.total_cost().n;
                 assert!(unit.move_points >= 0);
+                if let Some(player_id) = self.player_id.clone() {
+                    if unit.player_id == player_id {
+                        for &(_, ref pos) in path.nodes() {
+                            fov::fov(&self.map, &mut self.fow, pos);
+                        }
+                    }
+                }
             },
             &CoreEvent::EndTurn{ref new_id, old_id: _} => {
+                // TODO: remove ugly '.clone()'?
+                if let Some(player_id) = self.player_id.clone() {
+                    if player_id == *new_id {
+                        self.clear_fow();
+                    }
+                }
                 self.refresh_units(object_types, new_id);
                 // self.add_passive_ap(old_id);
             },
@@ -101,6 +148,9 @@ impl<'a> GameState {
                     unit.attack_points -= 1;
                 }
             },
+        }
+        if self.player_id.is_some() {
+            self.update_fow();
         }
     }
 }

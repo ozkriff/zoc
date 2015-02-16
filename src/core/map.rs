@@ -7,7 +7,7 @@ use core::types::{Size2, ZInt, MapPos};
 use core::dir::{Dir, DirIter, dirs};
 
 #[derive(Clone)]
-pub enum Tile {
+pub enum Terrain {
     Plain,
     Trees,
     // Swamp,
@@ -15,37 +15,32 @@ pub enum Tile {
 }
 
 // TODO: Replace with generic map: Map<PathfinderTile>
-pub struct Map {
-    tiles: Vec<Tile>,
+pub struct Map<T> {
+    tiles: Vec<T>,
     size: Size2<ZInt>,
 }
 
-impl Map {
-    pub fn new(size: &Size2<ZInt>) -> Map {
+impl<T: Clone> Map<T> {
+    // TODO: remove 'empty'
+    pub fn new(size: &Size2<ZInt>, empty: T) -> Map<T> {
         let tiles_count = size.w * size.h;
-        let tiles = repeat(Tile::Plain).take(tiles_count as usize).collect();
-        let mut map = Map {
+        let tiles = repeat(empty).take(tiles_count as usize).collect();
+        Map {
             tiles: tiles,
             size: size.clone(),
-        };
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Tile::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Tile::Trees;
-        map
+        }
     }
 
     pub fn size(&self) -> &Size2<ZInt> {
         &self.size
     }
 
-    pub fn tile_mut(&mut self, pos: &MapPos) -> &mut Tile {
+    pub fn tile_mut(&mut self, pos: &MapPos) -> &mut T {
         let index = self.size.w * pos.v.y + pos.v.x;
         &mut self.tiles[index as usize]
     }
 
-    pub fn tile(&self, pos: &MapPos) -> &Tile {
+    pub fn tile(&self, pos: &MapPos) -> &T {
         let index = self.size.w * pos.v.y + pos.v.x;
         &self.tiles[index as usize]
     }

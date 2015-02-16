@@ -2,11 +2,13 @@
 
 pub use visualizer::visualizer::{Visualizer};
 
+// TODO: make private again
+pub mod types;
+pub mod geom;
+
 mod mesh;
-mod geom;
 mod camera;
 mod visualizer;
-mod types;
 mod shader;
 mod zgl;
 mod picker;

@@ -208,7 +208,7 @@ impl Ai {
     fn new(id: &PlayerId, map_size: &Size2<ZInt>) -> Ai {
         Ai {
             id: id.clone(),
-            state: GameState::new(map_size),
+            state: GameState::new(map_size, Some(id)),
             pathfinder: Pathfinder::new(map_size),
         }
     }
@@ -352,7 +352,8 @@ fn get_event_lists() -> HashMap<PlayerId, Vec<CoreEvent>> {
 fn get_players_list() -> Vec<Player> {
     vec!(
         Player{id: PlayerId{id: 0}, is_ai: false},
-        Player{id: PlayerId{id: 1}, is_ai: true},
+        // Player{id: PlayerId{id: 1}, is_ai: true},
+        Player{id: PlayerId{id: 1}, is_ai: false},
     )
 }
 
@@ -360,7 +361,7 @@ impl Core {
     pub fn new() -> Core {
         let map_size = Size2{w: 10, h: 8};
         let mut core = Core {
-            game_state: GameState::new(&map_size),
+            game_state: GameState::new(&map_size, None),
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
             core_event_list: Vec::new(),

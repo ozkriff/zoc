@@ -2,7 +2,7 @@
 
 use core::types::{ZInt, MapPos, Size2};
 use core::core::{ObjectTypes, Unit, UnitClass};
-use core::map;
+use core::map::{Map, Terrain};
 use core::game_state::{GameState};
 use core::dir::{Dir};
 
@@ -38,6 +38,7 @@ impl MapPath {
     }
 }
 
+#[derive(Clone)]
 struct Tile {
     cost: MoveCost,
     parent: Option<Dir>,
@@ -48,66 +49,25 @@ impl Tile {
     pub fn cost(&self) -> &MoveCost { &self.cost }
 }
 
-struct Map {
-    size: Size2<ZInt>,
-    tiles: Vec<Tile>,
-}
-
 const MAX_COST: MoveCost = MoveCost{n: 30000};
-
-impl<'a> Map {
-    pub fn tile_mut(&'a mut self, pos: &MapPos) -> &'a mut Tile {
-        self.tiles.get_mut((pos.v.x + pos.v.y * self.size.w) as usize)
-            .expect("bad tile index")
-    }
-
-    pub fn tile(&'a self, pos: &MapPos) -> &'a Tile {
-        assert!(self.is_inboard(pos));
-        &self.tiles[(pos.v.x + pos.v.y * self.size.w) as usize]
-    }
-
-    pub fn is_inboard(&self, pos: &MapPos) -> bool {
-        let x = pos.v.x;
-        let y = pos.v.y;
-        x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
-    }
-
-    /*
-    pub fn get_size(&self) -> &Size2<ZInt> {
-        &self.size
-    }
-    */
-}
 
 pub struct Pathfinder {
     queue: Vec<MapPos>,
-    map: Map,
-}
-
-fn create_tiles(tiles_count: ZInt) -> Vec<Tile> {
-    let mut tiles = Vec::new();
-    for _ in range(0, tiles_count) {
-        tiles.push(Tile {
-            cost: MoveCost{n: 0},
-            parent: None,
-        });
-    }
-    tiles
+    map: Map<Tile>,
 }
 
 impl Pathfinder {
     pub fn new(map_size: &Size2<ZInt>) -> Pathfinder {
-        let tiles_count = map_size.w * map_size.h;
         Pathfinder {
             queue: Vec::new(),
-            map: Map {
-                size: map_size.clone(),
-                tiles: create_tiles(tiles_count),
-            },
+            map: Map::new(map_size, Tile {
+                cost: MoveCost{n: 0},
+                parent: None,
+            }),
         }
     }
 
-    pub fn get_map(&self) -> &Map {
+    pub fn get_map(&self) -> &Map<Tile> {
         &self.map
     }
 
@@ -122,14 +82,14 @@ impl Pathfinder {
         let tile = state.map.tile(pos);
         match unit_type.class {
             UnitClass::Infantry => match tile {
-                &map::Tile::Plain => 1,
-                &map::Tile::Trees => 2,
-                &map::Tile::Building => 2,
+                &Terrain::Plain => 1,
+                &Terrain::Trees => 2,
+                &Terrain::Building => 2,
             },
             UnitClass::Vehicle => match tile {
-                &map::Tile::Plain => 1,
-                &map::Tile::Trees => 5,
-                &map::Tile::Building => 10,
+                &Terrain::Plain => 1,
+                &Terrain::Trees => 5,
+                &Terrain::Building => 10,
             },
         }
     }
@@ -156,7 +116,8 @@ impl Pathfinder {
     }
 
     fn clean_map(&mut self) {
-        for tile in self.map.tiles.iter_mut() {
+        for pos in self.map.get_iter() {
+            let tile = self.map.tile_mut(&pos);
             tile.cost = MAX_COST;
             tile.parent = None;
         }
