@@ -571,7 +571,7 @@ impl Visualizer {
                     );
                 }
             },
-            VirtualKeyCode::Minus => {
+            VirtualKeyCode::Subtract => {
                 self.camera.change_zoom(1.3);
             },
             VirtualKeyCode::Equals => {
