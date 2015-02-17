@@ -408,18 +408,19 @@ impl Visualizer {
     fn add_map_objects(&mut self) {
         let state = &self.game_states[*self.core.player_id()];
         let map = &state.map;
-        let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
         let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
         for tile_pos in map.get_iter() {
             if let &Terrain::Trees = map.tile(&tile_pos) {
                 let pos = geom::map_pos_to_world_pos(&tile_pos);
                 let rot = deg(thread_rng().gen_range(0.0, 360.0));
-                scene.nodes.insert(node_id.clone(), SceneNode {
-                    pos: pos,
-                    rot: rot,
-                    mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
-                    children: Vec::new(),
-                });
+                for (_, scene) in self.scenes.iter_mut() {
+                    scene.nodes.insert(node_id.clone(), SceneNode {
+                        pos: pos.clone(),
+                        rot: rot,
+                        mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
+                        children: Vec::new(),
+                    });
+                }
                 node_id.id += 1;
             }
         }
