@@ -443,17 +443,15 @@ impl Visualizer {
         state.is_tile_occupied(pos)
     }
 
-    /*
     fn create_unit(&mut self) {
         if let Some(ref pos) = self.clicked_pos {
             if self.is_tile_occupied(pos) {
                 return;
             }
-            let cmd = Command::CreateUnit(pos.clone());
+            let cmd = Command::CreateUnit{pos: pos.clone()};
             self.core.do_command(cmd);
         }
     }
-    */
 
     fn attack_unit(&mut self) {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
@@ -572,13 +570,16 @@ impl Visualizer {
                     );
                 }
             },
-            VirtualKeyCode::Subtract => {
+            VirtualKeyCode::U => {
+                self.create_unit();
+            },
+            VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.camera.change_zoom(1.3);
             },
-            VirtualKeyCode::Equals => {
+            VirtualKeyCode::Equals | VirtualKeyCode::Key2 => {
                 self.camera.change_zoom(0.7);
             },
-            _ => {},
+            key => println!("KEY: {:?}", key),
         }
     }
 
