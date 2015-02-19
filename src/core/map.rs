@@ -36,11 +36,13 @@ impl<T: Clone> Map<T> {
     }
 
     pub fn tile_mut(&mut self, pos: &MapPos) -> &mut T {
+        assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &mut self.tiles[index as usize]
     }
 
     pub fn tile(&self, pos: &MapPos) -> &T {
+        assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &self.tiles[index as usize]
     }
