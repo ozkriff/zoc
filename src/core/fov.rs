@@ -36,7 +36,7 @@ fn is_obstacle(terrain: &Terrain) -> bool {
 pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
     let mut shadows: Vec<Shadow> = vec!();
     let origin3d = geom::map_pos_to_world_pos(origin);
-    let range = 3;
+    let range = 7; // TODO
     for pos in spiral_iter(origin, range) {
         if !map.is_inboard(&pos) {
             continue;
