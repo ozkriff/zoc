@@ -6,6 +6,7 @@ use visualizer::geom;
 use core::types::{MapPos, UnitId};
 use core::game_state::GameState;
 use core::core;
+use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
 use visualizer::mesh::{MeshId};
 use visualizer::scene::{
@@ -154,7 +155,7 @@ pub struct EventCreateUnitVisualizer {
 
 fn get_unit_scene_nodes(
     core: &core::Core,
-    type_id: &core::UnitTypeId,
+    type_id: &UnitTypeId,
     mesh_id: &MeshId,
 ) -> Vec<SceneNode> {
     let count = core.object_types().get_unit_type(type_id).count;
@@ -186,7 +187,7 @@ impl EventCreateUnitVisualizer {
         scene: &mut Scene,
         _: &GameState,
         id: UnitId,
-        type_id: &core::UnitTypeId,
+        type_id: &UnitTypeId,
         pos: &MapPos,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,

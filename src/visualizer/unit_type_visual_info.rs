@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use core::core::{UnitTypeId};
+use core::unit::{UnitTypeId};
 use visualizer::types::{ZFloat};
 use visualizer::mesh::{MeshId};
 

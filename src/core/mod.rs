@@ -1,6 +1,11 @@
 // See LICENSE file for copyright and license details.
 
 pub mod map;
+pub mod ai;
+pub mod command;
+pub mod player;
+pub mod unit;
+pub mod object;
 pub mod types;
 pub mod misc;
 pub mod dir;

@@ -1,7 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use core::types::{ZInt, MapPos, Size2};
-use core::core::{ObjectTypes, Unit, UnitClass};
+use core::object::{ObjectTypes};
+use core::unit::{Unit, UnitClass};
 use core::map::{Map, Terrain};
 use core::game_state::{GameState};
 use core::dir::{Dir};

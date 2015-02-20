@@ -2,7 +2,9 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use core::core::{ObjectTypes, Unit, CoreEvent};
+use core::core::{CoreEvent};
+use core::unit::{Unit};
+use core::object::{ObjectTypes};
 use core::map::{Map, Terrain};
 use core::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
 use core::fov;
