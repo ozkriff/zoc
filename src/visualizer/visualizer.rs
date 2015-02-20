@@ -95,7 +95,7 @@ fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
-fn gen_tiles<F>(zgl: &Zgl, state: &GameState, cond: F) -> Mesh
+fn gen_tiles<F>(zgl: &Zgl, state: &GameState, tex: &Texture, cond: F) -> Mesh
     where F: Fn(bool) -> bool
 {
     let mut vertex_data = Vec::new();
@@ -119,18 +119,17 @@ fn gen_tiles<F>(zgl: &Zgl, state: &GameState, cond: F) -> Mesh
         }
     }
     let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
-    let tex = Texture::new(zgl, &Path::new("floor.png"));
-    mesh.add_texture(zgl, tex, tex_data.as_slice());
+    mesh.add_texture(zgl, tex.clone(), tex_data.as_slice());
     mesh
 
 }
 
-fn generate_visible_tiles_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
-    gen_tiles(zgl, state, |vis| vis)
+fn generate_visible_tiles_mesh(zgl: &Zgl, state: &GameState, tex: &Texture) -> Mesh {
+    gen_tiles(zgl, state, tex, |vis| vis)
 }
 
-fn generate_fogged_tiles_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
-    gen_tiles(zgl, state, |vis| !vis)
+fn generate_fogged_tiles_mesh(zgl: &Zgl, state: &GameState, tex: &Texture) -> Mesh {
+    gen_tiles(zgl, state, tex, |vis| !vis)
 }
 
 fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, map: &Map<Terrain>, move_points: ZInt) -> Mesh {
@@ -182,6 +181,7 @@ fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
 
 fn get_scenes(players_count: ZInt) -> HashMap<PlayerId, Scene> {
     let mut m = HashMap::new();
+    // TODO: if player is not AI
     for i in range(0, players_count) {
         m.insert(PlayerId{id: i}, Scene::new());
     }
@@ -295,6 +295,7 @@ pub struct Visualizer {
     walkable_mesh: Option<Mesh>,
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
+    floor_tex: Texture,
 }
 
 impl Visualizer {
@@ -326,12 +327,14 @@ impl Visualizer {
         let game_states = get_game_states(players_count, &map_size);
         let picker = TilePicker::new(&zgl, &game_states[*core.player_id()]);
 
+        let floor_tex = Texture::new(&zgl, &Path::new("floor.png")); // TODO: !!!
+
         let mut meshes = Vec::new();
 
         let visible_map_mesh = generate_visible_tiles_mesh(
-            &zgl, &game_states[*core.player_id()]);
+            &zgl, &game_states[*core.player_id()], &floor_tex);
         let fow_map_mesh = generate_fogged_tiles_mesh(
-            &zgl, &game_states[*core.player_id()]);
+            &zgl, &game_states[*core.player_id()], &floor_tex);
 
         let trees_mesh_id = add_mesh(
             &mut meshes, load_unit_mesh(&zgl, "trees"));
@@ -400,6 +403,7 @@ impl Visualizer {
             map_text_manager: MapTextManager::new(),
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
+            floor_tex: floor_tex,
         };
         visualizer.add_map_objects();
         visualizer
@@ -888,8 +892,10 @@ impl Visualizer {
             }
         }
         // TODO: recolor terrain objects
-        self.visible_map_mesh = generate_visible_tiles_mesh(&self.zgl, state);
-        self.fow_map_mesh = generate_fogged_tiles_mesh(&self.zgl, state);
+        self.visible_map_mesh = generate_visible_tiles_mesh(
+            &self.zgl, state, &self.floor_tex);
+        self.fow_map_mesh = generate_fogged_tiles_mesh(
+            &self.zgl, state, &self.floor_tex);
         self.picker.update_units(&self.zgl, state);
     }
 
