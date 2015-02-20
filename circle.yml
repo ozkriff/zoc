@@ -4,6 +4,10 @@ machine:
     environment:
         TERM: linux-m # monochrome. disable colors.
 
+checkout:
+    post:
+        - git clone https://github.com/ozkriff/zoc_assets assets
+
 dependencies:
     pre:
         - sudo apt-get install libXxf86vm-dev libxcursor-dev
