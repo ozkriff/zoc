@@ -6,6 +6,7 @@ use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
 use cgmath::{Vector2, Vector3, deg, Matrix4};
+use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
 use core::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
@@ -302,10 +303,14 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
+        let gl_version = glutin::GlRequest::GlThenGles {
+            opengles_version: (2, 0),
+            opengl_version: (2, 0)
+        };
         let window_builder = WindowBuilder::new()
             .with_title(format!("Zone of Control"))
             .with_dimensions(320, 200)
-            .with_gl_version((2, 0));
+            .with_gl(gl_version);
         let window = window_builder.build().ok().expect("Can`t create window");
         unsafe {
             window.make_current();
