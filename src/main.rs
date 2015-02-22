@@ -15,10 +15,10 @@ extern crate glutin;
 extern crate image;
 extern crate stb_tt;
 
-use visualizer::{Visualizer};
-
 mod core;
 mod visualizer;
+
+use visualizer::{Visualizer};
 
 #[cfg(target_os = "android")]
 android_start!(main);
