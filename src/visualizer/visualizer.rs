@@ -859,25 +859,28 @@ impl Visualizer {
         self.walkable_mesh = None;
     }
 
+    /// handle case when attacker == selected_unit and it dies from reaction fire
+    fn attacker_died_from_reaction_fire(&mut self) {
+        // TODO: simplify
+        if let Some(CoreEvent::AttackUnit{ref defender_id, ref killed, ..})
+            = self.event
+        {
+            if self.selected_unit_id.is_some()
+                && *self.selected_unit_id.as_ref().unwrap() == *defender_id
+                && *killed
+            {
+                self.selected_unit_id = None;
+            }
+        }
+    }
+
     fn end_event_visualization(&mut self) {
+        self.attacker_died_from_reaction_fire();
         let scene = self.scenes.get_mut(
             self.core.player_id()).unwrap();
         let state = self.game_states.get_mut(
             self.core.player_id()).unwrap();
         self.event_visualizer.as_mut().unwrap().end(scene, state);
-        // TODO: simplify
-        // handle case when attacker is selected_unit and dies from reaction fire
-        match self.event.as_ref().unwrap() {
-            &CoreEvent::AttackUnit{ref defender_id, ref killed, ..} => {
-                if self.selected_unit_id.is_some()
-                    && *self.selected_unit_id.as_ref().unwrap() == *defender_id
-                    && *killed
-                {
-                    self.selected_unit_id = None;
-                }
-            },
-            _ => {},
-        }
         state.apply_event(
             self.core.object_types(), self.event.as_ref().unwrap());
         self.event_visualizer = None;
