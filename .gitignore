@@ -1,7 +1,3 @@
-android/bin
-android/libs
-android/obj
-android/jni/librust.a
 deps
 target
 *.swp
