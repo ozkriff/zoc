@@ -15,4 +15,4 @@ pub mod core;
 pub mod pathfinder;
 pub mod fov;
 
-// vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:
+// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

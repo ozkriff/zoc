@@ -23,4 +23,4 @@ mod selection;
 mod move_helper;
 mod map_text;
 
-// vim: set tabstop=5 shiftwidth=4 softtabstop=4 expandtab:
+// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
