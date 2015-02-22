@@ -8,7 +8,7 @@ use libc::c_void;
 use gl;
 use gl::Gl;
 use gl::types::{GLuint, GLsizeiptr};
-use std::ffi;
+use std::ffi::{CStr};
 
 // pub const GREY_3: Color3 = Color3{r: 0.3, g: 0.3, b: 0.3};
 pub const BLACK_3: Color3 = Color3{r: 0.0, g: 0.0, b: 0.0};
@@ -84,7 +84,7 @@ impl Zgl {
     pub fn get_info(&self, name: GLuint) -> String {
         unsafe {
             let version = self.gl.GetString(name) as *const i8;
-            String::from_utf8_lossy(ffi::c_str_to_bytes(&version)).into_owned()
+            String::from_utf8_lossy(CStr::from_ptr(version).to_bytes()).into_owned()
         }
     }
 

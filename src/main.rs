@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(hash, path, io, core, std_misc, collections, str_words, box_syntax)] // TODO
+#![feature(old_path, old_io, core, std_misc, collections, str_words, box_syntax)] // TODO
 
 #[cfg(target_os = "android")]
 #[macro_use]
