@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(io, path, env)]
+#![feature(old_io, old_path, env)]
 
 extern crate gl_generator;
 extern crate khronos_api;
