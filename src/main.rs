@@ -30,10 +30,4 @@ pub fn main() {
     }
 }
 
-#[cfg(target_os = "android")]
-#[no_mangle]
-pub fn rust_android_main(app: *mut()) {
-    android_glue::android_main2(app, move|| main());
-}
-
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
