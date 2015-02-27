@@ -1,4 +1,4 @@
-# Zone of Control [![circle-ci-img][]] [circle-ci]
+# Zone of Control [![travis-ci-img][]] [travis-ci]
 
 
 ## Overview
@@ -59,5 +59,5 @@ ZoC is licensed under the MIT license (see the `LICENSE` file).
 [rust]: https://rust-lang.org
 [gameplay-gif]: http://i.imgur.com/U0iHH5R.gif
 [separate repo]: https://github.com/ozkriff/zoc_assets
-[circle-ci-img]: https://circleci.com/gh/ozkriff/zoc.svg?style=svg
-[circle-ci]: https://circleci.com/gh/ozkriff/zoc
+[travis-ci-img]: https://travis-ci.org/ozkriff/zoc.png?branch=master
+[travis-ci]: https://travis-ci.org/ozkriff/zoc

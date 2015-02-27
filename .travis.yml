@@ -1,0 +1,16 @@
+# See LICENSE file for copyright and license details.
+
+language: rust
+
+install:
+    # native deps
+    - sudo apt-get install libXxf86vm-dev libxcursor-dev
+
+    # assets
+    - git clone --depth=1 https://github.com/ozkriff/zoc_assets assets
+
+script:
+    - make
+    - make test
+
+# vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
