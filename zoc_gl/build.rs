@@ -17,6 +17,7 @@ fn main() {
     gl_generator::generate_bindings(
         GENERATOR,
         gl_generator::registry::Ns::Gles2,
+        gl_generator::Fallbacks::None,
         khronos_api::GL_XML,
         vec![],
         "2.0",
