@@ -31,6 +31,8 @@ to release actual game resources under proprietary license.
 
 `make run` or `cargo run` or `./target/zoc`.
 
+(Tested in ubuntu 14.04 and win 8.1.)
+
 
 ## Android
 
@@ -39,7 +41,9 @@ https://github.com/tomaka/android-rs-glue#setting-up-your-environment.
 
 Then just: `make android_run`.
 
-TODO: add gif/photo
+![android-img][]
+
+(Tested on nexus7 2014/android 5 and fly iq440/android 4.)
 
 
 ## Contribute
@@ -61,3 +65,4 @@ ZoC is licensed under the MIT license (see the `LICENSE` file).
 [separate repo]: https://github.com/ozkriff/zoc_assets
 [travis-ci-img]: https://travis-ci.org/ozkriff/zoc.png?branch=master
 [travis-ci]: https://travis-ci.org/ozkriff/zoc
+[android-img]: http://i.imgur.com/Fp3Z5I1l.png
