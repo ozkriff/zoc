@@ -8,7 +8,7 @@ ZoC is turn-based hexagonal strategy game written in
 
 ![gameplay-gif][]
 
-(TODO: fix outdated animation)
+(recorded with [byzanz](http://askubuntu.com/a/201018))
 
 
 ## Assets
@@ -57,7 +57,7 @@ ZoC is licensed under the MIT license (see the `LICENSE` file).
 
 
 [rust]: https://rust-lang.org
-[gameplay-gif]: http://i.imgur.com/U0iHH5R.gif
+[gameplay-gif]: http://i.imgur.com/orQtkqF.gif
 [separate repo]: https://github.com/ozkriff/zoc_assets
 [travis-ci-img]: https://travis-ci.org/ozkriff/zoc.png?branch=master
 [travis-ci]: https://travis-ci.org/ozkriff/zoc
