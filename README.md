@@ -48,7 +48,7 @@ Feel free to report bugs and patches using GitHub's pull requests
 system on https://github.com/ozkriff/zoc. Any feedback would be much
 appreciated!
 
-NOTE: You must apologize my English level. I’m trying to do my best :) . Please open an issue if anything in docs or comments is strange/unclear/can be improved.
+NOTE: You must apologize my English level. I'm trying to do my best :) . Please open an issue if anything in docs or comments is strange/unclear/can be improved.
 
 
 ## License
