@@ -1,8 +1,8 @@
 zoc:
-	cargo build --verbose -j 1
+	cargo build -j 1
 
 test:
-	cargo test --verbose -j 1
+	cargo test -j 1 --package core
 
 run: zoc
 	RUST_BACKTRACE=1 cargo run

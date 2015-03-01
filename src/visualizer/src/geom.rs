@@ -1,0 +1,57 @@
+// See LICENSE file for copyright and license details.
+
+use std::f32::consts::{PI, FRAC_PI_2};
+use std::num::{Float};
+use cgmath::{Vector3, Vector, Deg, Angle, deg};
+use common::types::{ZInt, ZFloat};
+use zgl::types::{VertexCoord};
+
+pub use common::types::{WorldPos};
+pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS, map_pos_to_world_pos};
+
+pub const MINIMAL_LIFT_HEIGHT: ZFloat = 0.01;
+
+pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
+    let mut v = v;
+    v.z += MINIMAL_LIFT_HEIGHT;
+    v
+}
+
+pub fn index_to_circle_vertex(count: ZInt, i: ZInt) -> VertexCoord {
+    let n = FRAC_PI_2 + 2.0 * PI * (i as ZFloat) / (count as ZFloat);
+    VertexCoord {
+        v: Vector3 {
+            x: n.cos(),
+            y: n.sin(),
+            z: 0.0
+        }.mul_s(HEX_EX_RADIUS)
+    }
+}
+
+pub fn index_to_hex_vertex(i: ZInt) -> VertexCoord {
+    index_to_circle_vertex(6, i)
+}
+
+pub fn index_to_hex_vertex_s(scale: ZFloat, i: ZInt) -> VertexCoord {
+    let v = index_to_hex_vertex(i).v.mul_s(scale);
+    VertexCoord{v: v}
+}
+
+// TODO: ZFloat -> WorldDistance
+pub fn dist(a: &WorldPos, b: &WorldPos) -> ZFloat {
+    let dx = (b.v.x - a.v.x).abs();
+    let dy = (b.v.y - a.v.y).abs();
+    let dz = (b.v.z - a.v.z).abs();
+    ((dx.powi(2) + dy.powi(2) + dz.powi(2)) as ZFloat).sqrt()
+}
+
+// TODO: fix this: a.v.angle(&b.v).to_deg();
+pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Deg<ZFloat> {
+    let mut angle = (((b.v.x - a.v.x) / dist(a, b)).asin()).to_degrees();
+    if b.v.y - a.v.y > 0.0 {
+        angle = -(180.0 + angle);
+    }
+    deg(angle)
+}
+
+// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

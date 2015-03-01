@@ -1,0 +1,28 @@
+[package]
+
+name = "visualizer"
+version = "0.0.1"
+authors = ["ozkriff <ozkriffgmail.com>"]
+
+[lib]
+name = "visualizer"
+
+[dependencies.glutin]
+features = ["window"]
+git = "https://github.com/tomaka/glutin"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.core]
+path = "../core/"
+
+[dependencies.common]
+path = "../common/"
+
+[dependencies.zgl]
+path = "../zgl/"
+
+[dependencies]
+time = "*"
+rand = "*"

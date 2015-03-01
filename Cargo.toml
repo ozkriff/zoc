@@ -7,26 +7,8 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 [[bin]]
 name = "zoc"
 
-[dependencies.glutin]
-features = ["window"]
-git = "https://github.com/tomaka/glutin"
-
 [target.arm-linux-androideabi.dependencies.android_glue]
 git = "https://github.com/tomaka/android-rs-glue"
- 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
 
-[dependencies.image]
-git = "https://github.com/PistonDevelopers/image"
-
-[dependencies.stb_tt]
-git = "https://github.com/ozkriff/stb-tt-rs"
-
-[dependencies.zoc_gl]
-path = "./zoc_gl/"
-
-[dependencies]
-time = "*"
-rand = "*"
-libc = "*"
+[dependencies.visualizer]
+path = "./src/visualizer/"

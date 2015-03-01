@@ -1,22 +1,10 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(old_path, old_io, core, std_misc, collections, str_words, box_syntax)] // TODO
-
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
 
-extern crate rand;
-extern crate libc;
-extern crate time;
-extern crate cgmath;
-extern crate "zoc_gl" as gl;
-extern crate glutin;
-extern crate image;
-extern crate stb_tt;
-
-mod core;
-mod visualizer;
+extern crate visualizer;
 
 use visualizer::{Visualizer};
 
