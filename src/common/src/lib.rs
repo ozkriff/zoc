@@ -4,6 +4,9 @@
 
 extern crate cgmath;
 
+#[cfg(target_os = "android")]
+extern crate android_glue;
+
 pub mod fs;
 pub mod misc;
 pub mod types;
