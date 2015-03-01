@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::num::Float;
-use cgmath::{perspective, deg, Matrix4, Vector3, Deg, ToRad};
+use cgmath::{perspective, deg, Matrix4, Vector, Vector3, Deg, ToRad};
 use common::types::{ZInt, Size2, ZFloat, WorldPos};
 use common::misc::{clamp};
 use zgl::{Zgl};
@@ -29,8 +29,8 @@ impl Camera {
         Camera {
             x_angle: deg(45.0),
             z_angle: deg(0.0),
-            pos: WorldPos{v: Vector3::from_value(0.0)},
-            max_pos: WorldPos{v: Vector3::from_value(0.0)},
+            pos: WorldPos{v: Vector::from_value(0.0)},
+            max_pos: WorldPos{v: Vector::from_value(0.0)},
             zoom: 10.0,
             projection_mat: get_projection_mat(win_size),
         }

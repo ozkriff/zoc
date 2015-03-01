@@ -2,7 +2,7 @@
 
 use std::iter::{repeat};
 use std::num::{Float, SignedInt};
-use cgmath::{Vector2};
+use cgmath::{Vector};
 use common::types::{Size2, ZInt, MapPos};
 use dir::{Dir, DirIter, dirs};
 
@@ -66,7 +66,7 @@ pub struct MapPosIter {
 impl MapPosIter {
     fn new(map_size: &Size2<ZInt>) -> MapPosIter {
         MapPosIter {
-            cursor: MapPos{v: Vector2::from_value(0)},
+            cursor: MapPos{v: Vector::from_value(0)},
             map_size: map_size.clone(),
         }
     }

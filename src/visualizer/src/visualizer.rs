@@ -5,7 +5,7 @@ use std::num::{Float};
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
-use cgmath::{Vector2, Vector3, deg, Matrix4};
+use cgmath::{Vector, Vector2, Vector3, deg, Matrix4};
 use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
@@ -379,13 +379,13 @@ impl Visualizer {
             shader: shader,
             basic_color_id: basic_color_id,
             camera: camera,
-            mouse_pos: ScreenPos{v: Vector2::from_value(0)},
+            mouse_pos: ScreenPos{v: Vector::from_value(0)},
             is_lmb_pressed: false,
             win_size: win_size,
             picker: picker,
             clicked_pos: None,
             just_pressed_lmb: false,
-            last_press_pos: ScreenPos{v: Vector2::from_value(0)},
+            last_press_pos: ScreenPos{v: Vector::from_value(0)},
             font_stash: font_stash,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
