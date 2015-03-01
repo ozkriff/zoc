@@ -24,7 +24,7 @@ to release actual game resources under proprietary license.
 
 ## Building
 
-`make` or `cargo build` (latest rust-nightly is required, see `.cicle.yml`).
+`make` or `cargo build` (latest rust-nightly is required, see `.travis.yml`).
 
 
 ## Running
