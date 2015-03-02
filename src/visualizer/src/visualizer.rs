@@ -9,7 +9,7 @@ use cgmath::{Vector, Vector2, Vector3, deg, Matrix4};
 use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
-use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos, ZFloat, WorldPos};
+use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos, ZFloat};
 use zgl::types::{
     Color3,
     ColorId,
@@ -17,6 +17,7 @@ use zgl::types::{
     VertexCoord,
     TextureCoord,
     Time,
+    WorldPos,
 };
 use zgl::zgl;
 use zgl::zgl::{Zgl, MeshRenderMode};

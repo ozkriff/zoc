@@ -2,8 +2,9 @@
 
 use std::collections::{HashMap};
 use cgmath::{Deg};
-use common::types::{ZInt, ZFloat, WorldPos};
+use common::types::{ZInt, ZFloat};
 use zgl::mesh::{MeshId};
+use zgl::types::{WorldPos};
 
 // TODO: why scene knows about other systems?
 pub const MAX_UNIT_NODE_ID: NodeId = NodeId{id: 1000};

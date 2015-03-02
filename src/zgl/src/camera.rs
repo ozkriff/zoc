@@ -2,9 +2,10 @@
 
 use std::num::Float;
 use cgmath::{perspective, deg, Matrix4, Vector, Vector3, Deg, ToRad};
-use common::types::{ZInt, Size2, ZFloat, WorldPos};
+use common::types::{ZInt, Size2, ZFloat};
 use common::misc::{clamp};
 use zgl::{Zgl};
+use types::{WorldPos};
 
 pub struct Camera {
     x_angle: Deg<ZFloat>,

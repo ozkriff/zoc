@@ -1,8 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector3, Vector, EuclideanVector};
-use common::types::{ZFloat, WorldPos};
-use zgl::types::{Time};
+use common::types::{ZFloat};
+use zgl::types::{Time, WorldPos};
 use geom;
 
 pub struct MoveHelper {

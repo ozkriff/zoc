@@ -30,7 +30,7 @@ fn is_obstacle(terrain: &Terrain) -> bool {
     }
 }
 
-// TODO: precalculate all 'atan2' and 'asin' struff
+// TODO: precalculate all 'atan2' and 'asin' stuff
 pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
     let mut shadows: Vec<Shadow> = vec!();
     let origin3d = geom::map_pos_to_world_pos(origin);
@@ -40,7 +40,7 @@ pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
             continue;
         }
         let pos3d = geom::map_pos_to_world_pos(&pos);
-        let diff = pos3d.v - origin3d.v;
+        let diff = pos3d - origin3d;
         let distance = diff.length();
         let angle = diff.x.atan2(diff.y); // TODO: optimize
         if is_tile_visible(angle, &shadows) {

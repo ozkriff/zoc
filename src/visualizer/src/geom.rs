@@ -3,13 +3,17 @@
 use std::f32::consts::{PI, FRAC_PI_2};
 use std::num::{Float};
 use cgmath::{Vector3, Vector, Deg, Angle, deg};
-use common::types::{ZInt, ZFloat};
-use zgl::types::{VertexCoord};
+use common::types::{ZInt, ZFloat, MapPos};
+use zgl::types::{VertexCoord, WorldPos};
+use core::geom;
 
-pub use common::types::{WorldPos};
-pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS, map_pos_to_world_pos};
+pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 
 pub const MINIMAL_LIFT_HEIGHT: ZFloat = 0.01;
+
+pub fn map_pos_to_world_pos(i: &MapPos) -> WorldPos {
+    WorldPos{v: geom::map_pos_to_world_pos(i).extend(0.0)}
+}
 
 pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
     let mut v = v;

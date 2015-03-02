@@ -1,12 +1,12 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2, deg};
-use common::types::{UnitId, WorldPos};
+use common::types::{UnitId};
 use common::misc::add_quad_to_vec;
 use core::game_state::GameState;
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;
-use zgl::types::{TextureCoord};
+use zgl::types::{TextureCoord, WorldPos};
 use zgl::zgl::{Zgl};
 use geom;
 use scene::{

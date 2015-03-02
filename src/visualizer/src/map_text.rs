@@ -2,13 +2,13 @@
 
 use std::collections::{HashMap};
 use cgmath::{deg};
-use common::types::{ZInt, ZFloat, WorldPos, MapPos};
+use common::types::{ZInt, ZFloat, MapPos};
 use zgl::zgl::{Zgl};
 use zgl::mesh::{Mesh};
 use zgl::camera::Camera;
 use zgl::shader::{Shader};
 use zgl::font_stash::{FontStash};
-use zgl::types::{Time};
+use zgl::types::{Time, WorldPos};
 use geom;
 use move_helper::{MoveHelper};
 

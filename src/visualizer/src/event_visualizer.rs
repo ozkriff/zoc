@@ -2,7 +2,7 @@
 
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, deg};
-use common::types::{MapPos, ZFloat, UnitId, WorldPos};
+use common::types::{MapPos, ZFloat, UnitId};
 use core::game_state::GameState;
 use core::core;
 use core::unit::{UnitTypeId};
@@ -10,7 +10,7 @@ use core::pathfinder::{MapPath};
 use zgl::mesh::{MeshId};
 use zgl::font_stash::{FontStash};
 use zgl::zgl::{Zgl};
-use zgl::types::{Time};
+use zgl::types::{Time, WorldPos};
 use geom;
 use scene::{
     Scene,
