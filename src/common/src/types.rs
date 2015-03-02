@@ -1,7 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use cgmath::{Vector3, Vector2};
-// use std::cmp::Ord;
+use cgmath::{Vector2};
 
 #[derive(Clone)]
 pub struct Size2<T>{
