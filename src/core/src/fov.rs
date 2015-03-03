@@ -42,7 +42,7 @@ pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
         let pos3d = geom::map_pos_to_world_pos(&pos);
         let diff = pos3d - origin3d;
         let distance = diff.length();
-        let angle = diff.x.atan2(diff.y); // TODO: optimize
+        let angle = Float::atan2(diff.x, diff.y); // TODO: optimize
         if is_tile_visible(angle, &shadows) {
             *fow.tile_mut(&pos) = true;
         }
