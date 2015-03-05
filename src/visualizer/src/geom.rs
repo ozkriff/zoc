@@ -49,12 +49,10 @@ pub fn dist(a: &WorldPos, b: &WorldPos) -> ZFloat {
     ((dx.powi(2) + dy.powi(2) + dz.powi(2)) as ZFloat).sqrt()
 }
 
-// TODO: fix this: a.v.angle(&b.v).to_deg();
 pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Deg<ZFloat> {
-    let mut angle = (((b.v.x - a.v.x) / dist(a, b)).asin()).to_degrees();
-    if b.v.y - a.v.y > 0.0 {
-        angle = -(180.0 + angle);
-    }
+    let diff = b.v - a.v;
+    let angle = Float::atan2(diff.x, diff.y).to_degrees();
+    let angle = -(180.0 + angle); // TODO: remove this
     deg(angle)
 }
 
