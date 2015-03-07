@@ -3,15 +3,14 @@
 use cgmath::{Vector2};
 use common::types::{ZInt, MapPos};
 
-// TODO: fix indentation
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Dir {
-  SouthEast,
-  East,
-  NorthEast,
-  NorthWest,
-  West,
-  SouthWest,
+    SouthEast,
+    East,
+    NorthEast,
+    NorthWest,
+    West,
+    SouthWest,
 }
 
 const DIR_TO_POS_DIFF: [[Vector2<ZInt>; 6]; 2] = [
