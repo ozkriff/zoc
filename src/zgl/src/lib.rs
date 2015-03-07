@@ -19,6 +19,7 @@ pub mod mesh;
 pub mod camera;
 pub mod font_stash;
 pub mod obj;
+pub mod misc;
 
 pub use types::{
     Color3,

@@ -2,8 +2,8 @@
 
 use cgmath::{Vector2, deg};
 use common::types::{UnitId};
-use common::misc::add_quad_to_vec;
 use core::game_state::GameState;
+use zgl::misc::{add_quad_to_vec};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;
 use zgl::types::{TextureCoord, WorldPos};
