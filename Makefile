@@ -3,6 +3,7 @@ zoc:
 
 test:
 	cargo test -j 1 --package core
+	cargo test -j 1 --package visualizer
 
 run: zoc
 	RUST_BACKTRACE=1 cargo run

@@ -24,11 +24,7 @@ pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
 pub fn index_to_circle_vertex(count: ZInt, i: ZInt) -> VertexCoord {
     let n = FRAC_PI_2 + 2.0 * PI * (i as ZFloat) / (count as ZFloat);
     VertexCoord {
-        v: Vector3 {
-            x: n.cos(),
-            y: n.sin(),
-            z: 0.0
-        }.mul_s(HEX_EX_RADIUS)
+        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0}.mul_s(HEX_EX_RADIUS)
     }
 }
 
@@ -52,8 +48,31 @@ pub fn dist(a: &WorldPos, b: &WorldPos) -> ZFloat {
 pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Deg<ZFloat> {
     let diff = b.v - a.v;
     let angle = Float::atan2(diff.x, diff.y).to_degrees();
-    let angle = -(180.0 + angle); // TODO: remove this
-    deg(angle)
+    deg(-angle).normalize()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::{Float};
+    use cgmath::{Vector3};
+    use common::types::{ZFloat, MapPos};
+    use zgl::types::{WorldPos};
+    use super::{get_rot_angle, index_to_circle_vertex};
+
+    const EPS: ZFloat = 0.001;
+
+    #[test]
+    fn test_get_rot_angle_30_deg() {
+        let count = 12;
+        for i in range(0, count) {
+            let a = WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}};
+            let b = WorldPos{v: index_to_circle_vertex(count, i).v};
+            let expected_angle = i as f32 * 360.0 / (count as f32);
+            let angle = get_rot_angle(&a, &b);
+            let diff = (expected_angle - angle.s).abs();
+            assert!(diff < EPS, "{} != {}", expected_angle, angle.s);
+        }
+    }
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -2,7 +2,7 @@
 
 use std::str::{Words, Split, FromStr};
 use cgmath::{Vector3, Vector2};
-use common::types::{ZInt};
+use common::types::{ZInt, ZFloat};
 use common::fs;
 use types::{VertexCoord, TextureCoord, Normal};
 
@@ -44,7 +44,8 @@ impl Model {
     fn read_v(words: &mut Words) -> VertexCoord {
         VertexCoord{v: Vector3 {
             x: parse_word(words),
-            y: parse_word(words),
+            // y: parse_word(words), // TODO: flip models
+            y: -parse_word::<ZFloat>(words),
             z: parse_word(words),
         }}
     }
