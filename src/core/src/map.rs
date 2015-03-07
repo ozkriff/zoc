@@ -14,7 +14,6 @@ pub enum Terrain {
     Building,
 }
 
-// TODO: Replace with generic map: Map<PathfinderTile>
 pub struct Map<T> {
     tiles: Vec<T>,
     size: Size2<ZInt>,
