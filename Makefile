@@ -1,17 +1,21 @@
+CARGO_FLAGS += -j 1
+# CARGO_FLAGS += --release
+# CARGO_FLAGS += --verbose
+
 zoc:
-	cargo build -j 1
+	cargo build $(CARGO_FLAGS)
 
 test:
-	cargo test -j 1 --package core
-	cargo test -j 1 --package visualizer
+	cargo test --package core $(CARGO_FLAGS)
+	cargo test --package visualizer $(CARGO_FLAGS)
 
 run: zoc
-	RUST_BACKTRACE=1 cargo run
+	RUST_BACKTRACE=1 cargo run $(CARGO_FLAGS)
 
 ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
 
 android:
-	cargo build --target arm-linux-androideabi -j 1 -v --release
+	cargo build --target arm-linux-androideabi $(CARGO_FLAGS)
 
 android_run: android
 	adb install -r target/arm-linux-androideabi/release/zoc
