@@ -106,7 +106,7 @@ impl<'a> GameState {
                     }
                 }
             },
-            &CoreEvent::EndTurn{ref new_id, old_id: _} => {
+            &CoreEvent::EndTurn{ref new_id, ..} => {
                 // TODO: remove ugly '.clone()'?
                 if let Some(player_id) = self.player_id.clone() {
                     if player_id == *new_id {
