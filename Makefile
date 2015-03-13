@@ -15,10 +15,11 @@ run: zoc
 ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
 
 android:
-	cargo build --target arm-linux-androideabi $(CARGO_FLAGS)
+	cargo build --target arm-linux-androideabi -j 1 --release
 
 android_run: android
-	adb install -r target/arm-linux-androideabi/release/zoc
+	cp target/arm-linux-androideabi/release/zoc target/arm-linux-androideabi/release/zoc.apk
+	adb install -r target/arm-linux-androideabi/release/zoc.apk
 	adb logcat -c
 	adb shell am start -n $(ANDROID_APP_NAME)
 	adb logcat -v time | grep 'RustAndroidGlue\|native-activity'

@@ -1,5 +1,7 @@
 // See LICENSE file for copyright and license details.
 
+#![feature(start)]
+
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
