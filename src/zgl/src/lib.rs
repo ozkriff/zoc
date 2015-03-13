@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(old_path, old_io, core, std_misc, str_words, collections, box_syntax)] // TODO
+#![feature(old_path, old_io, core, str_words, collections, box_syntax)] // TODO
 
 extern crate rand;
 extern crate libc;

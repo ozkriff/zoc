@@ -13,7 +13,7 @@ const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStruc
 
 fn main() {
     let dest = Path::new(std::env::var("OUT_DIR").unwrap());
-    let mut file = std::old_io::File::create(&dest.join("gl_bindings.rs")).unwrap();
+    let mut file = std::fs::File::create(&dest.join("gl_bindings.rs")).unwrap();
     gl_generator::generate_bindings(
         GENERATOR,
         gl_generator::registry::Ns::Gles2,
