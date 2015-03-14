@@ -356,29 +356,27 @@ impl Core {
         }
     }
 
-    fn apply_event(&mut self, event: &CoreEvent) {
-        match *event {
-            CoreEvent::EndTurn{ref old_id, ref new_id} => {
-                for player in self.players.iter() {
-                    if player.id == *new_id {
-                        if self.current_player_id == *old_id {
-                            self.current_player_id = player.id.clone();
-                        }
-                        break;
-                    }
+    fn handle_end_turn_event(&mut self, old_id: &PlayerId, new_id: &PlayerId) {
+        for player in self.players.iter() {
+            if player.id == *new_id {
+                if self.current_player_id == *old_id {
+                    self.current_player_id = player.id.clone();
                 }
-                if self.player().is_ai && *new_id == *self.player_id() {
-                    self.do_ai();
-                }
-            },
-            _ => {},
-        };
+                break;
+            }
+        }
+        if self.player().is_ai && *new_id == *self.player_id() {
+            self.do_ai();
+        }
     }
 
     fn make_events(&mut self) {
         while self.core_event_list.len() != 0 {
-            let event = self.core_event_list.pop().unwrap();
-            self.apply_event(&event);
+            let event = self.core_event_list.pop()
+                .expect("core_event_list is empty");
+            if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
+                self.handle_end_turn_event(old_id, new_id);
+            }
             self.game_state.apply_event(&self.object_types, &event);
             for player in self.players.iter() {
                 let event_list = self.event_lists.get_mut(&player.id).unwrap();
