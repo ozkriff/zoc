@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use rand::{thread_rng, Rng};
+use std::path::{Path, PathBuf};
 use std::num::{Float};
 use time::precise_time_ns;
 use std::collections::{HashMap};
@@ -172,8 +173,8 @@ fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
 }
 
 fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
-    let tex_path = Path::new(format!("{}.png", name).as_slice());
-    let obj_path = Path::new(format!("{}.obj", name).as_slice());
+    let tex_path = PathBuf::new(format!("{}.png", name).as_slice());
+    let obj_path = PathBuf::new(format!("{}.obj", name).as_slice());
     let tex = Texture::new(zgl, &tex_path);
     let obj = obj::Model::new(&obj_path);
     let mut mesh = Mesh::new(zgl, obj.build().as_slice());

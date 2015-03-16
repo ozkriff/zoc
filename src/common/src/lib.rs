@@ -1,7 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(old_path, old_io)] // TODO
-
 extern crate cgmath;
 
 #[cfg(target_os = "android")]

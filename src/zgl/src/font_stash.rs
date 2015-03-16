@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::path::{Path};
 use std::iter::{repeat};
 use std::cmp;
 use std::collections::HashMap;
@@ -32,9 +33,13 @@ pub struct FontStash {
 }
 
 impl FontStash {
+    #[allow(deprecated)] // TODO: remove
     pub fn new(zgl: &Zgl, font_path: &Path, size: ZFloat) -> FontStash {
+        use std::old_io::{MemReader};
+
         let texture_size = 1024;
-        let font = Font::from_reader(&mut fs::load(font_path), size);
+        let mut mem_reader = MemReader::new(fs::load(font_path).into_inner());
+        let font = Font::from_reader(&mut mem_reader, size);
         let texture = Texture::new_empty(
             zgl, Size2{w: texture_size, h: texture_size});
         FontStash {

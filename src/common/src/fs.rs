@@ -1,25 +1,30 @@
 // See LICENSE file for copyright and license details.
 
-use std::old_io::{MemReader};
+use std::path::{Path};
+use std::io::{Cursor};
 
 #[cfg(not(target_os = "android"))]
-pub fn load(path: &Path) -> MemReader {
-    use std::old_io::fs::{File};
+pub fn load(path: &Path) -> Cursor<Vec<u8>> {
+    use std::fs::{File};
+    use std::io::{Read};
+    use std::path::{Path};
 
-    let buf = File::open(&Path::new("assets").join(&path)).read_to_end()
+    let mut buf = Vec::new();
+    let mut file = File::open(&Path::new("assets").join(&path))
         .ok().expect("Can`t open file");
-    MemReader::new(buf)
+    file.read_to_end(&mut buf).ok().expect("Can`t open file");
+    Cursor::new(buf)
 }
 
 #[cfg(target_os = "android")]
-pub fn load(path: &Path) -> MemReader {
+pub fn load(path: &Path) -> Cursor<Vec<u8>> {
     use android_glue;
 
     let filename = path.as_str()
         .expect("Can`t convert Path to &str");
     let buf = android_glue::load_asset(filename)
         .ok().expect("Can`t load asset");
-    MemReader::new(buf)
+    Cursor::new(buf)
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -2,6 +2,7 @@
 
 use std::iter::{repeat};
 use std::mem;
+use std::path::{Path};
 use image;
 use image::{GenericImage};
 use gl;
@@ -75,9 +76,13 @@ impl Texture {
     }
 }
 
+#[allow(deprecated)] // TODO: remove
 fn load_image(path: &Path) -> image::DynamicImage {
+    use std::old_io::{MemReader};
+
     let buf = fs::load(path);
-    image::load(buf, image::ImageFormat::PNG)
+    let mem_reader = MemReader::new(buf.into_inner());
+    image::load(mem_reader, image::ImageFormat::PNG)
         .ok().expect("Can`t open img")
 }
 
