@@ -30,8 +30,8 @@ impl<'a> GameState {
             units: HashMap::new(),
             map: map,
             fow: Map::new(map_size, false),
-            player_id: if let Some(player_id) = player_id {
-                Some(player_id.clone())
+            player_id: if let Some(id) = player_id {
+                Some(id.clone())
             } else {
                 None
             },
@@ -78,7 +78,8 @@ impl<'a> GameState {
         }
     }
 
-    fn update_fow(&mut self) {
+    fn reset_fow(&mut self) {
+        self.clear_fow();
         let player_id = self.player_id.as_ref().unwrap();
         for (_, unit) in self.units.iter() {
             if unit.player_id == *player_id {
@@ -110,7 +111,7 @@ impl<'a> GameState {
                 // TODO: remove ugly '.clone()'?
                 if let Some(player_id) = self.player_id.clone() {
                     if player_id == *new_id {
-                        self.clear_fow();
+                        self.reset_fow();
                     }
                 }
                 self.refresh_units(object_types, new_id);
@@ -134,6 +135,11 @@ impl<'a> GameState {
                     move_points: move_points,
                     attack_points: attack_points,
                 });
+                if let Some(id) = self.player_id.clone() {
+                    if id == *player_id {
+                        fov::fov(&self.map, &mut self.fow, pos);
+                    }
+                }
             },
             &CoreEvent::AttackUnit {
                 ref attacker_id,
@@ -150,9 +156,6 @@ impl<'a> GameState {
                     unit.attack_points -= 1;
                 }
             },
-        }
-        if self.player_id.is_some() {
-            self.update_fow();
         }
     }
 }
