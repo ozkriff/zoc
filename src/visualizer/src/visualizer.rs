@@ -855,13 +855,23 @@ impl Visualizer {
         }
     }
 
+    fn is_event_visualization_finished(&self) -> bool {
+        self.event_visualizer.as_ref()
+            .expect("No event visualizer")
+            .is_finished()
+    }
+
     fn start_event_visualization(&mut self, event: CoreEvent) {
         let vis = self.make_event_visualizer(&event);
         self.event = Some(event);
         self.event_visualizer = Some(vis);
-        let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
-        self.selection_manager.deselect(scene);
-        self.walkable_mesh = None;
+        if self.is_event_visualization_finished() {
+            self.end_event_visualization();
+        } else {
+            let scene = &mut self.scenes[*self.core.player_id()];
+            self.selection_manager.deselect(scene);
+            self.walkable_mesh = None;
+        }
     }
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
@@ -910,11 +920,17 @@ impl Visualizer {
     }
 
     fn logic(&mut self) {
-        if self.event_visualizer.is_none() {
+        while self.event_visualizer.is_none() {
+            // TODO: convert to iterator
             if let Some(e) = self.core.get_event() {
                 self.start_event_visualization(e);
+            } else {
+                break;
             }
-        } else if self.event_visualizer.as_ref().unwrap().is_finished() {
+        }
+        if self.event_visualizer.is_some()
+            && self.is_event_visualization_finished()
+        {
             self.end_event_visualization();
         }
     }
