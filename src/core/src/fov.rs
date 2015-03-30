@@ -32,6 +32,7 @@ fn is_obstacle(terrain: &Terrain) -> bool {
 
 // TODO: precalculate all 'atan2' and 'asin' stuff
 pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
+    *fow.tile_mut(origin) = true;
     let mut shadows: Vec<Shadow> = vec!();
     let origin3d = geom::map_pos_to_world_pos(origin);
     let range = 7; // TODO
