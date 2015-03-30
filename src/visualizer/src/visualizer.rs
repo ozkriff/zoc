@@ -287,7 +287,7 @@ pub struct Visualizer {
     scenes: HashMap<PlayerId, Scene>,
     core: Core,
     event: Option<CoreEvent>,
-    event_visualizer: Option<Box<EventVisualizer + 'static>>,
+    event_visualizer: Option<Box<EventVisualizer>>,
     mesh_ids: MeshIdManager,
     meshes: Vec<Mesh>,
     unit_type_visual_info: UnitTypeVisualInfoManager,
@@ -794,7 +794,7 @@ impl Visualizer {
     fn make_event_visualizer(
         &mut self,
         event: &CoreEvent,
-    ) -> Box<EventVisualizer+'static> {
+    ) -> Box<EventVisualizer> {
         let player_id = self.core.player_id();
         let scene = self.scenes.get_mut(player_id).unwrap();
         let state = &self.game_states[*player_id];
