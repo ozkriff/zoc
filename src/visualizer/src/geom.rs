@@ -55,7 +55,7 @@ pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Deg<ZFloat> {
 mod tests {
     use std::num::{Float};
     use cgmath::{Vector3};
-    use common::types::{ZFloat, MapPos};
+    use common::types::{ZFloat};
     use zgl::types::{WorldPos};
     use super::{get_rot_angle, index_to_circle_vertex};
 
@@ -64,7 +64,7 @@ mod tests {
     #[test]
     fn test_get_rot_angle_30_deg() {
         let count = 12;
-        for i in range(0, count) {
+        for i in 0 .. count {
             let a = WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}};
             let b = WorldPos{v: index_to_circle_vertex(count, i).v};
             let expected_angle = i as f32 * 360.0 / (count as f32);
