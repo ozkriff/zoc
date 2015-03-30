@@ -820,6 +820,8 @@ impl Visualizer {
                 ref type_id,
                 ref player_id,
             } => {
+                let mesh_id = get_unit_mesh_id(
+                    &self.unit_type_visual_info, type_id);
                 EventCreateUnitVisualizer::new(
                     &self.core,
                     scene,
@@ -827,8 +829,7 @@ impl Visualizer {
                     unit_id.clone(),
                     type_id,
                     pos,
-                    get_unit_mesh_id(
-                        &self.unit_type_visual_info, type_id),
+                    mesh_id,
                     get_marker_mesh_id(&self.mesh_ids, player_id),
                 )
             },
