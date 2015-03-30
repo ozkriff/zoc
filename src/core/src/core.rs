@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
 use rand::{thread_rng, Rng};
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
-use game_state::GameState;
+use internal_state::{InternalState};
 use map::{distance};
 use pathfinder::{MapPath};
 use command::{Command};
@@ -45,7 +45,7 @@ fn is_target_dead(event: &CoreEvent) -> bool {
 }
 
 pub struct Core {
-    game_state: GameState,
+    state: InternalState,
     players: Vec<Player>,
     current_player_id: PlayerId,
     core_event_list: Vec<CoreEvent>,
@@ -73,7 +73,7 @@ impl Core {
     pub fn new() -> Core {
         let map_size = Size2{w: 10, h: 8};
         let mut core = Core {
-            game_state: GameState::new(&map_size, None),
+            state: InternalState::new(&map_size),
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
             core_event_list: Vec::new(),
@@ -111,7 +111,7 @@ impl Core {
 
     fn get_new_unit_id(&self) -> UnitId {
         // TODO: check max id
-        let id = match self.game_state.units.keys().max_by(|&n| n) {
+        let id = match self.state.units.keys().max_by(|&n| n) {
             Some(n) => n.id + 1,
             None => 0,
         };
@@ -129,11 +129,11 @@ impl Core {
     }
 
     pub fn map_size(&self) -> &Size2<ZInt> {
-        self.game_state.map.size()
+        self.state.map.size()
     }
 
     fn get_unit<'a>(&'a self, id: &UnitId) -> &'a Unit {
-        match self.game_state.units.get(id) {
+        match self.state.units.get(id) {
             Some(unit) => unit,
             None => panic!("No unit with id = {}", id.id),
         }
@@ -207,8 +207,8 @@ impl Core {
         fire_mode: FireMode,
         // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
-        let attacker = &self.game_state.units[attacker_id];
-        // let defender = &self.game_state.units[defender_id];
+        let attacker = &self.state.units[attacker_id];
+        // let defender = &self.state.units[defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
         // if distance(&attacker.pos, &defender.pos) < weapon_type.max_distance {
@@ -227,7 +227,7 @@ impl Core {
 
     fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos) -> Vec<CoreEvent> {
         let mut events = Vec::new();
-        for (_, enemy_unit) in self.game_state.units.iter() {
+        for (_, enemy_unit) in self.state.units.iter() {
             // TODO: check if unit is still alive
             if enemy_unit.player_id == self.current_player_id {
                 continue;
@@ -313,12 +313,12 @@ impl Core {
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
-                let defender_pos = &self.game_state.units[defender_id].pos;
+                let defender_pos = &self.state.units[defender_id].pos;
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
                 events.push_all(e.as_slice());
                 if !e.is_empty() && !is_target_dead(&e[0]) {
-                    let pos = &self.game_state.units[attacker_id].pos;
+                    let pos = &self.state.units[attacker_id].pos;
                     events.push_all(
                         self.reaction_fire(&attacker_id, pos).as_slice());
                 }
@@ -377,7 +377,7 @@ impl Core {
             if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
                 self.handle_end_turn_event(old_id, new_id);
             }
-            self.game_state.apply_event(&self.object_types, &event);
+            self.state.apply_event(&self.object_types, &event);
             for player in self.players.iter() {
                 let event_list = self.event_lists.get_mut(&player.id).unwrap();
                 // TODO: per player event filter

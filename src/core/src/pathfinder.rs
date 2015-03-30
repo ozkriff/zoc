@@ -90,7 +90,7 @@ impl Pathfinder {
         pos: &MapPos,
     ) -> MoveCost {
         let unit_type = object_types.get_unit_type(&unit.type_id);
-        let tile = state.map.tile(pos);
+        let tile = state.map().tile(pos);
         let n = match unit_type.class {
             UnitClass::Infantry => match tile {
                 &Terrain::Plain => 1,

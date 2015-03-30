@@ -103,9 +103,8 @@ fn gen_tiles<F>(zgl: &Zgl, state: &GameState, tex: &Texture, cond: F) -> Mesh
 {
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
-    for tile_pos in state.map.get_iter() {
-        let vis = *state.fow.tile(&tile_pos);
-        if !cond(vis) {
+    for tile_pos in state.map().get_iter() {
+        if !cond(state.is_tile_visible(&tile_pos)) {
             continue;
         }
         let pos = geom::map_pos_to_world_pos(&tile_pos);
@@ -198,7 +197,7 @@ fn get_game_states(
     let mut m = HashMap::new();
     for i in range(0, players_count) {
         let id = PlayerId{id: i};
-        let state = GameState::new(map_size, Some(&id));
+        let state = GameState::new(map_size, &id);
         m.insert(id, state);
     }
     m
@@ -417,10 +416,9 @@ impl Visualizer {
 
     fn add_map_objects(&mut self) {
         let state = &self.game_states[*self.core.player_id()];
-        let map = &state.map;
         let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
-        for tile_pos in map.get_iter() {
-            if let &Terrain::Trees = map.tile(&tile_pos) {
+        for tile_pos in state.map().get_iter() {
+            if let &Terrain::Trees = state.map().tile(&tile_pos) {
                 let pos = geom::map_pos_to_world_pos(&tile_pos);
                 let rot = deg(thread_rng().gen_range(0.0, 360.0));
                 for (_, scene) in self.scenes.iter_mut() {
@@ -467,12 +465,12 @@ impl Visualizer {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
             (Some(defender_id), Some(attacker_id)) => {
                 let state = &self.game_states[*self.core.player_id()];
-                let attacker = &state.units[attacker_id];
+                let attacker = &state.units()[attacker_id];
                 if attacker.attack_points <= 0 {
                     println!("No attack points");
                     return;
                 }
-                let defender = &state.units[defender_id];
+                let defender = &state.units()[defender_id];
                 let max_distance = self.core.object_types
                     .get_unit_max_attack_dist(attacker);
                 if distance(&attacker.pos, &defender.pos) > max_distance {
@@ -493,9 +491,9 @@ impl Visualizer {
             self.selected_unit_id = Some(unit_id.clone());
             let state = &self.game_states[*self.core.player_id()];
             let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-            pf.fill_map(&self.core.object_types, state, &state.units[*unit_id]);
+            pf.fill_map(&self.core.object_types, state, &state.units()[*unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(
-                &self.zgl, pf, &state.map, state.units[*unit_id].move_points));
+                &self.zgl, pf, state.map(), state.units()[*unit_id].move_points));
             let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
             self.selection_manager.create_selection_marker(
                 state, scene, unit_id);
@@ -513,7 +511,7 @@ impl Visualizer {
             return;
         }
         let state = &self.game_states[*self.core.player_id()];
-        let unit = &state.units[unit_id];
+        let unit = &state.units()[unit_id];
         let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
         if let Some(path) = pf.get_path(pos) {
             if path.total_cost(). n > unit.move_points {
@@ -611,7 +609,7 @@ impl Visualizer {
         if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
             let player_id = {
                 let state = &self.game_states[*self.core.player_id()];
-                let unit = &state.units[unit_under_cursor_id];
+                let unit = &state.units()[unit_under_cursor_id];
                 unit.player_id.clone()
             };
             if player_id == *self.core.player_id() {
@@ -800,7 +798,7 @@ impl Visualizer {
         let state = &self.game_states[*player_id];
         match event {
             &CoreEvent::Move{ref unit_id, ref path} => {
-                let type_id = state.units[*unit_id].type_id.clone();
+                let type_id = state.units()[*unit_id].type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
                 EventMoveVisualizer::new(
@@ -901,12 +899,12 @@ impl Visualizer {
         self.event_visualizer = None;
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {
-            if let Some(unit) = state.units.get(selected_unit_id) {
+            if let Some(unit) = state.units().get(selected_unit_id) {
                 // TODO: do this only if this is last unshowed CoreEvent
                 let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
                 pf.fill_map(&self.core.object_types, state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(
-                    &self.zgl, pf, &state.map, unit.move_points));
+                    &self.zgl, pf, state.map(), unit.move_points));
                 self.selection_manager.create_selection_marker(
                     state, scene, selected_unit_id);
             }

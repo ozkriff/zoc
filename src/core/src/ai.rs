@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{Size2, ZInt, PlayerId, MapPos};
-use game_state::GameState;
+use game_state::{GameState};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
@@ -19,7 +19,7 @@ impl Ai {
     pub fn new(id: &PlayerId, map_size: &Size2<ZInt>) -> Ai {
         Ai {
             id: id.clone(),
-            state: GameState::new(map_size, Some(id)),
+            state: GameState::new(map_size, id),
             pathfinder: Pathfinder::new(map_size),
         }
     }
@@ -28,14 +28,14 @@ impl Ai {
     fn get_best_pos(&self) -> Option<MapPos> {
         let mut best_pos = None;
         let mut best_cost: Option<ZInt> = None;
-        for (_, enemy) in self.state.units.iter() {
+        for (_, enemy) in self.state.units().iter() {
             if enemy.player_id == self.id {
                 continue;
             }
             for i in range(0, 6) {
                 let dir = Dir::from_int(i);
                 let destination = Dir::get_neighbour_pos(&enemy.pos, &dir);
-                if !self.state.map.is_inboard(&destination) {
+                if !self.state.map().is_inboard(&destination) {
                     continue;
                 }
                 if self.state.is_tile_occupied(&destination) {
@@ -78,7 +78,7 @@ impl Ai {
     }
 
     fn is_close_to_enemies(&self, object_types: &ObjectTypes, unit: &Unit) -> bool {
-        for (_, target) in self.state.units.iter() {
+        for (_, target) in self.state.units().iter() {
             if target.player_id == self.id {
                 continue;
             }
@@ -93,7 +93,7 @@ impl Ai {
     pub fn get_command(&mut self, object_types: &ObjectTypes) -> Command {
         // TODO: extract funcs
         {
-            for (_, unit) in self.state.units.iter() {
+            for (_, unit) in self.state.units().iter() {
                 if unit.player_id != self.id {
                     continue;
                 }
@@ -101,7 +101,7 @@ impl Ai {
                 if unit.attack_points <= 0 {
                     continue;
                 }
-                for (_, target) in self.state.units.iter() {
+                for (_, target) in self.state.units().iter() {
                     if target.player_id == self.id {
                         continue;
                     }
@@ -117,7 +117,7 @@ impl Ai {
             }
         }
         {
-            for (_, unit) in self.state.units.iter() {
+            for (_, unit) in self.state.units().iter() {
                 if unit.player_id != self.id {
                     continue;
                 }

@@ -19,4 +19,7 @@ pub mod core;
 pub mod pathfinder;
 pub mod fov;
 
+mod fow;
+mod internal_state;
+
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

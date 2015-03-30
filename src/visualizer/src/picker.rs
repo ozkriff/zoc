@@ -53,7 +53,7 @@ pub struct TilePicker {
 
 fn tile_color(state: &GameState, pos: &MapPos) -> Color3 {
     let mut unit = None;
-    for (_, unit2) in state.units.iter() {
+    for (_, unit2) in state.units().iter() {
         if unit2.pos == *pos {
             unit = Some(unit2);
         }
@@ -70,7 +70,7 @@ fn tile_color(state: &GameState, pos: &MapPos) -> Color3 {
 fn get_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
     let mut c_data = Vec::new();
     let mut v_data = Vec::new();
-    for tile_pos in state.map.get_iter() {
+    for tile_pos in state.map().get_iter() {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in dirs() {
             let num = dir.to_int();
