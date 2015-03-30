@@ -124,6 +124,18 @@ impl<'a> InternalState {
                     unit.attack_points -= 1;
                 }
             },
+            &CoreEvent::ShowUnit{
+                ref unit_id,
+                ref pos,
+                ref type_id,
+                ref player_id,
+            } => {
+                self.add_unit(object_types, unit_id, pos, type_id, player_id);
+            },
+            &CoreEvent::HideUnit{ref unit_id} => {
+                assert!(self.units.get(unit_id).is_some());
+                self.units.remove(unit_id);
+            },
         }
     }
 }

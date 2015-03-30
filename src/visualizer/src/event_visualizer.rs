@@ -148,6 +148,33 @@ impl EventVisualizer for EventEndTurnVisualizer {
     fn end(&mut self, _: &mut Scene, _: &GameState) {}
 }
 
+fn show_unit_at(
+    core: &core::Core,
+    scene: &mut Scene,
+    id: &UnitId,
+    type_id: &UnitTypeId,
+    pos: &MapPos,
+    mesh_id: &MeshId,
+    marker_mesh_id: &MeshId,
+) {
+    let node_id = unit_id_to_node_id(id);
+    let world_pos = geom::map_pos_to_world_pos(pos);
+    let to = world_pos;
+    let rot = deg(thread_rng().gen_range(0.0, 360.0));
+    scene.nodes.insert(node_id, SceneNode {
+        pos: to.clone(),
+        rot: rot,
+        mesh_id: None,
+        children: get_unit_scene_nodes(core, type_id, mesh_id),
+    });
+    scene.nodes.insert(marker_id(id), SceneNode {
+        pos: WorldPos{v: to.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))},
+        rot: deg(0.0),
+        mesh_id: Some(marker_mesh_id.clone()),
+        children: Vec::new(),
+    });
+}
+
 pub struct EventCreateUnitVisualizer {
     id: UnitId,
     move_helper: MoveHelper,
@@ -193,23 +220,11 @@ impl EventCreateUnitVisualizer {
         marker_mesh_id: &MeshId,
     ) -> Box<EventVisualizer> {
         let node_id = unit_id_to_node_id(&id);
-        let world_pos = geom::map_pos_to_world_pos(pos);
-        let to = world_pos;
+        let to = geom::map_pos_to_world_pos(pos);
         let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
-        let rot = deg(thread_rng().gen_range(0.0, 360.0));
-        scene.nodes.insert(node_id, SceneNode {
-            pos: from.clone(),
-            rot: rot,
-            mesh_id: None,
-            children: get_unit_scene_nodes(core, type_id, mesh_id),
-        });
-        scene.nodes.insert(marker_id(&id), SceneNode {
-            pos: WorldPos{v: to.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))},
-            rot: deg(0.0),
-            mesh_id: Some(marker_mesh_id.clone()),
-            children: Vec::new(),
-        });
+        show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 1.0);
+        scene.nodes[node_id].pos = from.clone();
         box EventCreateUnitVisualizer {
             id: id,
             move_helper: move_helper,
@@ -256,11 +271,16 @@ impl EventAttackUnitVisualizer {
         font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
         let node_id = unit_id_to_node_id(&defender_id);
-        let from = scene.nodes[node_id].pos.clone(); // TODO: from <-> to
+        // TODO: from <-> to
+        let from = scene.nodes.get(&node_id)
+            .expect("Can not find defender scene node")
+            .pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        let attacker_pos = scene.nodes[unit_id_to_node_id(&attacker_id)].pos.clone();
-        let defender_pos = scene.nodes[unit_id_to_node_id(&defender_id)].pos.clone();
+        let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
+            .expect("Can not find attacker").pos.clone();
+        let defender_pos = scene.nodes.get(&unit_id_to_node_id(&defender_id))
+            .expect("Can not find defender").pos.clone();
         let shell_move = {
             scene.nodes.insert(SHELL_NODE_ID, SceneNode {
                 pos: from.clone(),
@@ -317,6 +337,54 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         }
         scene.nodes.remove(&SHELL_NODE_ID);
     }
+}
+
+pub struct EventShowUnitVisualizer;
+
+impl EventShowUnitVisualizer {
+    pub fn new(
+        core: &core::Core,
+        scene: &mut Scene,
+        _: &GameState,
+        id: UnitId,
+        type_id: &UnitTypeId,
+        pos: &MapPos,
+        mesh_id: &MeshId,
+        marker_mesh_id: &MeshId,
+    ) -> Box<EventVisualizer> {
+        show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
+        box EventShowUnitVisualizer as Box<EventVisualizer>
+    }
+}
+
+impl EventVisualizer for EventShowUnitVisualizer {
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn draw(&mut self, _: &mut Scene, _: &Time) {}
+
+    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+}
+
+pub struct EventHideUnitVisualizer;
+
+impl EventHideUnitVisualizer {
+    pub fn new(scene: &mut Scene, unit_id: &UnitId) -> Box<EventVisualizer> {
+        scene.nodes.remove(&unit_id_to_node_id(&unit_id));
+        scene.nodes.remove(&marker_id(&unit_id));
+        box EventHideUnitVisualizer as Box<EventVisualizer>
+    }
+}
+
+impl EventVisualizer for EventHideUnitVisualizer {
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn draw(&mut self, _: &mut Scene, _: &Time) {}
+
+    fn end(&mut self, _: &mut Scene, _: &GameState) {}
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

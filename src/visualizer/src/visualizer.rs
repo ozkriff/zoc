@@ -45,6 +45,8 @@ use event_visualizer::{
     EventEndTurnVisualizer,
     EventCreateUnitVisualizer,
     EventAttackUnitVisualizer,
+    EventShowUnitVisualizer,
+    EventHideUnitVisualizer,
 };
 use unit_type_visual_info::{
     UnitTypeVisualInfo,
@@ -848,6 +850,31 @@ impl Visualizer {
                     self.mesh_ids.shell_mesh_id.clone(),
                     &mut self.map_text_manager,
                     &mut self.font_stash,
+                )
+            },
+            &CoreEvent::ShowUnit {
+                ref unit_id,
+                ref pos,
+                ref type_id,
+                ref player_id,
+            } => {
+                let mesh_id = get_unit_mesh_id(
+                    &self.unit_type_visual_info, type_id);
+                EventShowUnitVisualizer::new(
+                    &self.core,
+                    scene,
+                    state,
+                    unit_id.clone(),
+                    type_id,
+                    pos,
+                    mesh_id,
+                    get_marker_mesh_id(&self.mesh_ids, player_id),
+                )
+            },
+            &CoreEvent::HideUnit{ref unit_id} => {
+                EventHideUnitVisualizer::new(
+                    scene,
+                    unit_id,
                 )
             },
         }

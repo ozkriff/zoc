@@ -9,13 +9,13 @@ extern crate common;
 pub mod geom;
 pub mod map;
 pub mod command;
+pub mod object;
 pub mod unit;
 pub mod dir;
 pub mod game_state;
 pub mod core;
 pub mod pathfinder;
 
-mod object;
 mod ai;
 mod player;
 mod fov;

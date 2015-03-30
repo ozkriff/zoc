@@ -62,6 +62,8 @@ impl Fow {
                 }
             },
             &CoreEvent::AttackUnit{..} => {},
+            &CoreEvent::ShowUnit{..} => {},
+            &CoreEvent::HideUnit{..} => {},
         }
     }
 }
