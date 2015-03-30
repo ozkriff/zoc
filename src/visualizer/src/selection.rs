@@ -35,7 +35,7 @@ impl SelectionManager {
 
     fn get_pos(&self, state: &GameState) -> WorldPos {
         let unit_id = self.unit_id.as_ref().unwrap().clone();
-        let map_pos = state.units()[unit_id].pos.clone();
+        let map_pos = state.units()[&unit_id].pos.clone();
         WorldPos{v: geom::lift(geom::map_pos_to_world_pos(&map_pos).v)}
     }
 
@@ -77,7 +77,7 @@ pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
     let mut tex_data = Vec::new();
     let scale_1 = 0.6;
     let scale_2 = scale_1 + 0.05;
-    for num in range(0i32, 6) {
+    for num in 0i32 .. 6 {
         let vertex_1_1 = geom::index_to_hex_vertex_s(scale_1, num);
         let vertex_1_2 = geom::index_to_hex_vertex_s(scale_2, num);
         let vertex_2_1 = geom::index_to_hex_vertex_s(scale_1, num + 1);
@@ -97,8 +97,8 @@ pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
             TextureCoord{v: Vector2{x: 1.0, y: 0.0}},
         );
     }
-    let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
-    mesh.add_texture(zgl, tex, tex_data.as_slice());
+    let mut mesh = Mesh::new(zgl, &vertex_data);
+    mesh.add_texture(zgl, tex, &tex_data);
     mesh
 }
 

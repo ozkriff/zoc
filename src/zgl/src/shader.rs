@@ -169,7 +169,7 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
             zgl.gl.GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
             let mut err_log = String::with_capacity(len as usize);
             err_log.extend(iter::repeat('\0').take(len as usize));
-            let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
+            let raw_ptr = err_log.as_ptr() as *mut GLchar;
             zgl.gl.GetShaderInfoLog(shader, len, &mut len, raw_ptr);
             err_log.truncate(len as usize);
             panic!("{}", err_log);
@@ -203,7 +203,7 @@ fn link_program(zgl: &Zgl, vs: GLuint, fs: GLuint) -> ProgramId {
             zgl.gl.GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
             let mut err_log = String::with_capacity(len as usize);
             err_log.extend(iter::repeat('\0').take(len as usize));
-            let raw_ptr = err_log.as_slice().as_ptr() as *mut GLchar;
+            let raw_ptr = err_log.as_ptr() as *mut GLchar;
             zgl.gl.GetProgramInfoLog(program_id, len, &mut len, raw_ptr);
             err_log.truncate(len as usize);
             panic!("{}", err_log);

@@ -143,7 +143,7 @@ impl Pathfinder {
         pos: MapPos,
     ) {
         assert!(self.map.is_inboard(&pos));
-        for i in range(0, 6) {
+        for i in 0 .. 6 {
             let dir = Dir::from_int(i as ZInt);
             let neighbour_pos = Dir::get_neighbour_pos(&pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {

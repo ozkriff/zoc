@@ -85,8 +85,8 @@ fn get_mesh(zgl: &Zgl, state: &GameState) -> Mesh {
             c_data.push(color.clone());
         }
     }
-    let mut mesh = Mesh::new(zgl, v_data.as_slice());
-    mesh.add_colors(zgl, c_data.as_slice());
+    let mut mesh = Mesh::new(zgl, &v_data);
+    mesh.add_colors(zgl, &c_data);
     mesh
 }
 

@@ -115,9 +115,9 @@ impl FontStash {
             );
             i += w + glyph.xoff as ZFloat;
         }
-        let mut mesh = Mesh::new(zgl, vertex_data.as_slice());
+        let mut mesh = Mesh::new(zgl, &vertex_data);
         // TODO: remove 'clone()'?
-        mesh.add_texture(zgl, self.texture.clone(), tex_data.as_slice());
+        mesh.add_texture(zgl, self.texture.clone(), &tex_data);
         mesh
     }
 
@@ -130,8 +130,8 @@ impl FontStash {
     ) {
         let mut data: Vec<_> = repeat(0u8)
             .take((size.w * size.h) as usize * 4).collect();
-        for y in range(0, size.h) {
-            for x in range(0, size.w) {
+        for y in 0 .. size.h {
+            for x in 0 .. size.w {
                 let n = (x + y * size.w) as usize * 4;
                 data[n + 0] = 255;
                 data[n + 1] = 255;

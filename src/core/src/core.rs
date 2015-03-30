@@ -240,7 +240,7 @@ impl Core {
         fire_mode: FireMode,
         // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
-        let attacker = &self.state.units[attacker_id];
+        let attacker = &self.state.units[&attacker_id];
         // let defender = &self.state.units[defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
@@ -280,7 +280,7 @@ impl Core {
             }
             let e = self.command_attack_unit_to_event(
                 enemy_unit.id.clone(), unit_id.clone(), pos, FireMode::Reactive);
-            events.push_all(e.as_slice());
+            events.push_all(&e);
             if e.is_empty() {
                 continue;
             }
@@ -294,7 +294,7 @@ impl Core {
     fn reaction_fire_move(&self, path: &MapPath, unit_id: &UnitId) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         let len = path.nodes().len();
-        for i in range(1, len) {
+        for i in 1 .. len {
             let pos = &path.nodes()[i].pos;
             let e = self.reaction_fire(unit_id, pos);
             if !e.is_empty() {
@@ -304,7 +304,7 @@ impl Core {
                     unit_id: unit_id.clone(),
                     path: MapPath::new(new_nodes),
                 });
-                events.push_all(e.as_slice());
+                events.push_all(&e);
                 break;
             }
         }
@@ -346,19 +346,18 @@ impl Core {
                         path: path.clone(),
                     });
                 } else {
-                    events.push_all(e.as_slice());
+                    events.push_all(&e);
                 }
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
-                let defender_pos = &self.state.units[defender_id].pos;
+                let defender_pos = &self.state.units[&defender_id].pos;
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
-                events.push_all(e.as_slice());
+                events.push_all(&e);
                 if !e.is_empty() && !is_target_dead(&e[0]) {
-                    let pos = &self.state.units[attacker_id].pos;
-                    events.push_all(
-                        self.reaction_fire(&attacker_id, pos).as_slice());
+                    let pos = &self.state.units[&attacker_id].pos;
+                    events.push_all(&self.reaction_fire(&attacker_id, pos));
                 }
             },
         };
@@ -436,7 +435,7 @@ impl Core {
                     events.push(event.clone())
                 } else {
                     let len = path.nodes().len();
-                    for i in range(1, len) {
+                    for i in 1 .. len {
                         let prev_node = path.nodes()[i - 1].clone();
                         let next_node = path.nodes()[i].clone();
                         let prev_vis = fow.is_visible(&prev_node.pos);
@@ -559,16 +558,16 @@ impl Core {
                 let (filtered_events, active_unit_ids)
                     = self.filter_events(&player.id, &event);
                 for event in filtered_events {
-                    self.fow[player.id].apply_event(&self.state, &event);
-                    self.event_lists[player.id].push(event);
+                    self.fow.get_mut(&player.id).unwrap().apply_event(&self.state, &event);
+                    self.event_lists.get_mut(&player.id).unwrap().push(event);
                     let new_visible_enemies = self.get_visible_enemies(&player.id);
                     let mut show_hide_events = self.show_or_hide_passive_enemies(
                         &active_unit_ids,
-                        &self.visible_enemies[player.id],
+                        &self.visible_enemies[&player.id],
                         &new_visible_enemies,
                     );
-                    self.event_lists[player.id].push_all(&mut show_hide_events);
-                    self.visible_enemies[player.id] = new_visible_enemies;
+                    self.event_lists.get_mut(&player.id).unwrap().push_all(&mut show_hide_events);
+                    *self.visible_enemies.get_mut(&player.id).unwrap() = new_visible_enemies;
                 }
             }
         }

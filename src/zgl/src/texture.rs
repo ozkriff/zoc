@@ -76,13 +76,9 @@ impl Texture {
     }
 }
 
-#[allow(deprecated)] // TODO: remove
 fn load_image(path: &Path) -> image::DynamicImage {
-    use std::old_io::{MemReader};
-
     let buf = fs::load(path);
-    let mem_reader = MemReader::new(buf.into_inner());
-    image::load(mem_reader, image::ImageFormat::PNG)
+    image::load(buf, image::ImageFormat::PNG)
         .ok().expect("Can`t open img")
 }
 

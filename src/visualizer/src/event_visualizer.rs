@@ -195,7 +195,7 @@ fn get_unit_scene_nodes(
             children: vec![],
         }]
     } else {
-        for i in range(0, count) {
+        for i in 0 .. count {
             let pos = geom::index_to_circle_vertex(count, i).v.mul_s(0.3f32);
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
@@ -224,7 +224,7 @@ impl EventCreateUnitVisualizer {
         let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        scene.nodes[node_id].pos = from.clone();
+        scene.nodes.get_mut(&node_id).unwrap().pos = from.clone();
         box EventCreateUnitVisualizer {
             id: id,
             move_helper: move_helper,

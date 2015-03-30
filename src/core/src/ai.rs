@@ -32,7 +32,7 @@ impl Ai {
             if enemy.player_id == self.id {
                 continue;
             }
-            for i in range(0, 6) {
+            for i in 0 .. 6 {
                 let dir = Dir::from_int(i);
                 let destination = Dir::get_neighbour_pos(&enemy.pos, &dir);
                 if !self.state.map().is_inboard(&destination) {
@@ -65,7 +65,7 @@ impl Ai {
             return path;
         }
         let len = path.nodes().len();
-        for i in range(1, len) {
+        for i in 1 .. len {
             let cost = &path.nodes()[i].cost;
             if cost.n > move_points {
                 let mut new_nodes = path.nodes().clone();

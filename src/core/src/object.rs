@@ -70,7 +70,7 @@ impl ObjectTypes {
 
     fn get_unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
         for (id, unit_type) in self.unit_types.iter().enumerate() {
-            if unit_type.name.as_slice() == name {
+            if unit_type.name == name {
                 return Some(UnitTypeId{id: id as ZInt});
             }
         }
@@ -90,7 +90,7 @@ impl ObjectTypes {
 
     pub fn get_weapon_type_id(&self, name: &str) -> WeaponTypeId {
         for (id, weapon_type) in self.weapon_types.iter().enumerate() {
-            if weapon_type.name.as_slice() == name {
+            if weapon_type.name == name {
                 return WeaponTypeId{id: id as ZInt};
             }
         }

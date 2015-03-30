@@ -107,7 +107,7 @@ impl Model {
     fn read(&mut self, path: &Path) {
         for line in fs::load(path).lines() {
             match line {
-                Ok(line) => self.read_line(line.as_slice()),
+                Ok(line) => self.read_line(&line),
                 Err(msg) => panic!("Obj: read error: {}", msg),
             }
         }
@@ -116,7 +116,7 @@ impl Model {
     pub fn build(&self) -> Vec<VertexCoord> {
         let mut mesh = Vec::new();
         for face in self.faces.iter() {
-            for i in range(0, 3) {
+            for i in 0 .. 3 {
                 let vertex_id = face.vertex[i] as usize - 1;
                 mesh.push(self.coords[vertex_id].clone());
             }
@@ -127,7 +127,7 @@ impl Model {
     pub fn build_tex_coord(&self) -> Vec<TextureCoord> {
         let mut tex_coords = Vec::new();
         for face in self.faces.iter() {
-            for i in range(0, 3) {
+            for i in 0 .. 3 {
                 let texture_coord_id = face.texture[i] as usize - 1;
                 tex_coords.push(self.texture_coords[texture_coord_id].clone());
             }

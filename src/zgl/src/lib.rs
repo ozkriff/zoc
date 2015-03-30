@@ -1,12 +1,12 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(old_io, core, str_words, collections, box_syntax)] // TODO
+#![feature(str_words, box_syntax, str_char)] // TODO
 
 extern crate rand;
 extern crate libc;
 extern crate time;
 extern crate cgmath;
-extern crate "zoc_gl" as gl;
+extern crate zoc_gl as gl;
 extern crate image;
 extern crate stb_tt;
 extern crate common;

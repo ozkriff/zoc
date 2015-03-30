@@ -60,7 +60,7 @@ impl Dir {
     pub fn get_dir_from_to(from: &MapPos, to: &MapPos) -> Dir {
         // assert!(from.distance(to) == 1);
         let diff = to.v - from.v;
-        for i in range(0, 6) {
+        for i in 0 .. 6 {
             if diff == DIR_TO_POS_DIFF[(from.v.y % 2) as usize][i] {
                 return Dir::from_int(i as ZInt);
             }
