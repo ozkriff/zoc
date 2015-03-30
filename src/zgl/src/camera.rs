@@ -32,7 +32,7 @@ impl Camera {
             z_angle: deg(0.0),
             pos: WorldPos{v: Vector::from_value(0.0)},
             max_pos: WorldPos{v: Vector::from_value(0.0)},
-            zoom: 10.0,
+            zoom: 16.0,
             projection_mat: get_projection_mat(win_size),
         }
     }
