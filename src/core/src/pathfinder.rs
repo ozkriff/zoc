@@ -7,17 +7,23 @@ use map::{Map, Terrain};
 use game_state::{GameState};
 use dir::{Dir};
 
+#[derive(Clone)]
+pub struct PathNode {
+    pub cost: MoveCost,
+    pub pos: MapPos,
+}
+
 // TODO: add `join` method
 #[derive(Clone)]
 pub struct MoveCost{pub n: ZInt}
 
 #[derive(Clone)]
 pub struct MapPath {
-    nodes: Vec<(MoveCost, MapPos)>,
+    nodes: Vec<PathNode>,
 }
 
 impl MapPath {
-    pub fn new(nodes: Vec<(MoveCost, MapPos)>) -> MapPath {
+    pub fn new(nodes: Vec<PathNode>) -> MapPath {
         MapPath{nodes: nodes}
     }
 
@@ -26,17 +32,20 @@ impl MapPath {
     // }
 
     pub fn destination(&self) -> &MapPos {
-        let &(_, ref pos) = self.nodes.last().unwrap();
-        pos
+        &self.nodes.last()
+            .expect("Path have no nodes!")
+            .pos
     }
 
-    pub fn nodes(&self) -> &Vec<(MoveCost, MapPos)> {
+    pub fn nodes(&self) -> &Vec<PathNode> {
         &self.nodes
     }
 
+    // TODO: store in node only its own cost, not total cost
     pub fn total_cost(&self) -> &MoveCost {
-        let &(ref total_cost, _) = self.nodes.last().unwrap();
-        total_cost
+        &self.nodes.last()
+            .expect("Path has no nodes")
+            .cost
     }
 }
 
@@ -175,7 +184,7 @@ impl Pathfinder {
         }
         assert!(self.map.is_inboard(&pos));
         let start_cost = self.map.tile(&pos).cost.clone();
-        path.push((start_cost, pos.clone()));
+        path.push(PathNode{cost: start_cost, pos: pos.clone()});
         while self.map.tile(&pos).cost.n != 0 {
             let parent_dir = match self.map.tile(&pos).parent() {
                 &Some(ref dir) => dir,
@@ -184,12 +193,10 @@ impl Pathfinder {
             pos = Dir::get_neighbour_pos(&pos, parent_dir);
             assert!(self.map.is_inboard(&pos));
             let cost = self.map.tile(&pos).cost.clone();
-            path.push((cost, pos.clone()));
+            path.push(PathNode{cost: cost, pos: pos.clone()});
         }
         path.reverse();
-        Some(MapPath {
-            nodes: path,
-        })
+        Some(MapPath{nodes: path})
     }
 }
 

@@ -66,7 +66,7 @@ impl Ai {
         }
         let len = path.nodes().len();
         for i in range(1, len) {
-            let (ref cost, _) = path.nodes()[i];
+            let cost = &path.nodes()[i].cost;
             if cost.n > move_points {
                 let mut new_nodes = path.nodes().clone();
                 new_nodes.truncate(i);

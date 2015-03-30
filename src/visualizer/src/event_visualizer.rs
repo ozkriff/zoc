@@ -86,8 +86,8 @@ impl EventMoveVisualizer {
         path: MapPath,
     ) -> Box<EventVisualizer + 'static> {
         let mut world_path = Vec::new();
-        for &(_, ref map_pos) in path.nodes().iter() {
-            let world_pos = geom::map_pos_to_world_pos(map_pos);
+        for path_node in path.nodes().iter() {
+            let world_pos = geom::map_pos_to_world_pos(&path_node.pos);
             world_path.push(world_pos);
         }
         let speed = unit_type_visual_info.move_speed;

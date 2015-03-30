@@ -257,7 +257,7 @@ impl Core {
         let mut events = Vec::new();
         let len = path.nodes().len();
         'path_loop: for i in range(1, len) {
-            let (_, ref pos) = path.nodes()[i];
+            let pos = &path.nodes()[i].pos;
             let e = self.reaction_fire(unit_id, pos);
             if !e.is_empty() {
                 let mut new_nodes = path.nodes().clone();

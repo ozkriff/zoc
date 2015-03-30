@@ -101,8 +101,8 @@ impl<'a> GameState {
                 assert!(unit.move_points >= 0);
                 if let Some(player_id) = self.player_id.clone() {
                     if unit.player_id == player_id {
-                        for &(_, ref pos) in path.nodes() {
-                            fov::fov(&self.map, &mut self.fow, pos);
+                        for path_node in path.nodes() {
+                            fov::fov(&self.map, &mut self.fow, &path_node.pos);
                         }
                     }
                 }
