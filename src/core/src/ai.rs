@@ -8,10 +8,11 @@ use dir::{Dir};
 use command::{Command};
 use unit::{Unit};
 use object::{ObjectTypes};
+use core::{CoreEvent};
 
 pub struct Ai {
     id: PlayerId,
-    pub state: GameState, // TODO: make private
+    state: GameState,
     pathfinder: Pathfinder,
 }
 
@@ -22,6 +23,10 @@ impl Ai {
             state: GameState::new(map_size, id),
             pathfinder: Pathfinder::new(map_size),
         }
+    }
+
+    pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
+        self.state.apply_event(object_types, event);
     }
 
     // TODO: move fill_map here

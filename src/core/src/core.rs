@@ -382,7 +382,7 @@ impl Core {
     fn do_ai(&mut self) {
         loop {
             while let Some(event) = self.get_event() {
-                self.ai.state.apply_event(&self.object_types, &event);
+                self.ai.apply_event(&self.object_types, &event);
             }
             let command = self.ai.get_command(&self.object_types);
             self.do_command(command.clone());
