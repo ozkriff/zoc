@@ -55,6 +55,56 @@ fn is_target_dead(event: &CoreEvent) -> bool {
     }
 }
 
+fn get_visible_enemies(
+    fow: &Fow,
+    units: &HashMap<UnitId, Unit>,
+    player_id: &PlayerId,
+) -> HashSet<UnitId> {
+    let mut visible_enemies = HashSet::new();
+    for (id, unit) in units.iter() {
+        if unit.player_id != *player_id && fow.is_visible(&unit.pos) {
+            visible_enemies.insert(id.clone());
+        }
+    }
+    visible_enemies
+}
+
+fn show_or_hide_passive_enemies(
+    units: &HashMap<UnitId, Unit>,
+    active_unit_ids: &HashSet<UnitId>,
+    old: &HashSet<UnitId>,
+    new: &HashSet<UnitId>,
+) -> Vec<CoreEvent> {
+    let mut events = Vec::new();
+    let located_units = new.difference(old);
+    for id in located_units {
+        if active_unit_ids.contains(id) {
+            continue;
+        }
+        let unit = units.get(&id).expect("Can`t find unit");
+        events.push(CoreEvent::ShowUnit {
+            unit_id: id.clone(),
+            pos: unit.pos.clone(),
+            type_id: unit.type_id.clone(),
+            player_id: unit.player_id.clone(),
+        });
+    }
+    let lost_units = old.difference(new);
+    for id in lost_units {
+        if active_unit_ids.contains(id) {
+            continue;
+        }
+        events.push(CoreEvent::HideUnit{unit_id: id.clone()});
+    }
+    events
+}
+
+pub struct PlayerInfo {
+    event_lists: Vec<CoreEvent>,
+    fow: Fow,
+    visible_enemies: HashSet<UnitId>,
+}
+
 pub struct Core {
     state: InternalState,
     players: Vec<Player>,
@@ -62,19 +112,7 @@ pub struct Core {
     core_event_list: Vec<CoreEvent>,
     pub object_types: ObjectTypes, // TODO: remove 'pub'
     ai: Ai,
-
-    // TODO: join in one structure?
-    // `struct PlayerInfo{Vec<CoreEvent>, Fow, HashSet<UnitId>}`?
-    event_lists: HashMap<PlayerId, Vec<CoreEvent>>,
-    fow: HashMap<PlayerId, Fow>,
-    visible_enemies: HashMap<PlayerId, HashSet<UnitId>>,
-}
-
-fn get_event_lists() -> HashMap<PlayerId, Vec<CoreEvent>> {
-    let mut map = HashMap::new();
-    map.insert(PlayerId{id: 0}, Vec::new());
-    map.insert(PlayerId{id: 1}, Vec::new());
-    map
+    players_info: HashMap<PlayerId, PlayerInfo>,
 }
 
 fn get_players_list() -> Vec<Player> {
@@ -85,19 +123,18 @@ fn get_players_list() -> Vec<Player> {
     )
 }
 
-fn get_fow_list(map_size: &Size2<ZInt>) -> HashMap<PlayerId, Fow> {
+fn get_player_info_lists(map_size: &Size2<ZInt>) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
-    let player_0 = PlayerId{id: 0};
-    map.insert(PlayerId{id: 0}, Fow::new(map_size, &player_0));
-    let player_1 = PlayerId{id: 1};
-    map.insert(PlayerId{id: 1}, Fow::new(map_size, &player_1));
-    map
-}
-
-fn get_visible_enemies_list() -> HashMap<PlayerId, HashSet<UnitId>> {
-    let mut map = HashMap::new();
-    map.insert(PlayerId{id: 0}, HashSet::new());
-    map.insert(PlayerId{id: 1}, HashSet::new());
+    map.insert(PlayerId{id: 0}, PlayerInfo {
+        fow: Fow::new(map_size, &PlayerId{id: 0}),
+        event_lists: Vec::new(),
+        visible_enemies: HashSet::new(),
+    });
+    map.insert(PlayerId{id: 1}, PlayerInfo {
+        fow: Fow::new(map_size, &PlayerId{id: 1}),
+        event_lists: Vec::new(),
+        visible_enemies: HashSet::new(),
+    });
     map
 }
 
@@ -116,11 +153,9 @@ impl Core {
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
             core_event_list: Vec::new(),
-            event_lists: get_event_lists(),
             object_types: ObjectTypes::new(),
             ai: Ai::new(&PlayerId{id:1}, &map_size),
-            fow: get_fow_list(&map_size),
-            visible_enemies: get_visible_enemies_list(),
+            players_info: get_player_info_lists(&map_size),
         };
         core.get_units();
         core
@@ -232,7 +267,10 @@ impl Core {
     }
 
     pub fn get_event(&mut self) -> Option<CoreEvent> {
-        let list = self.event_lists.get_mut(&self.current_player_id).unwrap();
+        // TODO: event_lists: Vec -> LinkedList. remove -> pop_front
+        let mut list = &mut self.players_info.get_mut(&self.current_player_id)
+            .expect("core: Can`t get current player`s info")
+            .event_lists;
         if list.len() == 0 {
             None
         } else {
@@ -283,8 +321,7 @@ impl Core {
             if enemy_unit.attack_points <= 0 {
                 continue;
             }
-            let fow = self.fow.get(&enemy_unit.player_id)
-                .expect("Can`t get player`s Fog of War");
+            let fow = &self.players_info[&enemy_unit.player_id].fow;
             if !fow.is_visible(pos) {
                 continue;
             }
@@ -443,8 +480,7 @@ impl Core {
     ) -> (Vec<CoreEvent>, HashSet<UnitId>) {
         let mut active_unit_ids = HashSet::new();
         let mut events = vec![];
-        let fow = self.fow.get(player_id)
-            .expect("Can`t get player`s Fog of War");
+        let fow = &self.players_info[player_id].fow;
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = self.state.units.get(unit_id)
@@ -523,47 +559,6 @@ impl Core {
         (events, active_unit_ids)
     }
 
-    fn get_visible_enemies(&self, player_id: &PlayerId) -> HashSet<UnitId> {
-        let mut visible_enemies = HashSet::new();
-        let fow = self.fow.get(player_id).expect("Can`t find player`s FoW");
-        for (id, unit) in self.state.units.iter() {
-            if unit.player_id != *player_id && fow.is_visible(&unit.pos) {
-                visible_enemies.insert(id.clone());
-            }
-        }
-        visible_enemies
-    }
-
-    fn show_or_hide_passive_enemies(
-        &self,
-        active_unit_ids: &HashSet<UnitId>,
-        old: &HashSet<UnitId>,
-        new: &HashSet<UnitId>,
-    ) -> Vec<CoreEvent> {
-        let mut events = Vec::new();
-        let located_units = new.difference(old);
-        for id in located_units {
-            if active_unit_ids.contains(id) {
-                continue;
-            }
-            let unit = self.state.units.get(&id).expect("Can`t find unit");
-            events.push(CoreEvent::ShowUnit {
-                unit_id: id.clone(),
-                pos: unit.pos.clone(),
-                type_id: unit.type_id.clone(),
-                player_id: unit.player_id.clone(),
-            });
-        }
-        let lost_units = old.difference(new);
-        for id in lost_units {
-            if active_unit_ids.contains(id) {
-                continue;
-            }
-            events.push(CoreEvent::HideUnit{unit_id: id.clone()});
-        }
-        events
-    }
-
     fn make_player_events(&mut self) {
         while !self.core_event_list.is_empty() {
             let event = self.core_event_list.pop()
@@ -576,16 +571,20 @@ impl Core {
                 let (filtered_events, active_unit_ids)
                     = self.filter_events(&player.id, &event);
                 for event in filtered_events {
-                    self.fow.get_mut(&player.id).unwrap().apply_event(&self.state, &event);
-                    self.event_lists.get_mut(&player.id).unwrap().push(event);
-                    let new_visible_enemies = self.get_visible_enemies(&player.id);
-                    let mut show_hide_events = self.show_or_hide_passive_enemies(
+                    let mut i = self.players_info.get_mut(&player.id)
+                        .expect("core: Can`t get player`s info");
+                    i.fow.apply_event(&self.state, &event);
+                    i.event_lists.push(event);
+                    let new_visible_enemies = get_visible_enemies(
+                        &i.fow, &self.state.units, &player.id);
+                    let show_hide_events = show_or_hide_passive_enemies(
+                        &self.state.units,
                         &active_unit_ids,
-                        &self.visible_enemies[&player.id],
+                        &i.visible_enemies,
                         &new_visible_enemies,
                     );
-                    self.event_lists.get_mut(&player.id).unwrap().push_all(&mut show_hide_events);
-                    *self.visible_enemies.get_mut(&player.id).unwrap() = new_visible_enemies;
+                    i.event_lists.push_all(&show_hide_events);
+                    i.visible_enemies = new_visible_enemies;
                 }
             }
         }
