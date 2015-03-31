@@ -84,6 +84,10 @@ impl Camera {
         &self.z_angle
     }
 
+    pub fn get_x_angle(&self) -> &Deg<ZFloat> {
+        &self.x_angle
+    }
+
     pub fn move_camera(&mut self, angle: Deg<ZFloat>, speed: ZFloat) {
         let speed_in_radians = (self.z_angle - angle).to_rad().s;
         let dx = speed_in_radians.sin();

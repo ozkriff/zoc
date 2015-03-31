@@ -1,7 +1,6 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use cgmath::{deg};
 use common::types::{ZInt, ZFloat, MapPos};
 use zgl::zgl::{Zgl};
 use zgl::mesh::{Mesh};
@@ -91,7 +90,7 @@ impl MapTextManager {
             let m = zgl.tr(m, &pos.v);
             let m = zgl.scale(m, map_text.scale);
             let m = zgl.rot_z(m, camera.get_z_angle());
-            let m = zgl.rot_x(m, &deg(90.0));
+            let m = zgl.rot_x(m, camera.get_x_angle());
             shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);
             map_text.mesh.draw(zgl, shader);
         }
