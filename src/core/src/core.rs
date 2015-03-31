@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use internal_state::{InternalState};
-use map::{distance};
+use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use command::{Command};
 use unit::{Unit, UnitTypeId, WeaponTypeId, WeaponType};
@@ -99,6 +99,13 @@ fn get_visible_enemies_list() -> HashMap<PlayerId, HashSet<UnitId>> {
     map.insert(PlayerId{id: 0}, HashSet::new());
     map.insert(PlayerId{id: 1}, HashSet::new());
     map
+}
+
+pub fn los(map: &Map<Terrain>, from: &MapPos, to: &MapPos) -> bool {
+    // TODO: profile and optimize!
+    let mut v = false;
+    fov_closure(map, &mut |p| if *p == *to { v = true }, from);
+    v
 }
 
 impl Core {
@@ -234,10 +241,7 @@ impl Core {
     }
 
     pub fn los(&self, from: &MapPos, to: &MapPos) -> bool {
-        // TODO: profile and optimize!
-        let mut v = false;
-        fov_closure(&self.state.map, &mut |p| if *p == *to { v = true }, from);
-        v
+        los(&self.state.map, from, to)
     }
 
     fn command_attack_unit_to_event(

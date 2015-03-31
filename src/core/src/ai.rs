@@ -8,7 +8,7 @@ use dir::{Dir};
 use command::{Command};
 use unit::{Unit};
 use object::{ObjectTypes};
-use core::{CoreEvent};
+use core::{CoreEvent, los};
 
 pub struct Ai {
     id: PlayerId,
@@ -112,6 +112,9 @@ impl Ai {
                     }
                     let max_distance = object_types.get_unit_max_attack_dist(unit);
                     if distance(&unit.pos, &target.pos) > max_distance {
+                        continue;
+                    }
+                    if !los(self.state.map(), &unit.pos, &target.pos) {
                         continue;
                     }
                     return Command::AttackUnit {
