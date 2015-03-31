@@ -479,6 +479,10 @@ impl Visualizer {
                     println!("Out of range");
                     return;
                 }
+                if !self.core.los(&attacker.pos, &defender.pos) {
+                    println!("No LOS");
+                    return;
+                }
                 self.core.do_command(Command::AttackUnit {
                     attacker_id: attacker_id,
                     defender_id: defender_id,

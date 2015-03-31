@@ -13,6 +13,7 @@ use object::{ObjectTypes};
 use player::{Player};
 use ai::{Ai};
 use fow::{Fow};
+use fov::{fov_closure};
 
 #[derive(Clone)]
 pub enum FireMode {
@@ -232,6 +233,13 @@ impl Core {
         }
     }
 
+    pub fn los(&self, from: &MapPos, to: &MapPos) -> bool {
+        // TODO: profile and optimize!
+        let mut v = false;
+        fov_closure(&self.state.map, &mut |p| if *p == *to { v = true }, from);
+        v
+    }
+
     fn command_attack_unit_to_event(
         &self,
         attacker_id: UnitId,
@@ -240,22 +248,25 @@ impl Core {
         fire_mode: FireMode,
         // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
+        let mut events = Vec::new();
         let attacker = &self.state.units[&attacker_id];
         // let defender = &self.state.units[defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
-        // if distance(&attacker.pos, &defender.pos) < weapon_type.max_distance {
-        if distance(&attacker.pos, pos) <= weapon_type.max_distance {
-            let hit = self.hit_test(&attacker_id, &defender_id);
-            vec![CoreEvent::AttackUnit {
-                attacker_id: attacker_id,
-                defender_id: defender_id,
-                killed: hit,
-                mode: fire_mode,
-            }]
-        } else {
-            Vec::new()
+        if distance(&attacker.pos, pos) > weapon_type.max_distance {
+            return events;
         }
+        if !self.los(&attacker.pos, pos) {
+            return events;
+        }
+        let hit = self.hit_test(&attacker_id, &defender_id);
+        events.push(CoreEvent::AttackUnit {
+            attacker_id: attacker_id,
+            defender_id: defender_id,
+            killed: hit,
+            mode: fire_mode,
+        });
+        events
     }
 
     fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos) -> Vec<CoreEvent> {
@@ -276,6 +287,9 @@ impl Core {
             let max_distance = self.object_types
                 .get_unit_max_attack_dist(enemy_unit);
             if distance(&enemy_unit.pos, pos) > max_distance {
+                continue;
+            }
+            if !self.los(&enemy_unit.pos, pos) {
                 continue;
             }
             let e = self.command_attack_unit_to_event(

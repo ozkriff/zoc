@@ -31,8 +31,8 @@ fn is_obstacle(terrain: &Terrain) -> bool {
 }
 
 // TODO: precalculate all 'atan2' and 'asin' stuff
-pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
-    *fow.tile_mut(origin) = true;
+pub fn fov_closure(map: &Map<Terrain>, callback: &mut FnMut(&MapPos), origin: &MapPos) {
+    callback(origin);
     let mut shadows: Vec<Shadow> = vec!();
     let origin3d = geom::map_pos_to_world_pos(origin);
     let range = 7; // TODO
@@ -45,7 +45,7 @@ pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
         let distance = diff.length();
         let angle = Float::atan2(diff.x, diff.y); // TODO: optimize
         if is_tile_visible(angle, &shadows) {
-            *fow.tile_mut(&pos) = true;
+            callback(&pos);
         }
         if is_obstacle(map.tile(&pos)) {
             let obstacle_radius = geom::HEX_IN_RADIUS * 1.1;
@@ -57,6 +57,10 @@ pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
             shadows.push(shadow);
         }
     }
+}
+
+pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
+    fov_closure(map, &mut |pos| { *fow.tile_mut(pos) = true; }, origin);
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
