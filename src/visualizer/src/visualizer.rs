@@ -183,39 +183,6 @@ fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
     mesh
 }
 
-fn get_scenes(players_count: ZInt) -> HashMap<PlayerId, Scene> {
-    let mut m = HashMap::new();
-    // TODO: if player is not AI
-    for i in 0 .. players_count {
-        m.insert(PlayerId{id: i}, Scene::new());
-    }
-    m
-}
-
-fn get_game_states(
-    players_count: ZInt,
-    map_size: &Size2<ZInt>,
-) -> HashMap<PlayerId, GameState> {
-    let mut m = HashMap::new();
-    for i in 0 .. players_count {
-        let id = PlayerId{id: i};
-        let state = GameState::new(map_size, &id);
-        m.insert(id, state);
-    }
-    m
-}
-
-fn get_pathfinders(
-    players_count: ZInt,
-    map_size: &Size2<ZInt>,
-) -> HashMap<PlayerId, Pathfinder> {
-    let mut m = HashMap::new();
-    for i in 0 .. players_count {
-        m.insert(PlayerId{id: i}, Pathfinder::new(map_size));
-    }
-    m
-}
-
 fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) -> &'a MeshId {
     match player_id.id {
         0 => &mesh_ids.marker_1_mesh_id,
@@ -262,6 +229,44 @@ fn get_unit_type_visual_info(
     unit_type_visual_info
 }
 
+struct PlayerInfo {
+    game_state: GameState,
+    pathfinder: Pathfinder,
+    scene: Scene,
+}
+
+struct PlayerInfoManager {
+    info: HashMap<PlayerId, PlayerInfo>,
+}
+
+impl PlayerInfoManager {
+    fn new(map_size: &Size2<ZInt>) -> PlayerInfoManager {
+        let mut m = HashMap::new();
+        m.insert(PlayerId{id: 0}, PlayerInfo {
+            game_state: GameState::new(map_size, &PlayerId{id: 0}),
+            pathfinder: Pathfinder::new(map_size),
+            scene: Scene::new(),
+        });
+        m.insert(PlayerId{id: 1}, PlayerInfo {
+            game_state: GameState::new(map_size, &PlayerId{id: 1}),
+            pathfinder: Pathfinder::new(map_size),
+            scene: Scene::new(),
+        });
+        PlayerInfoManager{info: m}
+    }
+
+    fn get<'a>(&'a self, player_id: &PlayerId) -> &'a PlayerInfo {
+        &self.info[player_id]
+    }
+
+    fn get_mut<'a>(&'a mut self, player_id: &PlayerId) -> &'a mut PlayerInfo {
+        match self.info.get_mut(player_id) {
+            Some(i) => i,
+            None => panic!("Can`t find player_info for id={}", player_id.id),
+        }
+    }
+}
+
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
@@ -282,10 +287,7 @@ pub struct Visualizer {
     button_end_turn_id: ButtonId,
     dtime: Time,
     last_time: Time,
-    // TODO: join in one structure?
-    game_states: HashMap<PlayerId, GameState>,
-    pathfinders: HashMap<PlayerId, Pathfinder>,
-    scenes: HashMap<PlayerId, Scene>,
+    player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
     event_visualizer: Option<Box<EventVisualizer>>,
@@ -315,7 +317,6 @@ impl Visualizer {
         unsafe {
             window.make_current();
         };
-        let players_count = 2;
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
         zgl.init_opengl();
@@ -331,17 +332,18 @@ impl Visualizer {
         let map_size = core.map_size().clone();
         camera.set_max_pos(get_max_camera_pos(&map_size));
         camera.set_pos(get_initial_camera_pos(&map_size));
-        let game_states = get_game_states(players_count, &map_size);
-        let picker = TilePicker::new(&zgl, &game_states[core.player_id()]);
+        let player_info = PlayerInfoManager::new(&map_size);
+        let picker = TilePicker::new(
+            &zgl, &player_info.get(core.player_id()).game_state);
 
         let floor_tex = Texture::new(&zgl, &Path::new("floor.png")); // TODO: !!!
 
         let mut meshes = Vec::new();
 
         let visible_map_mesh = generate_visible_tiles_mesh(
-            &zgl, &game_states[core.player_id()], &floor_tex);
+            &zgl, &player_info.get(core.player_id()).game_state, &floor_tex);
         let fow_map_mesh = generate_fogged_tiles_mesh(
-            &zgl, &game_states[core.player_id()], &floor_tex);
+            &zgl, &player_info.get(core.player_id()).game_state, &floor_tex);
 
         let trees_mesh_id = add_mesh(
             &mut meshes, load_unit_mesh(&zgl, "trees"));
@@ -357,8 +359,6 @@ impl Visualizer {
         let unit_type_visual_info
             = get_unit_type_visual_info(&zgl, &mut meshes);
 
-        let scenes = get_scenes(players_count);
-        let pathfinders = get_pathfinders(players_count, &map_size);
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
             &zgl, &Path::new("DroidSerif-Regular.ttf"), font_size);
@@ -395,9 +395,7 @@ impl Visualizer {
             button_end_turn_id: button_end_turn_id,
             dtime: Time{n: 0},
             last_time: Time{n: precise_time_ns()},
-            game_states: game_states,
-            scenes: scenes,
-            pathfinders: pathfinders,
+            player_info: player_info,
             core: core,
             event: None,
             event_visualizer: None,
@@ -418,21 +416,22 @@ impl Visualizer {
     }
 
     fn add_map_objects(&mut self) {
-        let state = &self.game_states[self.core.player_id()];
         let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
-        for tile_pos in state.map().get_iter() {
-            if let &Terrain::Trees = state.map().tile(&tile_pos) {
-                let pos = geom::map_pos_to_world_pos(&tile_pos);
-                let rot = deg(thread_rng().gen_range(0.0, 360.0));
-                for (_, scene) in self.scenes.iter_mut() {
-                    scene.nodes.insert(node_id.clone(), SceneNode {
-                        pos: pos.clone(),
-                        rot: rot,
-                        mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
-                        children: Vec::new(),
-                    });
+
+        for (_, player_info) in self.player_info.info.iter_mut() {
+            let map = &player_info.game_state.map();
+            for tile_pos in map.get_iter() {
+                if let &Terrain::Trees = map.tile(&tile_pos) {
+                    let pos = geom::map_pos_to_world_pos(&tile_pos);
+                    let rot = deg(thread_rng().gen_range(0.0, 360.0));
+                        player_info.scene.nodes.insert(node_id.clone(), SceneNode {
+                            pos: pos.clone(),
+                            rot: rot,
+                            mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
+                            children: Vec::new(),
+                        });
+                    node_id.id += 1;
                 }
-                node_id.id += 1;
             }
         }
     }
@@ -444,14 +443,14 @@ impl Visualizer {
     fn end_turn(&mut self) {
         self.core.do_command(Command::EndTurn);
         self.selected_unit_id = None;
-        let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
-        self.selection_manager.deselect(scene);
+        let i = self.player_info.get_mut(self.core.player_id());
+        self.selection_manager.deselect(&mut i.scene);
         self.walkable_mesh = None;
     }
 
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
-        let state = &self.game_states[self.core.player_id()];
-        state.is_tile_occupied(pos)
+        let i = self.player_info.get(self.core.player_id());
+        i.game_state.is_tile_occupied(pos)
     }
 
     fn create_unit(&mut self) {
@@ -467,7 +466,7 @@ impl Visualizer {
     fn attack_unit(&mut self) {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
             (Some(defender_id), Some(attacker_id)) => {
-                let state = &self.game_states[self.core.player_id()];
+                let state = &self.player_info.get(self.core.player_id()).game_state;
                 let attacker = &state.units()[&attacker_id];
                 if attacker.attack_points <= 0 {
                     println!("No attack points");
@@ -496,12 +495,13 @@ impl Visualizer {
     fn select_unit(&mut self) {
         if let Some(ref unit_id) = self.unit_under_cursor_id {
             self.selected_unit_id = Some(unit_id.clone());
-            let state = &self.game_states[self.core.player_id()];
-            let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
+            let mut i = self.player_info.get_mut(self.core.player_id());
+            let state = &i.game_state;
+            let pf = &mut i.pathfinder;
             pf.fill_map(&self.core.object_types, state, &state.units()[unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(
                 &self.zgl, pf, state.map(), state.units()[unit_id].move_points));
-            let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
+            let scene = &mut i.scene;
             self.selection_manager.create_selection_marker(
                 state, scene, unit_id);
             // TODO: highlight potential targets
@@ -517,10 +517,9 @@ impl Visualizer {
         if self.is_tile_occupied(pos) {
             return;
         }
-        let state = &self.game_states[self.core.player_id()];
-        let unit = &state.units()[&unit_id];
-        let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
-        if let Some(path) = pf.get_path(pos) {
+        let i = self.player_info.get_mut(self.core.player_id());
+        let unit = &i.game_state.units()[&unit_id];
+        if let Some(path) = i.pathfinder.get_path(pos) {
             if path.total_cost(). n > unit.move_points {
                 println!("path cost > unit.move_points");
                 return;
@@ -615,7 +614,7 @@ impl Visualizer {
         }
         if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
             let player_id = {
-                let state = &self.game_states[self.core.player_id()];
+                let state = &self.player_info.get(self.core.player_id()).game_state;
                 let unit = &state.units()[&unit_under_cursor_id];
                 unit.player_id.clone()
             };
@@ -694,7 +693,7 @@ impl Visualizer {
     }
 
     fn scene(&self) -> &Scene {
-        &self.scenes[self.core.player_id()]
+        &self.player_info.get(self.core.player_id()).scene
     }
 
     fn draw_scene_node(
@@ -743,8 +742,8 @@ impl Visualizer {
             walkable_mesh.draw(&self.zgl, &self.shader);
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
-            let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
-            event_visualizer.draw(scene, &self.dtime);
+            let i = self.player_info.get_mut(self.core.player_id());
+            event_visualizer.draw(&mut i.scene, &self.dtime);
         }
     }
 
@@ -801,8 +800,9 @@ impl Visualizer {
         event: &CoreEvent,
     ) -> Box<EventVisualizer> {
         let player_id = self.core.player_id();
-        let scene = self.scenes.get_mut(player_id).unwrap();
-        let state = &self.game_states[player_id];
+        let mut i = self.player_info.get_mut(player_id);
+        let scene = &mut i.scene;
+        let state = &i.game_state;
         match event {
             &CoreEvent::Move{ref unit_id, ref path} => {
                 let type_id = state.units()[unit_id].type_id.clone();
@@ -898,8 +898,8 @@ impl Visualizer {
         if self.is_event_visualization_finished() {
             self.end_event_visualization();
         } else {
-            let scene = self.scenes.get_mut(self.core.player_id()).unwrap();
-            self.selection_manager.deselect(scene);
+            let i = &mut self.player_info.get_mut(self.core.player_id());
+            self.selection_manager.deselect(&mut i.scene);
             self.walkable_mesh = None;
         }
     }
@@ -921,10 +921,9 @@ impl Visualizer {
 
     fn end_event_visualization(&mut self) {
         self.attacker_died_from_reaction_fire();
-        let scene = self.scenes.get_mut(
-            self.core.player_id()).unwrap();
-        let state = self.game_states.get_mut(
-            self.core.player_id()).unwrap();
+        let mut i = self.player_info.get_mut(self.core.player_id());
+        let scene = &mut i.scene;
+        let state = &mut i.game_state;
         self.event_visualizer.as_mut().unwrap().end(scene, state);
         state.apply_event(
             self.core.object_types(), self.event.as_ref().unwrap());
@@ -933,7 +932,7 @@ impl Visualizer {
         if let Some(ref selected_unit_id) = self.selected_unit_id {
             if let Some(unit) = state.units().get(selected_unit_id) {
                 // TODO: do this only if this is last unshowed CoreEvent
-                let pf = self.pathfinders.get_mut(self.core.player_id()).unwrap();
+                let pf = &mut i.pathfinder;
                 pf.fill_map(&self.core.object_types, state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(
                     &self.zgl, pf, state.map(), unit.move_points));
