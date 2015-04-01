@@ -1,6 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-use std::num::Float;
 use cgmath::{perspective, deg, Matrix4, Vector, Vector3, Deg, ToRad};
 use common::types::{ZInt, Size2, ZFloat};
 use common::misc::{clamp};

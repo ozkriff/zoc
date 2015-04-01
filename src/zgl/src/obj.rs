@@ -63,7 +63,7 @@ impl Model {
     fn read_vt(words: &mut Words) -> TextureCoord {
         TextureCoord{v: Vector2 {
             x: parse_word(words),
-            y: 1.0 - parse_word(words), // flip
+            y: 1.0 - parse_word::<ZFloat>(words), // flip
         }}
     }
 
