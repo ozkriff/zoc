@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use rand::{thread_rng, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, LinkedList};
 use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use internal_state::{InternalState};
@@ -74,15 +74,15 @@ fn show_or_hide_passive_enemies(
     active_unit_ids: &HashSet<UnitId>,
     old: &HashSet<UnitId>,
     new: &HashSet<UnitId>,
-) -> Vec<CoreEvent> {
-    let mut events = Vec::new();
+) -> LinkedList<CoreEvent> {
+    let mut events = LinkedList::new();
     let located_units = new.difference(old);
     for id in located_units {
         if active_unit_ids.contains(id) {
             continue;
         }
         let unit = units.get(&id).expect("Can`t find unit");
-        events.push(CoreEvent::ShowUnit {
+        events.push_back(CoreEvent::ShowUnit {
             unit_id: id.clone(),
             pos: unit.pos.clone(),
             type_id: unit.type_id.clone(),
@@ -94,13 +94,13 @@ fn show_or_hide_passive_enemies(
         if active_unit_ids.contains(id) {
             continue;
         }
-        events.push(CoreEvent::HideUnit{unit_id: id.clone()});
+        events.push_back(CoreEvent::HideUnit{unit_id: id.clone()});
     }
     events
 }
 
 pub struct PlayerInfo {
-    event_lists: Vec<CoreEvent>,
+    event_lists: LinkedList<CoreEvent>,
     fow: Fow,
     visible_enemies: HashSet<UnitId>,
 }
@@ -127,12 +127,12 @@ fn get_player_info_lists(map_size: &Size2<ZInt>) -> HashMap<PlayerId, PlayerInfo
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 0}),
-        event_lists: Vec::new(),
+        event_lists: LinkedList::new(),
         visible_enemies: HashSet::new(),
     });
     map.insert(PlayerId{id: 1}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 1}),
-        event_lists: Vec::new(),
+        event_lists: LinkedList::new(),
         visible_enemies: HashSet::new(),
     });
     map
@@ -267,15 +267,10 @@ impl Core {
     }
 
     pub fn get_event(&mut self) -> Option<CoreEvent> {
-        // TODO: event_lists: Vec -> LinkedList. remove -> pop_front
         let mut list = &mut self.players_info.get_mut(&self.current_player_id)
             .expect("core: Can`t get current player`s info")
             .event_lists;
-        if list.len() == 0 {
-            None
-        } else {
-            Some(list.remove(0))
-        }
+        list.pop_front()
     }
 
     pub fn los(&self, from: &MapPos, to: &MapPos) -> bool {
@@ -574,16 +569,16 @@ impl Core {
                     let mut i = self.players_info.get_mut(&player.id)
                         .expect("core: Can`t get player`s info");
                     i.fow.apply_event(&self.state, &event);
-                    i.event_lists.push(event);
+                    i.event_lists.push_back(event);
                     let new_visible_enemies = get_visible_enemies(
                         &i.fow, &self.state.units, &player.id);
-                    let show_hide_events = show_or_hide_passive_enemies(
+                    let mut show_hide_events = show_or_hide_passive_enemies(
                         &self.state.units,
                         &active_unit_ids,
                         &i.visible_enemies,
                         &new_visible_enemies,
                     );
-                    i.event_lists.push_all(&show_hide_events);
+                    i.event_lists.append(&mut show_hide_events);
                     i.visible_enemies = new_visible_enemies;
                 }
             }
