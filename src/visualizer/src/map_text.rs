@@ -51,7 +51,7 @@ impl MapTextManager {
         let from = pos;
         let mut to = from.clone();
         to.v.z += 2.0;
-        let mesh = font_stash.get_mesh(zgl, text, true);
+        let mesh = font_stash.get_mesh(zgl, text, 1.0, true);
         self.meshes.insert(self.i, MapText {
             mesh: mesh,
             move_helper: MoveHelper::new(from, &to, 1.0),

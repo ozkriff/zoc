@@ -21,15 +21,17 @@ pub struct Button {
 impl Button {
     pub fn new(
         zgl: &Zgl,
+        win_size: &Size2<ZInt>,
         label: &str,
         font_stash: &mut FontStash,
-        pos: ScreenPos
+        pos: ScreenPos,
     ) -> Button {
         let (_, size) = font_stash.get_text_size(zgl, label);
+        let text_size = (win_size.h as ZFloat) / 400.0; // TODO: 400?
         Button {
             pos: pos,
             size: size,
-            mesh: font_stash.get_mesh(zgl, label, false),
+            mesh: font_stash.get_mesh(zgl, label, text_size, false),
         }
     }
 

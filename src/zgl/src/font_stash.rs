@@ -5,7 +5,7 @@ use std::iter::{repeat};
 use std::cmp;
 use std::collections::HashMap;
 use stb_tt::{Font};
-use cgmath::{Vector3, Vector2};
+use cgmath::{Vector3, Vector2, Vector};
 use common::types::{Size2, ZInt, ZFloat};
 use common::fs;
 use misc::{add_quad_to_vec};
@@ -79,8 +79,9 @@ impl FontStash {
         (pos, size)
     }
 
+    // TODO: centred: bool -> enum
     // TODO: fix centred hack
-    pub fn get_mesh(&mut self, zgl: &Zgl, text: &str, centred: bool) -> Mesh {
+    pub fn get_mesh(&mut self, zgl: &Zgl, text: &str, size: ZFloat, centred: bool) -> Mesh {
         let mut vertex_data = Vec::new();
         let mut tex_data = Vec::new();
         let s = self.texture_size as ZFloat;
@@ -108,10 +109,10 @@ impl FontStash {
             let yoff = -glyph.yoff as ZFloat;
             add_quad_to_vec(
                 &mut vertex_data,
-                VertexCoord{v: Vector3{x: i, y: yoff, z: 0.0}},
-                VertexCoord{v: Vector3{x: i, y: yoff - h, z: 0.0}},
-                VertexCoord{v: Vector3{x: w + i, y: yoff - h, z: 0.0}},
-                VertexCoord{v: Vector3{x: w + i, y: yoff, z: 0.0}},
+                VertexCoord{v: Vector3{x: i, y: yoff, z: 0.0}.mul_s(size)},
+                VertexCoord{v: Vector3{x: i, y: yoff - h, z: 0.0}.mul_s(size)},
+                VertexCoord{v: Vector3{x: w + i, y: yoff - h, z: 0.0}.mul_s(size)},
+                VertexCoord{v: Vector3{x: w + i, y: yoff, z: 0.0}.mul_s(size)},
             );
             i += w + glyph.xoff as ZFloat;
         }

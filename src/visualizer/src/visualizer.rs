@@ -365,6 +365,7 @@ impl Visualizer {
         let mut button_manager = ButtonManager::new();
         let button_end_turn_id = button_manager.add_button(Button::new(
             &zgl,
+            &win_size,
             "end turn",
             &mut font_stash,
             ScreenPos{v: Vector2{x: 10, y: 10}})
