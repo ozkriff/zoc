@@ -26,11 +26,14 @@ impl Button {
         font_stash: &mut FontStash,
         pos: ScreenPos,
     ) -> Button {
-        let (_, size) = font_stash.get_text_size(zgl, label);
         let text_size = (win_size.h as ZFloat) / 400.0; // TODO: 400?
+        let (_, size) = font_stash.get_text_size(zgl, label);
         Button {
             pos: pos,
-            size: size,
+            size: Size2 {
+                w: (size.w as ZFloat * text_size) as ZInt,
+                h: (size.h as ZFloat * text_size) as ZInt,
+            },
             mesh: font_stash.get_mesh(zgl, label, text_size, false),
         }
     }
