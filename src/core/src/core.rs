@@ -100,7 +100,7 @@ fn show_or_hide_passive_enemies(
 }
 
 pub struct PlayerInfo {
-    event_lists: LinkedList<CoreEvent>,
+    events: LinkedList<CoreEvent>,
     fow: Fow,
     visible_enemies: HashSet<UnitId>,
 }
@@ -127,12 +127,12 @@ fn get_player_info_lists(map_size: &Size2<ZInt>) -> HashMap<PlayerId, PlayerInfo
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 0}),
-        event_lists: LinkedList::new(),
+        events: LinkedList::new(),
         visible_enemies: HashSet::new(),
     });
     map.insert(PlayerId{id: 1}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 1}),
-        event_lists: LinkedList::new(),
+        events: LinkedList::new(),
         visible_enemies: HashSet::new(),
     });
     map
@@ -267,10 +267,9 @@ impl Core {
     }
 
     pub fn get_event(&mut self) -> Option<CoreEvent> {
-        let mut list = &mut self.players_info.get_mut(&self.current_player_id)
-            .expect("core: Can`t get current player`s info")
-            .event_lists;
-        list.pop_front()
+        let mut i = self.players_info.get_mut(&self.current_player_id)
+            .expect("core: Can`t get current player`s info");
+        i.events.pop_front()
     }
 
     pub fn los(&self, from: &MapPos, to: &MapPos) -> bool {
@@ -569,7 +568,7 @@ impl Core {
                     let mut i = self.players_info.get_mut(&player.id)
                         .expect("core: Can`t get player`s info");
                     i.fow.apply_event(&self.state, &event);
-                    i.event_lists.push_back(event);
+                    i.events.push_back(event);
                     let new_visible_enemies = get_visible_enemies(
                         &i.fow, &self.state.units, &player.id);
                     let mut show_hide_events = show_or_hide_passive_enemies(
@@ -578,7 +577,7 @@ impl Core {
                         &i.visible_enemies,
                         &new_visible_enemies,
                     );
-                    i.event_lists.append(&mut show_hide_events);
+                    i.events.append(&mut show_hide_events);
                     i.visible_enemies = new_visible_enemies;
                 }
             }
