@@ -7,11 +7,8 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 [lib]
 name = "zgl"
 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
-
 [dependencies.image]
-git = "https://github.com/PistonDevelopers/image"
+version = "*"
 default-features = false
 features = ["png"]
 
@@ -25,6 +22,7 @@ path = "../common/"
 path = "../zoc_gl/"
 
 [dependencies]
+cgmath = "*"
 time = "*"
 rand = "*"
 libc = "*"

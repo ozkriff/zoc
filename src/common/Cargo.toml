@@ -10,5 +10,5 @@ name = "common"
 [target.arm-linux-androideabi.dependencies.android_glue]
 git = "https://github.com/tomaka/android-rs-glue"
 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
+[dependencies]
+cgmath = "*"

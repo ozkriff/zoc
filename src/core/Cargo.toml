@@ -7,11 +7,9 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 [lib]
 name = "core"
 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
-
 [dependencies.common]
 path = "../common"
 
 [dependencies]
+cgmath = "*"
 rand = "*"

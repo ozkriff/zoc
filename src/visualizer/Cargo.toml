@@ -8,11 +8,8 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 name = "visualizer"
 
 [dependencies.glutin]
+version = "*"
 features = ["window"]
-git = "https://github.com/tomaka/glutin"
-
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
 
 [dependencies.core]
 path = "../core/"
@@ -24,5 +21,6 @@ path = "../common/"
 path = "../zgl/"
 
 [dependencies]
+cgmath = "*"
 time = "*"
 rand = "*"
