@@ -2,7 +2,7 @@
 
 use std::f32::consts::{PI, FRAC_PI_2};
 use std::num::{Float};
-use cgmath::{Vector3, Vector, Deg, Angle, deg};
+use cgmath::{Vector3, Vector, Rad, Angle, rad};
 use common::types::{ZInt, ZFloat, MapPos};
 use zgl::types::{VertexCoord, WorldPos};
 use core::geom;
@@ -45,10 +45,10 @@ pub fn dist(a: &WorldPos, b: &WorldPos) -> ZFloat {
     ((dx.powi(2) + dy.powi(2) + dz.powi(2)) as ZFloat).sqrt()
 }
 
-pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Deg<ZFloat> {
+pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Rad<ZFloat> {
     let diff = b.v - a.v;
-    let angle = Float::atan2(diff.x, diff.y).to_degrees();
-    deg(-angle).normalize()
+    let angle = Float::atan2(diff.x, diff.y);
+    rad(-angle).normalize()
 }
 
 #[cfg(test)]

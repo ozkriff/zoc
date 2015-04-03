@@ -1,12 +1,13 @@
 // See LICENSE file for copyright and license details.
 
+use std::f32::consts::{PI, PI_2, FRAC_PI_4, FRAC_PI_2};
 use rand::{thread_rng, Rng};
 use std::path::{Path, PathBuf};
 use std::num::{Float};
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use std::num::{SignedInt};
-use cgmath::{Vector, Vector2, Vector3, deg, Matrix4};
+use cgmath::{Vector, Vector2, Vector3, rad, Matrix4};
 use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
@@ -423,7 +424,7 @@ impl Visualizer {
             for tile_pos in map.get_iter() {
                 if let &Terrain::Trees = map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
-                    let rot = deg(thread_rng().gen_range(0.0, 360.0));
+                    let rot = rad(thread_rng().gen_range(0.0, PI_2));
                         player_info.scene.nodes.insert(node_id.clone(), SceneNode {
                             pos: pos.clone(),
                             rot: rot,
@@ -539,20 +540,20 @@ impl Visualizer {
         let win_w = self.win_size.w as ZFloat;
         let win_h = self.win_size.h as ZFloat;
         if self.last_press_pos.v.x > self.win_size.w / 2 {
-            let per_x_pixel = 180.0 / win_w;
+            let per_x_pixel = PI / win_w;
             // TODO: get max angles from camera
-            let per_y_pixel = (40.0) / win_h;
+            let per_y_pixel = FRAC_PI_4 / win_h;
             self.camera.add_horizontal_angle(
-                deg(diff.x as ZFloat * per_x_pixel));
+                rad(diff.x as ZFloat * per_x_pixel));
             self.camera.add_vertical_angle(
-                deg(diff.y as ZFloat * per_y_pixel));
+                rad(diff.y as ZFloat * per_y_pixel));
         } else {
             let per_x_pixel = CAMERA_MOVE_SPEED / win_w;
             let per_y_pixel = CAMERA_MOVE_SPEED / win_h;
             self.camera.move_camera(
-                deg(180.0), diff.x as ZFloat * per_x_pixel);
+                rad(PI), diff.x as ZFloat * per_x_pixel);
             self.camera.move_camera(
-                deg(270.0), diff.y as ZFloat * per_y_pixel);
+                rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
         }
     }
 
@@ -563,16 +564,16 @@ impl Visualizer {
                 self.should_close = true;
             },
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                self.camera.move_camera(deg(270.0), s);
+                self.camera.move_camera(rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.camera.move_camera(deg(90.0), s);
+                self.camera.move_camera(rad(FRAC_PI_2), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.camera.move_camera(deg(0.0), s);
+                self.camera.move_camera(rad(0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.camera.move_camera(deg(180.0), s);
+                self.camera.move_camera(rad(PI), s);
             },
             VirtualKeyCode::K => {
                 if let Some(ref clicked_pos) = self.clicked_pos {

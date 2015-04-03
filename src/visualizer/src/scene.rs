@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use cgmath::{Deg};
+use cgmath::{Rad};
 use common::types::{ZInt, ZFloat};
 use zgl::mesh::{MeshId};
 use zgl::types::{WorldPos};
@@ -20,7 +20,7 @@ pub struct NodeId{pub id: ZInt}
 
 pub struct SceneNode {
     pub pos: WorldPos,
-    pub rot: Deg<ZFloat>,
+    pub rot: Rad<ZFloat>,
     pub mesh_id: Option<MeshId>,
     pub children: Vec<SceneNode>,
 }

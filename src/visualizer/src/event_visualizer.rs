@@ -1,7 +1,8 @@
 // See LICENSE file for copyright and license details.
 
+use std::f32::consts::{PI_2};
 use rand::{thread_rng, Rng};
-use cgmath::{Vector3, Vector, deg};
+use cgmath::{Vector3, Vector, rad};
 use common::types::{MapPos, ZFloat, UnitId};
 use core::game_state::GameState;
 use core::core;
@@ -160,7 +161,7 @@ fn show_unit_at(
     let node_id = unit_id_to_node_id(id);
     let world_pos = geom::map_pos_to_world_pos(pos);
     let to = world_pos;
-    let rot = deg(thread_rng().gen_range(0.0, 360.0));
+    let rot = rad(thread_rng().gen_range(0.0, PI_2));
     scene.nodes.insert(node_id, SceneNode {
         pos: to.clone(),
         rot: rot,
@@ -169,7 +170,7 @@ fn show_unit_at(
     });
     scene.nodes.insert(marker_id(id), SceneNode {
         pos: WorldPos{v: to.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))},
-        rot: deg(0.0),
+        rot: rad(0.0),
         mesh_id: Some(marker_mesh_id.clone()),
         children: Vec::new(),
     });
@@ -190,7 +191,7 @@ fn get_unit_scene_nodes(
     if count == 1 {
         vec![SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
-            rot: deg(0.0),
+            rot: rad(0.0),
             mesh_id: Some(mesh_id.clone()),
             children: vec![],
         }]
@@ -199,7 +200,7 @@ fn get_unit_scene_nodes(
             let pos = geom::index_to_circle_vertex(count, i).v.mul_s(0.3f32);
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
-                rot: deg(0.0),
+                rot: rad(0.0),
                 mesh_id: Some(mesh_id.clone()),
                 children: vec![],
             });
@@ -284,7 +285,7 @@ impl EventAttackUnitVisualizer {
         let shell_move = {
             scene.nodes.insert(SHELL_NODE_ID, SceneNode {
                 pos: from.clone(),
-                rot: deg(0.0),
+                rot: rad(0.0),
                 mesh_id: Some(shell_mesh_id),
                 children: Vec::new(),
             });

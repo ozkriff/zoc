@@ -3,7 +3,7 @@
 use std::mem;
 use common::types::{Size2, ZInt, ZFloat};
 use types::{Color3, Color4, ScreenPos, AttrId};
-use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, rad, Deg, ToRad, ortho};
+use cgmath::{Matrix, Matrix4, Matrix3, ToMatrix4, Vector3, Rad, ortho};
 use libc::c_void;
 use gl;
 use gl::Gl;
@@ -117,15 +117,13 @@ impl Zgl {
         m.mul_m(&t)
     }
 
-    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: &Deg<ZFloat>) -> Matrix4<ZFloat> {
-        let rad = angle.to_rad();
-        let r = Matrix3::from_angle_x(rad).to_matrix4();
+    pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: &Rad<ZFloat>) -> Matrix4<ZFloat> {
+        let r = Matrix3::from_angle_x(*angle).to_matrix4();
         m.mul_m(&r)
     }
 
-    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: &Deg<ZFloat>) -> Matrix4<ZFloat> {
-        let rad = angle.to_rad();
-        let r = Matrix3::from_angle_z(rad).to_matrix4();
+    pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: &Rad<ZFloat>) -> Matrix4<ZFloat> {
+        let r = Matrix3::from_angle_z(*angle).to_matrix4();
         m.mul_m(&r)
     }
 
