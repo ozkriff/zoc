@@ -19,7 +19,6 @@ pub struct Camera {
 
 fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
     let fov = rad(PI / 4.0);
-    // let fov = rad((3.14 / 4.0) * 0.7);
     let ratio = win_size.w as ZFloat / win_size.h as ZFloat;
     let display_range_min = 0.1;
     let display_range_max = 100.0;
