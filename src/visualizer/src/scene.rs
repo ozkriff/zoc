@@ -36,8 +36,7 @@ impl Scene {
         }
     }
 
-    // TODO: node -> node_mut
-    pub fn node(&mut self, node_id: &NodeId) -> &mut SceneNode {
+    pub fn node_mut(&mut self, node_id: &NodeId) -> &mut SceneNode {
         self.nodes.get_mut(node_id)
             .expect("Bad node id")
     }

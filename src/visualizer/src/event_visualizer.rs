@@ -54,11 +54,11 @@ impl EventVisualizer for EventMoveVisualizer {
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
         let pos = self.move_helper.step(dtime);
         {
-            let marker_node = scene.node(&marker_id(&self.unit_id));
+            let marker_node = scene.node_mut(&marker_id(&self.unit_id));
             marker_node.pos.v = pos.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0));
         }
         let node_id = unit_id_to_node_id(&self.unit_id);
-        let node = scene.node(&node_id);
+        let node = scene.node_mut(&node_id);
         node.pos = pos;
         if self.move_helper.is_finished() {
             let _ = self.path.remove(0);
@@ -72,7 +72,7 @@ impl EventVisualizer for EventMoveVisualizer {
     fn end(&mut self, scene: &mut Scene, _: &GameState) {
         assert!(self.path.len() == 1);
         let node_id = unit_id_to_node_id(&self.unit_id);
-        let node = scene.node(&node_id);
+        let node = scene.node_mut(&node_id);
         node.pos = self.current_waypoint().clone();
     }
 }
@@ -92,7 +92,7 @@ impl EventMoveVisualizer {
         }
         let speed = unit_type_visual_info.move_speed;
         let node_id = unit_id_to_node_id(&unit_id);
-        let node = scene.node(&node_id);
+        let node = scene.node_mut(&node_id);
         node.rot = geom::get_rot_angle(
             &world_path[0], &world_path[1]);
         let move_helper = MoveHelper::new(
@@ -239,7 +239,7 @@ impl EventVisualizer for EventCreateUnitVisualizer {
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
         let node_id = unit_id_to_node_id(&self.id);
-        let node = scene.node(&node_id);
+        let node = scene.node_mut(&node_id);
         node.pos = self.move_helper.step(dtime);
     }
 
@@ -319,11 +319,11 @@ impl EventVisualizer for EventAttackUnitVisualizer {
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
-        scene.node(&SHELL_NODE_ID).pos = self.shell_move.step(dtime);
+        scene.node_mut(&SHELL_NODE_ID).pos = self.shell_move.step(dtime);
         if self.killed {
             if self.shell_move.is_finished() {
                 let node_id = unit_id_to_node_id(&self.defender_id);
-                scene.node(&node_id).pos = self.move_helper.step(dtime);
+                scene.node_mut(&node_id).pos = self.move_helper.step(dtime);
             }
         }
     }
