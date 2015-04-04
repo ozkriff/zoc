@@ -34,7 +34,6 @@ fn marker_id(unit_id: &UnitId) -> NodeId {
 
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
-    // fn draw(&mut self, scene: &mut Scene, dtime: &Time, map_text: &MapTextManager);
     fn draw(&mut self, scene: &mut Scene, dtime: &Time);
     fn end(&mut self, scene: &mut Scene, state: &GameState);
 }
