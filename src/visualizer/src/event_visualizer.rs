@@ -272,7 +272,6 @@ impl EventAttackUnitVisualizer {
         font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
         let node_id = unit_id_to_node_id(&defender_id);
-        // TODO: from <-> to
         let from = scene.nodes.get(&node_id)
             .expect("Can not find defender scene node")
             .pos.clone();
