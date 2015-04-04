@@ -868,6 +868,7 @@ impl Visualizer {
                     &self.unit_type_visual_info, type_id);
                 EventShowUnitVisualizer::new(
                     &self.core,
+                    &self.zgl,
                     scene,
                     state,
                     unit_id.clone(),
@@ -875,12 +876,17 @@ impl Visualizer {
                     pos,
                     mesh_id,
                     get_marker_mesh_id(&self.mesh_ids, player_id),
+                    &mut self.map_text_manager,
+                    &mut self.font_stash,
                 )
             },
             &CoreEvent::HideUnit{ref unit_id} => {
                 EventHideUnitVisualizer::new(
                     scene,
                     unit_id,
+                    &self.zgl,
+                    &mut self.map_text_manager,
+                    &mut self.font_stash,
                 )
             },
         }

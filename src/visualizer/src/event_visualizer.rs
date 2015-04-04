@@ -343,6 +343,7 @@ pub struct EventShowUnitVisualizer;
 impl EventShowUnitVisualizer {
     pub fn new(
         core: &core::Core,
+        zgl: &Zgl,
         scene: &mut Scene,
         _: &GameState,
         id: UnitId,
@@ -350,8 +351,12 @@ impl EventShowUnitVisualizer {
         pos: &MapPos,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
+        map_text: &mut MapTextManager,
+        font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
+        let world_pos = geom::map_pos_to_world_pos(pos);
+        map_text.add_text_to_world_pos(zgl, font_stash, "spotted", &world_pos);
         box EventShowUnitVisualizer as Box<EventVisualizer>
     }
 }
@@ -369,8 +374,17 @@ impl EventVisualizer for EventShowUnitVisualizer {
 pub struct EventHideUnitVisualizer;
 
 impl EventHideUnitVisualizer {
-    pub fn new(scene: &mut Scene, unit_id: &UnitId) -> Box<EventVisualizer> {
-        scene.nodes.remove(&unit_id_to_node_id(&unit_id));
+    pub fn new(
+        scene: &mut Scene,
+        unit_id: &UnitId,
+        zgl: &Zgl,
+        map_text: &mut MapTextManager,
+        font_stash: &mut FontStash,
+    ) -> Box<EventVisualizer> {
+        let unit_node_id = unit_id_to_node_id(&unit_id);
+        let world_pos = scene.nodes[&unit_node_id].pos.clone();
+        map_text.add_text_to_world_pos(zgl, font_stash, "lost", &world_pos);
+        scene.nodes.remove(&unit_node_id);
         scene.nodes.remove(&marker_id(&unit_id));
         box EventHideUnitVisualizer as Box<EventVisualizer>
     }
