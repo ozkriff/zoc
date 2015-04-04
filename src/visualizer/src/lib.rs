@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(core, box_syntax, convert)] // TODO
+#![feature(box_syntax, convert)] // TODO
 
 extern crate rand;
 extern crate time;

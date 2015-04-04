@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::f32::consts::{PI_2};
+use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
 use common::types::{MapPos, ZFloat, UnitId};
@@ -161,7 +161,7 @@ fn show_unit_at(
     let node_id = unit_id_to_node_id(id);
     let world_pos = geom::map_pos_to_world_pos(pos);
     let to = world_pos;
-    let rot = rad(thread_rng().gen_range(0.0, PI_2));
+    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
     scene.nodes.insert(node_id, SceneNode {
         pos: to.clone(),
         rot: rot,

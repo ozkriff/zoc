@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::f32::consts::{PI, FRAC_PI_2};
+use std::f32::consts::{PI};
 use std::num::{Float};
 use cgmath::{Vector3, Vector, Rad, Angle, rad};
 use common::types::{ZInt, ZFloat, MapPos};
@@ -22,7 +22,7 @@ pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
 }
 
 pub fn index_to_circle_vertex(count: ZInt, i: ZInt) -> VertexCoord {
-    let n = FRAC_PI_2 + 2.0 * PI * (i as ZFloat) / (count as ZFloat);
+    let n = PI / 2.0 + 2.0 * PI * (i as ZFloat) / (count as ZFloat);
     VertexCoord {
         v: Vector3{x: n.cos(), y: n.sin(), z: 0.0}.mul_s(HEX_EX_RADIUS)
     }

@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::f32::consts::{PI_2, FRAC_PI_4};
+use std::f32::consts::{PI};
 use std::num::{Float};
 use cgmath::{perspective, rad, Matrix4, Vector, Vector3, Rad};
 use common::types::{ZInt, Size2, ZFloat};
@@ -18,7 +18,7 @@ pub struct Camera {
 }
 
 fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
-    let fov = rad(FRAC_PI_4);
+    let fov = rad(PI / 4.0);
     // let fov = rad((3.14 / 4.0) * 0.7);
     let ratio = win_size.w as ZFloat / win_size.h as ZFloat;
     let display_range_min = 0.1;
@@ -30,7 +30,7 @@ fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
 impl Camera {
     pub fn new(win_size: &Size2<ZInt>) -> Camera {
         Camera {
-            x_angle: rad(FRAC_PI_4),
+            x_angle: rad(PI / 4.0),
             z_angle: rad(0.0),
             pos: WorldPos{v: Vector::from_value(0.0)},
             max_pos: WorldPos{v: Vector::from_value(0.0)},
@@ -51,10 +51,10 @@ impl Camera {
     pub fn add_horizontal_angle(&mut self, angle: Rad<ZFloat>) {
         self.z_angle = self.z_angle + angle;
         while self.z_angle < rad(0.0) {
-            self.z_angle = self.z_angle + rad(PI_2);
+            self.z_angle = self.z_angle + rad(PI * 2.0);
         }
-        while self.z_angle > rad(PI_2) {
-            self.z_angle = self.z_angle - rad(PI_2);
+        while self.z_angle > rad(PI * 2.0) {
+            self.z_angle = self.z_angle - rad(PI * 2.0);
         }
     }
 

@@ -2,7 +2,7 @@
 
 /// Fielf of View
 
-use std::f32::consts::{PI, PI_2};
+use std::f32::consts::{PI};
 use std::num::{Float};
 use cgmath::{EuclideanVector};
 use common::types::{MapPos, ZFloat};
@@ -52,7 +52,7 @@ pub fn fov_closure(map: &Map<Terrain>, callback: &mut FnMut(&MapPos), origin: &M
             let a = (obstacle_radius / distance).asin();
             let shadow = Shadow{left: angle - a, right: angle + a};
             if shadow.right > PI {
-                shadows.push(Shadow{left: -PI, right: shadow.right - PI_2});
+                shadows.push(Shadow{left: -PI, right: shadow.right - PI * 2.0});
             }
             shadows.push(shadow);
         }

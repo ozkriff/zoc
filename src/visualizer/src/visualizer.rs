@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::f32::consts::{PI, PI_2, FRAC_PI_4, FRAC_PI_2};
+use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::path::{Path, PathBuf};
 use std::num::{Float};
@@ -424,7 +424,7 @@ impl Visualizer {
             for tile_pos in map.get_iter() {
                 if let &Terrain::Trees = map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
-                    let rot = rad(thread_rng().gen_range(0.0, PI_2));
+                    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                         player_info.scene.nodes.insert(node_id.clone(), SceneNode {
                             pos: pos.clone(),
                             rot: rot,
@@ -542,7 +542,7 @@ impl Visualizer {
         if self.last_press_pos.v.x > self.win_size.w / 2 {
             let per_x_pixel = PI / win_w;
             // TODO: get max angles from camera
-            let per_y_pixel = FRAC_PI_4 / win_h;
+            let per_y_pixel = (PI / 4.0) / win_h;
             self.camera.add_horizontal_angle(
                 rad(diff.x as ZFloat * per_x_pixel));
             self.camera.add_vertical_angle(
@@ -567,7 +567,7 @@ impl Visualizer {
                 self.camera.move_camera(rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.camera.move_camera(rad(FRAC_PI_2), s);
+                self.camera.move_camera(rad(PI / 2.0), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
                 self.camera.move_camera(rad(0.0), s);
