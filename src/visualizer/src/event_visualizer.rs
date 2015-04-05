@@ -80,7 +80,6 @@ impl EventVisualizer for EventMoveVisualizer {
 impl EventMoveVisualizer {
     pub fn new(
         scene: &mut Scene,
-        _: &GameState,
         unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
         path: MapPath,
@@ -212,7 +211,6 @@ impl EventCreateUnitVisualizer {
     pub fn new(
         core: &core::Core,
         scene: &mut Scene,
-        _: &GameState,
         id: UnitId,
         type_id: &UnitTypeId,
         pos: &MapPos,
@@ -261,7 +259,6 @@ impl EventAttackUnitVisualizer {
     pub fn new(
         zgl: &Zgl,
         scene: &mut Scene,
-        _: &GameState,
         attacker_id: UnitId,
         defender_id: UnitId,
         killed: bool,
@@ -345,7 +342,6 @@ impl EventShowUnitVisualizer {
         core: &core::Core,
         zgl: &Zgl,
         scene: &mut Scene,
-        _: &GameState,
         id: UnitId,
         type_id: &UnitTypeId,
         pos: &MapPos,

@@ -811,7 +811,6 @@ impl Visualizer {
                     = self.unit_type_visual_info.get(&type_id);
                 EventMoveVisualizer::new(
                     scene,
-                    state,
                     unit_id.clone(),
                     unit_type_visual_info,
                     path.clone(),
@@ -831,7 +830,6 @@ impl Visualizer {
                 EventCreateUnitVisualizer::new(
                     &self.core,
                     scene,
-                    state,
                     unit_id.clone(),
                     type_id,
                     pos,
@@ -848,7 +846,6 @@ impl Visualizer {
                 EventAttackUnitVisualizer::new(
                     &self.zgl,
                     scene,
-                    state,
                     attacker_id.clone(),
                     defender_id.clone(),
                     killed.clone(),
@@ -870,7 +867,6 @@ impl Visualizer {
                     &self.core,
                     &self.zgl,
                     scene,
-                    state,
                     unit_id.clone(),
                     type_id,
                     pos,
