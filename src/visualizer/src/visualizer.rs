@@ -442,6 +442,7 @@ impl Visualizer {
     }
 
     fn end_turn(&mut self) {
+        self.unit_under_cursor_id = None;
         self.core.do_command(Command::EndTurn);
         self.selected_unit_id = None;
         let i = self.player_info.get_mut(self.core.player_id());
@@ -606,10 +607,10 @@ impl Visualizer {
         if !self.is_tap(&self.mouse_pos) {
             return;
         }
+        self.pick_tile();
         if let Some(button_id) = self.get_clicked_button_id() {
             self.handle_event_button_press(&button_id);
         }
-        self.pick_tile();
         if self.clicked_pos.is_some() {
             self.move_unit();
         }
