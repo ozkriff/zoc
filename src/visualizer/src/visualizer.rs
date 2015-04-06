@@ -617,7 +617,8 @@ impl Visualizer {
         if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
             let player_id = {
                 let state = &self.player_info.get(self.core.player_id()).game_state;
-                let unit = &state.units()[&unit_under_cursor_id];
+                let unit = state.units().get(&unit_under_cursor_id)
+                    .expect("Can`t find unit_under_cursor_id in current state");
                 unit.player_id.clone()
             };
             if player_id == *self.core.player_id() {
@@ -846,6 +847,7 @@ impl Visualizer {
             } => {
                 EventAttackUnitVisualizer::new(
                     &self.zgl,
+                    state,
                     scene,
                     attacker_id.clone(),
                     defender_id.clone(),
@@ -914,9 +916,14 @@ impl Visualizer {
         if let Some(CoreEvent::AttackUnit{ref defender_id, ref killed, ..})
             = self.event
         {
-            if self.selected_unit_id.is_some()
-                && *self.selected_unit_id.as_ref().unwrap() == *defender_id
-                && *killed
+            let mut i = self.player_info.get_mut(self.core.player_id());
+            let state = &mut i.game_state;
+            let selected_unit_id = match self.selected_unit_id {
+                Some(ref id) => id.clone(),
+                None => return,
+            };
+            if selected_unit_id == *defender_id
+                && state.units()[defender_id].count - *killed <= 0
             {
                 self.selected_unit_id = None;
             }

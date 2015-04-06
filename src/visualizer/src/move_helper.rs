@@ -32,6 +32,11 @@ impl MoveHelper {
     }
 
     pub fn step(&mut self, dtime: &Time) -> WorldPos {
+        let _ = self.step_diff(dtime);
+        self.current.clone()
+    }
+
+    pub fn step_diff(&mut self, dtime: &Time) -> Vector3<ZFloat> {
         let dt = dtime.n as ZFloat / 1000000000.0;
         let step = self.dir.mul_s(dt);
         self.current_dist += step.length();
@@ -39,7 +44,7 @@ impl MoveHelper {
         if self.is_finished() {
             self.current = self.to.clone();
         }
-        self.current.clone()
+        step
     }
 }
 

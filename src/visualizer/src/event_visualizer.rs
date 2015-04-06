@@ -3,7 +3,7 @@
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
-use common::types::{MapPos, ZFloat, UnitId};
+use common::types::{MapPos, ZFloat, UnitId, ZInt};
 use core::game_state::GameState;
 use core::core;
 use core::unit::{UnitTypeId};
@@ -250,7 +250,8 @@ fn vec3_z(z: ZFloat) -> Vector3<ZFloat> {
 
 pub struct EventAttackUnitVisualizer {
     defender_id: UnitId,
-    killed: bool,
+    killed: ZInt,
+    is_target_destroyed: bool,
     move_helper: MoveHelper,
     shell_move: MoveHelper,
 }
@@ -258,25 +259,26 @@ pub struct EventAttackUnitVisualizer {
 impl EventAttackUnitVisualizer {
     pub fn new(
         zgl: &Zgl,
+        state: &GameState,
         scene: &mut Scene,
         attacker_id: UnitId,
         defender_id: UnitId,
-        killed: bool,
+        killed: ZInt,
         mode: core::FireMode,
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
         font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
-        let node_id = unit_id_to_node_id(&defender_id);
-        let from = scene.nodes.get(&node_id)
-            .expect("Can not find defender scene node")
+        let defender_node_id = unit_id_to_node_id(&defender_id);
+        let defender_pos = scene.nodes.get(&defender_node_id)
+            .expect("Can not find defender")
             .pos.clone();
+        let from = defender_pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
         let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
-            .expect("Can not find attacker").pos.clone();
-        let defender_pos = scene.nodes.get(&unit_id_to_node_id(&defender_id))
-            .expect("Can not find defender").pos.clone();
+            .expect("Can not find attacker")
+            .pos.clone();
         let shell_move = {
             scene.nodes.insert(SHELL_NODE_ID, SceneNode {
                 pos: from.clone(),
@@ -286,20 +288,20 @@ impl EventAttackUnitVisualizer {
             });
             MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
         };
-        if killed {
-            map_text.add_text_to_world_pos(zgl, font_stash, "-1", &defender_pos);
+        let is_target_destroyed = state.units()[&defender_id].count - killed <= 0;
+        if killed > 0 {
+            let s = format!("-{}", killed);
+            map_text.add_text_to_world_pos(zgl, font_stash, &s, &defender_pos);
         } else {
             map_text.add_text_to_world_pos(zgl, font_stash, "miss", &defender_pos);
         }
-        match mode {
-            core::FireMode::Reactive => {
-                map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);
-            },
-            core::FireMode::Active => {},
+        if let core::FireMode::Reactive = mode {
+            map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);
         }
         box EventAttackUnitVisualizer {
             defender_id: defender_id,
             killed: killed,
+            is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
         } as Box<EventVisualizer>
@@ -308,7 +310,7 @@ impl EventAttackUnitVisualizer {
 
 impl EventVisualizer for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
-        if self.killed {
+        if self.killed > 0 {
             self.move_helper.is_finished()
         } else {
             self.shell_move.is_finished()
@@ -317,17 +319,28 @@ impl EventVisualizer for EventAttackUnitVisualizer {
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
         scene.node_mut(&SHELL_NODE_ID).pos = self.shell_move.step(dtime);
-        if self.killed {
-            if self.shell_move.is_finished() {
-                let node_id = unit_id_to_node_id(&self.defender_id);
-                scene.node_mut(&node_id).pos = self.move_helper.step(dtime);
+        let node_id = unit_id_to_node_id(&self.defender_id);
+        if self.shell_move.is_finished() && self.killed > 0 {
+            let step = self.move_helper.step_diff(dtime);
+            let children = &mut scene.node_mut(&node_id).children;
+            for i in 0 .. self.killed as usize {
+                let child = children.get_mut(i)
+                    .expect("draw: no child");
+                child.pos.v.add_self_v(&step);
             }
         }
     }
 
     fn end(&mut self, scene: &mut Scene, _: &GameState) {
-        if self.killed {
-            let node_id = unit_id_to_node_id(&self.defender_id);
+        let node_id = unit_id_to_node_id(&self.defender_id);
+        if self.killed > 0 {
+            let children = &mut scene.node_mut(&node_id).children;
+            assert!(self.killed as usize <= children.len());
+            for _ in 0 .. self.killed {
+                let _ = children.remove(0);
+            }
+        }
+        if self.is_target_destroyed {
             scene.nodes.remove(&node_id);
             scene.nodes.remove(&marker_id(&self.defender_id));
         }

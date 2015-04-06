@@ -4,11 +4,12 @@ use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet, LinkedList};
 use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
+use common::misc::{clamp};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use command::{Command};
-use unit::{Unit, UnitTypeId, WeaponTypeId, WeaponType};
+use unit::{Unit, UnitTypeId, WeaponTypeId, WeaponType, UnitClass};
 use object::{ObjectTypes};
 use player::{Player};
 use ai::{Ai};
@@ -35,7 +36,7 @@ pub enum CoreEvent {
         attacker_id: UnitId,
         defender_id: UnitId,
         mode: FireMode,
-        killed: bool,
+        killed: ZInt,
     },
     ShowUnit {
         unit_id: UnitId,
@@ -48,9 +49,11 @@ pub enum CoreEvent {
     },
 }
 
-fn is_target_dead(event: &CoreEvent) -> bool {
+fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
     match event {
-        &CoreEvent::AttackUnit{ref killed, ..} => *killed,
+        &CoreEvent::AttackUnit{ref defender_id, ref killed, ..} => {
+            state.units[defender_id].count - *killed <= 0
+        },
         _ => panic!("wrong event type"),
     }
 }
@@ -208,27 +211,32 @@ impl Core {
         self.state.map.size()
     }
 
-    fn get_unit<'a>(&'a self, id: &UnitId) -> &'a Unit {
-        match self.state.units.get(id) {
-            Some(unit) => unit,
-            None => panic!("No unit with id = {}", id.id),
-        }
-    }
-
     pub fn get_weapon_type(&self, weapon_type_id: &WeaponTypeId) -> &WeaponType {
         &self.object_types.weapon_types[weapon_type_id.id as usize]
     }
 
-    fn hit_test(&self, attacker_id: &UnitId, defender_id: &UnitId) -> bool {
+    fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> ZInt {
+        let hit = self.hit_test(attacker, defender);
+        if !hit {
+            return 0;
+        }
+        let defender_type = self.object_types.get_unit_type(&defender.type_id);
+        match defender_type.class {
+            UnitClass::Infantry => {
+                clamp(thread_rng().gen_range(1, 5), 1, defender.count)
+            },
+            UnitClass::Vehicle => 1,
+        }
+    }
+
+    fn hit_test(&self, attacker: &Unit, defender: &Unit) -> bool {
         fn test(needed: ZInt) -> bool {
             let real = thread_rng().gen_range(-5i32, 5i32);
             let result = real < needed;
-            println!("real:{} < needed:{} = {}", real, needed, result);
+            // println!("real:{} < needed:{} = {}", real, needed, result);
             result
         }
-        println!("");
-        let attacker = self.get_unit(attacker_id);
-        let defender = self.get_unit(defender_id);
+        // println!("");
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let defender_type = self.object_types.get_unit_type(&defender.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
@@ -239,8 +247,8 @@ impl Core {
             + weapon_type.accuracy + attacker_type.weapon_skill;
         let pierce_test_v = 5 + -defender_type.armor + weapon_type.ap;
         let wound_test_v = -defender_type.toughness + weapon_type.damage;
-        println!("hit_test = {}, pierce_test = {}, wound_test_v = {}",
-            hit_test_v, pierce_test_v, wound_test_v);
+        // println!("hit_test = {}, pierce_test = {}, wound_test_v = {}",
+        //     hit_test_v, pierce_test_v, wound_test_v);
         print!("hit test: ");
         if !test(hit_test_v) {
             return false;
@@ -253,7 +261,7 @@ impl Core {
         if !test(wound_test_v) {
             return false;
         }
-        println!("HIT!");
+        // println!("HIT!");
         true
         // false
     }
@@ -286,7 +294,7 @@ impl Core {
     ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         let attacker = &self.state.units[&attacker_id];
-        // let defender = &self.state.units[defender_id];
+        let defender = &self.state.units[&defender_id];
         let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
         if distance(&attacker.pos, pos) > weapon_type.max_distance {
@@ -295,11 +303,11 @@ impl Core {
         if !self.los(&attacker.pos, pos) {
             return events;
         }
-        let hit = self.hit_test(&attacker_id, &defender_id);
+        let killed = self.get_killed_count(attacker, defender);
         events.push(CoreEvent::AttackUnit {
             attacker_id: attacker_id,
             defender_id: defender_id,
-            killed: hit,
+            killed: killed,
             mode: fire_mode,
         });
         events
@@ -333,7 +341,7 @@ impl Core {
             if e.is_empty() {
                 continue;
             }
-            if is_target_dead(&e[0]) {
+            if is_target_dead(&self.state, &e[0]) {
                 break;
             }
         }
@@ -404,7 +412,7 @@ impl Core {
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
                 events.push_all(&e);
-                if !e.is_empty() && !is_target_dead(&e[0]) {
+                if !e.is_empty() && !is_target_dead(&self.state, &e[0]) {
                     let pos = &self.state.units[&attacker_id].pos;
                     events.push_all(&self.reaction_fire(&attacker_id, pos));
                 }
