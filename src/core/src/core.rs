@@ -249,15 +249,15 @@ impl Core {
         let wound_test_v = -defender_type.toughness + weapon_type.damage;
         // println!("hit_test = {}, pierce_test = {}, wound_test_v = {}",
         //     hit_test_v, pierce_test_v, wound_test_v);
-        print!("hit test: ");
+        // print!("hit test: ");
         if !test(hit_test_v) {
             return false;
         }
-        print!("pierce test: ");
+        // print!("pierce test: ");
         if !test(pierce_test_v) {
             return false;
         }
-        print!("wound test: ");
+        // print!("wound test: ");
         if !test(wound_test_v) {
             return false;
         }
