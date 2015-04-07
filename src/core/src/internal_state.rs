@@ -54,7 +54,6 @@ impl<'a> InternalState {
         }
     }
 
-    /*
     fn add_passive_ap(&mut self, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
@@ -62,7 +61,6 @@ impl<'a> InternalState {
             }
         }
     }
-    */
 
     fn add_unit(
         &mut self,
@@ -98,9 +96,9 @@ impl<'a> InternalState {
                 unit.move_points -= path.total_cost().n;
                 assert!(unit.move_points >= 0);
             },
-            &CoreEvent::EndTurn{ref new_id, ..} => {
+            &CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(object_types, new_id);
-                // self.add_passive_ap(old_id);
+                self.add_passive_ap(old_id);
             },
             &CoreEvent::CreateUnit {
                 ref unit_id,
