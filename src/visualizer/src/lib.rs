@@ -1,7 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(box_syntax)] // TODO
-
 extern crate rand;
 extern crate time;
 extern crate cgmath;

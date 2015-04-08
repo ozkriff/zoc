@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(core, collections, box_syntax)] // TODO
+#![feature(core, collections)] // TODO
 
 extern crate cgmath;
 extern crate rand;

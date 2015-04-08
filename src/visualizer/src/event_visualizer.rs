@@ -96,14 +96,14 @@ impl EventMoveVisualizer {
             &world_path[0], &world_path[1]);
         let move_helper = MoveHelper::new(
             &world_path[0], &world_path[1], speed);
-        let mut vis = box EventMoveVisualizer {
+        let mut vis = Box::new(EventMoveVisualizer {
             unit_id: unit_id.clone(),
             path: world_path,
             move_helper: move_helper,
             speed: speed,
-        };
+        });
         vis.update_waypoint(node);
-        vis as Box<EventVisualizer>
+        vis
     }
 
     fn update_waypoint(&mut self, node: &mut SceneNode) {
@@ -133,7 +133,7 @@ pub struct EventEndTurnVisualizer;
 
 impl EventEndTurnVisualizer {
     pub fn new() -> Box<EventVisualizer> {
-        box EventEndTurnVisualizer as Box<EventVisualizer>
+        Box::new(EventEndTurnVisualizer)
     }
 }
 
@@ -223,10 +223,10 @@ impl EventCreateUnitVisualizer {
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 1.0);
         scene.nodes.get_mut(&node_id).unwrap().pos = from.clone();
-        box EventCreateUnitVisualizer {
+        Box::new(EventCreateUnitVisualizer {
             id: id,
             move_helper: move_helper,
-        } as Box<EventVisualizer>
+        })
     }
 }
 
@@ -298,13 +298,13 @@ impl EventAttackUnitVisualizer {
         if let core::FireMode::Reactive = mode {
             map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);
         }
-        box EventAttackUnitVisualizer {
+        Box::new(EventAttackUnitVisualizer {
             defender_id: defender_id,
             killed: killed,
             is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
-        } as Box<EventVisualizer>
+        })
     }
 }
 
@@ -366,7 +366,7 @@ impl EventShowUnitVisualizer {
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
         let world_pos = geom::map_pos_to_world_pos(pos);
         map_text.add_text_to_world_pos(zgl, font_stash, "spotted", &world_pos);
-        box EventShowUnitVisualizer as Box<EventVisualizer>
+        Box::new(EventShowUnitVisualizer)
     }
 }
 
@@ -395,7 +395,7 @@ impl EventHideUnitVisualizer {
         map_text.add_text_to_world_pos(zgl, font_stash, "lost", &world_pos);
         scene.nodes.remove(&unit_node_id);
         scene.nodes.remove(&marker_id(&unit_id));
-        box EventHideUnitVisualizer as Box<EventVisualizer>
+        Box::new(EventHideUnitVisualizer)
     }
 }
 
