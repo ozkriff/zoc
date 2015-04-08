@@ -36,7 +36,7 @@ const PICK_CODE_NOTHING: ZInt = 0;
 const PICK_CODE_MAP_POS: ZInt = 1;
 const PICK_CODE_UNIT: ZInt = 2;
 
-fn i_to_f(n: ZInt) -> f32 {
+fn i_to_f(n: ZInt) -> ZFloat {
     n as ZFloat / 255.0
 }
 

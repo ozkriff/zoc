@@ -68,7 +68,7 @@ mod tests {
         for i in 0 .. count {
             let a = WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}};
             let b = WorldPos{v: index_to_circle_vertex(count, i).v};
-            let expected_angle = i as f32 * (PI * 2.0) / (count as f32);
+            let expected_angle = i as ZFloat * (PI * 2.0) / (count as ZFloat);
             let angle = get_rot_angle(&a, &b);
             let diff = (expected_angle - angle.s).abs();
             assert!(diff < EPS, "{} != {}", expected_angle, angle.s);

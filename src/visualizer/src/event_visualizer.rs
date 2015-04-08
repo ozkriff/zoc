@@ -195,7 +195,7 @@ fn get_unit_scene_nodes(
         }]
     } else {
         for i in 0 .. count {
-            let pos = geom::index_to_circle_vertex(count, i).v.mul_s(0.3f32);
+            let pos = geom::index_to_circle_vertex(count, i).v.mul_s(0.3);
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
                 rot: rad(0.0),
