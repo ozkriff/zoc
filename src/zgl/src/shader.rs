@@ -26,11 +26,11 @@ fn get_uniform(program_id: &ProgramId, zgl: &Zgl, name: &str) -> GLuint {
     let name_c = CString::new(name.as_bytes())
         .ok().expect("Bad uniform name").as_ptr();
     let id = unsafe {
-        zgl.gl.GetUniformLocation(program_id.id, name_c) as GLuint
+        zgl.gl.GetUniformLocation(program_id.id, name_c)
     };
     assert!(id != -1);
     zgl.check();
-    id
+    id as GLuint
 }
 
 pub struct Shader {
