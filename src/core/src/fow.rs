@@ -34,7 +34,6 @@ impl Fow {
         self.clear_fow();
         for (_, unit) in state.units.iter() {
             if unit.player_id == self.player_id {
-                *self.map.tile_mut(&unit.pos) = true;
                 fov(&state.map, &mut self.map, &unit.pos);
             }
         }
