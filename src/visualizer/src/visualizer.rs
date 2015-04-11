@@ -32,7 +32,6 @@ use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::command::{Command};
-use core::unit::{UnitTypeId};
 use core::core::{Core, CoreEvent};
 use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
@@ -189,13 +188,6 @@ fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) -> 
         1 => &mesh_ids.marker_2_mesh_id,
         n => panic!("Wrong player id: {}", n),
     }
-}
-
-fn get_unit_mesh_id<'a> (
-    unit_type_visual_info: &'a UnitTypeVisualInfoManager,
-    unit_type_id: &UnitTypeId,
-) -> &'a MeshId {
-    &unit_type_visual_info.get(unit_type_id).mesh_id
 }
 
 struct MeshIdManager {
@@ -826,8 +818,7 @@ impl Visualizer {
                 ref type_id,
                 ref player_id,
             } => {
-                let mesh_id = get_unit_mesh_id(
-                    &self.unit_type_visual_info, type_id);
+                let mesh_id = &self.unit_type_visual_info.get(type_id).mesh_id;
                 EventCreateUnitVisualizer::new(
                     &self.core,
                     scene,
@@ -863,8 +854,7 @@ impl Visualizer {
                 ref type_id,
                 ref player_id,
             } => {
-                let mesh_id = get_unit_mesh_id(
-                    &self.unit_type_visual_info, type_id);
+                let mesh_id = &self.unit_type_visual_info.get(type_id).mesh_id;
                 EventShowUnitVisualizer::new(
                     &self.core,
                     &self.zgl,
