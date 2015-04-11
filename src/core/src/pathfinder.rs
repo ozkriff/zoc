@@ -95,12 +95,10 @@ impl Pathfinder {
             UnitClass::Infantry => match tile {
                 &Terrain::Plain => 1,
                 &Terrain::Trees => 2,
-                &Terrain::Building => 2,
             },
             UnitClass::Vehicle => match tile {
                 &Terrain::Plain => 1,
                 &Terrain::Trees => 5,
-                &Terrain::Building => 10,
             },
         };
         MoveCost{n: n}

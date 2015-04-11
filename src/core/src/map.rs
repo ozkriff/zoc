@@ -10,8 +10,6 @@ use dir::{Dir, DirIter, dirs};
 pub enum Terrain {
     Plain,
     Trees,
-    // Swamp,
-    Building,
 }
 
 pub struct Map<T> {
