@@ -126,7 +126,6 @@ fn gen_tiles<F>(zgl: &Zgl, state: &GameState, tex: &Texture, cond: F) -> Mesh
     let mut mesh = Mesh::new(zgl, &vertex_data);
     mesh.add_texture(zgl, tex.clone(), &tex_data);
     mesh
-
 }
 
 fn generate_visible_tiles_mesh(zgl: &Zgl, state: &GameState, tex: &Texture) -> Mesh {
