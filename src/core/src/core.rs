@@ -212,7 +212,7 @@ impl Core {
     }
 
     pub fn get_weapon_type(&self, weapon_type_id: &WeaponTypeId) -> &WeaponType {
-        &self.object_types.weapon_types[weapon_type_id.id as usize]
+        self.object_types.get_weapon_type(weapon_type_id)
     }
 
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> ZInt {

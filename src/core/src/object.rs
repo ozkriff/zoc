@@ -6,7 +6,7 @@ use unit::{Unit, UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 // TODO: Rename?
 pub struct ObjectTypes {
     unit_types: Vec<UnitType>,
-    pub weapon_types: Vec<WeaponType>, // TODO: make private
+    weapon_types: Vec<WeaponType>,
 }
 
 impl ObjectTypes {
@@ -79,6 +79,10 @@ impl ObjectTypes {
 
     pub fn get_unit_type<'a>(&'a self, unit_type_id: &UnitTypeId) -> &'a UnitType {
         &self.unit_types[unit_type_id.id as usize]
+    }
+
+    pub fn get_weapon_type<'a>(&'a self, type_id: &WeaponTypeId) -> &'a WeaponType {
+        &self.weapon_types[type_id.id as usize]
     }
 
     pub fn get_unit_type_id(&self, name: &str) -> UnitTypeId {
