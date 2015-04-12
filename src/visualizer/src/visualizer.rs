@@ -472,32 +472,34 @@ impl Visualizer {
         self.core.los(unit_type, from, to)
     }
 
-    fn attack_unit(&mut self) {
+    fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        let attacker = &state.units()[attacker_id];
+        if attacker.attack_points <= 0 {
+            println!("No attack points");
+            return;
+        }
+        let defender = &state.units()[defender_id];
+        let max_distance = self.core.object_types()
+            .get_unit_max_attack_dist(attacker);
+        if distance(&attacker.pos, &defender.pos) > max_distance {
+            println!("Out of range");
+            return;
+        }
+        if !self.los(attacker, &attacker.pos, &defender.pos) {
+            println!("No LOS");
+            return;
+        }
+        self.core.do_command(Command::AttackUnit {
+            attacker_id: attacker_id.clone(),
+            defender_id: defender_id.clone(),
+        });
+    }
+
+    fn try_to_attack_unit(&mut self) {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
             (Some(defender_id), Some(attacker_id)) => {
-                // TODO: rename this func to `try_to_attack_unit`
-                // TODO: extruct internal function `attack_unit`
-                let state = &self.player_info.get(self.core.player_id()).game_state;
-                let attacker = &state.units()[&attacker_id];
-                if attacker.attack_points <= 0 {
-                    println!("No attack points");
-                    return;
-                }
-                let defender = &state.units()[&defender_id];
-                let max_distance = self.core.object_types()
-                    .get_unit_max_attack_dist(attacker);
-                if distance(&attacker.pos, &defender.pos) > max_distance {
-                    println!("Out of range");
-                    return;
-                }
-                if !self.los(attacker, &attacker.pos, &defender.pos) {
-                    println!("No LOS");
-                    return;
-                }
-                self.core.do_command(Command::AttackUnit {
-                    attacker_id: attacker_id,
-                    defender_id: defender_id,
-                });
+                self.attack_unit(&defender_id, &attacker_id)
             },
             _ => {},
         }
@@ -633,7 +635,7 @@ impl Visualizer {
             if player_id == *self.core.player_id() {
                 self.select_unit();
             } else {
-                self.attack_unit();
+                self.try_to_attack_unit();
             }
         }
     }
