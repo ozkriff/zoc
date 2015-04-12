@@ -458,10 +458,8 @@ impl Core {
             }
             let command = self.ai.get_command(&self.object_types);
             self.do_command(command.clone());
-            // TODO: use 'if let'
-            match command {
-                Command::EndTurn => return,
-                _ => {},
+            if let Command::EndTurn = command {
+                return;
             }
         }
     }
