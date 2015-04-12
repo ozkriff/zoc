@@ -9,12 +9,12 @@ use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use command::{Command};
-use unit::{Unit, UnitTypeId, WeaponTypeId, WeaponType, UnitClass};
+use unit::{Unit, UnitType, UnitTypeId, WeaponTypeId, WeaponType, UnitClass};
 use object::{ObjectTypes};
 use player::{Player};
 use ai::{Ai};
 use fow::{Fow};
-use fov::{fov_closure};
+use fov::{fov};
 
 #[derive(Clone)]
 pub enum FireMode {
@@ -59,13 +59,15 @@ fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
 }
 
 fn get_visible_enemies(
+    object_types: &ObjectTypes,
     fow: &Fow,
     units: &HashMap<UnitId, Unit>,
     player_id: &PlayerId,
 ) -> HashSet<UnitId> {
     let mut visible_enemies = HashSet::new();
     for (id, unit) in units.iter() {
-        if unit.player_id != *player_id && fow.is_visible(&unit.pos) {
+        let unit_type = object_types.get_unit_type(&unit.type_id);
+        if unit.player_id != *player_id && fow.is_visible(unit_type, &unit.pos) {
             visible_enemies.insert(id.clone());
         }
     }
@@ -141,10 +143,16 @@ fn get_player_info_lists(map_size: &Size2<ZInt>) -> HashMap<PlayerId, PlayerInfo
     map
 }
 
-pub fn los(map: &Map<Terrain>, from: &MapPos, to: &MapPos) -> bool {
+pub fn los(
+    map: &Map<Terrain>,
+    unit_type: &UnitType,
+    from: &MapPos,
+    to: &MapPos,
+) -> bool {
     // TODO: profile and optimize!
     let mut v = false;
-    fov_closure(map, &mut |p| if *p == *to { v = true }, from);
+    let range = unit_type.los_range;
+    fov(map, from, range, &mut |p| if *p == *to { v = true });
     v
 }
 
@@ -172,17 +180,18 @@ impl Core {
     fn get_units(&mut self) {
         let tank_id = self.object_types.get_unit_type_id("tank");
         let soldier_id = self.object_types.get_unit_type_id("soldier");
+        let scout_id = self.object_types.get_unit_type_id("scout");
         let p_id_0 = PlayerId{id: 0};
         let p_id_1 = PlayerId{id: 1};
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &soldier_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
@@ -280,8 +289,8 @@ impl Core {
         i.events.pop_front()
     }
 
-    pub fn los(&self, from: &MapPos, to: &MapPos) -> bool {
-        los(&self.state.map, from, to)
+    pub fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
+        los(&self.state.map, unit_type, from, to)
     }
 
     fn command_attack_unit_to_event(
@@ -300,7 +309,7 @@ impl Core {
         if distance(&attacker.pos, pos) > weapon_type.max_distance {
             return events;
         }
-        if !self.los(&attacker.pos, pos) {
+        if !self.los(attacker_type, &attacker.pos, pos) {
             return events;
         }
         let killed = self.get_killed_count(attacker, defender);
@@ -313,8 +322,12 @@ impl Core {
         events
     }
 
-    fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos) -> Vec<CoreEvent> {
+    fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos)
+        -> Vec<CoreEvent>
+    {
         let mut events = Vec::new();
+        let unit = &self.state.units[unit_id];
+        let unit_type = self.object_types.get_unit_type(&unit.type_id);
         for (_, enemy_unit) in self.state.units.iter() {
             // TODO: check if unit is still alive
             if enemy_unit.player_id == self.current_player_id {
@@ -324,7 +337,7 @@ impl Core {
                 continue;
             }
             let fow = &self.players_info[&enemy_unit.player_id].fow;
-            if !fow.is_visible(pos) {
+            if !fow.is_visible(unit_type, pos) {
                 continue;
             }
             let max_distance = self.object_types
@@ -332,7 +345,9 @@ impl Core {
             if distance(&enemy_unit.pos, pos) > max_distance {
                 continue;
             }
-            if !self.los(&enemy_unit.pos, pos) {
+            let enemy_type = self.object_types
+                .get_unit_type(&enemy_unit.type_id);
+            if !self.los(enemy_type, &enemy_unit.pos, pos) {
                 continue;
             }
             let e = self.command_attack_unit_to_event(
@@ -487,6 +502,7 @@ impl Core {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = self.state.units.get(unit_id)
                     .expect("Can`t find moving unit");
+                let unit_type = self.object_types.get_unit_type(&unit.type_id);
                 if unit.player_id == *player_id {
                     events.push(event.clone())
                 } else {
@@ -494,8 +510,8 @@ impl Core {
                     for i in 1 .. len {
                         let prev_node = path.nodes()[i - 1].clone();
                         let next_node = path.nodes()[i].clone();
-                        let prev_vis = fow.is_visible(&prev_node.pos);
-                        let next_vis = fow.is_visible(&next_node.pos);
+                        let prev_vis = fow.is_visible(unit_type, &prev_node.pos);
+                        let next_vis = fow.is_visible(unit_type, &next_node.pos);
                         active_unit_ids.insert(unit.id.clone());
                         if !prev_vis && next_vis {
                             events.push(CoreEvent::ShowUnit {
@@ -534,7 +550,9 @@ impl Core {
                 player_id: ref new_unit_player_id,
                 ..
             } => {
-                if *player_id == *new_unit_player_id || fow.is_visible(pos) {
+                let unit = &self.state.units[unit_id];
+                let unit_type = self.object_types.get_unit_type(&unit.type_id);
+                if *player_id == *new_unit_player_id || fow.is_visible(unit_type, pos) {
                     events.push(event.clone());
                     active_unit_ids.insert(unit_id.clone());
                 }
@@ -542,12 +560,16 @@ impl Core {
             &CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ..} => {
                 let attacker = self.state.units.get(attacker_id)
                     .expect("Can`t find attacker");
-                if !fow.is_visible(&attacker.pos) {
+                let attacker_type = self.object_types
+                    .get_unit_type(&attacker.type_id);
+                if !fow.is_visible(attacker_type, &attacker.pos) {
                     events.push(self.create_show_unit_event(&attacker));
                 }
                 // if defender is not dead...
                 if let Some(defender) = self.state.units.get(defender_id) {
-                    if !fow.is_visible(&defender.pos) {
+                    let defender_type = self.object_types
+                        .get_unit_type(&defender.type_id);
+                    if !fow.is_visible(defender_type, &defender.pos) {
                         events.push(self.create_show_unit_event(&defender));
                     }
                 }
@@ -575,10 +597,14 @@ impl Core {
                 for event in filtered_events {
                     let mut i = self.players_info.get_mut(&player.id)
                         .expect("core: Can`t get player`s info");
-                    i.fow.apply_event(&self.state, &event);
+                    i.fow.apply_event(&self.object_types, &self.state, &event);
                     i.events.push_back(event);
                     let new_visible_enemies = get_visible_enemies(
-                        &i.fow, &self.state.units, &player.id);
+                        &self.object_types,
+                        &i.fow,
+                        &self.state.units,
+                        &player.id
+                    );
                     let mut show_hide_events = show_or_hide_passive_enemies(
                         &self.state.units,
                         &active_unit_ids,

@@ -35,7 +35,7 @@ impl<'a> GameState {
     }
 
     pub fn is_tile_visible(&self, pos: &MapPos) -> bool {
-        self.fow.is_visible(pos)
+        self.fow.is_tile_visible(pos)
     }
 
     pub fn is_tile_occupied(&self, pos: &MapPos) -> bool {
@@ -44,7 +44,7 @@ impl<'a> GameState {
 
     pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
         self.state.apply_event(object_types, event);
-        self.fow.apply_event(&self.state, event);
+        self.fow.apply_event(object_types, &self.state, event);
     }
 }
 

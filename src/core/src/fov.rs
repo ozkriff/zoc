@@ -5,8 +5,8 @@
 use std::f32::consts::{PI};
 use std::num::{Float};
 use cgmath::{EuclideanVector};
-use common::types::{MapPos, ZFloat};
-use map::{Map, Terrain, spiral_iter};
+use common::types::{MapPos, ZInt, ZFloat};
+use map::{Map, Terrain, distance, spiral_iter};
 use geom;
 
 struct Shadow {
@@ -26,16 +26,20 @@ fn is_tile_visible(angle: ZFloat, shadows: &Vec<Shadow>) -> bool {
 fn is_obstacle(terrain: &Terrain) -> bool {
     match terrain {
         &Terrain::Trees => true,
-        _ => false,
+        &Terrain::Plain => false,
     }
 }
 
 // TODO: precalculate all 'atan2' and 'asin' stuff
-pub fn fov_closure(map: &Map<Terrain>, callback: &mut FnMut(&MapPos), origin: &MapPos) {
+pub fn fov(
+    map: &Map<Terrain>,
+    origin: &MapPos,
+    range: ZInt,
+    callback: &mut FnMut(&MapPos),
+) {
     callback(origin);
-    let mut shadows: Vec<Shadow> = vec!();
+    let mut shadows = vec!();
     let origin3d = geom::map_pos_to_world_pos(origin);
-    let range = 7; // TODO
     for pos in spiral_iter(origin, range) {
         if !map.is_inboard(&pos) {
             continue;
@@ -57,10 +61,6 @@ pub fn fov_closure(map: &Map<Terrain>, callback: &mut FnMut(&MapPos), origin: &M
             shadows.push(shadow);
         }
     }
-}
-
-pub fn fov(map: &Map<Terrain>, fow: &mut Map<bool>, origin: &MapPos) {
-    fov_closure(map, &mut |pos| { *fow.tile_mut(pos) = true; }, origin);
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

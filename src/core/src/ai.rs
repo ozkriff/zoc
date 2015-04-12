@@ -106,6 +106,7 @@ impl Ai {
                 if unit.attack_points <= 0 {
                     continue;
                 }
+                let unit_type = object_types.get_unit_type(&unit.type_id);
                 for (_, target) in self.state.units().iter() {
                     if target.player_id == self.id {
                         continue;
@@ -114,7 +115,7 @@ impl Ai {
                     if distance(&unit.pos, &target.pos) > max_distance {
                         continue;
                     }
-                    if !los(self.state.map(), &unit.pos, &target.pos) {
+                    if !los(self.state.map(), unit_type, &unit.pos, &target.pos) {
                         continue;
                     }
                     return Command::AttackUnit {

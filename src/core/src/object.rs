@@ -57,6 +57,8 @@ impl ObjectTypes {
             weapon_type_id: cannon_id,
             move_points: 5,
             attack_points: 2,
+            los_range: 6,
+            cover_los_range: 0,
         });
         self.unit_types.push(UnitType {
             name: "soldier".to_string(),
@@ -66,9 +68,25 @@ impl ObjectTypes {
             armor: 1,
             toughness: 2,
             weapon_skill: 5,
-            weapon_type_id: rifle_id,
-            move_points: 3,
+            weapon_type_id: rifle_id.clone(),
+            move_points: 4,
             attack_points: 2,
+            los_range: 6,
+            cover_los_range: 1,
+        });
+        self.unit_types.push(UnitType {
+            name: "scout".to_string(),
+            class: UnitClass::Infantry,
+            size: 4,
+            count: 2,
+            armor: 1,
+            toughness: 2,
+            weapon_skill: 5,
+            weapon_type_id: rifle_id.clone(),
+            move_points: 6,
+            attack_points: 2,
+            los_range: 8,
+            cover_los_range: 2,
         });
     }
 

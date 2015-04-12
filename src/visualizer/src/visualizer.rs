@@ -33,6 +33,7 @@ use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::command::{Command};
 use core::core::{Core, CoreEvent};
+use core::unit::{Unit};
 use core::object::{ObjectTypes};
 use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
@@ -219,8 +220,13 @@ fn get_unit_type_visual_info(
     let soldier_id = object_types.get_unit_type_id("soldier");
     let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
-        mesh_id: soldier_mesh_id,
+        mesh_id: soldier_mesh_id.clone(),
         move_speed: 2.0,
+    });
+    let scout_id = object_types.get_unit_type_id("scout");
+    manager.add_info(&scout_id, UnitTypeVisualInfo {
+        mesh_id: soldier_mesh_id.clone(),
+        move_speed: 3.0,
     });
     manager
 }
@@ -460,9 +466,17 @@ impl Visualizer {
         }
     }
 
+    pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
+        let unit_type = self.core.object_types()
+            .get_unit_type(&unit.type_id);
+        self.core.los(unit_type, from, to)
+    }
+
     fn attack_unit(&mut self) {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
             (Some(defender_id), Some(attacker_id)) => {
+                // TODO: rename this func to `try_to_attack_unit`
+                // TODO: extruct internal function `attack_unit`
                 let state = &self.player_info.get(self.core.player_id()).game_state;
                 let attacker = &state.units()[&attacker_id];
                 if attacker.attack_points <= 0 {
@@ -476,7 +490,7 @@ impl Visualizer {
                     println!("Out of range");
                     return;
                 }
-                if !self.core.los(&attacker.pos, &defender.pos) {
+                if !self.los(attacker, &attacker.pos, &defender.pos) {
                     println!("No LOS");
                     return;
                 }

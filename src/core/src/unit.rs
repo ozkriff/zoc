@@ -44,6 +44,8 @@ pub struct UnitType {
     pub weapon_type_id: WeaponTypeId,
     pub move_points: ZInt,
     pub attack_points: ZInt,
+    pub los_range: ZInt,
+    pub cover_los_range: ZInt,
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
