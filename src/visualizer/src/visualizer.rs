@@ -33,6 +33,7 @@ use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::command::{Command};
 use core::core::{Core, CoreEvent};
+use core::object::{ObjectTypes};
 use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
 use zgl::obj;
@@ -203,22 +204,25 @@ fn add_mesh(meshes: &mut Vec<Mesh>, mesh: Mesh) -> MeshId {
 }
 
 fn get_unit_type_visual_info(
+    object_types: &ObjectTypes,
     zgl: &Zgl,
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
+    let unit_types_count = object_types.get_unit_types_count();
+    let mut manager = UnitTypeVisualInfoManager::new(unit_types_count);
+    let tank_id = object_types.get_unit_type_id("tank");
     let tank_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "tank"));
-    let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
-    let mut unit_type_visual_info = UnitTypeVisualInfoManager::new();
-    // TODO: Add by name not by order
-    unit_type_visual_info.add_info(UnitTypeVisualInfo {
+    manager.add_info(&tank_id, UnitTypeVisualInfo {
         mesh_id: tank_mesh_id,
         move_speed: 3.8,
     });
-    unit_type_visual_info.add_info(UnitTypeVisualInfo {
+    let soldier_id = object_types.get_unit_type_id("soldier");
+    let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
+    manager.add_info(&soldier_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id,
         move_speed: 2.0,
     });
-    unit_type_visual_info
+    manager
 }
 
 struct PlayerInfo {
@@ -349,7 +353,7 @@ impl Visualizer {
             &mut meshes, get_marker(&zgl, &Path::new("flag2.png")));
 
         let unit_type_visual_info
-            = get_unit_type_visual_info(&zgl, &mut meshes);
+            = get_unit_type_visual_info(core.object_types(), &zgl, &mut meshes);
 
         let font_size = 40.0;
         let mut font_stash = FontStash::new(

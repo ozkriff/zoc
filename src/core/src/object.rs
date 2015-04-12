@@ -20,6 +20,10 @@ impl ObjectTypes {
         object_types
     }
 
+    pub fn get_unit_types_count(&self) -> ZInt {
+        self.unit_types.len() as ZInt
+    }
+
     // TODO: read from json/toml config
     fn get_weapon_types(&mut self) {
         self.weapon_types.push(WeaponType {
