@@ -3,50 +3,43 @@
 use common::types::{ZInt};
 use unit::{Unit, UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 
-// TODO: Rename?
-pub struct ObjectTypes {
-    unit_types: Vec<UnitType>,
-    weapon_types: Vec<WeaponType>,
+fn get_weapon_type_id(weapon_types: &Vec<WeaponType>, name: &str)
+    -> WeaponTypeId
+{
+    for (id, weapon_type) in weapon_types.iter().enumerate() {
+        if weapon_type.name == name {
+            return WeaponTypeId{id: id as ZInt};
+        }
+    }
+    panic!("No weapon type with name \"{}\"", name);
 }
 
-impl ObjectTypes {
-    pub fn new() -> ObjectTypes {
-        let mut object_types = ObjectTypes {
-            unit_types: vec![],
-            weapon_types: vec![],
-        };
-        object_types.get_weapon_types();
-        object_types.get_unit_types();
-        object_types
-    }
-
-    pub fn get_unit_types_count(&self) -> ZInt {
-        self.unit_types.len() as ZInt
-    }
-
-    // TODO: read from json/toml config
-    fn get_weapon_types(&mut self) {
-        self.weapon_types.push(WeaponType {
+// TODO: read from json/toml config
+fn get_weapon_types() -> Vec<WeaponType> {
+    vec![
+        WeaponType {
             name: "cannon".to_string(),
             damage: 9,
             ap: 9,
             accuracy: 5,
             max_distance: 5,
-        });
-        self.weapon_types.push(WeaponType {
+        },
+        WeaponType {
             name: "rifle".to_string(),
             damage: 2,
             ap: 1,
             accuracy: 5,
             max_distance: 3,
-        });
-    }
+        },
+    ]
+}
 
-    // TODO: read from json/toml config
-    fn get_unit_types(&mut self) {
-        let cannon_id = self.get_weapon_type_id("cannon");
-        let rifle_id = self.get_weapon_type_id("rifle");
-        self.unit_types.push(UnitType {
+// TODO: read from json/toml config
+fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
+    let cannon_id = get_weapon_type_id(weapon_types, "cannon");
+    let rifle_id = get_weapon_type_id(weapon_types, "rifle");
+    vec![
+        UnitType {
             name: "tank".to_string(),
             class: UnitClass::Vehicle,
             size: 6,
@@ -59,8 +52,8 @@ impl ObjectTypes {
             attack_points: 2,
             los_range: 6,
             cover_los_range: 0,
-        });
-        self.unit_types.push(UnitType {
+        },
+        UnitType {
             name: "soldier".to_string(),
             class: UnitClass::Infantry,
             size: 4,
@@ -73,8 +66,8 @@ impl ObjectTypes {
             attack_points: 2,
             los_range: 6,
             cover_los_range: 1,
-        });
-        self.unit_types.push(UnitType {
+        },
+        UnitType {
             name: "scout".to_string(),
             class: UnitClass::Infantry,
             size: 4,
@@ -87,7 +80,28 @@ impl ObjectTypes {
             attack_points: 2,
             los_range: 8,
             cover_los_range: 2,
-        });
+        },
+    ]
+}
+
+// TODO: Rename?
+pub struct ObjectTypes {
+    unit_types: Vec<UnitType>,
+    weapon_types: Vec<WeaponType>,
+}
+
+impl ObjectTypes {
+    pub fn new() -> ObjectTypes {
+        let weapon_types = get_weapon_types();
+        let unit_types = get_unit_types(&weapon_types);
+        ObjectTypes {
+            weapon_types: weapon_types,
+            unit_types: unit_types,
+        }
+    }
+
+    pub fn get_unit_types_count(&self) -> ZInt {
+        self.unit_types.len() as ZInt
     }
 
     fn get_unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
@@ -115,12 +129,7 @@ impl ObjectTypes {
     }
 
     pub fn get_weapon_type_id(&self, name: &str) -> WeaponTypeId {
-        for (id, weapon_type) in self.weapon_types.iter().enumerate() {
-            if weapon_type.name == name {
-                return WeaponTypeId{id: id as ZInt};
-            }
-        }
-        panic!("No weapon type with name \"{}\"", name);
+        get_weapon_type_id(&self.weapon_types, name)
     }
 
     pub fn get_unit_max_attack_dist(&self, unit: &Unit) -> ZInt {
