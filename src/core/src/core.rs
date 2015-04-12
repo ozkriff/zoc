@@ -113,7 +113,7 @@ pub struct Core {
     players: Vec<Player>,
     current_player_id: PlayerId,
     core_event_list: Vec<CoreEvent>,
-    pub object_types: ObjectTypes, // TODO: remove 'pub'
+    object_types: ObjectTypes,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
 }
