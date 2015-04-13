@@ -51,9 +51,9 @@ impl Ai {
                     None => continue,
                 };
                 let cost = path.total_cost().n;
-                if best_cost.is_some() {
-                    if best_cost.unwrap() > cost {
-                        best_cost = Some(cost);
+                if let Some(ref mut best_cost) = best_cost {
+                    if *best_cost > cost {
+                        *best_cost = cost;
                         best_pos = Some(destination.clone());
                     }
                 } else {

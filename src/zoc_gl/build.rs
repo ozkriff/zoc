@@ -12,9 +12,14 @@ const GENERATOR: gl_generator::StructGenerator = gl_generator::StructGenerator;
 const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStructGenerator;
 
 fn main() {
-    let dest = PathBuf::from(&std::env::var("OUT_DIR").unwrap());
-    let mut file = std::fs::File::create(&dest.join("gl_bindings.rs")).unwrap();
-    gl_generator::generate_bindings(
+    let out_dir = std::env::var("OUT_DIR")
+        .ok().expect("Can`t read OUT_DIR env var");
+    let dest = PathBuf::from(&out_dir);
+    let mut file = match std::fs::File::create(&dest.join("gl_bindings.rs")) {
+        Ok(file) => file,
+        Err(err) => panic!("Can`t create 'gl_bindings.rs' file: {}", err),
+    };
+    let generate_bindings_status = gl_generator::generate_bindings(
         GENERATOR,
         gl_generator::registry::Ns::Gles2,
         gl_generator::Fallbacks::None,
@@ -23,7 +28,10 @@ fn main() {
         "2.0",
         "core",
         &mut file,
-    ).unwrap();
+    );
+    if let Err(err) = generate_bindings_status {
+        panic!("Can`t generate gl bindings: {}", err);
+    }
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

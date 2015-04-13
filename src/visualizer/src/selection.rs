@@ -34,7 +34,8 @@ impl SelectionManager {
     }
 
     fn get_pos(&self, state: &GameState) -> WorldPos {
-        let unit_id = self.unit_id.as_ref().unwrap().clone();
+        let unit_id = self.unit_id.clone()
+            .expect("Can`t get pos if no unit is selected");
         let map_pos = state.units()[&unit_id].pos.clone();
         WorldPos{v: geom::lift(geom::map_pos_to_world_pos(&map_pos).v)}
     }

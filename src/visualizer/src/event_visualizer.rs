@@ -222,7 +222,9 @@ impl EventCreateUnitVisualizer {
         let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        scene.nodes.get_mut(&node_id).unwrap().pos = from.clone();
+        let new_node = scene.nodes.get_mut(&node_id)
+            .expect("Can`t find created scene node");
+        new_node.pos = from.clone();
         Box::new(EventCreateUnitVisualizer {
             id: id,
             move_helper: move_helper,

@@ -522,17 +522,18 @@ impl Visualizer {
     }
 
     fn move_unit(&mut self) {
-        let pos = self.clicked_pos.as_ref().unwrap();
+        let pos = self.clicked_pos.clone()
+            .expect("Can`t move unit if no pos is selected");
         let unit_id = match self.selected_unit_id {
             Some(ref unit_id) => unit_id.clone(),
             None => return,
         };
-        if self.is_tile_occupied(pos) {
+        if self.is_tile_occupied(&pos) {
             return;
         }
         let i = self.player_info.get_mut(self.core.player_id());
         let unit = &i.game_state.units()[&unit_id];
-        if let Some(path) = i.pathfinder.get_path(pos) {
+        if let Some(path) = i.pathfinder.get_path(&pos) {
             if path.total_cost(). n > unit.move_points {
                 println!("path cost > unit.move_points");
                 return;
@@ -944,9 +945,16 @@ impl Visualizer {
         let mut i = self.player_info.get_mut(self.core.player_id());
         let scene = &mut i.scene;
         let state = &mut i.game_state;
-        self.event_visualizer.as_mut().unwrap().end(scene, state);
-        state.apply_event(
-            self.core.object_types(), self.event.as_ref().unwrap());
+        if let Some(ref mut event_visualizer) = self.event_visualizer {
+            event_visualizer.end(scene, state);
+        } else {
+            panic!("end_event_visualization: self.event_visualizer == None");
+        }
+        if let Some(ref event) = self.event {
+            state.apply_event(self.core.object_types(), event);
+        } else {
+            panic!("end_event_visualization: self.event == None");
+        }
         self.event_visualizer = None;
         self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id {

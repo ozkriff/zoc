@@ -99,7 +99,8 @@ pub fn ring_iter(pos: &MapPos, radius: ZInt) -> RingIter {
     let mut pos = pos.clone();
     pos.v.x -= radius;
     let mut dir_iter = dirs();
-    let dir = dir_iter.next().unwrap();
+    let dir = dir_iter.next()
+        .expect("Can`t get first direction");
     assert_eq!(dir, Dir::SouthEast);
     RingIter {
         cursor: pos.clone(),
