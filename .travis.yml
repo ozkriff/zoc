@@ -1,12 +1,15 @@
 # See LICENSE file for copyright and license details.
 
 language: rust
+sudo: false
+
+addons:
+    apt:
+        packages:
+            - libxxf86vm-dev
+            - libxcursor-dev
 
 install:
-    # native deps
-    - sudo apt-get install libXxf86vm-dev libxcursor-dev
-
-    # assets
     - git clone --depth=1 https://github.com/ozkriff/zoc_assets assets
 
 script:
