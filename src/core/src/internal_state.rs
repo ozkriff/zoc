@@ -50,6 +50,7 @@ impl<'a> InternalState {
                 let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points;
                 unit.attack_points = unit_type.attack_points;
+                unit.morale += 10;
             }
         }
     }
@@ -82,6 +83,7 @@ impl<'a> InternalState {
             move_points: move_points,
             attack_points: attack_points,
             count: unit_type.count,
+            morale: 100,
         });
     }
 
@@ -112,11 +114,15 @@ impl<'a> InternalState {
                 ref attacker_id,
                 ref defender_id,
                 ref killed,
+                ref suppression,
                 ..
             } => {
-                self.units.get_mut(defender_id)
-                    .expect("Can`t find defender")
-                    .count -= *killed;
+                {
+                    let unit = self.units.get_mut(defender_id)
+                        .expect("Can`t find defender");
+                    unit.count -= *killed;
+                    unit.morale -= *suppression;
+                }
                 let count = self.units[defender_id].count.clone();
                 if count <= 0 {
                     assert!(self.units.get(defender_id).is_some());

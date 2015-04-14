@@ -266,6 +266,7 @@ impl EventAttackUnitVisualizer {
         attacker_id: UnitId,
         defender_id: UnitId,
         killed: ZInt,
+        suppression: ZInt,
         mode: core::FireMode,
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
@@ -296,6 +297,11 @@ impl EventAttackUnitVisualizer {
             map_text.add_text_to_world_pos(zgl, font_stash, &s, &defender_pos);
         } else {
             map_text.add_text_to_world_pos(zgl, font_stash, "miss", &defender_pos);
+        }
+        let defender_morale = state.units()[&defender_id].morale;
+        let is_target_suppressed = defender_morale < 50 && defender_morale + suppression >= 50;
+        if !is_target_destroyed && is_target_suppressed {
+            map_text.add_text_to_world_pos(zgl, font_stash, "suppressed", &defender_pos);
         }
         if let core::FireMode::Reactive = mode {
             map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);

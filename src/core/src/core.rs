@@ -37,6 +37,7 @@ pub enum CoreEvent {
         defender_id: UnitId,
         mode: FireMode,
         killed: ZInt,
+        suppression: ZInt,
     },
     ShowUnit {
         unit_id: UnitId,
@@ -306,12 +307,16 @@ impl Core {
         if !self.los(attacker_type, &attacker.pos, pos) {
             return events;
         }
+        if attacker.morale < 50 {
+            return events;
+        }
         let killed = self.get_killed_count(attacker, defender);
         events.push(CoreEvent::AttackUnit {
             attacker_id: attacker_id,
             defender_id: defender_id,
             killed: killed,
             mode: fire_mode,
+            suppression: 10 + 20 * killed,
         });
         events
     }
@@ -328,6 +333,9 @@ impl Core {
                 continue;
             }
             if enemy_unit.attack_points <= 0 {
+                continue;
+            }
+            if enemy_unit.morale < 50 {
                 continue;
             }
             let fow = &self.players_info[&enemy_unit.player_id].fow;

@@ -19,6 +19,7 @@ pub struct Unit {
     pub move_points: ZInt,
     pub attack_points: ZInt,
     pub count: ZInt,
+    pub morale: ZInt,
 }
 
 pub struct WeaponType {

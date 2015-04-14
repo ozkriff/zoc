@@ -480,6 +480,10 @@ impl Visualizer {
             println!("No attack points");
             return;
         }
+        if attacker.morale < 50 {
+            println!("Can`t attack when suppressed");
+            return;
+        }
         let defender = &state.units()[defender_id];
         let max_distance = self.core.db().unit_max_attack_dist(attacker);
         if distance(&attacker.pos, &defender.pos) > max_distance {
@@ -854,6 +858,7 @@ impl Visualizer {
                 ref attacker_id,
                 ref defender_id,
                 ref killed,
+                ref suppression,
                 ref mode,
             } => {
                 EventAttackUnitVisualizer::new(
@@ -863,6 +868,7 @@ impl Visualizer {
                     attacker_id.clone(),
                     defender_id.clone(),
                     killed.clone(),
+                    suppression.clone(),
                     mode.clone(),
                     self.mesh_ids.shell_mesh_id.clone(),
                     &mut self.map_text_manager,
