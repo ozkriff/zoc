@@ -595,13 +595,13 @@ impl Core {
                         &self.state.units,
                         &player.id
                     );
-                    let mut show_hide_events = show_or_hide_passive_enemies(
+                    let show_hide_events = show_or_hide_passive_enemies(
                         &self.state.units,
                         &active_unit_ids,
                         &i.visible_enemies,
                         &new_visible_enemies,
                     );
-                    i.events.append(&mut show_hide_events);
+                    i.events.extend(show_hide_events);
                     i.visible_enemies = new_visible_enemies;
                 }
             }
