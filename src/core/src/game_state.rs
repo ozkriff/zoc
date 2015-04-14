@@ -4,7 +4,7 @@ use std::collections::{HashMap};
 use common::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
 use core::{CoreEvent};
 use unit::{Unit};
-use object::{ObjectTypes};
+use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
 use fow::{Fow};
@@ -42,9 +42,9 @@ impl<'a> GameState {
         self.state.is_tile_occupied(pos)
     }
 
-    pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
-        self.state.apply_event(object_types, event);
-        self.fow.apply_event(object_types, &self.state, event);
+    pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
+        self.state.apply_event(db, event);
+        self.fow.apply_event(db, &self.state, event);
     }
 }
 

@@ -34,7 +34,7 @@ use core::pathfinder::Pathfinder;
 use core::command::{Command};
 use core::core::{Core, CoreEvent};
 use core::unit::{Unit};
-use core::object::{ObjectTypes};
+use core::db::{Db};
 use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
 use zgl::obj;
@@ -205,25 +205,25 @@ fn add_mesh(meshes: &mut Vec<Mesh>, mesh: Mesh) -> MeshId {
 }
 
 fn get_unit_type_visual_info(
-    object_types: &ObjectTypes,
+    db: &Db,
     zgl: &Zgl,
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
-    let unit_types_count = object_types.get_unit_types_count();
+    let unit_types_count = db.get_unit_types_count();
     let mut manager = UnitTypeVisualInfoManager::new(unit_types_count);
-    let tank_id = object_types.get_unit_type_id("tank");
+    let tank_id = db.get_unit_type_id("tank");
     let tank_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "tank"));
     manager.add_info(&tank_id, UnitTypeVisualInfo {
         mesh_id: tank_mesh_id,
         move_speed: 3.8,
     });
-    let soldier_id = object_types.get_unit_type_id("soldier");
+    let soldier_id = db.get_unit_type_id("soldier");
     let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id.clone(),
         move_speed: 2.0,
     });
-    let scout_id = object_types.get_unit_type_id("scout");
+    let scout_id = db.get_unit_type_id("scout");
     manager.add_info(&scout_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id.clone(),
         move_speed: 3.0,
@@ -359,7 +359,7 @@ impl Visualizer {
             &mut meshes, get_marker(&zgl, &Path::new("flag2.png")));
 
         let unit_type_visual_info
-            = get_unit_type_visual_info(core.object_types(), &zgl, &mut meshes);
+            = get_unit_type_visual_info(core.db(), &zgl, &mut meshes);
 
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
@@ -467,7 +467,7 @@ impl Visualizer {
     }
 
     pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
-        let unit_type = self.core.object_types()
+        let unit_type = self.core.db()
             .get_unit_type(&unit.type_id);
         self.core.los(unit_type, from, to)
     }
@@ -480,7 +480,7 @@ impl Visualizer {
             return;
         }
         let defender = &state.units()[defender_id];
-        let max_distance = self.core.object_types()
+        let max_distance = self.core.db()
             .get_unit_max_attack_dist(attacker);
         if distance(&attacker.pos, &defender.pos) > max_distance {
             println!("Out of range");
@@ -511,7 +511,7 @@ impl Visualizer {
             let mut i = self.player_info.get_mut(self.core.player_id());
             let state = &i.game_state;
             let pf = &mut i.pathfinder;
-            pf.fill_map(self.core.object_types(), state, &state.units()[unit_id]);
+            pf.fill_map(self.core.db(), state, &state.units()[unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(
                 &self.zgl, pf, state.map(), state.units()[unit_id].move_points));
             let scene = &mut i.scene;
@@ -951,7 +951,7 @@ impl Visualizer {
             panic!("end_event_visualization: self.event_visualizer == None");
         }
         if let Some(ref event) = self.event {
-            state.apply_event(self.core.object_types(), event);
+            state.apply_event(self.core.db(), event);
         } else {
             panic!("end_event_visualization: self.event == None");
         }
@@ -961,7 +961,7 @@ impl Visualizer {
             if let Some(unit) = state.units().get(selected_unit_id) {
                 // TODO: do this only if this is last unshowed CoreEvent
                 let pf = &mut i.pathfinder;
-                pf.fill_map(self.core.object_types(), state, unit);
+                pf.fill_map(self.core.db(), state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(
                     &self.zgl, pf, state.map(), unit.move_points));
                 self.selection_manager.create_selection_marker(

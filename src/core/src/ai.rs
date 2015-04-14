@@ -7,7 +7,7 @@ use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
 use command::{Command};
 use unit::{Unit};
-use object::{ObjectTypes};
+use db::{Db};
 use core::{CoreEvent, los};
 
 pub struct Ai {
@@ -25,8 +25,8 @@ impl Ai {
         }
     }
 
-    pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
-        self.state.apply_event(object_types, event);
+    pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
+        self.state.apply_event(db, event);
     }
 
     // TODO: move fill_map here
@@ -82,12 +82,12 @@ impl Ai {
         return path;
     }
 
-    fn is_close_to_enemies(&self, object_types: &ObjectTypes, unit: &Unit) -> bool {
+    fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
         for (_, target) in self.state.units().iter() {
             if target.player_id == self.id {
                 continue;
             }
-            let max_distance = object_types.get_unit_max_attack_dist(unit);
+            let max_distance = db.get_unit_max_attack_dist(unit);
             if distance(&unit.pos, &target.pos) <= max_distance {
                 return true;
             }
@@ -95,7 +95,7 @@ impl Ai {
         false
     }
 
-    pub fn get_command(&mut self, object_types: &ObjectTypes) -> Command {
+    pub fn get_command(&mut self, db: &Db) -> Command {
         // TODO: extract funcs
         {
             for (_, unit) in self.state.units().iter() {
@@ -106,12 +106,12 @@ impl Ai {
                 if unit.attack_points <= 0 {
                     continue;
                 }
-                let unit_type = object_types.get_unit_type(&unit.type_id);
+                let unit_type = db.get_unit_type(&unit.type_id);
                 for (_, target) in self.state.units().iter() {
                     if target.player_id == self.id {
                         continue;
                     }
-                    let max_distance = object_types.get_unit_max_attack_dist(unit);
+                    let max_distance = db.get_unit_max_attack_dist(unit);
                     if distance(&unit.pos, &target.pos) > max_distance {
                         continue;
                     }
@@ -130,10 +130,10 @@ impl Ai {
                 if unit.player_id != self.id {
                     continue;
                 }
-                if self.is_close_to_enemies(object_types, unit) {
+                if self.is_close_to_enemies(db, unit) {
                     continue;
                 }
-                self.pathfinder.fill_map(object_types, &self.state, unit);
+                self.pathfinder.fill_map(db, &self.state, unit);
                 let destination = match self.get_best_pos() {
                     Some(destination) => destination,
                     None => continue,

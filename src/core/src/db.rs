@@ -84,17 +84,16 @@ fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
     ]
 }
 
-// TODO: Rename?
-pub struct ObjectTypes {
+pub struct Db {
     unit_types: Vec<UnitType>,
     weapon_types: Vec<WeaponType>,
 }
 
-impl ObjectTypes {
-    pub fn new() -> ObjectTypes {
+impl Db {
+    pub fn new() -> Db {
         let weapon_types = get_weapon_types();
         let unit_types = get_unit_types(&weapon_types);
-        ObjectTypes {
+        Db {
             weapon_types: weapon_types,
             unit_types: unit_types,
         }

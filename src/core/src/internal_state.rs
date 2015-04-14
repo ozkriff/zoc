@@ -5,7 +5,7 @@ use cgmath::{Vector2};
 use common::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
 use core::{CoreEvent};
 use unit::{Unit, UnitTypeId};
-use object::{ObjectTypes};
+use db::{Db};
 use map::{Map, Terrain};
 
 pub struct InternalState {
@@ -44,10 +44,10 @@ impl<'a> InternalState {
         self.units_at(pos).len() > 0
     }
 
-    fn refresh_units(&mut self, object_types: &ObjectTypes, player_id: &PlayerId) {
+    fn refresh_units(&mut self, db: &Db, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
-                let unit_type = object_types.get_unit_type(&unit.type_id);
+                let unit_type = db.get_unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points;
                 unit.attack_points = unit_type.attack_points;
             }
@@ -64,14 +64,14 @@ impl<'a> InternalState {
 
     fn add_unit(
         &mut self,
-        object_types: &ObjectTypes,
+        db: &Db,
         unit_id: &UnitId,
         pos: &MapPos,
         type_id: &UnitTypeId,
         player_id: &PlayerId,
     ) {
         assert!(self.units.get(unit_id).is_none());
-        let unit_type = object_types.get_unit_type(type_id);
+        let unit_type = db.get_unit_type(type_id);
         let move_points = unit_type.move_points;
         let attack_points = unit_type.attack_points;
         self.units.insert(unit_id.clone(), Unit {
@@ -85,7 +85,7 @@ impl<'a> InternalState {
         });
     }
 
-    pub fn apply_event(&mut self, object_types: &ObjectTypes, event: &CoreEvent) {
+    pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
             &CoreEvent::Move{ref unit_id, ref path} => {
                 let pos = path.destination().clone();
@@ -97,7 +97,7 @@ impl<'a> InternalState {
                 assert!(unit.move_points >= 0);
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
-                self.refresh_units(object_types, new_id);
+                self.refresh_units(db, new_id);
                 self.add_passive_ap(old_id);
             },
             &CoreEvent::CreateUnit {
@@ -106,7 +106,7 @@ impl<'a> InternalState {
                 ref type_id,
                 ref player_id,
             } => {
-                self.add_unit(object_types, unit_id, pos, type_id, player_id);
+                self.add_unit(db, unit_id, pos, type_id, player_id);
             },
             &CoreEvent::AttackUnit {
                 ref attacker_id,
@@ -133,7 +133,7 @@ impl<'a> InternalState {
                 ref type_id,
                 ref player_id,
             } => {
-                self.add_unit(object_types, unit_id, pos, type_id, player_id);
+                self.add_unit(db, unit_id, pos, type_id, player_id);
             },
             &CoreEvent::HideUnit{ref unit_id} => {
                 assert!(self.units.get(unit_id).is_some());

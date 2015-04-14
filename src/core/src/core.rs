@@ -10,7 +10,7 @@ use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use command::{Command};
 use unit::{Unit, UnitType, UnitTypeId, WeaponTypeId, WeaponType, UnitClass};
-use object::{ObjectTypes};
+use db::{Db};
 use player::{Player};
 use ai::{Ai};
 use fow::{Fow};
@@ -59,14 +59,14 @@ fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
 }
 
 fn get_visible_enemies(
-    object_types: &ObjectTypes,
+    db: &Db,
     fow: &Fow,
     units: &HashMap<UnitId, Unit>,
     player_id: &PlayerId,
 ) -> HashSet<UnitId> {
     let mut visible_enemies = HashSet::new();
     for (id, unit) in units.iter() {
-        let unit_type = object_types.get_unit_type(&unit.type_id);
+        let unit_type = db.get_unit_type(&unit.type_id);
         if unit.player_id != *player_id && fow.is_visible(unit_type, &unit.pos) {
             visible_enemies.insert(id.clone());
         }
@@ -115,7 +115,7 @@ pub struct Core {
     players: Vec<Player>,
     current_player_id: PlayerId,
     core_event_list: Vec<CoreEvent>,
-    object_types: ObjectTypes,
+    db: Db,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
 }
@@ -164,7 +164,7 @@ impl Core {
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
             core_event_list: Vec::new(),
-            object_types: ObjectTypes::new(),
+            db: Db::new(),
             ai: Ai::new(&PlayerId{id:1}, &map_size),
             players_info: get_player_info_lists(&map_size),
         };
@@ -172,15 +172,15 @@ impl Core {
         core
     }
 
-    pub fn object_types(&self) -> &ObjectTypes {
-        &self.object_types
+    pub fn db(&self) -> &Db {
+        &self.db
     }
 
     // TODO: Move to scenario.json
     fn get_units(&mut self) {
-        let tank_id = self.object_types.get_unit_type_id("tank");
-        let soldier_id = self.object_types.get_unit_type_id("soldier");
-        let scout_id = self.object_types.get_unit_type_id("scout");
+        let tank_id = self.db.get_unit_type_id("tank");
+        let soldier_id = self.db.get_unit_type_id("soldier");
+        let scout_id = self.db.get_unit_type_id("scout");
         let p_id_0 = PlayerId{id: 0};
         let p_id_1 = PlayerId{id: 1};
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
@@ -221,7 +221,7 @@ impl Core {
     }
 
     pub fn get_weapon_type(&self, weapon_type_id: &WeaponTypeId) -> &WeaponType {
-        self.object_types.get_weapon_type(weapon_type_id)
+        self.db.get_weapon_type(weapon_type_id)
     }
 
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> ZInt {
@@ -229,7 +229,7 @@ impl Core {
         if !hit {
             return 0;
         }
-        let defender_type = self.object_types.get_unit_type(&defender.type_id);
+        let defender_type = self.db.get_unit_type(&defender.type_id);
         match defender_type.class {
             UnitClass::Infantry => {
                 clamp(thread_rng().gen_range(1, 5), 1, defender.count)
@@ -246,8 +246,8 @@ impl Core {
             result
         }
         // println!("");
-        let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
-        let defender_type = self.object_types.get_unit_type(&defender.type_id);
+        let attacker_type = self.db.get_unit_type(&attacker.type_id);
+        let defender_type = self.db.get_unit_type(&defender.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
         if distance(&attacker.pos, &defender.pos) > weapon_type.max_distance {
             return false;
@@ -304,7 +304,7 @@ impl Core {
         let mut events = Vec::new();
         let attacker = &self.state.units[&attacker_id];
         let defender = &self.state.units[&defender_id];
-        let attacker_type = self.object_types.get_unit_type(&attacker.type_id);
+        let attacker_type = self.db.get_unit_type(&attacker.type_id);
         let weapon_type = self.get_weapon_type(&attacker_type.weapon_type_id);
         if distance(&attacker.pos, pos) > weapon_type.max_distance {
             return events;
@@ -327,7 +327,7 @@ impl Core {
     {
         let mut events = Vec::new();
         let unit = &self.state.units[unit_id];
-        let unit_type = self.object_types.get_unit_type(&unit.type_id);
+        let unit_type = self.db.get_unit_type(&unit.type_id);
         for (_, enemy_unit) in self.state.units.iter() {
             // TODO: check if unit is still alive
             if enemy_unit.player_id == self.current_player_id {
@@ -340,12 +340,12 @@ impl Core {
             if !fow.is_visible(unit_type, pos) {
                 continue;
             }
-            let max_distance = self.object_types
+            let max_distance = self.db
                 .get_unit_max_attack_dist(enemy_unit);
             if distance(&enemy_unit.pos, pos) > max_distance {
                 continue;
             }
-            let enemy_type = self.object_types
+            let enemy_type = self.db
                 .get_unit_type(&enemy_unit.type_id);
             if !self.los(enemy_type, &enemy_unit.pos, pos) {
                 continue;
@@ -405,7 +405,7 @@ impl Core {
                 events.push(CoreEvent::CreateUnit {
                     unit_id: self.get_new_unit_id(),
                     pos: pos,
-                    type_id: self.object_types.get_unit_type_id("soldier"),
+                    type_id: self.db.get_unit_type_id("soldier"),
                     player_id: self.current_player_id.clone(),
                 });
             },
@@ -454,9 +454,9 @@ impl Core {
     fn do_ai(&mut self) {
         loop {
             while let Some(event) = self.get_event() {
-                self.ai.apply_event(&self.object_types, &event);
+                self.ai.apply_event(&self.db, &event);
             }
-            let command = self.ai.get_command(&self.object_types);
+            let command = self.ai.get_command(&self.db);
             self.do_command(command.clone());
             if let Command::EndTurn = command {
                 return;
@@ -500,7 +500,7 @@ impl Core {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = self.state.units.get(unit_id)
                     .expect("Can`t find moving unit");
-                let unit_type = self.object_types.get_unit_type(&unit.type_id);
+                let unit_type = self.db.get_unit_type(&unit.type_id);
                 if unit.player_id == *player_id {
                     events.push(event.clone())
                 } else {
@@ -549,7 +549,7 @@ impl Core {
                 ..
             } => {
                 let unit = &self.state.units[unit_id];
-                let unit_type = self.object_types.get_unit_type(&unit.type_id);
+                let unit_type = self.db.get_unit_type(&unit.type_id);
                 if *player_id == *new_unit_player_id || fow.is_visible(unit_type, pos) {
                     events.push(event.clone());
                     active_unit_ids.insert(unit_id.clone());
@@ -558,14 +558,14 @@ impl Core {
             &CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ..} => {
                 let attacker = self.state.units.get(attacker_id)
                     .expect("Can`t find attacker");
-                let attacker_type = self.object_types
+                let attacker_type = self.db
                     .get_unit_type(&attacker.type_id);
                 if !fow.is_visible(attacker_type, &attacker.pos) {
                     events.push(self.create_show_unit_event(&attacker));
                 }
                 // if defender is not dead...
                 if let Some(defender) = self.state.units.get(defender_id) {
-                    let defender_type = self.object_types
+                    let defender_type = self.db
                         .get_unit_type(&defender.type_id);
                     if !fow.is_visible(defender_type, &defender.pos) {
                         events.push(self.create_show_unit_event(&defender));
@@ -588,17 +588,17 @@ impl Core {
             if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
                 self.handle_end_turn_event(old_id, new_id);
             }
-            self.state.apply_event(&self.object_types, &event);
+            self.state.apply_event(&self.db, &event);
             for player in self.players.iter() {
                 let (filtered_events, active_unit_ids)
                     = self.filter_events(&player.id, &event);
                 for event in filtered_events {
                     let mut i = self.players_info.get_mut(&player.id)
                         .expect("core: Can`t get player`s info");
-                    i.fow.apply_event(&self.object_types, &self.state, &event);
+                    i.fow.apply_event(&self.db, &self.state, &event);
                     i.events.push_back(event);
                     let new_visible_enemies = get_visible_enemies(
-                        &self.object_types,
+                        &self.db,
                         &i.fow,
                         &self.state.units,
                         &player.id

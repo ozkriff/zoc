@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt, MapPos, Size2};
-use object::{ObjectTypes};
+use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
 use game_state::{GameState};
@@ -84,12 +84,12 @@ impl Pathfinder {
 
     fn tile_cost(
         &self,
-        object_types: &ObjectTypes,
+        db: &Db,
         state: &GameState,
         unit: &Unit,
         pos: &MapPos,
     ) -> MoveCost {
-        let unit_type = object_types.get_unit_type(&unit.type_id);
+        let unit_type = db.get_unit_type(&unit.type_id);
         let tile = state.map().tile(pos);
         let n = match unit_type.class {
             UnitClass::Infantry => match tile {
@@ -106,14 +106,14 @@ impl Pathfinder {
 
     fn process_neighbour_pos(
         &mut self,
-        object_types: &ObjectTypes,
+        db: &Db,
         state: &GameState,
         unit: &Unit,
         original_pos: &MapPos,
         neighbour_pos: &MapPos
     ) {
         let old_cost = self.map.tile(original_pos).cost.clone();
-        let tile_cost = self.tile_cost(object_types, state, unit, neighbour_pos);
+        let tile_cost = self.tile_cost(db, state, unit, neighbour_pos);
         let tile = self.map.tile_mut(neighbour_pos);
         let new_cost = MoveCost{n: old_cost.n + tile_cost.n};
         let units_count = state.units_at(neighbour_pos).len();
@@ -135,7 +135,7 @@ impl Pathfinder {
 
     fn try_to_push_neighbours(
         &mut self,
-        object_types: &ObjectTypes,
+        db: &Db,
         state: &GameState,
         unit: &Unit,
         pos: MapPos,
@@ -146,7 +146,7 @@ impl Pathfinder {
             let neighbour_pos = Dir::get_neighbour_pos(&pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {
                 self.process_neighbour_pos(
-                    object_types, state, unit, &pos, &neighbour_pos);
+                    db, state, unit, &pos, &neighbour_pos);
             }
         }
     }
@@ -158,13 +158,13 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, object_types: &ObjectTypes, state: &GameState, unit: &Unit) {
+    pub fn fill_map(&mut self, db: &Db, state: &GameState, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos.clone());
         while self.queue.len() != 0 {
             let pos = self.queue.remove(0);
-            self.try_to_push_neighbours(object_types, state, unit, pos);
+            self.try_to_push_neighbours(db, state, unit, pos);
         }
     }
 

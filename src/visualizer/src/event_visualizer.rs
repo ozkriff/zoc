@@ -184,7 +184,7 @@ fn get_unit_scene_nodes(
     type_id: &UnitTypeId,
     mesh_id: &MeshId,
 ) -> Vec<SceneNode> {
-    let count = core.object_types().get_unit_type(type_id).count;
+    let count = core.db().get_unit_type(type_id).count;
     let mut vec = Vec::new();
     if count == 1 {
         vec![SceneNode {

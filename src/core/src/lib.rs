@@ -9,7 +9,7 @@ extern crate common;
 pub mod geom;
 pub mod map;
 pub mod command;
-pub mod object;
+pub mod db;
 pub mod unit;
 pub mod dir;
 pub mod game_state;

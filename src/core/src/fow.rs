@@ -5,7 +5,7 @@ use core::{CoreEvent};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use fov::{fov};
-use object::{ObjectTypes};
+use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
 
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -17,22 +17,22 @@ pub enum TileVisibility {
 }
 
 pub fn fov_unit(
-    object_types: &ObjectTypes,
+    db: &Db,
     terrain: &Map<Terrain>,
     fow: &mut Map<TileVisibility>,
     unit: &Unit,
 ) {
-    fov_unit_in_pos(object_types, terrain, fow, unit, &unit.pos);
+    fov_unit_in_pos(db, terrain, fow, unit, &unit.pos);
 }
 
 pub fn fov_unit_in_pos(
-    object_types: &ObjectTypes,
+    db: &Db,
     terrain: &Map<Terrain>,
     fow: &mut Map<TileVisibility>,
     unit: &Unit,
     origin: &MapPos,
 ) {
-    let unit_type = object_types.get_unit_type(&unit.type_id);
+    let unit_type = db.get_unit_type(&unit.type_id);
     let range = &unit_type.los_range;
     fov(
         terrain,
@@ -102,18 +102,18 @@ impl Fow {
         }
     }
 
-    fn reset(&mut self, object_types: &ObjectTypes, state: &InternalState) {
+    fn reset(&mut self, db: &Db, state: &InternalState) {
         self.clear();
         for (_, unit) in state.units.iter() {
             if unit.player_id == self.player_id {
-                fov_unit(object_types, &state.map, &mut self.map, &unit);
+                fov_unit(db, &state.map, &mut self.map, &unit);
             }
         }
     }
 
     pub fn apply_event(
         &mut self,
-        object_types: &ObjectTypes,
+        db: &Db,
         state: &InternalState,
         event: &CoreEvent,
     ) {
@@ -125,19 +125,19 @@ impl Fow {
                     for path_node in path.nodes() {
                         let p = &path_node.pos;
                         fov_unit_in_pos(
-                            object_types, &state.map, &mut self.map, unit, p);
+                            db, &state.map, &mut self.map, unit, p);
                     }
                 }
             },
             &CoreEvent::EndTurn{ref new_id, ..} => {
                 if self.player_id == *new_id {
-                    self.reset(object_types, state);
+                    self.reset(db, state);
                 }
             },
             &CoreEvent::CreateUnit{ref unit_id, ref player_id, ..} => {
                 let unit = &state.units[unit_id];
                 if self.player_id == *player_id {
-                    fov_unit(object_types, &state.map, &mut self.map, unit);
+                    fov_unit(db, &state.map, &mut self.map, unit);
                 }
             },
             &CoreEvent::AttackUnit{..} => {},
