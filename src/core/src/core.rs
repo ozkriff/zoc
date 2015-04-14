@@ -104,7 +104,7 @@ fn show_or_hide_passive_enemies(
     events
 }
 
-pub struct PlayerInfo {
+struct PlayerInfo {
     events: LinkedList<CoreEvent>,
     fow: Fow,
     visible_enemies: HashSet<UnitId>,
