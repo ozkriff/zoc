@@ -3,7 +3,7 @@
 use common::types::{ZInt};
 use unit::{Unit, UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 
-fn get_weapon_type_id(weapon_types: &Vec<WeaponType>, name: &str)
+fn weapon_type_id(weapon_types: &Vec<WeaponType>, name: &str)
     -> WeaponTypeId
 {
     for (id, weapon_type) in weapon_types.iter().enumerate() {
@@ -36,8 +36,8 @@ fn get_weapon_types() -> Vec<WeaponType> {
 
 // TODO: read from json/toml config
 fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
-    let cannon_id = get_weapon_type_id(weapon_types, "cannon");
-    let rifle_id = get_weapon_type_id(weapon_types, "rifle");
+    let cannon_id = weapon_type_id(weapon_types, "cannon");
+    let rifle_id = weapon_type_id(weapon_types, "rifle");
     vec![
         UnitType {
             name: "tank".to_string(),
@@ -99,11 +99,11 @@ impl Db {
         }
     }
 
-    pub fn get_unit_types_count(&self) -> ZInt {
+    pub fn unit_types_count(&self) -> ZInt {
         self.unit_types.len() as ZInt
     }
 
-    fn get_unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
+    fn unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
         for (id, unit_type) in self.unit_types.iter().enumerate() {
             if unit_type.name == name {
                 return Some(UnitTypeId{id: id as ZInt});
@@ -112,27 +112,27 @@ impl Db {
         None
     }
 
-    pub fn get_unit_type<'a>(&'a self, unit_type_id: &UnitTypeId) -> &'a UnitType {
+    pub fn unit_type<'a>(&'a self, unit_type_id: &UnitTypeId) -> &'a UnitType {
         &self.unit_types[unit_type_id.id as usize]
     }
 
-    pub fn get_weapon_type<'a>(&'a self, type_id: &WeaponTypeId) -> &'a WeaponType {
+    pub fn weapon_type<'a>(&'a self, type_id: &WeaponTypeId) -> &'a WeaponType {
         &self.weapon_types[type_id.id as usize]
     }
 
-    pub fn get_unit_type_id(&self, name: &str) -> UnitTypeId {
-        match self.get_unit_type_id_opt(name) {
+    pub fn unit_type_id(&self, name: &str) -> UnitTypeId {
+        match self.unit_type_id_opt(name) {
             Some(id) => id,
             None => panic!("No unit type with name: \"{}\"", name),
         }
     }
 
-    pub fn get_weapon_type_id(&self, name: &str) -> WeaponTypeId {
-        get_weapon_type_id(&self.weapon_types, name)
+    pub fn weapon_type_id(&self, name: &str) -> WeaponTypeId {
+        weapon_type_id(&self.weapon_types, name)
     }
 
-    pub fn get_unit_max_attack_dist(&self, unit: &Unit) -> ZInt {
-        let attacker_type = self.get_unit_type(&unit.type_id);
+    pub fn unit_max_attack_dist(&self, unit: &Unit) -> ZInt {
+        let attacker_type = self.unit_type(&unit.type_id);
         let weapon_type = &self
             .weapon_types[attacker_type.weapon_type_id.id as usize];
         weapon_type.max_distance

@@ -209,21 +209,21 @@ fn get_unit_type_visual_info(
     zgl: &Zgl,
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
-    let unit_types_count = db.get_unit_types_count();
+    let unit_types_count = db.unit_types_count();
     let mut manager = UnitTypeVisualInfoManager::new(unit_types_count);
-    let tank_id = db.get_unit_type_id("tank");
+    let tank_id = db.unit_type_id("tank");
     let tank_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "tank"));
     manager.add_info(&tank_id, UnitTypeVisualInfo {
         mesh_id: tank_mesh_id,
         move_speed: 3.8,
     });
-    let soldier_id = db.get_unit_type_id("soldier");
+    let soldier_id = db.unit_type_id("soldier");
     let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id.clone(),
         move_speed: 2.0,
     });
-    let scout_id = db.get_unit_type_id("scout");
+    let scout_id = db.unit_type_id("scout");
     manager.add_info(&scout_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id.clone(),
         move_speed: 3.0,
@@ -467,8 +467,7 @@ impl Visualizer {
     }
 
     pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
-        let unit_type = self.core.db()
-            .get_unit_type(&unit.type_id);
+        let unit_type = self.core.db().unit_type(&unit.type_id);
         self.core.los(unit_type, from, to)
     }
 
@@ -480,8 +479,7 @@ impl Visualizer {
             return;
         }
         let defender = &state.units()[defender_id];
-        let max_distance = self.core.db()
-            .get_unit_max_attack_dist(attacker);
+        let max_distance = self.core.db().unit_max_attack_dist(attacker);
         if distance(&attacker.pos, &defender.pos) > max_distance {
             println!("Out of range");
             return;

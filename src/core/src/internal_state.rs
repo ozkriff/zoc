@@ -47,7 +47,7 @@ impl<'a> InternalState {
     fn refresh_units(&mut self, db: &Db, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
-                let unit_type = db.get_unit_type(&unit.type_id);
+                let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points;
                 unit.attack_points = unit_type.attack_points;
             }
@@ -71,7 +71,7 @@ impl<'a> InternalState {
         player_id: &PlayerId,
     ) {
         assert!(self.units.get(unit_id).is_none());
-        let unit_type = db.get_unit_type(type_id);
+        let unit_type = db.unit_type(type_id);
         let move_points = unit_type.move_points;
         let attack_points = unit_type.attack_points;
         self.units.insert(unit_id.clone(), Unit {

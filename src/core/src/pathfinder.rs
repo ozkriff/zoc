@@ -89,7 +89,7 @@ impl Pathfinder {
         unit: &Unit,
         pos: &MapPos,
     ) -> MoveCost {
-        let unit_type = db.get_unit_type(&unit.type_id);
+        let unit_type = db.unit_type(&unit.type_id);
         let tile = state.map().tile(pos);
         let n = match unit_type.class {
             UnitClass::Infantry => match tile {

@@ -87,7 +87,7 @@ impl Ai {
             if target.player_id == self.id {
                 continue;
             }
-            let max_distance = db.get_unit_max_attack_dist(unit);
+            let max_distance = db.unit_max_attack_dist(unit);
             if distance(&unit.pos, &target.pos) <= max_distance {
                 return true;
             }
@@ -106,12 +106,12 @@ impl Ai {
                 if unit.attack_points <= 0 {
                     continue;
                 }
-                let unit_type = db.get_unit_type(&unit.type_id);
+                let unit_type = db.unit_type(&unit.type_id);
                 for (_, target) in self.state.units().iter() {
                     if target.player_id == self.id {
                         continue;
                     }
-                    let max_distance = db.get_unit_max_attack_dist(unit);
+                    let max_distance = db.unit_max_attack_dist(unit);
                     if distance(&unit.pos, &target.pos) > max_distance {
                         continue;
                     }

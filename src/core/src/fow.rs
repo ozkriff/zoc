@@ -32,7 +32,7 @@ pub fn fov_unit_in_pos(
     unit: &Unit,
     origin: &MapPos,
 ) {
-    let unit_type = db.get_unit_type(&unit.type_id);
+    let unit_type = db.unit_type(&unit.type_id);
     let range = &unit_type.los_range;
     fov(
         terrain,
