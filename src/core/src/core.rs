@@ -114,7 +114,6 @@ pub struct Core {
     state: InternalState,
     players: Vec<Player>,
     current_player_id: PlayerId,
-    core_event_list: Vec<CoreEvent>,
     db: Db,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
@@ -163,7 +162,6 @@ impl Core {
             state: InternalState::new(&map_size),
             players: get_players_list(),
             current_player_id: PlayerId{id: 0},
-            core_event_list: Vec::new(),
             db: Db::new(),
             ai: Ai::new(&PlayerId{id:1}, &map_size),
             players_info: get_player_info_lists(&map_size),
@@ -440,11 +438,6 @@ impl Core {
         }
     }
 
-    fn do_core_event(&mut self, core_event: CoreEvent) {
-        self.core_event_list.push(core_event);
-        self.make_player_events();
-    }
-
     fn do_ai(&mut self) {
         loop {
             while let Some(event) = self.get_event() {
@@ -573,37 +566,33 @@ impl Core {
         (events, active_unit_ids)
     }
 
-    fn make_player_events(&mut self) {
-        while !self.core_event_list.is_empty() {
-            let event = self.core_event_list.pop()
-                .expect("core_event_list is empty");
-            if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
-                self.handle_end_turn_event(old_id, new_id);
-            }
-            self.state.apply_event(&self.db, &event);
-            for player in self.players.iter() {
-                let (filtered_events, active_unit_ids)
-                    = self.filter_events(&player.id, &event);
-                for event in filtered_events {
-                    let mut i = self.players_info.get_mut(&player.id)
-                        .expect("core: Can`t get player`s info");
-                    i.fow.apply_event(&self.db, &self.state, &event);
-                    i.events.push_back(event);
-                    let new_visible_enemies = get_visible_enemies(
-                        &self.db,
-                        &i.fow,
-                        &self.state.units,
-                        &player.id
-                    );
-                    let show_hide_events = show_or_hide_passive_enemies(
-                        &self.state.units,
-                        &active_unit_ids,
-                        &i.visible_enemies,
-                        &new_visible_enemies,
-                    );
-                    i.events.extend(show_hide_events);
-                    i.visible_enemies = new_visible_enemies;
-                }
+    fn do_core_event(&mut self, event: CoreEvent) {
+        if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
+            self.handle_end_turn_event(old_id, new_id);
+        }
+        self.state.apply_event(&self.db, &event);
+        for player in self.players.iter() {
+            let (filtered_events, active_unit_ids)
+                = self.filter_events(&player.id, &event);
+            let mut i = self.players_info.get_mut(&player.id)
+                .expect("core: Can`t get player`s info");
+            for event in filtered_events {
+                i.fow.apply_event(&self.db, &self.state, &event);
+                i.events.push_back(event);
+                let new_visible_enemies = get_visible_enemies(
+                    &self.db,
+                    &i.fow,
+                    &self.state.units,
+                    &player.id
+                );
+                let show_hide_events = show_or_hide_passive_enemies(
+                    &self.state.units,
+                    &active_unit_ids,
+                    &i.visible_enemies,
+                    &new_visible_enemies,
+                );
+                i.events.extend(show_hide_events);
+                i.visible_enemies = new_visible_enemies;
             }
         }
     }
