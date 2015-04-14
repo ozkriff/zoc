@@ -283,7 +283,7 @@ impl Core {
         i.events.pop_front()
     }
 
-    pub fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
+    fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
         los(&self.state.map, unit_type, from, to)
     }
 

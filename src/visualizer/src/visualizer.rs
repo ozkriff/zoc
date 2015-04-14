@@ -32,7 +32,7 @@ use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::command::{Command};
-use core::core::{Core, CoreEvent};
+use core::core::{Core, CoreEvent, los};
 use core::unit::{Unit};
 use core::db::{Db};
 use picker::{TilePicker, PickResult};
@@ -468,7 +468,9 @@ impl Visualizer {
 
     pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
         let unit_type = self.core.db().unit_type(&unit.type_id);
-        self.core.los(unit_type, from, to)
+        let i = self.player_info.get(self.core.player_id());
+        let map = i.game_state.map();
+        los(map, unit_type, from, to)
     }
 
     fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
