@@ -499,7 +499,7 @@ impl Visualizer {
     fn try_to_attack_unit(&mut self) {
         match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
             (Some(defender_id), Some(attacker_id)) => {
-                self.attack_unit(&defender_id, &attacker_id)
+                self.attack_unit(&attacker_id, &defender_id)
             },
             _ => {},
         }
