@@ -32,7 +32,7 @@ impl Ai {
     // TODO: move fill_map here
     fn get_best_pos(&self) -> Option<MapPos> {
         let mut best_pos = None;
-        let mut best_cost: Option<ZInt> = None;
+        let mut best_cost = None;
         for (_, enemy) in self.state.units().iter() {
             if enemy.player_id == self.id {
                 continue;
