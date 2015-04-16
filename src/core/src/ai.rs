@@ -33,7 +33,7 @@ impl Ai {
     fn get_best_pos(&self) -> Option<MapPos> {
         let mut best_pos = None;
         let mut best_cost = None;
-        for (_, enemy) in self.state.units().iter() {
+        for (_, enemy) in self.state.units() {
             if enemy.player_id == self.id {
                 continue;
             }
@@ -83,7 +83,7 @@ impl Ai {
     }
 
     fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
-        for (_, target) in self.state.units().iter() {
+        for (_, target) in self.state.units() {
             if target.player_id == self.id {
                 continue;
             }
@@ -96,7 +96,7 @@ impl Ai {
     }
 
     pub fn try_get_move_command(&mut self, db: &Db) -> Option<Command> {
-        for (_, unit) in self.state.units().iter() {
+        for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
             }
@@ -105,7 +105,7 @@ impl Ai {
                 continue;
             }
             let unit_type = db.unit_type(&unit.type_id);
-            for (_, target) in self.state.units().iter() {
+            for (_, target) in self.state.units() {
                 if target.player_id == self.id {
                     continue;
                 }
@@ -126,7 +126,7 @@ impl Ai {
     }
 
     pub fn try_get_attack_command(&mut self, db: &Db) -> Option<Command> {
-        for (_, unit) in self.state.units().iter() {
+        for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
             }

@@ -115,7 +115,7 @@ impl Model {
 
     pub fn build(&self) -> Vec<VertexCoord> {
         let mut mesh = Vec::new();
-        for face in self.faces.iter() {
+        for face in &self.faces {
             for i in 0 .. 3 {
                 let vertex_id = face.vertex[i] as usize - 1;
                 mesh.push(self.coords[vertex_id].clone());
@@ -126,7 +126,7 @@ impl Model {
 
     pub fn build_tex_coord(&self) -> Vec<TextureCoord> {
         let mut tex_coords = Vec::new();
-        for face in self.faces.iter() {
+        for face in &self.faces {
             for i in 0 .. 3 {
                 let texture_coord_id = face.texture[i] as usize - 1;
                 tex_coords.push(self.texture_coords[texture_coord_id].clone());

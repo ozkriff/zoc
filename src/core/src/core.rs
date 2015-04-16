@@ -66,7 +66,7 @@ fn get_visible_enemies(
     player_id: &PlayerId,
 ) -> HashSet<UnitId> {
     let mut visible_enemies = HashSet::new();
-    for (id, unit) in units.iter() {
+    for (id, unit) in units {
         let unit_type = db.unit_type(&unit.type_id);
         if unit.player_id != *player_id && fow.is_visible(unit_type, &unit.pos) {
             visible_enemies.insert(id.clone());
@@ -327,7 +327,7 @@ impl Core {
         let mut events = Vec::new();
         let unit = &self.state.units[unit_id];
         let unit_type = self.db.unit_type(&unit.type_id);
-        for (_, enemy_unit) in self.state.units.iter() {
+        for (_, enemy_unit) in &self.state.units {
             // TODO: check if unit is still alive
             if enemy_unit.player_id == self.current_player_id {
                 continue;
@@ -460,7 +460,7 @@ impl Core {
     }
 
     fn handle_end_turn_event(&mut self, old_id: &PlayerId, new_id: &PlayerId) {
-        for player in self.players.iter() {
+        for player in &self.players {
             if player.id == *new_id {
                 if self.current_player_id == *old_id {
                     self.current_player_id = player.id.clone();
@@ -579,7 +579,7 @@ impl Core {
             self.handle_end_turn_event(old_id, new_id);
         }
         self.state.apply_event(&self.db, &event);
-        for player in self.players.iter() {
+        for player in &self.players {
             let (filtered_events, active_unit_ids)
                 = self.filter_events(&player.id, &event);
             let mut i = self.players_info.get_mut(&player.id)

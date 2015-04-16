@@ -63,12 +63,12 @@ impl MapTextManager {
 
     fn delete_old(&mut self) {
         let mut bad_keys = Vec::new();
-        for (key, map_text) in self.meshes.iter() {
+        for (key, map_text) in &self.meshes {
             if map_text.move_helper.is_finished() {
                 bad_keys.push(*key);
             }
         }
-        for key in bad_keys.iter() {
+        for key in &bad_keys {
             self.meshes.remove(key);
         }
     }

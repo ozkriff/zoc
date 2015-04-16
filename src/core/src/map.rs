@@ -205,7 +205,7 @@ mod tests {
         let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
         let expected = [
             (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 0) ];
-        let mut expected = expected.iter();
+        let mut expected = expected;
         for p in ring_iter(&start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");
@@ -232,7 +232,7 @@ mod tests {
             (-1, 1),
             (-2, 0),
         ];
-        let mut expected = expected.iter();
+        let mut expected = expected;
         for p in ring_iter(&start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");
@@ -267,7 +267,7 @@ mod tests {
             (-1, 1),
             (-2, 0),
         ];
-        let mut expected = expected.iter();
+        let mut expected = expected;
         for p in spiral_iter(&start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");

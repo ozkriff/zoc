@@ -53,7 +53,7 @@ pub struct TilePicker {
 
 fn tile_color(state: &GameState, pos: &MapPos) -> Color3 {
     let mut unit = None;
-    for (_, unit2) in state.units().iter() {
+    for (_, unit2) in state.units() {
         if unit2.pos == *pos {
             unit = Some(unit2);
         }

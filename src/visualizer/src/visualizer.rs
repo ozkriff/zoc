@@ -706,8 +706,8 @@ impl Visualizer {
             return;
         }
         // println!("{:?}", events);
-        for event in events.iter() {
-            self.handle_event(event);
+        for event in events {
+            self.handle_event(&event);
         }
     }
 
@@ -728,13 +728,13 @@ impl Visualizer {
             let id = mesh_id.id as usize;
             self.meshes[id].draw(&self.zgl, &self.shader);
         }
-        for node in node.children.iter() {
+        for node in &node.children {
             self.draw_scene_node(node, m);
         }
     }
 
     fn draw_scene_nodes(&self) {
-        for (_, node) in self.scene().nodes.iter() {
+        for (_, node) in &self.scene().nodes {
             self.draw_scene_node(node, self.camera.mat(&self.zgl));
         }
     }

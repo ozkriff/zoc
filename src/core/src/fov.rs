@@ -15,7 +15,7 @@ struct Shadow {
 }
 
 fn is_tile_visible(angle: ZFloat, shadows: &Vec<Shadow>) -> bool {
-    for shadow in shadows.iter() {
+    for shadow in shadows {
         if shadow.left < angle && shadow.right > angle {
             return false;
         }

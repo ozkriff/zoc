@@ -83,7 +83,7 @@ impl ButtonManager {
     ) -> Option<ButtonId> {
         let x = mouse_pos.v.x;
         let y = win_size.h - mouse_pos.v.y;
-        for (id, button) in self.buttons().iter() {
+        for (id, button) in self.buttons() {
             if x >= button.pos().v.x
                 && x <= button.pos().v.x + button.size().w
                 && y >= button.pos().v.y
@@ -104,7 +104,7 @@ impl ButtonManager {
         mvp_mat_id: &MatId,
     ) {
         let m = zgl.get_2d_screen_matrix(win_size);
-        for (_, button) in self.buttons().iter() {
+        for (_, button) in self.buttons() {
             let text_offset = Vector3 {
                 x: button.pos().v.x as ZFloat,
                 y: button.pos().v.y as ZFloat,

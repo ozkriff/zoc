@@ -104,7 +104,7 @@ impl Fow {
 
     fn reset(&mut self, db: &Db, state: &InternalState) {
         self.clear();
-        for (_, unit) in state.units.iter() {
+        for (_, unit) in &state.units {
             if unit.player_id == self.player_id {
                 fov_unit(db, &state.map, &mut self.map, &unit);
             }

@@ -31,7 +31,7 @@ impl<'a> InternalState {
 
     pub fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
         let mut units = Vec::new();
-        for (_, unit) in self.units.iter() {
+        for (_, unit) in &self.units {
             if unit.pos == *pos {
                 units.push(unit);
             }
