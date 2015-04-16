@@ -95,61 +95,70 @@ impl Ai {
         false
     }
 
+    pub fn try_get_move_command(&mut self, db: &Db) -> Option<Command> {
+        for (_, unit) in self.state.units().iter() {
+            if unit.player_id != self.id {
+                continue;
+            }
+            // println!("id: {}, ap: {}", unit.id.id, unit.attack_points);
+            if unit.attack_points <= 0 {
+                continue;
+            }
+            let unit_type = db.unit_type(&unit.type_id);
+            for (_, target) in self.state.units().iter() {
+                if target.player_id == self.id {
+                    continue;
+                }
+                let max_distance = db.unit_max_attack_dist(unit);
+                if distance(&unit.pos, &target.pos) > max_distance {
+                    continue;
+                }
+                if !los(self.state.map(), unit_type, &unit.pos, &target.pos) {
+                    continue;
+                }
+                return Some(Command::AttackUnit {
+                    attacker_id: unit.id.clone(),
+                    defender_id: target.id.clone(),
+                });
+            }
+        }
+        None
+    }
+
+    pub fn try_get_attack_command(&mut self, db: &Db) -> Option<Command> {
+        for (_, unit) in self.state.units().iter() {
+            if unit.player_id != self.id {
+                continue;
+            }
+            if self.is_close_to_enemies(db, unit) {
+                continue;
+            }
+            self.pathfinder.fill_map(db, &self.state, unit);
+            let destination = match self.get_best_pos() {
+                Some(destination) => destination,
+                None => continue,
+            };
+            let path = match self.pathfinder.get_path(&destination) {
+                Some(path) => path,
+                None => continue,
+            };
+            if unit.move_points == 0 {
+                continue;
+            }
+            let path = self.truncate_path(path, unit.move_points);
+            return Some(Command::Move{unit_id: unit.id.clone(), path: path});
+        }
+        None
+    }
+
     pub fn get_command(&mut self, db: &Db) -> Command {
-        // TODO: extract funcs
-        {
-            for (_, unit) in self.state.units().iter() {
-                if unit.player_id != self.id {
-                    continue;
-                }
-                // println!("id: {}, ap: {}", unit.id.id, unit.attack_points);
-                if unit.attack_points <= 0 {
-                    continue;
-                }
-                let unit_type = db.unit_type(&unit.type_id);
-                for (_, target) in self.state.units().iter() {
-                    if target.player_id == self.id {
-                        continue;
-                    }
-                    let max_distance = db.unit_max_attack_dist(unit);
-                    if distance(&unit.pos, &target.pos) > max_distance {
-                        continue;
-                    }
-                    if !los(self.state.map(), unit_type, &unit.pos, &target.pos) {
-                        continue;
-                    }
-                    return Command::AttackUnit {
-                        attacker_id: unit.id.clone(),
-                        defender_id: target.id.clone(),
-                    };
-                }
-            }
+        if let Some(cmd) = self.try_get_move_command(db) {
+            cmd
+        } else if let Some(cmd) = self.try_get_attack_command(db) {
+            cmd
+        } else {
+            Command::EndTurn
         }
-        {
-            for (_, unit) in self.state.units().iter() {
-                if unit.player_id != self.id {
-                    continue;
-                }
-                if self.is_close_to_enemies(db, unit) {
-                    continue;
-                }
-                self.pathfinder.fill_map(db, &self.state, unit);
-                let destination = match self.get_best_pos() {
-                    Some(destination) => destination,
-                    None => continue,
-                };
-                let path = match self.pathfinder.get_path(&destination) {
-                    Some(path) => path,
-                    None => continue,
-                };
-                if unit.move_points == 0 {
-                    continue;
-                }
-                let path = self.truncate_path(path, unit.move_points);
-                return Command::Move{unit_id: unit.id.clone(), path: path};
-            }
-        }
-        return Command::EndTurn;
     }
 }
 
