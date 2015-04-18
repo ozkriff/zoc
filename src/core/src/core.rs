@@ -483,11 +483,9 @@ impl Core {
     }
 
     // TODO: add unit/functional tests
-    fn filter_events(
-        &self,
-        player_id: &PlayerId,
-        event: &CoreEvent,
-    ) -> (Vec<CoreEvent>, HashSet<UnitId>) {
+    fn filter_events(&self, player_id: &PlayerId, event: &CoreEvent)
+        -> (Vec<CoreEvent>, HashSet<UnitId>)
+    {
         let mut active_unit_ids = HashSet::new();
         let mut events = vec![];
         let fow = &self.players_info[player_id].fow;
@@ -500,6 +498,14 @@ impl Core {
                     events.push(event.clone())
                 } else {
                     let len = path.nodes().len();
+                    let mut sub_path = Vec::new();
+                    let first_pos = path.nodes()[0].pos.clone();
+                    if fow.is_visible(unit_type, &first_pos) {
+                        sub_path.push(PathNode {
+                            cost: MoveCost{n: 0},
+                            pos: first_pos,
+                        });
+                    }
                     for i in 1 .. len {
                         let prev_node = path.nodes()[i - 1].clone();
                         let next_node = path.nodes()[i].clone();
@@ -515,22 +521,27 @@ impl Core {
                             });
                         }
                         if prev_vis || next_vis {
-                            // TODO: concatenate move events
-                            let new_nodes = vec![
-                                // TODO: fix move cost hack
-                                PathNode{cost: MoveCost{n: 0}, pos: prev_node.pos.clone()},
-                                PathNode{cost: MoveCost{n: 0}, pos: next_node.pos.clone()},
-                            ];
-                            events.push(CoreEvent::Move {
-                                unit_id: unit.id.clone(),
-                                path: MapPath::new(new_nodes),
+                            sub_path.push(PathNode {
+                                cost: MoveCost{n: 0},
+                                pos: next_node.pos.clone(),
                             });
                         }
                         if prev_vis && !next_vis {
+                            events.push(CoreEvent::Move {
+                                unit_id: unit.id.clone(),
+                                path: MapPath::new(sub_path.clone()),
+                            });
+                            sub_path.clear();
                             events.push(CoreEvent::HideUnit {
                                 unit_id: unit.id.clone(),
                             });
                         }
+                    }
+                    if sub_path.len() != 0 {
+                        events.push(CoreEvent::Move {
+                            unit_id: unit.id.clone(),
+                            path: MapPath::new(sub_path),
+                        });
                     }
                 }
             },
