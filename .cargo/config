@@ -1,3 +1,3 @@
 # TODO: write about building apk-builder in README
 [target.arm-linux-androideabi]
-linker = "deps/android-rs-glue/apk-builder/target/apk-builder"
+linker = "deps/android-rs-glue/apk-builder/target/debug/apk-builder"
