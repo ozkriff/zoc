@@ -69,6 +69,7 @@ static VS_SRC: &'static str = "\
     varying vec2 texture_coordinates;\n\
     void main() {\n\
         gl_Position = mvp_mat * vec4(position, 1.0);\n\
+        gl_PointSize = 2.0;\n\
         texture_coordinates = in_texture_coordinates;\n\
     }\n\
 ";
