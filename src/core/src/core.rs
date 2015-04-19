@@ -482,6 +482,89 @@ impl Core {
         }
     }
 
+    fn filter_attack_event(
+        &self,
+        player_id: &PlayerId,
+        attacker_id: &UnitId,
+        defender_id: &UnitId,
+    ) -> Vec<CoreEvent> {
+        let fow = &self.players_info[player_id].fow;
+        let mut events = vec![];
+        let attacker = self.state.units.get(attacker_id)
+            .expect("Can`t find attacker");
+        let attacker_type = self.db.unit_type(&attacker.type_id);
+        if !fow.is_visible(attacker_type, &attacker.pos) {
+            events.push(self.create_show_unit_event(&attacker));
+        }
+        // if defender is not dead...
+        if let Some(defender) = self.state.units.get(defender_id) {
+            let defender_type = self.db.unit_type(&defender.type_id);
+            if !fow.is_visible(defender_type, &defender.pos) {
+                events.push(self.create_show_unit_event(&defender));
+            }
+        }
+        events
+    }
+
+    fn filter_move_event(
+        &self,
+        player_id: &PlayerId,
+        unit_id: &UnitId,
+        path: &MapPath,
+    ) -> Vec<CoreEvent> {
+        let mut events = vec![];
+        let unit = self.state.units.get(unit_id)
+            .expect("Can`t find moving unit");
+        let fow = &self.players_info[player_id].fow;
+        let unit_type = self.db.unit_type(&unit.type_id);
+        let len = path.nodes().len();
+        let mut sub_path = Vec::new();
+        let first_pos = path.nodes()[0].pos.clone();
+        if fow.is_visible(unit_type, &first_pos) {
+            sub_path.push(PathNode {
+                cost: MoveCost{n: 0},
+                pos: first_pos,
+            });
+        }
+        for i in 1 .. len {
+            let prev_node = path.nodes()[i - 1].clone();
+            let next_node = path.nodes()[i].clone();
+            let prev_vis = fow.is_visible(unit_type, &prev_node.pos);
+            let next_vis = fow.is_visible(unit_type, &next_node.pos);
+            if !prev_vis && next_vis {
+                events.push(CoreEvent::ShowUnit {
+                    unit_id: unit.id.clone(),
+                    pos: prev_node.pos.clone(),
+                    type_id: unit.type_id.clone(),
+                    player_id: unit.player_id.clone(),
+                });
+            }
+            if prev_vis || next_vis {
+                sub_path.push(PathNode {
+                    cost: MoveCost{n: 0},
+                    pos: next_node.pos.clone(),
+                });
+            }
+            if prev_vis && !next_vis {
+                events.push(CoreEvent::Move {
+                    unit_id: unit.id.clone(),
+                    path: MapPath::new(sub_path.clone()),
+                });
+                sub_path.clear();
+                events.push(CoreEvent::HideUnit {
+                    unit_id: unit.id.clone(),
+                });
+            }
+        }
+        if sub_path.len() != 0 {
+            events.push(CoreEvent::Move {
+                unit_id: unit.id.clone(),
+                path: MapPath::new(sub_path),
+            });
+        }
+        events
+    }
+
     // TODO: add unit/functional tests
     fn filter_events(&self, player_id: &PlayerId, event: &CoreEvent)
         -> (Vec<CoreEvent>, HashSet<UnitId>)
@@ -493,56 +576,13 @@ impl Core {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = self.state.units.get(unit_id)
                     .expect("Can`t find moving unit");
-                let unit_type = self.db.unit_type(&unit.type_id);
                 if unit.player_id == *player_id {
                     events.push(event.clone())
                 } else {
-                    let len = path.nodes().len();
-                    let mut sub_path = Vec::new();
-                    let first_pos = path.nodes()[0].pos.clone();
-                    if fow.is_visible(unit_type, &first_pos) {
-                        sub_path.push(PathNode {
-                            cost: MoveCost{n: 0},
-                            pos: first_pos,
-                        });
-                    }
-                    for i in 1 .. len {
-                        let prev_node = path.nodes()[i - 1].clone();
-                        let next_node = path.nodes()[i].clone();
-                        let prev_vis = fow.is_visible(unit_type, &prev_node.pos);
-                        let next_vis = fow.is_visible(unit_type, &next_node.pos);
-                        active_unit_ids.insert(unit.id.clone());
-                        if !prev_vis && next_vis {
-                            events.push(CoreEvent::ShowUnit {
-                                unit_id: unit.id.clone(),
-                                pos: prev_node.pos.clone(),
-                                type_id: unit.type_id.clone(),
-                                player_id: unit.player_id.clone(),
-                            });
-                        }
-                        if prev_vis || next_vis {
-                            sub_path.push(PathNode {
-                                cost: MoveCost{n: 0},
-                                pos: next_node.pos.clone(),
-                            });
-                        }
-                        if prev_vis && !next_vis {
-                            events.push(CoreEvent::Move {
-                                unit_id: unit.id.clone(),
-                                path: MapPath::new(sub_path.clone()),
-                            });
-                            sub_path.clear();
-                            events.push(CoreEvent::HideUnit {
-                                unit_id: unit.id.clone(),
-                            });
-                        }
-                    }
-                    if sub_path.len() != 0 {
-                        events.push(CoreEvent::Move {
-                            unit_id: unit.id.clone(),
-                            path: MapPath::new(sub_path),
-                        });
-                    }
+                    let filtered_events = self.filter_move_event(
+                        player_id, unit_id, path);
+                    events.extend(filtered_events);
+                    active_unit_ids.insert(unit_id.clone());
                 }
             },
             &CoreEvent::EndTurn{..} => {
@@ -556,25 +596,17 @@ impl Core {
             } => {
                 let unit = &self.state.units[unit_id];
                 let unit_type = self.db.unit_type(&unit.type_id);
-                if *player_id == *new_unit_player_id || fow.is_visible(unit_type, pos) {
+                if *player_id == *new_unit_player_id
+                    || fow.is_visible(unit_type, pos)
+                {
                     events.push(event.clone());
                     active_unit_ids.insert(unit_id.clone());
                 }
             },
             &CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ..} => {
-                let attacker = self.state.units.get(attacker_id)
-                    .expect("Can`t find attacker");
-                let attacker_type = self.db.unit_type(&attacker.type_id);
-                if !fow.is_visible(attacker_type, &attacker.pos) {
-                    events.push(self.create_show_unit_event(&attacker));
-                }
-                // if defender is not dead...
-                if let Some(defender) = self.state.units.get(defender_id) {
-                    let defender_type = self.db.unit_type(&defender.type_id);
-                    if !fow.is_visible(defender_type, &defender.pos) {
-                        events.push(self.create_show_unit_event(&defender));
-                    }
-                }
+                let filtered_events = self.filter_attack_event(
+                    player_id, attacker_id, defender_id);
+                events.extend(filtered_events);
                 active_unit_ids.insert(attacker_id.clone());
                 active_unit_ids.insert(defender_id.clone());
                 events.push(event.clone());
