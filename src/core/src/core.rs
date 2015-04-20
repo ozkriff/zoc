@@ -538,6 +538,10 @@ impl Core {
                     type_id: unit.type_id.clone(),
                     player_id: unit.player_id.clone(),
                 });
+                sub_path.push(PathNode {
+                    cost: MoveCost{n: 0},
+                    pos: prev_node.pos.clone(),
+                });
             }
             if prev_vis || next_vis {
                 sub_path.push(PathNode {
