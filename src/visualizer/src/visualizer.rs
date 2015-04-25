@@ -279,6 +279,7 @@ pub struct Visualizer {
     camera: Camera,
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
+    is_rmb_pressed: bool,
     win_size: Size2<ZInt>,
     picker: TilePicker,
     clicked_pos: Option<MapPos>,
@@ -389,6 +390,7 @@ impl Visualizer {
             camera: camera,
             mouse_pos: ScreenPos{v: Vector::from_value(0)},
             is_lmb_pressed: false,
+            is_rmb_pressed: false,
             win_size: win_size,
             picker: picker,
             clicked_pos: None,
@@ -551,28 +553,45 @@ impl Visualizer {
         }
     }
 
+    fn handle_camera_move(&mut self, pos: &ScreenPos) {
+        let diff = pos.v - self.mouse_pos.v;
+        let per_x_pixel = CAMERA_MOVE_SPEED / (self.win_size.w as ZFloat);
+        let per_y_pixel = CAMERA_MOVE_SPEED / (self.win_size.h as ZFloat);
+        self.camera.move_camera(
+            rad(PI), diff.x as ZFloat * per_x_pixel);
+        self.camera.move_camera(
+            rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
+    }
+
+    fn handle_camera_rotate(&mut self, pos: &ScreenPos) {
+        let diff = pos.v - self.mouse_pos.v;
+        let per_x_pixel = PI / (self.win_size.w as ZFloat);
+        // TODO: get max angles from camera
+        let per_y_pixel = (PI / 4.0) / (self.win_size.h as ZFloat);
+        self.camera.add_horizontal_angle(
+            rad(diff.x as ZFloat * per_x_pixel));
+        self.camera.add_vertical_angle(
+            rad(diff.y as ZFloat * per_y_pixel));
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
+        if self.is_lmb_pressed {
+            self.handle_camera_move(pos);
+        } else if self.is_rmb_pressed {
+            self.handle_camera_rotate(pos);
+        }
+    }
+
+    #[cfg(target_os = "android")]
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
         if !self.is_lmb_pressed {
             return;
         }
-        let diff = pos.v - self.mouse_pos.v;
-        let win_w = self.win_size.w as ZFloat;
-        let win_h = self.win_size.h as ZFloat;
         if self.last_press_pos.v.x > self.win_size.w / 2 {
-            let per_x_pixel = PI / win_w;
-            // TODO: get max angles from camera
-            let per_y_pixel = (PI / 4.0) / win_h;
-            self.camera.add_horizontal_angle(
-                rad(diff.x as ZFloat * per_x_pixel));
-            self.camera.add_vertical_angle(
-                rad(diff.y as ZFloat * per_y_pixel));
+            self.handle_camera_rotate(pos);
         } else {
-            let per_x_pixel = CAMERA_MOVE_SPEED / win_w;
-            let per_y_pixel = CAMERA_MOVE_SPEED / win_h;
-            self.camera.move_camera(
-                rad(PI), diff.x as ZFloat * per_x_pixel);
-            self.camera.move_camera(
-                rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
+            self.handle_camera_move(pos);
         }
     }
 
@@ -684,6 +703,12 @@ impl Visualizer {
             },
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_released();
+            },
+            Event::MouseInput(Pressed, MouseButton::Right) => {
+                self.is_rmb_pressed = true;
+            },
+            Event::MouseInput(Released, MouseButton::Right) => {
+                self.is_rmb_pressed = false;
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
