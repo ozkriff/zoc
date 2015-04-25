@@ -14,18 +14,19 @@ use move_helper::{MoveHelper};
 struct MapText {
     move_helper: MoveHelper,
     mesh: Mesh,
-    scale: ZFloat, // TODO: move this field to MapTextManager struct?
 }
 
 pub struct MapTextManager {
     meshes: HashMap<ZInt, MapText>,
+    scale: ZFloat,
     i: ZInt,
 }
 
 impl MapTextManager {
-    pub fn new() -> Self {
+    pub fn new(font_stash: &mut FontStash) -> Self {
         MapTextManager {
             meshes: HashMap::new(),
+            scale: 0.5 / font_stash.get_size(),
             i: 0,
         }
     }
@@ -55,7 +56,6 @@ impl MapTextManager {
         self.meshes.insert(self.i, MapText {
             mesh: mesh,
             move_helper: MoveHelper::new(from, &to, 1.0),
-            scale: 0.5 / font_stash.get_size(),
         });
         self.i += 1;
     }
@@ -88,7 +88,7 @@ impl MapTextManager {
             let pos = map_text.move_helper.step(dtime);
             let m = camera.mat(zgl);
             let m = zgl.tr(m, &pos.v);
-            let m = zgl.scale(m, map_text.scale);
+            let m = zgl.scale(m, self.scale);
             let m = zgl.rot_z(m, camera.get_z_angle());
             let m = zgl.rot_x(m, camera.get_x_angle());
             shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);

@@ -379,6 +379,7 @@ impl Visualizer {
             marker_1_mesh_id: marker_1_mesh_id,
             marker_2_mesh_id: marker_2_mesh_id,
         };
+        let map_text_manager = MapTextManager::new(&mut font_stash);
         let mut visualizer = Visualizer {
             zgl: zgl,
             window: window,
@@ -409,7 +410,7 @@ impl Visualizer {
             selected_unit_id: None,
             selection_manager: SelectionManager::new(selection_marker_mesh_id),
             walkable_mesh: None,
-            map_text_manager: MapTextManager::new(),
+            map_text_manager: map_text_manager,
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
