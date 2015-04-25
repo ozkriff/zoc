@@ -594,11 +594,6 @@ impl Visualizer {
             VirtualKeyCode::A | VirtualKeyCode::Left => {
                 self.camera.move_camera(rad(PI), s);
             },
-            VirtualKeyCode::K => {
-                if let Some(ref clicked_pos) = self.clicked_pos {
-                    self.map_text_manager.add_text(clicked_pos, "TEST");
-                }
-            },
             VirtualKeyCode::U => {
                 self.create_unit();
             },
