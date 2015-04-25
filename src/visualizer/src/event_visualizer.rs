@@ -9,8 +9,6 @@ use core::core;
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
 use zgl::mesh::{MeshId};
-use zgl::font_stash::{FontStash};
-use zgl::zgl::{Zgl};
 use zgl::types::{Time, WorldPos};
 use geom;
 use scene::{
@@ -260,7 +258,6 @@ pub struct EventAttackUnitVisualizer {
 
 impl EventAttackUnitVisualizer {
     pub fn new(
-        zgl: &Zgl,
         state: &GameState,
         scene: &mut Scene,
         attacker_id: UnitId,
@@ -270,7 +267,6 @@ impl EventAttackUnitVisualizer {
         mode: core::FireMode,
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
-        font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
         let defender_node_id = unit_id_to_node_id(&defender_id);
         let defender_pos = scene.nodes.get(&defender_node_id)
@@ -292,19 +288,27 @@ impl EventAttackUnitVisualizer {
             MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
         };
         let is_target_destroyed = state.units()[&defender_id].count - killed <= 0;
+        let defender_map_pos = state.units()[&defender_id].pos.clone();
+        let attacker_map_pos = state.units()[&attacker_id].pos.clone();
         if killed > 0 {
-            let s = format!("-{}", killed);
-            map_text.add_text_to_world_pos(zgl, font_stash, &s, &defender_pos);
+            map_text.add_text(&defender_map_pos, &format!("-{}", killed));
         } else {
-            map_text.add_text_to_world_pos(zgl, font_stash, "miss", &defender_pos);
+            map_text.add_text(&defender_map_pos, "miss");
         }
         let defender_morale = state.units()[&defender_id].morale;
-        let is_target_suppressed = defender_morale < 50 && defender_morale + suppression >= 50;
-        if !is_target_destroyed && is_target_suppressed {
-            map_text.add_text_to_world_pos(zgl, font_stash, "suppressed", &defender_pos);
+        let is_target_suppressed = defender_morale < 50
+            && defender_morale + suppression >= 50;
+        if !is_target_destroyed {
+            map_text.add_text(
+                &defender_map_pos,
+                &format!("morale: -{}", suppression),
+            );
+            if is_target_suppressed {
+                map_text.add_text(&defender_map_pos, "suppressed");
+            }
         }
         if let core::FireMode::Reactive = mode {
-            map_text.add_text_to_world_pos(zgl, font_stash, "reaction fire", &attacker_pos);
+            map_text.add_text(&attacker_map_pos, "reaction fire");
         }
         Box::new(EventAttackUnitVisualizer {
             defender_id: defender_id,
@@ -361,7 +365,6 @@ pub struct EventShowUnitVisualizer;
 impl EventShowUnitVisualizer {
     pub fn new(
         core: &core::Core,
-        zgl: &Zgl,
         scene: &mut Scene,
         id: UnitId,
         type_id: &UnitTypeId,
@@ -369,11 +372,9 @@ impl EventShowUnitVisualizer {
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
         map_text: &mut MapTextManager,
-        font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
+        map_text.add_text(&pos, "spotted");
         show_unit_at(core, scene, &id, type_id, pos, mesh_id, marker_mesh_id);
-        let world_pos = geom::map_pos_to_world_pos(pos);
-        map_text.add_text_to_world_pos(zgl, font_stash, "spotted", &world_pos);
         Box::new(EventShowUnitVisualizer)
     }
 }
@@ -393,14 +394,13 @@ pub struct EventHideUnitVisualizer;
 impl EventHideUnitVisualizer {
     pub fn new(
         scene: &mut Scene,
+        state: &GameState,
         unit_id: &UnitId,
-        zgl: &Zgl,
         map_text: &mut MapTextManager,
-        font_stash: &mut FontStash,
     ) -> Box<EventVisualizer> {
+        let pos = state.units()[unit_id].pos.clone();
+        map_text.add_text(&pos, "lost");
         let unit_node_id = unit_id_to_node_id(&unit_id);
-        let world_pos = scene.nodes[&unit_node_id].pos.clone();
-        map_text.add_text_to_world_pos(zgl, font_stash, "lost", &world_pos);
         scene.nodes.remove(&unit_node_id);
         scene.nodes.remove(&marker_id(&unit_id));
         Box::new(EventHideUnitVisualizer)

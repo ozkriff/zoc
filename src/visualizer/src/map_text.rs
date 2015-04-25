@@ -1,65 +1,84 @@
 // See LICENSE file for copyright and license details.
 
-use std::collections::{HashMap};
+use std::collections::{HashMap, VecDeque};
 use common::types::{ZInt, ZFloat, MapPos};
 use zgl::zgl::{Zgl};
 use zgl::mesh::{Mesh};
 use zgl::camera::Camera;
 use zgl::shader::{Shader};
 use zgl::font_stash::{FontStash};
-use zgl::types::{Time, WorldPos};
+use zgl::types::{Time};
 use geom;
 use move_helper::{MoveHelper};
+
+struct ShowTextCommand {
+    pos: MapPos,
+    text: String,
+}
 
 struct MapText {
     move_helper: MoveHelper,
     mesh: Mesh,
+    pos: MapPos,
 }
 
 pub struct MapTextManager {
-    meshes: HashMap<ZInt, MapText>,
+    commands: VecDeque<ShowTextCommand>,
+    meshes: HashMap<ZInt, MapText>, // TODO: rename
     scale: ZFloat,
-    i: ZInt,
+    i: ZInt, // TODO: rename
 }
 
 impl MapTextManager {
     pub fn new(font_stash: &mut FontStash) -> Self {
         MapTextManager {
+            commands: VecDeque::new(),
             meshes: HashMap::new(),
             scale: 0.5 / font_stash.get_size(),
             i: 0,
         }
     }
 
-    pub fn add_text(
-        &mut self,
-        zgl: &Zgl,
-        font_stash: &mut FontStash,
-        text: &str,
-        pos: &MapPos,
-    ) {
-        let pos = geom::map_pos_to_world_pos(pos);
-        self.add_text_to_world_pos(zgl, font_stash, text, &pos);
-    }
-
-    pub fn add_text_to_world_pos(
-        &mut self,
-        zgl: &Zgl,
-        font_stash: &mut FontStash,
-        text: &str,
-        pos: &WorldPos,
-    ) {
-        let from = pos;
-        let mut to = from.clone();
-        to.v.z += 2.0;
-        let mesh = font_stash.get_mesh(zgl, text, 1.0, true);
-        self.meshes.insert(self.i, MapText {
-            mesh: mesh,
-            move_helper: MoveHelper::new(from, &to, 1.0),
+    pub fn add_text(&mut self, pos: &MapPos, text: &str) {
+        self.commands.push_back(ShowTextCommand {
+            pos: pos.clone(),
+            text: text.to_string(),
         });
-        self.i += 1;
     }
 
+    fn can_show_text_here(&self, pos: &MapPos) -> bool {
+        let min_progress = 0.3;
+        for (_, map_text) in &self.meshes {
+            let progress = map_text.move_helper.progress();
+            if map_text.pos == *pos && progress < min_progress {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn do_commands(&mut self, zgl: &Zgl, font_stash: &mut FontStash) {
+        let mut postponed_commands = Vec::new();
+        while !self.commands.is_empty() {
+            let command = self.commands.pop_front()
+                .expect("MapTextManager: Can`t get next command");
+            if !self.can_show_text_here(&command.pos) {
+                postponed_commands.push(command);
+                continue;
+            }
+            let from = geom::map_pos_to_world_pos(&command.pos);
+            let mut to = from.clone();
+            to.v.z += 2.0;
+            let mesh = font_stash.get_mesh(zgl, &command.text, 1.0, true);
+            self.meshes.insert(self.i, MapText {
+                pos: command.pos.clone(),
+                mesh: mesh,
+                move_helper: MoveHelper::new(&from, &to, 1.0),
+            });
+            self.i += 1;
+        }
+        self.commands.extend(postponed_commands);
+    }
 
     fn delete_old(&mut self) {
         let mut bad_keys = Vec::new();
@@ -79,7 +98,9 @@ impl MapTextManager {
         camera: &Camera,
         shader: &Shader,
         dtime: &Time,
+        font_stash: &mut FontStash,
     ) {
+        self.do_commands(zgl, font_stash);
         // use gl; // TODO: ???
         // unsafe {
         //     zgl.gl.Disable(gl::DEPTH_TEST);

@@ -27,6 +27,10 @@ impl MoveHelper {
         }
     }
 
+    pub fn progress(&self) -> ZFloat {
+        self.current_dist / self.dist
+    }
+
     pub fn is_finished(&self) -> bool {
         self.current_dist >= self.dist
     }

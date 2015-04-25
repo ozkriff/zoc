@@ -596,12 +596,7 @@ impl Visualizer {
             },
             VirtualKeyCode::K => {
                 if let Some(ref clicked_pos) = self.clicked_pos {
-                    self.map_text_manager.add_text(
-                        &self.zgl,
-                        &mut self.font_stash,
-                        "TEST",
-                        clicked_pos,
-                    );
+                    self.map_text_manager.add_text(clicked_pos, "TEST");
                 }
             },
             VirtualKeyCode::U => {
@@ -781,7 +776,7 @@ impl Visualizer {
         self.shader.set_uniform_color(
             &self.zgl, &self.basic_color_id, &zgl::BLACK);
         self.map_text_manager.draw(
-            &self.zgl, &self.camera, &self.shader, &self.dtime);
+            &self.zgl, &self.camera, &self.shader, &self.dtime, &mut self.font_stash);
         self.button_manager.draw(
             &self.zgl,
             &self.win_size,
@@ -864,7 +859,6 @@ impl Visualizer {
                 ref mode,
             } => {
                 EventAttackUnitVisualizer::new(
-                    &self.zgl,
                     state,
                     scene,
                     attacker_id.clone(),
@@ -874,7 +868,6 @@ impl Visualizer {
                     mode.clone(),
                     self.mesh_ids.shell_mesh_id.clone(),
                     &mut self.map_text_manager,
-                    &mut self.font_stash,
                 )
             },
             &CoreEvent::ShowUnit {
@@ -886,7 +879,6 @@ impl Visualizer {
                 let mesh_id = &self.unit_type_visual_info.get(type_id).mesh_id;
                 EventShowUnitVisualizer::new(
                     &self.core,
-                    &self.zgl,
                     scene,
                     unit_id.clone(),
                     type_id,
@@ -894,16 +886,14 @@ impl Visualizer {
                     mesh_id,
                     get_marker_mesh_id(&self.mesh_ids, player_id),
                     &mut self.map_text_manager,
-                    &mut self.font_stash,
                 )
             },
             &CoreEvent::HideUnit{ref unit_id} => {
                 EventHideUnitVisualizer::new(
                     scene,
+                    state,
                     unit_id,
-                    &self.zgl,
                     &mut self.map_text_manager,
-                    &mut self.font_stash,
                 )
             },
         }
