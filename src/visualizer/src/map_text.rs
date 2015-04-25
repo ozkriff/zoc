@@ -24,18 +24,18 @@ struct MapText {
 
 pub struct MapTextManager {
     commands: VecDeque<ShowTextCommand>,
-    meshes: HashMap<ZInt, MapText>, // TODO: rename
+    visible_labels_list: HashMap<ZInt, MapText>,
     scale: ZFloat,
-    i: ZInt, // TODO: rename
+    last_label_id: ZInt, // TODO: think about better way of deleting old labels
 }
 
 impl MapTextManager {
     pub fn new(font_stash: &mut FontStash) -> Self {
         MapTextManager {
             commands: VecDeque::new(),
-            meshes: HashMap::new(),
+            visible_labels_list: HashMap::new(),
             scale: 0.5 / font_stash.get_size(),
-            i: 0,
+            last_label_id: 0,
         }
     }
 
@@ -48,7 +48,7 @@ impl MapTextManager {
 
     fn can_show_text_here(&self, pos: &MapPos) -> bool {
         let min_progress = 0.3;
-        for (_, map_text) in &self.meshes {
+        for (_, map_text) in &self.visible_labels_list {
             let progress = map_text.move_helper.progress();
             if map_text.pos == *pos && progress < min_progress {
                 return false;
@@ -70,25 +70,25 @@ impl MapTextManager {
             let mut to = from.clone();
             to.v.z += 2.0;
             let mesh = font_stash.get_mesh(zgl, &command.text, 1.0, true);
-            self.meshes.insert(self.i, MapText {
+            self.visible_labels_list.insert(self.last_label_id, MapText {
                 pos: command.pos.clone(),
                 mesh: mesh,
                 move_helper: MoveHelper::new(&from, &to, 1.0),
             });
-            self.i += 1;
+            self.last_label_id += 1;
         }
         self.commands.extend(postponed_commands);
     }
 
     fn delete_old(&mut self) {
         let mut bad_keys = Vec::new();
-        for (key, map_text) in &self.meshes {
+        for (key, map_text) in &self.visible_labels_list {
             if map_text.move_helper.is_finished() {
                 bad_keys.push(*key);
             }
         }
         for key in &bad_keys {
-            self.meshes.remove(key);
+            self.visible_labels_list.remove(key);
         }
     }
 
@@ -103,7 +103,7 @@ impl MapTextManager {
         self.do_commands(zgl, font_stash);
         // TODO: I'm not sure that disabling depth test is correct solution
         zgl.set_depth_test(false);
-        for (_, map_text) in self.meshes.iter_mut() {
+        for (_, map_text) in self.visible_labels_list.iter_mut() {
             let pos = map_text.move_helper.step(dtime);
             let m = camera.mat(zgl);
             let m = zgl.tr(m, &pos.v);
