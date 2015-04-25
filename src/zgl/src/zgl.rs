@@ -45,10 +45,7 @@ impl Zgl {
     }
 
     pub fn init_opengl(&self) {
-        unsafe {
-            self.gl.Enable(gl::DEPTH_TEST);
-        }
-        self.check();
+        self.set_depth_test(true);
         unsafe {
             self.gl.Enable(gl::BLEND);
         }
@@ -70,6 +67,17 @@ impl Zgl {
     pub fn set_clear_color(&mut self, color: &Color3) {
         unsafe {
             self.gl.ClearColor(color.r, color.g, color.b, 1.0);
+        }
+        self.check();
+    }
+
+    pub fn set_depth_test(&self, enable: bool) {
+        unsafe {
+            if enable {
+                self.gl.Enable(gl::DEPTH_TEST);
+            } else {
+                self.gl.Disable(gl::DEPTH_TEST);
+            }
         }
         self.check();
     }

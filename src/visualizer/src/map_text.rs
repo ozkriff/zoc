@@ -101,10 +101,8 @@ impl MapTextManager {
         font_stash: &mut FontStash,
     ) {
         self.do_commands(zgl, font_stash);
-        // use gl; // TODO: ???
-        // unsafe {
-        //     zgl.gl.Disable(gl::DEPTH_TEST);
-        // }
+        // TODO: I'm not sure that disabling depth test is correct solution
+        zgl.set_depth_test(false);
         for (_, map_text) in self.meshes.iter_mut() {
             let pos = map_text.move_helper.step(dtime);
             let m = camera.mat(zgl);
@@ -115,9 +113,7 @@ impl MapTextManager {
             shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);
             map_text.mesh.draw(zgl, shader);
         }
-        // unsafe {
-        //     zgl.gl.Enable(gl::DEPTH_TEST);
-        // }
+        zgl.set_depth_test(true);
         self.delete_old();
     }
 }
