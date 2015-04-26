@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(std_misc, str_words, str_char)] // TODO
+#![feature(std_misc, str_char)] // TODO
 
 extern crate num;
 extern crate rand;

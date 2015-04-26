@@ -2,7 +2,7 @@
 
 use std::io::{BufRead};
 use std::path::{Path};
-use std::str::{Words, Split, FromStr};
+use std::str::{SplitWhitespace, Split, FromStr};
 use cgmath::{Vector3, Vector2};
 use common::types::{ZInt, ZFloat};
 use common::fs;
@@ -21,7 +21,7 @@ pub struct Model {
     faces: Vec<Face>,
 }
 
-fn parse_word<T: FromStr>(words: &mut Words) -> T {
+fn parse_word<T: FromStr>(words: &mut SplitWhitespace) -> T {
     let str = words.next().expect("Can not read next word");
     str.parse().ok().expect("Can not convert from string")
 }
@@ -43,7 +43,7 @@ impl Model {
         obj
     }
 
-    fn read_v(words: &mut Words) -> VertexCoord {
+    fn read_v(words: &mut SplitWhitespace) -> VertexCoord {
         VertexCoord{v: Vector3 {
             x: parse_word(words),
             // y: parse_word(words), // TODO: flip models
@@ -52,7 +52,7 @@ impl Model {
         }}
     }
 
-    fn read_vn(words: &mut Words) -> Normal {
+    fn read_vn(words: &mut SplitWhitespace) -> Normal {
         Normal{v: Vector3 {
             x: parse_word(words),
             y: parse_word(words),
@@ -60,14 +60,14 @@ impl Model {
         }}
     }
 
-    fn read_vt(words: &mut Words) -> TextureCoord {
+    fn read_vt(words: &mut SplitWhitespace) -> TextureCoord {
         TextureCoord{v: Vector2 {
             x: parse_word(words),
             y: 1.0 - parse_word::<ZFloat>(words), // flip
         }}
     }
 
-    fn read_f(words: &mut Words) -> Face {
+    fn read_f(words: &mut SplitWhitespace) -> Face {
         let mut face = Face {
             vertex: [0, 0, 0],
             texture: [0, 0, 0],
@@ -85,7 +85,7 @@ impl Model {
     }
 
     fn read_line(&mut self, line: &str) {
-        let mut words = line.words();
+        let mut words = line.split_whitespace();
         fn is_correct_tag(tag: &str) -> bool {
             tag.len() != 0 && tag.char_at(0) != '#'
         }
