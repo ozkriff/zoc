@@ -2,6 +2,7 @@
 
 #![feature(std_misc, str_words, str_char)] // TODO
 
+extern crate num;
 extern crate rand;
 extern crate libc;
 extern crate time;

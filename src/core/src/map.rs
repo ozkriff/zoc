@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::iter::{repeat};
-use std::num::{Float, SignedInt};
+use num::{Float};
 use cgmath::{Vector};
 use common::types::{Size2, ZInt, MapPos};
 use dir::{Dir, DirIter, dirs};

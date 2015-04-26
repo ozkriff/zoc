@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI};
-use std::num::{Float};
+use num::{Float};
 use cgmath::{Vector3, Vector, Rad, Angle, rad};
 use common::types::{ZInt, ZFloat, MapPos};
 use zgl::types::{VertexCoord, WorldPos};

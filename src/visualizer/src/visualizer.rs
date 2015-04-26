@@ -1,12 +1,11 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI};
+use num::{Float};
 use rand::{thread_rng, Rng};
 use std::path::{Path, PathBuf};
-use std::num::{Float};
 use time::precise_time_ns;
 use std::collections::{HashMap};
-use std::num::{SignedInt};
 use cgmath::{Vector, Vector2, Vector3, rad, Matrix4};
 use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};

@@ -14,3 +14,4 @@ path = "../common"
 [dependencies]
 cgmath = "*"
 rand = "*"
+num = "*"

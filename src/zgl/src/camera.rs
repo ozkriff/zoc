@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI};
-use std::num::{Float};
+use num::{Float};
 use cgmath::{perspective, rad, Matrix4, Vector, Vector3, Rad};
 use common::types::{ZInt, Size2, ZFloat};
 use common::misc::{clamp};
@@ -59,8 +59,8 @@ impl Camera {
 
     pub fn add_vertical_angle(&mut self, angle: Rad<ZFloat>) {
         self.x_angle = self.x_angle + angle;
-        let min = rad(10.0.to_radians());
-        let max = rad(50.0.to_radians());
+        let min = rad(10.0f32.to_radians());
+        let max = rad(50.0f32.to_radians());
         self.x_angle = clamp(self.x_angle, min, max);
     }
 

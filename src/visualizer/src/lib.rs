@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+extern crate num;
 extern crate rand;
 extern crate time;
 extern crate cgmath;

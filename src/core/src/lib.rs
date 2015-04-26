@@ -2,6 +2,7 @@
 
 #![feature(core, collections)] // TODO
 
+extern crate num;
 extern crate cgmath;
 extern crate rand;
 extern crate common;
