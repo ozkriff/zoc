@@ -87,7 +87,7 @@ impl Model {
     fn read_line(&mut self, line: &str) {
         let mut words = line.split_whitespace();
         fn is_correct_tag(tag: &str) -> bool {
-            tag.len() != 0 && tag.char_at(0) != '#'
+            tag.len() != 0 && !tag.starts_with("#")
         }
         match words.next() {
             Some(tag) if is_correct_tag(tag) => {
