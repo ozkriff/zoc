@@ -54,7 +54,7 @@ pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Rad<ZFloat> {
 #[cfg(test)]
 mod tests {
     use std::f32::consts::{PI};
-    use std::num::{Float};
+    use num::{Float};
     use cgmath::{Vector3};
     use common::types::{ZFloat};
     use zgl::types::{WorldPos};
