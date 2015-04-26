@@ -1,7 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(std_misc)] // TODO
-
 extern crate num;
 extern crate rand;
 extern crate libc;

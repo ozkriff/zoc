@@ -59,8 +59,8 @@ impl Camera {
 
     pub fn add_vertical_angle(&mut self, angle: Rad<ZFloat>) {
         self.x_angle = self.x_angle + angle;
-        let min = rad(10.0f32.to_radians());
-        let max = rad(50.0f32.to_radians());
+        let min = rad(PI / 18.0);
+        let max = rad(PI / 4.0);
         self.x_angle = clamp(self.x_angle, min, max);
     }
 
