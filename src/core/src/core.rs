@@ -352,11 +352,9 @@ impl Core {
             }
             let e = self.command_attack_unit_to_event(
                 enemy_unit.id.clone(), unit_id.clone(), pos, FireMode::Reactive);
-            events.push_all(&e);
-            if e.is_empty() {
-                continue;
-            }
-            if is_target_dead(&self.state, &e[0]) {
+            let is_target_dead = !e.is_empty() && is_target_dead(&self.state, &e[0]);
+            events.extend(e);
+            if is_target_dead {
                 break;
             }
         }
@@ -376,7 +374,7 @@ impl Core {
                     unit_id: unit_id.clone(),
                     path: MapPath::new(new_nodes),
                 });
-                events.push_all(&e);
+                events.extend(e);
                 break;
             }
         }
@@ -418,7 +416,7 @@ impl Core {
                         path: path.clone(),
                     });
                 } else {
-                    events.push_all(&e);
+                    events.extend(e);
                 }
             },
             Command::AttackUnit{attacker_id, defender_id} => {
@@ -426,10 +424,11 @@ impl Core {
                 let defender_pos = &self.state.units[&defender_id].pos;
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
-                events.push_all(&e);
-                if !e.is_empty() && !is_target_dead(&self.state, &e[0]) {
+                let is_target_alive = !e.is_empty() && !is_target_dead(&self.state, &e[0]);
+                events.extend(e);
+                if is_target_alive {
                     let pos = &self.state.units[&attacker_id].pos;
-                    events.push_all(&self.reaction_fire(&attacker_id, pos));
+                    events.extend(self.reaction_fire(&attacker_id, pos));
                 }
             },
         };
