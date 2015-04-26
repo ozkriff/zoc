@@ -1,7 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-#![feature(core)] // TODO
-
 extern crate num;
 extern crate cgmath;
 extern crate rand;

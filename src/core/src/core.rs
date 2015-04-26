@@ -118,6 +118,7 @@ pub struct Core {
     db: Db,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
+    next_unit_id: UnitId,
 }
 
 fn get_players_list() -> Vec<Player> {
@@ -166,6 +167,7 @@ impl Core {
             db: Db::new(),
             ai: Ai::new(&PlayerId{id:1}, &map_size),
             players_info: get_player_info_lists(&map_size),
+            next_unit_id: UnitId{id: 0},
         };
         core.get_units();
         core
@@ -196,18 +198,16 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
     }
 
-    fn get_new_unit_id(&self) -> UnitId {
-        // TODO: check max id
-        let id = match self.state.units.keys().max_by(|&n| n) {
-            Some(n) => n.id + 1,
-            None => 0,
-        };
-        UnitId{id: id}
+    fn get_new_unit_id(&mut self) -> UnitId {
+        let new_unit_id = self.next_unit_id.clone();
+        self.next_unit_id.id += 1;
+        new_unit_id
     }
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
+        let new_unit_id = self.get_new_unit_id();
         let event = CoreEvent::CreateUnit{
-            unit_id: self.get_new_unit_id(),
+            unit_id: new_unit_id,
             pos: pos.clone(),
             type_id: type_id.clone(),
             player_id: player_id.clone(),
@@ -383,7 +383,7 @@ impl Core {
 
     // TODO: rename: simulation_step?
     // Apply events immediately after adding event to array.
-    fn command_to_event(&self, command: Command) -> Vec<CoreEvent> {
+    fn command_to_event(&mut self, command: Command) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         match command {
             Command::EndTurn => {
