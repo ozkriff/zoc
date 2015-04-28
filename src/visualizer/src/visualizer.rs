@@ -587,10 +587,19 @@ impl Visualizer {
         if !self.is_lmb_pressed {
             return;
         }
-        if self.last_press_pos.v.x > self.win_size.w / 2 {
+        if self.must_rotate_camera() {
             self.handle_camera_rotate(pos);
         } else {
             self.handle_camera_move(pos);
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    fn must_rotate_camera(&self) -> bool {
+        if self.win_size.w > self.win_size.h {
+            self.last_press_pos.v.x > self.win_size.w / 2
+        } else {
+            self.last_press_pos.v.y < self.win_size.h / 2
         }
     }
 
