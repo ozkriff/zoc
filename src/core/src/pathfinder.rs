@@ -62,6 +62,24 @@ impl Tile {
 
 const MAX_COST: MoveCost = MoveCost{n: 30000};
 
+fn tile_cost(db: &Db, state: &GameState, unit: &Unit, pos: &MapPos)
+    -> MoveCost
+{
+    let unit_type = db.unit_type(&unit.type_id);
+    let tile = state.map().tile(pos);
+    let n = match unit_type.class {
+        UnitClass::Infantry => match tile {
+            &Terrain::Plain => 1,
+            &Terrain::Trees => 2,
+        },
+        UnitClass::Vehicle => match tile {
+            &Terrain::Plain => 1,
+            &Terrain::Trees => 5,
+        },
+    };
+    MoveCost{n: n}
+}
+
 pub struct Pathfinder {
     queue: Vec<MapPos>,
     map: Map<Tile>,
@@ -82,28 +100,6 @@ impl Pathfinder {
         &self.map
     }
 
-    fn tile_cost(
-        &self,
-        db: &Db,
-        state: &GameState,
-        unit: &Unit,
-        pos: &MapPos,
-    ) -> MoveCost {
-        let unit_type = db.unit_type(&unit.type_id);
-        let tile = state.map().tile(pos);
-        let n = match unit_type.class {
-            UnitClass::Infantry => match tile {
-                &Terrain::Plain => 1,
-                &Terrain::Trees => 2,
-            },
-            UnitClass::Vehicle => match tile {
-                &Terrain::Plain => 1,
-                &Terrain::Trees => 5,
-            },
-        };
-        MoveCost{n: n}
-    }
-
     fn process_neighbour_pos(
         &mut self,
         db: &Db,
@@ -113,7 +109,7 @@ impl Pathfinder {
         neighbour_pos: &MapPos
     ) {
         let old_cost = self.map.tile(original_pos).cost.clone();
-        let tile_cost = self.tile_cost(db, state, unit, neighbour_pos);
+        let tile_cost = tile_cost(db, state, unit, neighbour_pos);
         let tile = self.map.tile_mut(neighbour_pos);
         let new_cost = MoveCost{n: old_cost.n + tile_cost.n};
         let units_count = state.units_at(neighbour_pos).len();
