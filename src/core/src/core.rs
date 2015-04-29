@@ -332,7 +332,7 @@ impl Core {
             if enemy_unit.player_id == self.current_player_id {
                 continue;
             }
-            if enemy_unit.attack_points <= 0 {
+            if enemy_unit.reactive_attack_points <= 0 {
                 continue;
             }
             if enemy_unit.morale < 50 {

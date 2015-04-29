@@ -3,7 +3,7 @@
 use std::collections::{HashMap};
 use cgmath::{Vector2};
 use common::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
-use core::{CoreEvent};
+use core::{CoreEvent, FireMode};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use map::{Map, Terrain};
@@ -44,21 +44,24 @@ impl<'a> InternalState {
         self.units_at(pos).len() > 0
     }
 
+    /// Converts active ap (attack points) to reactive
+    fn convert_ap(&mut self, player_id: &PlayerId) {
+        for (_, unit) in self.units.iter_mut() {
+            if unit.player_id == *player_id {
+                unit.reactive_attack_points += unit.attack_points;
+                unit.attack_points = 0;
+            }
+        }
+    }
+
     fn refresh_units(&mut self, db: &Db, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
                 let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points;
                 unit.attack_points = unit_type.attack_points;
+                unit.reactive_attack_points = unit_type.reactive_attack_points;
                 unit.morale += 10;
-            }
-        }
-    }
-
-    fn add_passive_ap(&mut self, player_id: &PlayerId) {
-        for (_, unit) in self.units.iter_mut() {
-            if unit.player_id == *player_id {
-                unit.attack_points += 1;
             }
         }
     }
@@ -73,15 +76,14 @@ impl<'a> InternalState {
     ) {
         assert!(self.units.get(unit_id).is_none());
         let unit_type = db.unit_type(type_id);
-        let move_points = unit_type.move_points;
-        let attack_points = unit_type.attack_points;
         self.units.insert(unit_id.clone(), Unit {
             id: unit_id.clone(),
             pos: pos.clone(),
             player_id: player_id.clone(),
             type_id: type_id.clone(),
-            move_points: move_points,
-            attack_points: attack_points,
+            move_points: unit_type.move_points,
+            attack_points: unit_type.attack_points,
+            reactive_attack_points: unit_type.reactive_attack_points,
             count: unit_type.count,
             morale: 100,
         });
@@ -100,7 +102,7 @@ impl<'a> InternalState {
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
-                self.add_passive_ap(old_id);
+                self.convert_ap(old_id);
             },
             &CoreEvent::CreateUnit {
                 ref unit_id,
@@ -113,9 +115,9 @@ impl<'a> InternalState {
             &CoreEvent::AttackUnit {
                 ref attacker_id,
                 ref defender_id,
+                ref mode,
                 ref killed,
                 ref suppression,
-                ..
             } => {
                 {
                     let unit = self.units.get_mut(defender_id)
@@ -129,8 +131,16 @@ impl<'a> InternalState {
                     self.units.remove(defender_id);
                 }
                 if let Some(unit) = self.units.get_mut(attacker_id) {
-                    assert!(unit.attack_points >= 1);
-                    unit.attack_points -= 1;
+                    match mode {
+                        &FireMode::Active => {
+                            assert!(unit.attack_points >= 1);
+                            unit.attack_points -= 1;
+                        },
+                        &FireMode::Reactive => {
+                            assert!(unit.reactive_attack_points >= 1);
+                            unit.reactive_attack_points -= 1;
+                        },
+                    }
                 }
             },
             &CoreEvent::ShowUnit{

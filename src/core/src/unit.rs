@@ -18,6 +18,7 @@ pub struct Unit {
     pub type_id: UnitTypeId,
     pub move_points: ZInt,
     pub attack_points: ZInt,
+    pub reactive_attack_points: ZInt,
     pub count: ZInt,
     pub morale: ZInt,
 }
@@ -45,6 +46,7 @@ pub struct UnitType {
     pub weapon_type_id: WeaponTypeId,
     pub move_points: ZInt,
     pub attack_points: ZInt,
+    pub reactive_attack_points: ZInt,
     pub los_range: ZInt,
     pub cover_los_range: ZInt,
 }
