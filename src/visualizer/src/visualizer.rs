@@ -479,22 +479,26 @@ impl Visualizer {
     fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
         let attacker = &state.units()[attacker_id];
+        let defender = &state.units()[defender_id];
         if attacker.attack_points <= 0 {
-            println!("No attack points");
+            self.map_text_manager.add_text(
+                &defender.pos, "No attack points");
             return;
         }
         if attacker.morale < 50 {
-            println!("Can`t attack when suppressed");
+            self.map_text_manager.add_text(
+                &defender.pos, "Can`t attack when suppressed");
             return;
         }
-        let defender = &state.units()[defender_id];
         let max_distance = self.core.db().unit_max_attack_dist(attacker);
         if distance(&attacker.pos, &defender.pos) > max_distance {
-            println!("Out of range");
+            self.map_text_manager.add_text(
+                &defender.pos, "Out of range");
             return;
         }
         if !self.los(attacker, &attacker.pos, &defender.pos) {
-            println!("No LOS");
+            self.map_text_manager.add_text(
+                &defender.pos, "No LOS");
             return;
         }
         self.core.do_command(Command::AttackUnit {
@@ -541,14 +545,16 @@ impl Visualizer {
         let i = self.player_info.get_mut(self.core.player_id());
         let unit = &i.game_state.units()[&unit_id];
         if let Some(path) = i.pathfinder.get_path(&pos) {
-            if path.total_cost(). n > unit.move_points {
-                println!("path cost > unit.move_points");
+            if path.total_cost().n > unit.move_points {
+                self.map_text_manager.add_text(
+                    &pos, "Not enough move points");
                 return;
             }
             self.core.do_command(
                 Command::Move{unit_id: unit_id, path: path});
         } else {
-            println!("Can not reach that tile");
+            self.map_text_manager.add_text(
+                &pos, "Can not reach this tile");
         }
     }
 
@@ -730,7 +736,6 @@ impl Visualizer {
         if events.is_empty() {
             return;
         }
-        // println!("{:?}", events);
         for event in events {
             self.handle_event(&event);
         }
