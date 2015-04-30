@@ -8,6 +8,11 @@ use unit::{Unit, UnitTypeId};
 use db::{Db};
 use map::{Map, Terrain};
 
+pub enum InfoLevel {
+    Full,
+    Partial,
+}
+
 pub struct InternalState {
     // TODO: remove 'pub'?
     pub units: HashMap<UnitId, Unit>,
@@ -48,7 +53,11 @@ impl<'a> InternalState {
     fn convert_ap(&mut self, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
-                unit.reactive_attack_points += unit.attack_points;
+                if let Some(ref mut reactive_attack_points)
+                    = unit.reactive_attack_points
+                {
+                    *reactive_attack_points += unit.attack_points;
+                }
                 unit.attack_points = 0;
             }
         }
@@ -60,7 +69,9 @@ impl<'a> InternalState {
                 let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points;
                 unit.attack_points = unit_type.attack_points;
-                unit.reactive_attack_points = unit_type.reactive_attack_points;
+                if let Some(ref mut reactive_attack_points) = unit.reactive_attack_points {
+                    *reactive_attack_points = unit_type.reactive_attack_points;
+                }
                 unit.morale += 10;
             }
         }
@@ -73,6 +84,7 @@ impl<'a> InternalState {
         pos: &MapPos,
         type_id: &UnitTypeId,
         player_id: &PlayerId,
+        info_level: InfoLevel,
     ) {
         assert!(self.units.get(unit_id).is_none());
         let unit_type = db.unit_type(type_id);
@@ -83,7 +95,11 @@ impl<'a> InternalState {
             type_id: type_id.clone(),
             move_points: unit_type.move_points,
             attack_points: unit_type.attack_points,
-            reactive_attack_points: unit_type.reactive_attack_points,
+            reactive_attack_points: if let InfoLevel::Full = info_level {
+                Some(unit_type.reactive_attack_points)
+            } else {
+                None
+            },
             count: unit_type.count,
             morale: 100,
         });
@@ -110,7 +126,7 @@ impl<'a> InternalState {
                 ref type_id,
                 ref player_id,
             } => {
-                self.add_unit(db, unit_id, pos, type_id, player_id);
+                self.add_unit(db, unit_id, pos, type_id, player_id, InfoLevel::Full);
             },
             &CoreEvent::AttackUnit {
                 ref attacker_id,
@@ -137,8 +153,12 @@ impl<'a> InternalState {
                             unit.attack_points -= 1;
                         },
                         &FireMode::Reactive => {
-                            assert!(unit.reactive_attack_points >= 1);
-                            unit.reactive_attack_points -= 1;
+                            if let Some(ref mut reactive_attack_points)
+                                = unit.reactive_attack_points
+                            {
+                                assert!(*reactive_attack_points >= 1);
+                                *reactive_attack_points -= 1;
+                            }
                         },
                     }
                 }
@@ -149,7 +169,7 @@ impl<'a> InternalState {
                 ref type_id,
                 ref player_id,
             } => {
-                self.add_unit(db, unit_id, pos, type_id, player_id);
+                self.add_unit(db, unit_id, pos, type_id, player_id, InfoLevel::Partial);
             },
             &CoreEvent::HideUnit{ref unit_id} => {
                 assert!(self.units.get(unit_id).is_some());

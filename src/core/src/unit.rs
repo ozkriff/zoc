@@ -18,7 +18,7 @@ pub struct Unit {
     pub type_id: UnitTypeId,
     pub move_points: ZInt,
     pub attack_points: ZInt,
-    pub reactive_attack_points: ZInt,
+    pub reactive_attack_points: Option<ZInt>,
     pub count: ZInt,
     pub morale: ZInt,
 }
