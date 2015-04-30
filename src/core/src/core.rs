@@ -292,7 +292,7 @@ impl Core {
         &self,
         attacker_id: UnitId,
         defender_id: UnitId,
-        pos: &MapPos, // TODO: get pos from unit
+        defender_pos: &MapPos,
         fire_mode: FireMode,
         // (apply coreevent to state after adding CoreEvent)
     ) -> Vec<CoreEvent> {
@@ -301,10 +301,10 @@ impl Core {
         let defender = &self.state.units[&defender_id];
         let attacker_type = self.db.unit_type(&attacker.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        if distance(&attacker.pos, pos) > weapon_type.max_distance {
+        if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
             return events;
         }
-        if !self.los(attacker_type, &attacker.pos, pos) {
+        if !self.los(attacker_type, &attacker.pos, defender_pos) {
             return events;
         }
         if attacker.morale < 50 {
