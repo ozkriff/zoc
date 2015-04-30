@@ -7,6 +7,7 @@ use core::{CoreEvent, FireMode};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use map::{Map, Terrain};
+use command::{MoveMode};
 
 pub enum InfoLevel {
     Full,
@@ -107,13 +108,17 @@ impl<'a> InternalState {
 
     pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
-            &CoreEvent::Move{ref unit_id, ref path} => {
+            &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
                 let pos = path.destination().clone();
                 let unit = self.units.get_mut(unit_id)
                     .expect("Bad move unit id");
                 unit.pos = pos;
                 assert!(unit.move_points > 0);
-                unit.move_points -= path.total_cost().n;
+                if let &MoveMode::Fast = mode {
+                    unit.move_points -= path.total_cost().n;
+                } else {
+                    unit.move_points -= path.total_cost().n * 2;
+                }
                 assert!(unit.move_points >= 0);
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
@@ -134,12 +139,16 @@ impl<'a> InternalState {
                 ref mode,
                 ref killed,
                 ref suppression,
+                ref remove_move_points,
             } => {
                 {
                     let unit = self.units.get_mut(defender_id)
                         .expect("Can`t find defender");
                     unit.count -= *killed;
                     unit.morale -= *suppression;
+                    if *remove_move_points {
+                        unit.move_points = 0;
+                    }
                 }
                 let count = self.units[defender_id].count.clone();
                 if count <= 0 {

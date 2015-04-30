@@ -8,7 +8,7 @@ use common::misc::{clamp};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
-use command::{Command};
+use command::{Command, MoveMode};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
 use player::{Player};
@@ -24,7 +24,11 @@ pub enum FireMode {
 
 #[derive(Clone)]
 pub enum CoreEvent {
-    Move{unit_id: UnitId, path: MapPath},
+    Move {
+        unit_id: UnitId,
+        path: MapPath,
+        mode: MoveMode,
+    },
     EndTurn{old_id: PlayerId, new_id: PlayerId},
     CreateUnit {
         unit_id: UnitId,
@@ -38,6 +42,7 @@ pub enum CoreEvent {
         mode: FireMode,
         killed: ZInt,
         suppression: ZInt,
+        remove_move_points: bool,
     },
     ShowUnit {
         unit_id: UnitId,
@@ -294,7 +299,7 @@ impl Core {
         defender_id: UnitId,
         defender_pos: &MapPos,
         fire_mode: FireMode,
-        // (apply coreevent to state after adding CoreEvent)
+        remove_move_points: bool,
     ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         let attacker = &self.state.units[&attacker_id];
@@ -317,11 +322,12 @@ impl Core {
             killed: killed,
             mode: fire_mode,
             suppression: 10 + 20 * killed,
+            remove_move_points: remove_move_points,
         });
         events
     }
 
-    fn reaction_fire(&self, unit_id: &UnitId, pos: &MapPos)
+    fn reaction_fire(&self, unit_id: &UnitId, move_mode: &MoveMode, pos: &MapPos)
         -> Vec<CoreEvent>
     {
         let mut events = Vec::new();
@@ -353,7 +359,16 @@ impl Core {
                 continue;
             }
             let e = self.command_attack_unit_to_event(
-                enemy_unit.id.clone(), unit_id.clone(), pos, FireMode::Reactive);
+                enemy_unit.id.clone(),
+                unit_id.clone(),
+                pos,
+                FireMode::Reactive,
+                if let &MoveMode::Fast = move_mode {
+                    true
+                } else {
+                    false
+                },
+            );
             let is_target_dead = !e.is_empty() && is_target_dead(&self.state, &e[0]);
             events.extend(e);
             if is_target_dead {
@@ -363,18 +378,24 @@ impl Core {
         events
     }
 
-    fn reaction_fire_move(&self, path: &MapPath, unit_id: &UnitId) -> Vec<CoreEvent> {
+    fn reaction_fire_move(
+        &self,
+        path: &MapPath,
+        unit_id: &UnitId,
+        move_mode: &MoveMode,
+    ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         let len = path.nodes().len();
         for i in 1 .. len {
             let pos = &path.nodes()[i].pos;
-            let e = self.reaction_fire(unit_id, pos);
+            let e = self.reaction_fire(unit_id, move_mode, pos);
             if !e.is_empty() {
                 let mut new_nodes = path.nodes().clone();
                 new_nodes.truncate(i + 1);
                 events.push(CoreEvent::Move {
                     unit_id: unit_id.clone(),
                     path: MapPath::new(new_nodes),
+                    mode: move_mode.clone(),
                 });
                 events.extend(e);
                 break;
@@ -409,13 +430,14 @@ impl Core {
                     player_id: self.current_player_id.clone(),
                 });
             },
-            Command::Move{ref unit_id, ref path} => {
+            Command::Move{ref unit_id, ref path, ref mode} => {
                 // TODO: do some checks?
-                let e = self.reaction_fire_move(path, unit_id);
+                let e = self.reaction_fire_move(path, unit_id, mode);
                 if e.is_empty() {
                     events.push(CoreEvent::Move {
                         unit_id: unit_id.clone(),
                         path: path.clone(),
+                        mode: mode.clone(),
                     });
                 } else {
                     events.extend(e);
@@ -425,12 +447,12 @@ impl Core {
                 // TODO: do some checks?
                 let defender_pos = &self.state.units[&defender_id].pos;
                 let e = self.command_attack_unit_to_event(
-                    attacker_id.clone(), defender_id, defender_pos, FireMode::Active);
+                    attacker_id.clone(), defender_id, defender_pos, FireMode::Active, false);
                 let is_target_alive = !e.is_empty() && !is_target_dead(&self.state, &e[0]);
                 events.extend(e);
                 if is_target_alive {
                     let pos = &self.state.units[&attacker_id].pos;
-                    events.extend(self.reaction_fire(&attacker_id, pos));
+                    events.extend(self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos));
                 }
             },
         };
@@ -512,6 +534,7 @@ impl Core {
         player_id: &PlayerId,
         unit_id: &UnitId,
         path: &MapPath,
+        move_mode: &MoveMode,
     ) -> Vec<CoreEvent> {
         let mut events = vec![];
         let unit = self.state.units.get(unit_id)
@@ -554,6 +577,7 @@ impl Core {
                 events.push(CoreEvent::Move {
                     unit_id: unit.id.clone(),
                     path: MapPath::new(sub_path.clone()),
+                    mode: move_mode.clone(),
                 });
                 sub_path.clear();
                 events.push(CoreEvent::HideUnit {
@@ -565,6 +589,7 @@ impl Core {
             events.push(CoreEvent::Move {
                 unit_id: unit.id.clone(),
                 path: MapPath::new(sub_path),
+                mode: move_mode.clone(),
             });
         }
         events
@@ -578,14 +603,14 @@ impl Core {
         let mut events = vec![];
         let fow = &self.players_info[player_id].fow;
         match event {
-            &CoreEvent::Move{ref unit_id, ref path, ..} => {
+            &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
                 let unit = self.state.units.get(unit_id)
                     .expect("Can`t find moving unit");
                 if unit.player_id == *player_id {
                     events.push(event.clone())
                 } else {
                     let filtered_events = self.filter_move_event(
-                        player_id, unit_id, path);
+                        player_id, unit_id, path, mode);
                     events.extend(filtered_events);
                     active_unit_ids.insert(unit_id.clone());
                 }

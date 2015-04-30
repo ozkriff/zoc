@@ -5,7 +5,7 @@ use game_state::{GameState};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
-use command::{Command};
+use command::{Command, MoveMode};
 use unit::{Unit};
 use db::{Db};
 use core::{CoreEvent, los};
@@ -146,7 +146,11 @@ impl Ai {
                 continue;
             }
             let path = self.truncate_path(path, unit.move_points);
-            return Some(Command::Move{unit_id: unit.id.clone(), path: path});
+            return Some(Command::Move {
+                unit_id: unit.id.clone(),
+                path: path,
+                mode: MoveMode::Fast,
+            });
         }
         None
     }

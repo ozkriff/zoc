@@ -30,7 +30,7 @@ use core::map::{Map, distance, Terrain};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
-use core::command::{Command};
+use core::command::{Command, MoveMode};
 use core::core::{Core, CoreEvent, los};
 use core::unit::{Unit};
 use core::db::{Db};
@@ -532,7 +532,7 @@ impl Visualizer {
         }
     }
 
-    fn move_unit(&mut self) {
+    fn move_unit(&mut self, move_mode: &MoveMode) {
         let pos = self.clicked_pos.clone()
             .expect("Can`t move unit if no pos is selected");
         let unit_id = match self.selected_unit_id {
@@ -545,13 +545,21 @@ impl Visualizer {
         let i = self.player_info.get_mut(self.core.player_id());
         let unit = &i.game_state.units()[&unit_id];
         if let Some(path) = i.pathfinder.get_path(&pos) {
-            if path.total_cost().n > unit.move_points {
+            let cost = if let &MoveMode::Hunt = move_mode {
+                path.total_cost().n * 2
+            } else {
+                path.total_cost().n
+            };
+            if cost > unit.move_points {
                 self.map_text_manager.add_text(
                     &pos, "Not enough move points");
                 return;
             }
-            self.core.do_command(
-                Command::Move{unit_id: unit_id, path: path});
+            self.core.do_command(Command::Move {
+                unit_id: unit_id,
+                path: path,
+                mode: move_mode.clone(),
+            });
         } else {
             self.map_text_manager.add_text(
                 &pos, "Can not reach this tile");
@@ -630,6 +638,10 @@ impl Visualizer {
             VirtualKeyCode::U => {
                 self.create_unit();
             },
+            VirtualKeyCode::H => {
+                self.pick_tile();
+                self.move_unit(&MoveMode::Hunt);
+            },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.camera.change_zoom(1.3);
             },
@@ -653,7 +665,7 @@ impl Visualizer {
             self.handle_event_button_press(&button_id);
         }
         if self.clicked_pos.is_some() {
-            self.move_unit();
+            self.move_unit(&MoveMode::Fast);
         }
         if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
             let player_id = {
@@ -853,7 +865,7 @@ impl Visualizer {
         let scene = &mut i.scene;
         let state = &i.game_state;
         match event {
-            &CoreEvent::Move{ref unit_id, ref path} => {
+            &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let type_id = state.units()[unit_id].type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
@@ -890,6 +902,7 @@ impl Visualizer {
                 ref killed,
                 ref suppression,
                 ref mode,
+                ..
             } => {
                 EventAttackUnitVisualizer::new(
                     state,

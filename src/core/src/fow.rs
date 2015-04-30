@@ -118,7 +118,7 @@ impl Fow {
         event: &CoreEvent,
     ) {
         match event {
-            &CoreEvent::Move{ref unit_id, ref path} => {
+            &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = state.units.get(unit_id)
                     .expect("BAD MOVE UNIT ID"); // TODO: fix errmsg
                 if unit.player_id == self.player_id {

@@ -4,8 +4,14 @@ use common::types::{UnitId, MapPos};
 use pathfinder::{MapPath};
 
 #[derive(Clone)]
+pub enum MoveMode {
+    Fast,
+    Hunt,
+}
+
+#[derive(Clone)]
 pub enum Command {
-    Move{unit_id: UnitId, path: MapPath},
+    Move{unit_id: UnitId, path: MapPath, mode: MoveMode},
     EndTurn,
     CreateUnit{pos: MapPos},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
