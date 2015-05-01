@@ -253,14 +253,14 @@ pub struct EventAttackUnitVisualizer {
     killed: ZInt,
     is_target_destroyed: bool,
     move_helper: MoveHelper,
-    shell_move: MoveHelper,
+    shell_move: Option<MoveHelper>,
 }
 
 impl EventAttackUnitVisualizer {
     pub fn new(
         state: &GameState,
         scene: &mut Scene,
-        attacker_id: UnitId,
+        attacker_id: Option<UnitId>,
         defender_id: UnitId,
         killed: ZInt,
         suppression: ZInt,
@@ -275,21 +275,30 @@ impl EventAttackUnitVisualizer {
         let from = defender_pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
-            .expect("Can not find attacker")
-            .pos.clone();
-        let shell_move = {
-            scene.nodes.insert(SHELL_NODE_ID, SceneNode {
-                pos: from.clone(),
-                rot: rad(0.0),
-                mesh_id: Some(shell_mesh_id),
-                children: Vec::new(),
-            });
-            MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
+        let defender_map_pos = state.units()[&defender_id].pos.clone();
+        let shell_move = if let Some(attacker_id) = attacker_id {
+            let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
+                .expect("Can not find attacker")
+                .pos.clone();
+            let attacker_map_pos = state.units()[&attacker_id].pos.clone();
+            if let core::FireMode::Reactive = mode {
+                map_text.add_text(&attacker_map_pos, "reaction fire");
+            }
+            let shell_move = {
+                scene.nodes.insert(SHELL_NODE_ID, SceneNode {
+                    pos: from.clone(),
+                    rot: rad(0.0),
+                    mesh_id: Some(shell_mesh_id),
+                    children: Vec::new(),
+                });
+                MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
+            };
+            Some(shell_move)
+        } else {
+            map_text.add_text(&defender_map_pos, "Ambushed");
+            None
         };
         let is_target_destroyed = state.units()[&defender_id].count - killed <= 0;
-        let defender_map_pos = state.units()[&defender_id].pos.clone();
-        let attacker_map_pos = state.units()[&attacker_id].pos.clone();
         if killed > 0 {
             map_text.add_text(&defender_map_pos, &format!("-{}", killed));
         } else {
@@ -307,9 +316,6 @@ impl EventAttackUnitVisualizer {
                 map_text.add_text(&defender_map_pos, "suppressed");
             }
         }
-        if let core::FireMode::Reactive = mode {
-            map_text.add_text(&attacker_map_pos, "reaction fire");
-        }
         Box::new(EventAttackUnitVisualizer {
             defender_id: defender_id,
             killed: killed,
@@ -325,14 +331,25 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         if self.killed > 0 {
             self.move_helper.is_finished()
         } else {
-            self.shell_move.is_finished()
+            if let Some(ref shell_move) = self.shell_move {
+                shell_move.is_finished()
+            } else {
+                true
+            }
         }
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
-        scene.node_mut(&SHELL_NODE_ID).pos = self.shell_move.step(dtime);
+        if let Some(ref mut shell_move) = self.shell_move {
+            scene.node_mut(&SHELL_NODE_ID).pos = shell_move.step(dtime);
+        }
         let node_id = unit_id_to_node_id(&self.defender_id);
-        if self.shell_move.is_finished() && self.killed > 0 {
+        let is_shell_ok = if let Some(ref shell_move) = self.shell_move {
+            shell_move.is_finished()
+        } else {
+            true
+        };
+        if is_shell_ok && self.killed > 0 {
             let step = self.move_helper.step_diff(dtime);
             let children = &mut scene.node_mut(&node_id).children;
             for i in 0 .. self.killed as usize {

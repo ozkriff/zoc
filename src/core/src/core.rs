@@ -37,7 +37,7 @@ pub enum CoreEvent {
         player_id: PlayerId,
     },
     AttackUnit {
-        attacker_id: UnitId,
+        attacker_id: Option<UnitId>,
         defender_id: UnitId,
         mode: FireMode,
         killed: ZInt,
@@ -316,8 +316,11 @@ impl Core {
             return events;
         }
         let killed = self.get_killed_count(attacker, defender);
+        let fow = &self.players_info[&defender.player_id].fow;
+        let is_ambush = !fow.is_visible(attacker_type, &attacker.pos)
+            && thread_rng().gen_range(1, 10) > 3;
         events.push(CoreEvent::AttackUnit {
-            attacker_id: attacker_id,
+            attacker_id: if is_ambush { None } else { Some(attacker_id) },
             defender_id: defender_id,
             killed: killed,
             mode: fire_mode,
@@ -508,16 +511,18 @@ impl Core {
     fn filter_attack_event(
         &self,
         player_id: &PlayerId,
-        attacker_id: &UnitId,
+        attacker_id: &Option<UnitId>,
         defender_id: &UnitId,
     ) -> Vec<CoreEvent> {
         let fow = &self.players_info[player_id].fow;
         let mut events = vec![];
-        let attacker = self.state.units.get(attacker_id)
-            .expect("Can`t find attacker");
-        let attacker_type = self.db.unit_type(&attacker.type_id);
-        if !fow.is_visible(attacker_type, &attacker.pos) {
-            events.push(self.create_show_unit_event(&attacker));
+        if let Some(attacker_id) = attacker_id.clone() {
+            let attacker = self.state.units.get(&attacker_id)
+                .expect("Can`t find attacker");
+            let attacker_type = self.db.unit_type(&attacker.type_id);
+            if !fow.is_visible(attacker_type, &attacker.pos) {
+                events.push(self.create_show_unit_event(&attacker));
+            }
         }
         // if defender is not dead...
         if let Some(defender) = self.state.units.get(defender_id) {
@@ -637,7 +642,9 @@ impl Core {
                 let filtered_events = self.filter_attack_event(
                     player_id, attacker_id, defender_id);
                 events.extend(filtered_events);
-                active_unit_ids.insert(attacker_id.clone());
+                if let &Some(ref attacker_id) = attacker_id {
+                    active_unit_ids.insert(attacker_id.clone());
+                }
                 active_unit_ids.insert(defender_id.clone());
                 events.push(event.clone());
             },

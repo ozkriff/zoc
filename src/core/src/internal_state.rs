@@ -155,7 +155,11 @@ impl<'a> InternalState {
                     assert!(self.units.get(defender_id).is_some());
                     self.units.remove(defender_id);
                 }
-                if let Some(unit) = self.units.get_mut(attacker_id) {
+                let attacker_id = match attacker_id.clone() {
+                    Some(attacker_id) => attacker_id,
+                    None => return,
+                };
+                if let Some(unit) = self.units.get_mut(&attacker_id) {
                     match mode {
                         &FireMode::Active => {
                             assert!(unit.attack_points >= 1);
