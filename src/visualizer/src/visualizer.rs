@@ -32,7 +32,7 @@ use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::command::{Command, MoveMode};
 use core::core::{Core, CoreEvent, los};
-use core::unit::{Unit};
+use core::unit::{Unit, UnitClass};
 use core::db::{Db};
 use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
@@ -617,6 +617,63 @@ impl Visualizer {
         }
     }
 
+    fn print_unit_info(&self, unit_id: &UnitId) {
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        let unit = state.units().get(unit_id)
+            .expect("Can`t find unit_under_cursor_id in current state");
+        println!("player_id: {}", unit.player_id.id);
+        println!("move_points: {}", unit.move_points);
+        println!("attack_points: {}", unit.attack_points);
+        if let Some(reactive_attack_points) = unit.reactive_attack_points {
+            println!("reactive_attack_points: {}", reactive_attack_points);
+        } else {
+            println!("reactive_attack_points: ???");
+        }
+        println!("count: {}", unit.count);
+        println!("morale: {}", unit.morale);
+        let unit_type = self.core.db().unit_type(&unit.type_id);
+        println!("type: name: {}", unit_type.name);
+        match unit_type.class {
+            UnitClass::Infantry => println!("type: class: Infantry"),
+            UnitClass::Vehicle => println!("type: class: Vehicle"),
+        }
+        println!("type: count: {}", unit_type.count);
+        println!("type: size: {}", unit_type.size);
+        println!("type: armor: {}", unit_type.armor);
+        println!("type: toughness: {}", unit_type.toughness);
+        println!("type: weapon_skill: {}", unit_type.weapon_skill);
+        println!("type: mp: {}", unit_type.move_points);
+        println!("type: ap: {}", unit_type.attack_points);
+        println!("type: reactive_ap: {}", unit_type.reactive_attack_points);
+        println!("type: los_range: {}", unit_type.los_range);
+        println!("type: cover_los_range: {}", unit_type.cover_los_range);
+        let weapon_type = self.core.db().weapon_type(&unit_type.weapon_type_id);
+        println!("weapon: name: {}", weapon_type.name);
+        println!("weapon: damage: {}", weapon_type.damage);
+        println!("weapon: ap: {}", weapon_type.ap);
+        println!("weapon: accuracy: {}", weapon_type.accuracy);
+        println!("weapon: max_distance: {}", weapon_type.max_distance);
+    }
+
+    fn print_terrain_info(&self) {
+        let pos = self.clicked_pos.clone().unwrap();
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        match state.map().tile(&pos) {
+            &Terrain::Trees => println!("Trees"),
+            &Terrain::Plain => println!("Plain"),
+        }
+    }
+
+    fn print_info(&mut self) {
+        self.pick_tile();
+        if let Some(ref unit_id) = self.unit_under_cursor_id {
+            self.print_unit_info(unit_id);
+        } else {
+            self.print_terrain_info();
+        }
+        println!("");
+    }
+
     fn handle_event_key_press(&mut self, key: VirtualKeyCode) {
         let s = CAMERA_MOVE_SPEED_KEY;
         match key {
@@ -634,6 +691,9 @@ impl Visualizer {
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
                 self.camera.move_camera(rad(PI), s);
+            },
+            VirtualKeyCode::I => {
+                self.print_info();
             },
             VirtualKeyCode::U => {
                 self.create_unit();
@@ -834,6 +894,8 @@ impl Visualizer {
         self.window.swap_buffers();
     }
 
+    // TODO: Must return value.
+    // TODO: remove 'unit_under_cursor_id' and 'clicked_pos' fields.
     fn pick_tile(&mut self) {
         let pick_result = self.picker.pick_tile(
             &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
