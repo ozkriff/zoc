@@ -315,6 +315,7 @@ impl Visualizer {
         };
         let window_builder = WindowBuilder::new()
             .with_title(format!("Zone of Control"))
+            .with_pixel_format(24, 8)
             .with_gl(gl_version);
         let window = window_builder.build().ok().expect("Can`t create window");
         unsafe {
