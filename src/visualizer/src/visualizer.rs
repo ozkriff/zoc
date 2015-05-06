@@ -288,7 +288,6 @@ pub struct Visualizer {
     map_text_manager: MapTextManager,
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
-    dtime: Time,
     last_time: Time,
     player_info: PlayerInfoManager,
     core: Core,
@@ -399,7 +398,6 @@ impl Visualizer {
             font_stash: font_stash,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
-            dtime: Time{n: 0},
             last_time: Time{n: precise_time_ns()},
             player_info: player_info,
             core: core,
@@ -853,7 +851,7 @@ impl Visualizer {
         self.visible_map_mesh.draw(&self.zgl, &self.shader);
     }
 
-    fn draw_scene(&mut self) {
+    fn draw_scene(&mut self, dtime: &Time) {
         self.shader.set_uniform_color(
             &self.zgl, &self.basic_color_id, &zgl::WHITE);
         self.draw_scene_nodes();
@@ -865,11 +863,11 @@ impl Visualizer {
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let i = self.player_info.get_mut(self.core.player_id());
-            event_visualizer.draw(&mut i.scene, &self.dtime);
+            event_visualizer.draw(&mut i.scene, dtime);
         }
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self, dtime: &Time) {
         self.zgl.set_clear_color(&BG_COLOR);
         self.zgl.clear_screen();
         self.shader.activate(&self.zgl);
@@ -878,11 +876,11 @@ impl Visualizer {
             self.shader.get_mvp_mat(),
             &self.camera.mat(&self.zgl),
         );
-        self.draw_scene();
+        self.draw_scene(dtime);
         self.shader.set_uniform_color(
             &self.zgl, &self.basic_color_id, &zgl::BLACK);
         self.map_text_manager.draw(
-            &self.zgl, &self.camera, &self.shader, &self.dtime, &mut self.font_stash);
+            &self.zgl, &self.camera, &self.shader, dtime, &mut self.font_stash);
         self.button_manager.draw(
             &self.zgl,
             &self.win_size,
@@ -913,10 +911,11 @@ impl Visualizer {
         }
     }
 
-    fn update_time(&mut self) {
+    fn update_time(&mut self) -> Time {
         let time = precise_time_ns();
-        self.dtime = Time{n: time - self.last_time.n};
+        let dtime = Time{n: time - self.last_time.n};
         self.last_time = Time{n: time};
+        dtime
     }
 
     fn make_event_visualizer(
@@ -1100,10 +1099,10 @@ impl Visualizer {
     }
 
     pub fn tick(&mut self) {
+        let dtime = self.update_time();
         self.handle_events();
         self.logic();
-        self.draw();
-        self.update_time();
+        self.draw(&dtime);
     }
 }
 
