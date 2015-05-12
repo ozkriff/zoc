@@ -5,10 +5,10 @@ extern crate khronos_api;
 
 use std::path::{PathBuf};
 
-#[cfg(target_os = "windows")]
+#[cfg(not(target_os = "android"))]
 const GENERATOR: gl_generator::StructGenerator = gl_generator::StructGenerator;
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "android")]
 const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStructGenerator;
 
 fn main() {
