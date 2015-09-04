@@ -9,7 +9,7 @@ use core::geom;
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 
-pub const MIN_LIFT_HEIGHT: ZFloat = 0.1;
+pub const MIN_LIFT_HEIGHT: ZFloat = 0.01;
 
 pub fn map_pos_to_world_pos(i: &MapPos) -> WorldPos {
     WorldPos{v: geom::map_pos_to_world_pos(i).extend(0.0)}
