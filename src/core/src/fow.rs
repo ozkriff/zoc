@@ -120,7 +120,7 @@ impl Fow {
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
                 let unit = state.units.get(unit_id)
-                    .expect("BAD MOVE UNIT ID"); // TODO: fix errmsg
+                    .expect("Can`t find moving unit");
                 if unit.player_id == self.player_id {
                     for path_node in path.nodes() {
                         let p = &path_node.pos;
