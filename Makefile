@@ -9,7 +9,7 @@ test:
 	cargo test --package core $(CARGO_FLAGS)
 	cargo test --package visualizer $(CARGO_FLAGS)
 
-run: zoc
+run:
 	RUST_BACKTRACE=1 cargo run $(CARGO_FLAGS)
 
 ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
