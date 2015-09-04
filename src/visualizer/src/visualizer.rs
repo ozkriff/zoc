@@ -6,7 +6,19 @@ use rand::{thread_rng, Rng};
 use std::path::{Path, PathBuf};
 use time::precise_time_ns;
 use std::collections::{HashMap};
-use cgmath::{Vector, Vector2, Vector3, rad, Matrix4};
+use cgmath::{
+    Vector,
+    Vector2,
+    Vector3,
+    Vector4,
+    rad,
+    Matrix,
+    Matrix4,
+    Plane,
+    Point,
+    Ray,
+    Intersect,
+};
 use glutin;
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
@@ -39,7 +51,7 @@ use zgl::texture::{Texture};
 use zgl::obj;
 use zgl::font_stash::{FontStash};
 use gui::{ButtonManager, Button, ButtonId};
-use scene::{Scene, SceneNode, MIN_MAP_OBJECT_NODE_ID};
+use scene::{NodeId, Scene, SceneNode, MIN_MAP_OBJECT_NODE_ID};
 use event_visualizer::{
     EventVisualizer,
     EventMoveVisualizer,
@@ -419,6 +431,38 @@ impl Visualizer {
         visualizer
     }
 
+    fn pick(&self) -> WorldPos {
+        let im = self.camera.mat(&self.zgl).invert()
+            .expect("Can`t invert camera matrix");
+        let x = self.mouse_pos.v.x as ZFloat;
+        let y = self.mouse_pos.v.y as ZFloat;
+        let w = self.win_size.w as ZFloat;
+        let h = self.win_size.h as ZFloat;
+        let x = (2.0 * x) / w - 1.0;
+        let y = 1.0 - (2.0 * y) / h;
+        let p0_raw = im.mul_v(&Vector4{x: x, y: y, z: 0.0, w: 1.0});
+        let p0 = (p0_raw.div_s(p0_raw.w)).truncate();
+        let p1_raw = im.mul_v(&Vector4{x: x, y: y, z: 1.0, w: 1.0});
+        let p1 = (p1_raw.div_s(p1_raw.w)).truncate();
+        let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
+        let ray = Ray::new(Point::from_vec(&p0), p1 - p0);
+        let p = (plane, ray).intersection()
+            .expect("Can`t find mouse ray/plane intersection");
+        WorldPos{v: p.to_vec()}
+    }
+
+    fn add_marker(&mut self, pos: &WorldPos) {
+        for (_, player_info) in self.player_info.info.iter_mut() {
+            let node_id = NodeId{id: 3000}; // TODO: remove magic
+            player_info.scene.nodes.insert(node_id, SceneNode {
+                pos: pos.clone(),
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.shell_mesh_id.clone()),
+                children: Vec::new(),
+            });
+        }
+    }
+
     fn add_map_objects(&mut self) {
         let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
 
@@ -700,6 +744,10 @@ impl Visualizer {
             VirtualKeyCode::H => {
                 self.pick_tile();
                 self.move_unit(&MoveMode::Hunt);
+            },
+            VirtualKeyCode::C => {
+                let p = self.pick();
+                self.add_marker(&p);
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.camera.change_zoom(1.3);
