@@ -10,7 +10,7 @@ name = "zgl"
 [dependencies.image]
 version = "*"
 default-features = false
-features = ["png"]
+features = ["png_codec"]
 
 [dependencies.stb_tt]
 git = "https://github.com/ozkriff/stb-tt-rs"
