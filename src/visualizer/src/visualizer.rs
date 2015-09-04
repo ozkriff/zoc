@@ -428,12 +428,12 @@ impl Visualizer {
                 if let &Terrain::Trees = map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                        player_info.scene.nodes.insert(node_id.clone(), SceneNode {
-                            pos: pos.clone(),
-                            rot: rot,
-                            mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
-                            children: Vec::new(),
-                        });
+                    player_info.scene.nodes.insert(node_id.clone(), SceneNode {
+                        pos: pos.clone(),
+                        rot: rot,
+                        mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
+                        children: Vec::new(),
+                    });
                     node_id.id += 1;
                 }
             }
