@@ -330,7 +330,8 @@ impl Visualizer {
             .with_gl(gl_version);
         let window = window_builder.build().ok().expect("Can`t create window");
         unsafe {
-            window.make_current();
+            window.make_current()
+                .ok().expect("Can`t make window current");
         };
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
@@ -935,10 +936,12 @@ impl Visualizer {
             &self.shader,
             self.shader.get_mvp_mat(),
         );
+        // TODO: check and remove this outdated hack: https://github.com/tomaka/glutin/pull/430
         // You must call glFlush before swap_buffers, or else
         // on Windows 8 nothing will be visible on the window.
         self.zgl.flush();
-        self.window.swap_buffers();
+        self.window.swap_buffers()
+            .ok().expect("Can`t swap buffers");
     }
 
     // TODO: Must return value.
