@@ -10,7 +10,6 @@ extern crate core;
 extern crate zgl;
 
 mod visualizer;
-mod picker;
 mod gui;
 mod scene;
 mod event_visualizer;

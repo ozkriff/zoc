@@ -11,6 +11,7 @@ use cgmath::{
     Vector2,
     Vector3,
     Vector4,
+    EuclideanVector,
     rad,
     Matrix,
     Matrix4,
@@ -38,7 +39,7 @@ use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
 use zgl::shader::{Shader};
 use geom;
-use core::map::{Map, distance, Terrain};
+use core::map::{Map, distance, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
@@ -46,7 +47,6 @@ use core::command::{Command, MoveMode};
 use core::core::{Core, CoreEvent, los};
 use core::unit::{Unit, UnitClass};
 use core::db::{Db};
-use picker::{TilePicker, PickResult};
 use zgl::texture::{Texture};
 use zgl::obj;
 use zgl::font_stash::{FontStash};
@@ -292,7 +292,6 @@ pub struct Visualizer {
     is_lmb_pressed: bool,
     is_rmb_pressed: bool,
     win_size: Size2<ZInt>,
-    picker: TilePicker,
     clicked_pos: Option<MapPos>,
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
@@ -349,8 +348,6 @@ impl Visualizer {
         camera.set_max_pos(get_max_camera_pos(&map_size));
         camera.set_pos(get_initial_camera_pos(&map_size));
         let player_info = PlayerInfoManager::new(&map_size);
-        let picker = TilePicker::new(
-            &zgl, &player_info.get(core.player_id()).game_state);
 
         let floor_tex = Texture::new(&zgl, &Path::new("floor.png")); // TODO: !!!
 
@@ -404,7 +401,6 @@ impl Visualizer {
             is_lmb_pressed: false,
             is_rmb_pressed: false,
             win_size: win_size,
-            picker: picker,
             clicked_pos: None,
             just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector::from_value(0)},
@@ -432,13 +428,13 @@ impl Visualizer {
         visualizer
     }
 
-    fn pick(&self) -> WorldPos {
+    fn pick_world_pos(&self) -> WorldPos {
         let im = self.camera.mat(&self.zgl).invert()
             .expect("Can`t invert camera matrix");
-        let x = self.mouse_pos.v.x as ZFloat;
-        let y = self.mouse_pos.v.y as ZFloat;
         let w = self.win_size.w as ZFloat;
         let h = self.win_size.h as ZFloat;
+        let x = self.mouse_pos.v.x as ZFloat;
+        let y = self.mouse_pos.v.y as ZFloat;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
         let p0_raw = im.mul_v(&Vector4{x: x, y: y, z: 0.0, w: 1.0});
@@ -747,7 +743,7 @@ impl Visualizer {
                 self.move_unit(&MoveMode::Hunt);
             },
             VirtualKeyCode::C => {
-                let p = self.pick();
+                let p = self.pick_world_pos();
                 self.add_marker(&p);
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
@@ -946,19 +942,35 @@ impl Visualizer {
 
     // TODO: Must return value.
     // TODO: remove 'unit_under_cursor_id' and 'clicked_pos' fields.
+    // TODO: optimize
     fn pick_tile(&mut self) {
-        let pick_result = self.picker.pick_tile(
-            &mut self.zgl, &self.camera, &self.win_size, &self.mouse_pos);
-        match pick_result {
-            PickResult::MapPos(pos) => {
-                self.clicked_pos = Some(pos);
-                self.unit_under_cursor_id = None;
-            },
-            PickResult::UnitId(id) => {
-                self.clicked_pos = None;
-                self.unit_under_cursor_id = Some(id);
-            },
-            PickResult::Nothing => {},
+        let p = self.pick_world_pos();
+        let origin = MapPos{v: Vector2 {
+            x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as ZInt,
+            y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as ZInt,
+        }};
+        let mut closest_map_pos = origin.clone();
+        let origin_world_pos = geom::map_pos_to_world_pos(&origin);
+        let mut min_dist = (origin_world_pos.v - p.v).length();
+        let i = self.player_info.get_mut(self.core.player_id());
+        for map_pos in spiral_iter(&origin, 1) {
+            if !i.game_state.map().is_inboard(&map_pos) {
+                continue;
+            }
+            let pos = geom::map_pos_to_world_pos(&map_pos);
+            let d = (pos.v - p.v).length();
+            if d < min_dist {
+                min_dist = d;
+                closest_map_pos = map_pos;
+            }
+        }
+        let units_at = i.game_state.units_at(&closest_map_pos);
+        if units_at.len() == 1 {
+            self.clicked_pos = None;
+            self.unit_under_cursor_id = Some(units_at[0].id.clone());
+        } else {
+            self.clicked_pos = Some(closest_map_pos);
+            self.unit_under_cursor_id = None;
         }
     }
 
@@ -1130,7 +1142,6 @@ impl Visualizer {
             &self.zgl, state, &self.floor_tex);
         self.fow_map_mesh = generate_fogged_tiles_mesh(
             &self.zgl, state, &self.floor_tex);
-        self.picker.update_units(&self.zgl, state);
     }
 
     fn logic(&mut self) {
