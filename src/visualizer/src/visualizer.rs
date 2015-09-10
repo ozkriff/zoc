@@ -281,6 +281,13 @@ impl PlayerInfoManager {
     }
 }
 
+#[derive(Clone)]
+enum PickResult {
+    Pos(MapPos),
+    UnitId(UnitId),
+    None,
+}
+
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
@@ -292,7 +299,6 @@ pub struct Visualizer {
     is_lmb_pressed: bool,
     is_rmb_pressed: bool,
     win_size: Size2<ZInt>,
-    clicked_pos: Option<MapPos>,
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
     font_stash: FontStash,
@@ -307,7 +313,6 @@ pub struct Visualizer {
     mesh_ids: MeshIdManager,
     meshes: Vec<Mesh>,
     unit_type_visual_info: UnitTypeVisualInfoManager,
-    unit_under_cursor_id: Option<UnitId>,
     selected_unit_id: Option<UnitId>,
     selection_manager: SelectionManager,
     // TODO: move to 'meshes'
@@ -315,6 +320,7 @@ pub struct Visualizer {
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
     floor_tex: Texture,
+    pick_result: PickResult,
 }
 
 impl Visualizer {
@@ -401,7 +407,6 @@ impl Visualizer {
             is_lmb_pressed: false,
             is_rmb_pressed: false,
             win_size: win_size,
-            clicked_pos: None,
             just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector::from_value(0)},
             font_stash: font_stash,
@@ -415,7 +420,6 @@ impl Visualizer {
             mesh_ids: mesh_ids,
             meshes: meshes,
             unit_type_visual_info: unit_type_visual_info,
-            unit_under_cursor_id: None,
             selected_unit_id: None,
             selection_manager: SelectionManager::new(selection_marker_mesh_id),
             walkable_mesh: None,
@@ -423,6 +427,7 @@ impl Visualizer {
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
+            pick_result: PickResult::None,
         };
         visualizer.add_map_objects();
         visualizer
@@ -486,7 +491,7 @@ impl Visualizer {
     }
 
     fn end_turn(&mut self) {
-        self.unit_under_cursor_id = None;
+        self.pick_result = PickResult::None;
         self.core.do_command(Command::EndTurn);
         self.selected_unit_id = None;
         let i = self.player_info.get_mut(self.core.player_id());
@@ -500,7 +505,7 @@ impl Visualizer {
     }
 
     fn create_unit(&mut self) {
-        if let Some(ref pos) = self.clicked_pos {
+        if let PickResult::Pos(ref pos) = self.pick_result {
             if self.is_tile_occupied(pos) {
                 return;
             }
@@ -548,16 +553,21 @@ impl Visualizer {
     }
 
     fn try_to_attack_unit(&mut self) {
-        match (self.unit_under_cursor_id.clone(), self.selected_unit_id.clone()) {
-            (Some(defender_id), Some(attacker_id)) => {
-                self.attack_unit(&attacker_id, &defender_id)
-            },
-            _ => {},
-        }
+        let defender_id = if let PickResult::UnitId(id) = self.pick_result.clone() {
+            id
+        } else {
+            return;
+        };
+        let attacker_id = if let Some(id) = self.selected_unit_id.clone() {
+            id
+        } else {
+            return;
+        };
+        self.attack_unit(&attacker_id, &defender_id)
     }
 
     fn select_unit(&mut self) {
-        if let Some(ref unit_id) = self.unit_under_cursor_id {
+        if let PickResult::UnitId(ref unit_id) = self.pick_result {
             self.selected_unit_id = Some(unit_id.clone());
             let mut i = self.player_info.get_mut(self.core.player_id());
             let state = &i.game_state;
@@ -572,9 +582,7 @@ impl Visualizer {
         }
     }
 
-    fn move_unit(&mut self, move_mode: &MoveMode) {
-        let pos = self.clicked_pos.clone()
-            .expect("Can`t move unit if no pos is selected");
+    fn move_unit(&mut self, pos: &MapPos, move_mode: &MoveMode) {
         let unit_id = match self.selected_unit_id {
             Some(ref unit_id) => unit_id.clone(),
             None => return,
@@ -660,7 +668,7 @@ impl Visualizer {
     fn print_unit_info(&self, unit_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
         let unit = state.units().get(unit_id)
-            .expect("Can`t find unit_under_cursor_id in current state");
+            .expect("Can`t find picked unit in current state");
         println!("player_id: {}", unit.player_id.id);
         println!("move_points: {}", unit.move_points);
         println!("attack_points: {}", unit.attack_points);
@@ -695,10 +703,9 @@ impl Visualizer {
         println!("weapon: max_distance: {}", weapon_type.max_distance);
     }
 
-    fn print_terrain_info(&self) {
-        let pos = self.clicked_pos.clone().unwrap();
+    fn print_terrain_info(&self, pos: &MapPos) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
-        match state.map().tile(&pos) {
+        match state.map().tile(pos) {
             &Terrain::Trees => println!("Trees"),
             &Terrain::Plain => println!("Plain"),
         }
@@ -706,10 +713,10 @@ impl Visualizer {
 
     fn print_info(&mut self) {
         self.pick_tile();
-        if let Some(ref unit_id) = self.unit_under_cursor_id {
-            self.print_unit_info(unit_id);
-        } else {
-            self.print_terrain_info();
+        match self.pick_result {
+            PickResult::UnitId(ref id) => self.print_unit_info(id),
+            PickResult::Pos(ref pos) => self.print_terrain_info(pos),
+            _ => {},
         }
         println!("");
     }
@@ -740,7 +747,11 @@ impl Visualizer {
             },
             VirtualKeyCode::H => {
                 self.pick_tile();
-                self.move_unit(&MoveMode::Hunt);
+                if let PickResult::Pos(pos) = self.pick_result.clone() {
+                    self.move_unit(&pos, &MoveMode::Hunt);
+                } else {
+                    panic!("Can`t move unit if no pos is selected");
+                }
             },
             VirtualKeyCode::C => {
                 let p = self.pick_world_pos();
@@ -768,21 +779,24 @@ impl Visualizer {
         if let Some(button_id) = self.get_clicked_button_id() {
             self.handle_event_button_press(&button_id);
         }
-        if self.clicked_pos.is_some() {
-            self.move_unit(&MoveMode::Fast);
-        }
-        if let Some(unit_under_cursor_id) = self.unit_under_cursor_id.clone() {
-            let player_id = {
-                let state = &self.player_info.get(self.core.player_id()).game_state;
-                let unit = state.units().get(&unit_under_cursor_id)
-                    .expect("Can`t find unit_under_cursor_id in current state");
-                unit.player_id.clone()
-            };
-            if player_id == *self.core.player_id() {
-                self.select_unit();
-            } else {
-                self.try_to_attack_unit();
-            }
+        match self.pick_result.clone() {
+            PickResult::Pos(pos) => {
+                self.move_unit(&pos, &MoveMode::Fast);
+            },
+            PickResult::UnitId(unit_id) => {
+                let player_id = {
+                    let state = &self.player_info.get(self.core.player_id()).game_state;
+                    let unit = state.units().get(&unit_id)
+                        .expect("Can`t find picked unit in current state");
+                    unit.player_id.clone()
+                };
+                if player_id == *self.core.player_id() {
+                    self.select_unit();
+                } else {
+                    self.try_to_attack_unit();
+                }
+            },
+            PickResult::None => {},
         }
     }
 
@@ -941,22 +955,17 @@ impl Visualizer {
     }
 
     // TODO: Must return value.
-    // TODO: remove 'unit_under_cursor_id' and 'clicked_pos' fields.
-    // TODO: optimize
     fn pick_tile(&mut self) {
         let p = self.pick_world_pos();
         let origin = MapPos{v: Vector2 {
             x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as ZInt,
             y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as ZInt,
         }};
-        let mut closest_map_pos = origin.clone();
         let origin_world_pos = geom::map_pos_to_world_pos(&origin);
+        let mut closest_map_pos = origin.clone();
         let mut min_dist = (origin_world_pos.v - p.v).length();
-        let i = self.player_info.get_mut(self.core.player_id());
+        let state = &self.player_info.get_mut(self.core.player_id()).game_state;
         for map_pos in spiral_iter(&origin, 1) {
-            if !i.game_state.map().is_inboard(&map_pos) {
-                continue;
-            }
             let pos = geom::map_pos_to_world_pos(&map_pos);
             let d = (pos.v - p.v).length();
             if d < min_dist {
@@ -964,13 +973,17 @@ impl Visualizer {
                 closest_map_pos = map_pos;
             }
         }
-        let units_at = i.game_state.units_at(&closest_map_pos);
-        if units_at.len() == 1 {
-            self.clicked_pos = None;
-            self.unit_under_cursor_id = Some(units_at[0].id.clone());
+        if !state.map().is_inboard(&closest_map_pos) {
+            self.pick_result = PickResult::None;
         } else {
-            self.clicked_pos = Some(closest_map_pos);
-            self.unit_under_cursor_id = None;
+            let units_at = state.units_at(&closest_map_pos);
+            if units_at.len() >= 1 {
+                assert!(units_at.len() == 1);
+                let unit_id = units_at[0].id.clone();
+                self.pick_result = PickResult::UnitId(unit_id);
+            } else {
+                self.pick_result = PickResult::Pos(closest_map_pos);
+            }
         }
     }
 
