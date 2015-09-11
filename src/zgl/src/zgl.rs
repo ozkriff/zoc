@@ -195,13 +195,6 @@ impl Zgl {
         let far = 1.0;
         ortho(left, right, bottom, top, near, far)
     }
-
-    pub fn flush(&self) {
-        unsafe {
-            self.gl.Flush();
-            self.check();
-        }
-    }
 }
 
 pub struct Vbo {
