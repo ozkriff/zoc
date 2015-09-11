@@ -17,7 +17,7 @@ pub struct Ai {
 }
 
 impl Ai {
-    pub fn new(id: &PlayerId, map_size: &Size2<ZInt>) -> Ai {
+    pub fn new(id: &PlayerId, map_size: &Size2) -> Ai {
         Ai {
             id: id.clone(),
             state: GameState::new(map_size, id),

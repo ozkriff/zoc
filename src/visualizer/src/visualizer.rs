@@ -97,18 +97,17 @@ static FS_SRC: &'static str = "\
     }\n\
 ";
 
-fn get_win_size(window: &Window) -> Size2<ZInt> {
+fn get_win_size(window: &Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
     Size2{w: w as ZInt, h: h as ZInt}
 }
 
-fn get_initial_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
+fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
     WorldPos{v: Vector3{x: pos.v.x / 2.0, y: pos.v.y / 2.0, z: 0.0}}
 }
 
-// TODO: Replace all Size2<ZInt> with aliases
-fn get_max_camera_pos(map_size: &Size2<ZInt>) -> WorldPos {
+fn get_max_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = geom::map_pos_to_world_pos(
         &MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}});
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
@@ -254,7 +253,7 @@ struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    fn new(map_size: &Size2<ZInt>) -> PlayerInfoManager {
+    fn new(map_size: &Size2) -> PlayerInfoManager {
         let mut m = HashMap::new();
         m.insert(PlayerId{id: 0}, PlayerInfo {
             game_state: GameState::new(map_size, &PlayerId{id: 0}),
@@ -298,7 +297,7 @@ pub struct Visualizer {
     mouse_pos: ScreenPos,
     is_lmb_pressed: bool,
     is_rmb_pressed: bool,
-    win_size: Size2<ZInt>,
+    win_size: Size2,
     just_pressed_lmb: bool,
     last_press_pos: ScreenPos,
     font_stash: FontStash,

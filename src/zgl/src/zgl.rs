@@ -96,7 +96,7 @@ impl Zgl {
         }
     }
 
-    pub fn set_viewport(&mut self, size: &Size2<ZInt>) {
+    pub fn set_viewport(&mut self, size: &Size2) {
         unsafe {
             self.gl.Viewport(0, 0, size.w, size.h);
         }
@@ -153,7 +153,7 @@ impl Zgl {
 
     pub fn read_pixel_bytes(
         &self,
-        win_size: &Size2<ZInt>,
+        win_size: &Size2,
         mouse_pos: &ScreenPos,
     ) -> (ZInt, ZInt, ZInt, ZInt) {
         let height = win_size.h;
@@ -186,7 +186,7 @@ impl Zgl {
         self.check();
     }
 
-    pub fn get_2d_screen_matrix(&self, win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
+    pub fn get_2d_screen_matrix(&self, win_size: &Size2) -> Matrix4<ZFloat> {
         let left = 0.0;
         let right = win_size.w as ZFloat;
         let bottom = 0.0;

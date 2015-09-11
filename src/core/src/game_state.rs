@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use common::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
+use common::types::{PlayerId, UnitId, MapPos, Size2};
 use core::{CoreEvent};
 use unit::{Unit};
 use db::{Db};
@@ -15,7 +15,7 @@ pub struct GameState {
 }
 
 impl<'a> GameState {
-    pub fn new(map_size: &Size2<ZInt>, player_id: &PlayerId) -> GameState {
+    pub fn new(map_size: &Size2, player_id: &PlayerId) -> GameState {
         GameState {
             state: InternalState::new(map_size),
             fow: Fow::new(map_size, player_id),

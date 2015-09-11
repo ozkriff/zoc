@@ -17,7 +17,7 @@ use zgl::{Zgl};
 #[derive(Clone)]
 pub struct Glyph {
     pos: ScreenPos,
-    size: Size2<ZInt>,
+    size: Size2,
     xoff: ZInt,
     yoff: ZInt,
 }
@@ -60,7 +60,7 @@ impl FontStash {
         self.size
     }
 
-    pub fn get_text_size(&mut self, zgl: &Zgl, text: &str) -> (ScreenPos, Size2<ZInt>) {
+    pub fn get_text_size(&mut self, zgl: &Zgl, text: &str) -> (ScreenPos, Size2) {
         let mut size = Size2{w: 0, h: 0};
         let mut pos = ScreenPos{v: Vector2{x: 0, y: 0}};
         for c in text.chars() {
@@ -126,7 +126,7 @@ impl FontStash {
         &mut self,
         zgl: &Zgl,
         pos: ScreenPos,
-        size: Size2<ZInt>,
+        size: Size2,
         bitmap: Vec<u8>
     ) {
         let mut data: Vec<_> = repeat(0u8)

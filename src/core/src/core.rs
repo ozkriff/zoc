@@ -134,7 +134,7 @@ fn get_players_list() -> Vec<Player> {
     )
 }
 
-fn get_player_info_lists(map_size: &Size2<ZInt>) -> HashMap<PlayerId, PlayerInfo> {
+fn get_player_info_lists(map_size: &Size2) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 0}),
@@ -220,7 +220,7 @@ impl Core {
         self.do_core_event(event);
     }
 
-    pub fn map_size(&self) -> &Size2<ZInt> {
+    pub fn map_size(&self) -> &Size2 {
         self.state.map.size()
     }
 

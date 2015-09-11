@@ -14,14 +14,14 @@ pub struct ButtonId {pub id: ZInt}
 
 pub struct Button {
     pos: ScreenPos,
-    size: Size2<ZInt>,
+    size: Size2,
     mesh: Mesh,
 }
 
 impl Button {
     pub fn new(
         zgl: &Zgl,
-        win_size: &Size2<ZInt>,
+        win_size: &Size2,
         label: &str,
         font_stash: &mut FontStash,
         pos: ScreenPos,
@@ -46,7 +46,7 @@ impl Button {
         &self.pos
     }
 
-    pub fn size(&self) -> &Size2<ZInt> {
+    pub fn size(&self) -> &Size2 {
         &self.size
     }
 }
@@ -79,7 +79,7 @@ impl ButtonManager {
     pub fn get_clicked_button_id(
         &self,
         mouse_pos: &ScreenPos,
-        win_size: &Size2<ZInt>,
+        win_size: &Size2,
     ) -> Option<ButtonId> {
         let x = mouse_pos.v.x;
         let y = win_size.h - mouse_pos.v.y;
@@ -99,7 +99,7 @@ impl ButtonManager {
     pub fn draw(
         &self,
         zgl: &Zgl,
-        win_size: &Size2<ZInt>,
+        win_size: &Size2,
         shader: &Shader,
         mvp_mat_id: &MatId,
     ) {

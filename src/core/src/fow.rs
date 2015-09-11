@@ -70,7 +70,7 @@ pub struct Fow {
 }
 
 impl Fow {
-    pub fn new(map_size: &Size2<ZInt>, player_id: &PlayerId) -> Fow {
+    pub fn new(map_size: &Size2, player_id: &PlayerId) -> Fow {
         Fow {
             map: Map::new(map_size, TileVisibility::No),
             player_id: player_id.clone(),

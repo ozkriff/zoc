@@ -14,12 +14,12 @@ pub enum Terrain {
 
 pub struct Map<T> {
     tiles: Vec<T>,
-    size: Size2<ZInt>,
+    size: Size2,
 }
 
 impl<T: Clone> Map<T> {
     // TODO: remove 'empty'
-    pub fn new(size: &Size2<ZInt>, empty: T) -> Map<T> {
+    pub fn new(size: &Size2, empty: T) -> Map<T> {
         let tiles_count = size.w * size.h;
         let tiles = repeat(empty).take(tiles_count as usize).collect();
         Map {
@@ -28,7 +28,7 @@ impl<T: Clone> Map<T> {
         }
     }
 
-    pub fn size(&self) -> &Size2<ZInt> {
+    pub fn size(&self) -> &Size2 {
         &self.size
     }
 
@@ -57,11 +57,11 @@ impl<T: Clone> Map<T> {
 
 pub struct MapPosIter {
     cursor: MapPos,
-    map_size: Size2<ZInt>,
+    map_size: Size2,
 }
 
 impl MapPosIter {
-    fn new(map_size: &Size2<ZInt>) -> MapPosIter {
+    fn new(map_size: &Size2) -> MapPosIter {
         MapPosIter {
             cursor: MapPos{v: Vector::from_value(0)},
             map_size: map_size.clone(),

@@ -2,14 +2,14 @@
 
 use cgmath::{Vector2};
 
-#[derive(Clone)]
-pub struct Size2<T>{
-    pub w: T,
-    pub h: T,
-}
-
 pub type ZInt = i32;
 pub type ZFloat = f32;
+
+#[derive(Clone)]
+pub struct Size2 {
+    pub w: ZInt,
+    pub h: ZInt,
+}
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
 pub struct PlayerId{pub id: ZInt}

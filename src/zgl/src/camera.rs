@@ -3,7 +3,7 @@
 use std::f32::consts::{PI};
 use num::{Float};
 use cgmath::{perspective, rad, Matrix4, Vector, Vector3, Rad};
-use common::types::{ZInt, Size2, ZFloat};
+use common::types::{Size2, ZFloat};
 use common::misc::{clamp};
 use zgl::{Zgl};
 use types::{WorldPos};
@@ -17,7 +17,7 @@ pub struct Camera {
     projection_mat: Matrix4<ZFloat>,
 }
 
-fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
+fn get_projection_mat(win_size: &Size2) -> Matrix4<ZFloat> {
     let fov = rad(PI / 4.0);
     let ratio = win_size.w as ZFloat / win_size.h as ZFloat;
     let display_range_min = 0.1;
@@ -27,7 +27,7 @@ fn get_projection_mat(win_size: &Size2<ZInt>) -> Matrix4<ZFloat> {
 }
 
 impl Camera {
-    pub fn new(win_size: &Size2<ZInt>) -> Camera {
+    pub fn new(win_size: &Size2) -> Camera {
         Camera {
             x_angle: rad(PI / 4.0),
             z_angle: rad(0.0),
@@ -104,7 +104,7 @@ impl Camera {
         self.clamp_pos();
     }
 
-    pub fn regenerate_projection_mat(&mut self, win_size: &Size2<ZInt>) {
+    pub fn regenerate_projection_mat(&mut self, win_size: &Size2) {
         self.projection_mat = get_projection_mat(win_size);
     }
 }

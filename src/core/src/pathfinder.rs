@@ -86,7 +86,7 @@ pub struct Pathfinder {
 }
 
 impl Pathfinder {
-    pub fn new(map_size: &Size2<ZInt>) -> Pathfinder {
+    pub fn new(map_size: &Size2) -> Pathfinder {
         Pathfinder {
             queue: Vec::new(),
             map: Map::new(map_size, Tile {

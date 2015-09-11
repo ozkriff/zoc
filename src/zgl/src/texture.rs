@@ -23,7 +23,7 @@ impl Texture {
         load_texture(zgl, path)
     }
 
-    pub fn new_empty(zgl: &Zgl, size: Size2<ZInt>) -> Texture {
+    pub fn new_empty(zgl: &Zgl, size: Size2) -> Texture {
         get_empty_texture(zgl, size)
     }
 
@@ -51,7 +51,7 @@ impl Texture {
         &self,
         zgl: &Zgl,
         pos: Vector2<ZInt>,
-        size: Size2<ZInt>,
+        size: Size2,
         data: &Vec<u8>
     ) {
         let bytes_per_pixel = 4;
@@ -82,7 +82,7 @@ fn load_image(path: &Path) -> image::DynamicImage {
         .ok().expect("Can`t open img")
 }
 
-fn get_empty_texture(zgl: &Zgl, size: Size2<ZInt>) -> Texture {
+fn get_empty_texture(zgl: &Zgl, size: Size2) -> Texture {
     let s = size.w;
     assert_eq!(size.w, size.h);
     let data: Vec<_> = repeat(0u8).take((s * s) as usize * 4 ).collect();

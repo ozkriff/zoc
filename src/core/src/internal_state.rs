@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use common::types::{PlayerId, UnitId, MapPos, Size2, ZInt};
+use common::types::{PlayerId, UnitId, MapPos, Size2};
 use core::{CoreEvent, FireMode};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
@@ -21,7 +21,7 @@ pub struct InternalState {
 }
 
 impl<'a> InternalState {
-    pub fn new(map_size: &Size2<ZInt>) -> InternalState {
+    pub fn new(map_size: &Size2) -> InternalState {
         let mut map = Map::new(map_size, Terrain::Plain);
         // TODO: read from scenario.json?
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
