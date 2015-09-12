@@ -104,9 +104,9 @@ impl Fow {
 
     fn reset(&mut self, db: &Db, state: &InternalState) {
         self.clear();
-        for (_, unit) in &state.units {
+        for (_, unit) in state.units() {
             if unit.player_id == self.player_id {
-                fov_unit(db, &state.map, &mut self.map, &unit);
+                fov_unit(db, state.map(), &mut self.map, &unit);
             }
         }
     }
@@ -119,13 +119,12 @@ impl Fow {
     ) {
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
-                let unit = state.units.get(unit_id)
-                    .expect("Can`t find moving unit");
+                let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     for path_node in path.nodes() {
                         let p = &path_node.pos;
                         fov_unit_in_pos(
-                            db, &state.map, &mut self.map, unit, p);
+                            db, state.map(), &mut self.map, unit, p);
                     }
                 }
             },
@@ -135,9 +134,9 @@ impl Fow {
                 }
             },
             &CoreEvent::CreateUnit{ref unit_id, ref player_id, ..} => {
-                let unit = &state.units[unit_id];
+                let unit = state.unit(unit_id);
                 if self.player_id == *player_id {
-                    fov_unit(db, &state.map, &mut self.map, unit);
+                    fov_unit(db, state.map(), &mut self.map, unit);
                 }
             },
             &CoreEvent::AttackUnit{..} => {},

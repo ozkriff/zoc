@@ -23,11 +23,11 @@ impl<'a> GameState {
     }
 
     pub fn units(&self) -> &HashMap<UnitId, Unit> {
-        &self.state.units
+        &self.state.units()
     }
 
     pub fn map(&'a self) -> &Map<Terrain> {
-        &self.state.map
+        &self.state.map()
     }
 
     pub fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {

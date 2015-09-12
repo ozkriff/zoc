@@ -58,7 +58,7 @@ pub enum CoreEvent {
 fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
     match event {
         &CoreEvent::AttackUnit{ref defender_id, ref killed, ..} => {
-            state.units[defender_id].count - *killed <= 0
+            state.unit(defender_id).count - *killed <= 0
         },
         _ => panic!("wrong event type"),
     }
@@ -221,7 +221,7 @@ impl Core {
     }
 
     pub fn map_size(&self) -> &Size2 {
-        self.state.map.size()
+        self.state.map().size()
     }
 
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> ZInt {
@@ -290,7 +290,7 @@ impl Core {
     }
 
     fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
-        los(&self.state.map, unit_type, from, to)
+        los(self.state.map(), unit_type, from, to)
     }
 
     fn command_attack_unit_to_event(
@@ -302,8 +302,8 @@ impl Core {
         remove_move_points: bool,
     ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
-        let attacker = &self.state.units[&attacker_id];
-        let defender = &self.state.units[&defender_id];
+        let attacker = self.state.unit(&attacker_id);
+        let defender = self.state.unit(&defender_id);
         let attacker_type = self.db.unit_type(&attacker.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
         if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
@@ -334,9 +334,9 @@ impl Core {
         -> Vec<CoreEvent>
     {
         let mut events = Vec::new();
-        let unit = &self.state.units[unit_id];
+        let unit = self.state.unit(unit_id);
         let unit_type = self.db.unit_type(&unit.type_id);
-        for (_, enemy_unit) in &self.state.units {
+        for (_, enemy_unit) in self.state.units() {
             // TODO: check if unit is still alive
             if enemy_unit.player_id == self.current_player_id {
                 continue;
@@ -448,13 +448,13 @@ impl Core {
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
-                let defender_pos = &self.state.units[&defender_id].pos;
+                let defender_pos = &self.state.unit(&defender_id).pos;
                 let e = self.command_attack_unit_to_event(
                     attacker_id.clone(), defender_id, defender_pos, FireMode::Active, false);
                 let is_target_alive = !e.is_empty() && !is_target_dead(&self.state, &e[0]);
                 events.extend(e);
                 if is_target_alive {
-                    let pos = &self.state.units[&attacker_id].pos;
+                    let pos = &self.state.unit(&attacker_id).pos;
                     events.extend(self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos));
                 }
             },
@@ -517,15 +517,14 @@ impl Core {
         let fow = &self.players_info[player_id].fow;
         let mut events = vec![];
         if let Some(attacker_id) = attacker_id.clone() {
-            let attacker = self.state.units.get(&attacker_id)
-                .expect("Can`t find attacker");
+            let attacker = self.state.unit(&attacker_id);
             let attacker_type = self.db.unit_type(&attacker.type_id);
             if !fow.is_visible(attacker_type, &attacker.pos) {
                 events.push(self.create_show_unit_event(&attacker));
             }
         }
         // if defender is not dead...
-        if let Some(defender) = self.state.units.get(defender_id) {
+        if let Some(defender) = self.state.units().get(defender_id) {
             let defender_type = self.db.unit_type(&defender.type_id);
             if !fow.is_visible(defender_type, &defender.pos) {
                 events.push(self.create_show_unit_event(&defender));
@@ -542,8 +541,7 @@ impl Core {
         move_mode: &MoveMode,
     ) -> Vec<CoreEvent> {
         let mut events = vec![];
-        let unit = self.state.units.get(unit_id)
-            .expect("Can`t find moving unit");
+        let unit = self.state.unit(unit_id);
         let fow = &self.players_info[player_id].fow;
         let unit_type = self.db.unit_type(&unit.type_id);
         let len = path.nodes().len();
@@ -609,8 +607,7 @@ impl Core {
         let fow = &self.players_info[player_id].fow;
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
-                let unit = self.state.units.get(unit_id)
-                    .expect("Can`t find moving unit");
+                let unit = self.state.unit(unit_id);
                 if unit.player_id == *player_id {
                     events.push(event.clone())
                 } else {
@@ -629,7 +626,7 @@ impl Core {
                 player_id: ref new_unit_player_id,
                 ..
             } => {
-                let unit = &self.state.units[unit_id];
+                let unit = self.state.unit(unit_id);
                 let unit_type = self.db.unit_type(&unit.type_id);
                 if *player_id == *new_unit_player_id
                     || fow.is_visible(unit_type, pos)
@@ -670,11 +667,11 @@ impl Core {
                 let new_visible_enemies = get_visible_enemies(
                     &self.db,
                     &i.fow,
-                    &self.state.units,
+                    self.state.units(),
                     &player.id
                 );
                 let show_hide_events = show_or_hide_passive_enemies(
-                    &self.state.units,
+                    self.state.units(),
                     &active_unit_ids,
                     &i.visible_enemies,
                     &new_visible_enemies,

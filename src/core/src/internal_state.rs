@@ -15,9 +15,8 @@ pub enum InfoLevel {
 }
 
 pub struct InternalState {
-    // TODO: remove 'pub'?
-    pub units: HashMap<UnitId, Unit>,
-    pub map: Map<Terrain>,
+    units: HashMap<UnitId, Unit>,
+    map: Map<Terrain>,
 }
 
 impl<'a> InternalState {
@@ -33,6 +32,18 @@ impl<'a> InternalState {
             units: HashMap::new(),
             map: map,
         }
+    }
+
+    pub fn units(&self) -> &HashMap<UnitId, Unit> {
+        &self.units
+    }
+
+    pub fn unit(&'a self, id: &UnitId) -> &'a Unit {
+        &self.units[id]
+    }
+
+    pub fn map(&'a self) -> &Map<Terrain> {
+        &self.map
     }
 
     pub fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
