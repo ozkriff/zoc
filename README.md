@@ -1,5 +1,7 @@
-# Zone of Control [![travis-ci-img][]] [travis-ci]
+# Zone of Control
 
+[![travis-ci-img][]] [travis-ci]
+[![gitter-img][]] [gitter]
 
 ## Overview
 
@@ -65,4 +67,6 @@ ZoC is licensed under the MIT license (see the `LICENSE` file).
 [separate repo]: https://github.com/ozkriff/zoc_assets
 [travis-ci-img]: https://travis-ci.org/ozkriff/zoc.png?branch=master
 [travis-ci]: https://travis-ci.org/ozkriff/zoc
+[gitter-img]: https://badges.gitter.im/....svg
+[gitter]: https://gitter.im/ozkriff/zoc
 [android-img]: http://i.imgur.com/Fp3Z5I1l.png
