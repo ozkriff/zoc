@@ -167,9 +167,11 @@ impl Fow {
             &CoreEvent::HideUnit{..} => {},
             &CoreEvent::LoadUnit{..} => {},
             &CoreEvent::UnloadUnit{ref unit_info, ..} => {
-                let unit = state.unit(&unit_info.unit_id);
-                let pos = &unit_info.pos;
-                fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
+                if self.player_id == unit_info.player_id {
+                    let unit = state.unit(&unit_info.unit_id);
+                    let pos = &unit_info.pos;
+                    fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
+                }
             },
         }
     }
