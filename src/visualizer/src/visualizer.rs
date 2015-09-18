@@ -57,6 +57,8 @@ use event_visualizer::{
     EventMoveVisualizer,
     EventEndTurnVisualizer,
     EventCreateUnitVisualizer,
+    EventUnloadUnitVisualizer,
+    EventLoadUnitVisualizer,
     EventAttackUnitVisualizer,
     EventShowUnitVisualizer,
     EventHideUnitVisualizer,
@@ -96,6 +98,46 @@ static FS_SRC: &'static str = "\
             * texture2D(basic_texture, texture_coordinates);\n\
     }\n\
 ";
+
+fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
+    let mut transporter_id = None;
+    for unit in units {
+        let unit_type = db.unit_type(&unit.type_id);
+        if unit_type.is_transporter {
+            transporter_id = Some(unit.id.clone());
+        }
+    }
+    transporter_id
+}
+
+// TODO: rename?
+// TODO: Move to core
+fn get_unit_id_at(db: &Db, state: &GameState, pos: &MapPos) -> Option<UnitId> {
+    let units_at = state.units_at(pos);
+    if units_at.len() == 1 {
+        let unit_id = units_at[0].id.clone();
+        Some(unit_id)
+    } else if units_at.len() > 1 {
+        let transporter_id = find_transporter_id(db, &units_at)
+            .expect("Multiple units in tile, but no transporter");
+        for unit in &units_at {
+            if unit.id == transporter_id {
+                continue;
+            }
+            let transporter = state.unit(&transporter_id);
+            if let Some(ref passanger_id) = transporter.passanger_id {
+                if *passanger_id != unit.id {
+                    panic!("Non-passanger unit in multiunit tile");
+                }
+            } else {
+                panic!("Multiple units in tile, but transporter is empty");
+            }
+        }
+        Some(transporter_id)
+    } else {
+        None
+    }
+}
 
 fn get_win_size(window: &Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
@@ -228,6 +270,12 @@ fn get_unit_type_visual_info(
         mesh_id: tank_mesh_id,
         move_speed: 3.8,
     });
+    let truck_id = db.unit_type_id("truck");
+    let truck_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "truck"));
+    manager.add_info(&truck_id, UnitTypeVisualInfo {
+        mesh_id: truck_mesh_id,
+        move_speed: 4.8,
+    });
     let soldier_id = db.unit_type_id("soldier");
     let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
@@ -298,7 +346,7 @@ pub struct Visualizer {
     is_lmb_pressed: bool,
     is_rmb_pressed: bool,
     win_size: Size2,
-    just_pressed_lmb: bool,
+    just_pressed_lmb: bool, // TODO: remove this field?
     last_press_pos: ScreenPos,
     font_stash: FontStash,
     map_text_manager: MapTextManager,
@@ -501,6 +549,98 @@ impl Visualizer {
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
         let i = self.player_info.get(self.core.player_id());
         i.game_state.is_tile_occupied(pos)
+    }
+
+    fn load_unit(&mut self, passanger_id: &UnitId) {
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        let passanger = state.unit(&passanger_id);
+        let pos = passanger.pos.clone();
+        let transporter_id = if let Some(id) = self.selected_unit_id.clone() {
+            id
+        } else {
+            self.map_text_manager.add_text(&pos, "No selected unit");
+            return;
+        };
+        let transporter = state.unit(&transporter_id);
+        if !self.core.db().unit_type(&transporter.type_id).is_transporter {
+            self.map_text_manager.add_text(&pos, "Not transporter");
+            return;
+        }
+        match self.core.db().unit_type(&passanger.type_id).class {
+            UnitClass::Infantry => {},
+            _ => {
+                self.map_text_manager.add_text(&pos, "Bad passanger class");
+                return;
+            }
+        }
+        if transporter.passanger_id.is_some() {
+            self.map_text_manager.add_text(&pos, "Transporter is not empty");
+            return;
+        }
+        if distance(&transporter.pos, &pos) > 1 {
+            self.map_text_manager.add_text(&pos, "Distance > 1");
+            return;
+        }
+        // TODO: 0 -> real move cost of transport tile for passanger
+        if passanger.move_points == 0 {
+            self.map_text_manager.add_text(&pos, "Passanger move point == 0");
+            return;
+        }
+        self.core.do_command(Command::LoadUnit {
+            transporter_id: transporter_id,
+            passanger_id: passanger_id.clone(),
+        });
+    }
+
+    fn unload_unit(&mut self, pos: &MapPos) {
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        let transporter_id = if let Some(id) = self.selected_unit_id.clone() {
+            id
+        } else {
+            self.map_text_manager.add_text(&pos, "No selected unit");
+            return;
+        };
+        let transporter = state.units().get(&transporter_id)
+            .expect("Bad transporter_id");
+        // TODO: Duplicate all this checks ib Core
+        // TODO: check that tile is empty and walkable for passanger
+        if !self.core.db().unit_type(&transporter.type_id).is_transporter {
+            self.map_text_manager.add_text(&pos, "Not transporter");
+            return;
+        }
+        if distance(&transporter.pos, &pos) > 1 {
+            self.map_text_manager.add_text(&pos, "Distance > 1");
+            return;
+        }
+        let passanger_id = match transporter.passanger_id.clone() {
+            Some(id) => id,
+            None => {
+                self.map_text_manager.add_text(&pos, "Transporter is empty");
+                return;
+            },
+        };
+        if state.units_at(pos).len() > 0 {
+            self.map_text_manager.add_text(&pos, "Destination tile is not empty");
+            return;
+        }
+        self.core.do_command(Command::UnloadUnit {
+            transporter_id: transporter_id,
+            passanger_id: passanger_id,
+            pos: pos.clone(),
+        });
+    }
+
+    fn transport(&mut self) {
+        self.pick_tile();
+        match self.pick_result.clone() {
+            PickResult::Pos(ref pos) => {
+                self.unload_unit(pos);
+            },
+            PickResult::UnitId(ref passanger_id) => {
+                self.load_unit(passanger_id);
+            },
+            PickResult::None => {},
+        }
     }
 
     fn create_unit(&mut self) {
@@ -744,6 +884,9 @@ impl Visualizer {
             VirtualKeyCode::U => {
                 self.create_unit();
             },
+            VirtualKeyCode::L => {
+                self.transport();
+            },
             VirtualKeyCode::H => {
                 self.pick_tile();
                 if let PickResult::Pos(pos) = self.pick_result.clone() {
@@ -968,16 +1111,15 @@ impl Visualizer {
                 closest_map_pos = map_pos;
             }
         }
-        if !state.map().is_inboard(&closest_map_pos) {
+        let pos = closest_map_pos;
+        if !state.map().is_inboard(&pos) {
             self.pick_result = PickResult::None;
         } else {
-            let units_at = state.units_at(&closest_map_pos);
-            if units_at.len() >= 1 {
-                assert!(units_at.len() == 1);
-                let unit_id = units_at[0].id.clone();
-                self.pick_result = PickResult::UnitId(unit_id);
+            let unit_at = get_unit_id_at(self.core.db(), state, &pos);
+            if let Some(id) = unit_at {
+                self.pick_result = PickResult::UnitId(id);
             } else {
-                self.pick_result = PickResult::Pos(closest_map_pos);
+                self.pick_result = PickResult::Pos(pos);
             }
         }
     }
@@ -993,8 +1135,8 @@ impl Visualizer {
         &mut self,
         event: &CoreEvent,
     ) -> Box<EventVisualizer> {
-        let player_id = self.core.player_id();
-        let mut i = self.player_info.get_mut(player_id);
+        let current_player_id = self.core.player_id();
+        let mut i = self.player_info.get_mut(current_player_id);
         let scene = &mut i.scene;
         let state = &i.game_state;
         match event {
@@ -1012,22 +1154,13 @@ impl Visualizer {
             &CoreEvent::EndTurn{..} => {
                 EventEndTurnVisualizer::new()
             },
-            &CoreEvent::CreateUnit {
-                ref unit_id,
-                ref pos,
-                ref type_id,
-                ref player_id,
-            } => {
-                let mesh_id = &self.unit_type_visual_info.get(type_id).mesh_id;
+            &CoreEvent::CreateUnit{ref unit_info} => {
+                let mesh_id = &self.unit_type_visual_info
+                    .get(&unit_info.type_id).mesh_id;
+                let marker_mesh_id = get_marker_mesh_id(
+                    &self.mesh_ids, &unit_info.player_id);
                 EventCreateUnitVisualizer::new(
-                    &self.core,
-                    scene,
-                    unit_id.clone(),
-                    type_id,
-                    pos,
-                    mesh_id,
-                    get_marker_mesh_id(&self.mesh_ids, player_id),
-                )
+                    &self.core, scene, unit_info, mesh_id, marker_mesh_id)
             },
             &CoreEvent::AttackUnit {
                 ref attacker_id,
@@ -1049,21 +1182,17 @@ impl Visualizer {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::ShowUnit {
-                ref unit_id,
-                ref pos,
-                ref type_id,
-                ref player_id,
-            } => {
-                let mesh_id = &self.unit_type_visual_info.get(type_id).mesh_id;
+            &CoreEvent::ShowUnit{ref unit_info, ..} => {
+                let mesh_id = &self.unit_type_visual_info
+                    .get(&unit_info.type_id).mesh_id;
+                let marker_mesh_id = get_marker_mesh_id(
+                    &self.mesh_ids, &unit_info.player_id);
                 EventShowUnitVisualizer::new(
-                    &self.core,
+                    &self.core, // TODO: &Core -> &Db
                     scene,
-                    unit_id.clone(),
-                    type_id,
-                    pos,
+                    unit_info,
                     mesh_id,
-                    get_marker_mesh_id(&self.mesh_ids, player_id),
+                    marker_mesh_id,
                     &mut self.map_text_manager,
                 )
             },
@@ -1072,6 +1201,30 @@ impl Visualizer {
                     scene,
                     state,
                     unit_id,
+                    &mut self.map_text_manager,
+                )
+            },
+            &CoreEvent::LoadUnit{ref passanger_id, ref transporter_id} => {
+                EventLoadUnitVisualizer::new(
+                    scene,
+                    state,
+                    passanger_id,
+                    &state.unit(transporter_id).pos,
+                    &mut self.map_text_manager,
+                )
+            },
+            &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
+                let mesh_id = &self.unit_type_visual_info
+                    .get(&unit_info.type_id).mesh_id;
+                let marker_mesh_id = get_marker_mesh_id(
+                    &self.mesh_ids, &unit_info.player_id);
+                EventUnloadUnitVisualizer::new(
+                    &self.core, // TODO: &Core -> &Db
+                    scene,
+                    unit_info,
+                    mesh_id,
+                    marker_mesh_id,
+                    &state.unit(transporter_id).pos,
                     &mut self.map_text_manager,
                 )
             },

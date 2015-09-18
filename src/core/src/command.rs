@@ -15,6 +15,8 @@ pub enum Command {
     EndTurn,
     CreateUnit{pos: MapPos},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
+    LoadUnit{transporter_id: UnitId, passanger_id: UnitId},
+    UnloadUnit{transporter_id: UnitId, passanger_id: UnitId, pos: MapPos},
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

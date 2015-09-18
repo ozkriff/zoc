@@ -23,18 +23,27 @@ pub enum FireMode {
 }
 
 #[derive(Clone)]
+pub struct UnitInfo {
+    pub unit_id: UnitId,
+    pub pos: MapPos,
+    pub type_id: UnitTypeId,
+    pub player_id: PlayerId,
+    pub passanger_id: Option<UnitId>,
+}
+
+#[derive(Clone)]
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
         path: MapPath,
         mode: MoveMode,
     },
-    EndTurn{old_id: PlayerId, new_id: PlayerId},
+    EndTurn {
+        old_id: PlayerId,
+        new_id: PlayerId,
+    },
     CreateUnit {
-        unit_id: UnitId,
-        pos: MapPos,
-        type_id: UnitTypeId,
-        player_id: PlayerId,
+        unit_info: UnitInfo,
     },
     AttackUnit {
         attacker_id: Option<UnitId>,
@@ -45,13 +54,18 @@ pub enum CoreEvent {
         remove_move_points: bool,
     },
     ShowUnit {
-        unit_id: UnitId,
-        pos: MapPos,
-        type_id: UnitTypeId,
-        player_id: PlayerId,
+        unit_info: UnitInfo,
     },
     HideUnit {
         unit_id: UnitId,
+    },
+    LoadUnit {
+        transporter_id: UnitId,
+        passanger_id: UnitId,
+    },
+    UnloadUnit {
+        unit_info: UnitInfo,
+        transporter_id: UnitId,
     },
 }
 
@@ -66,14 +80,14 @@ fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
 
 fn get_visible_enemies(
     db: &Db,
+    state: &InternalState,
     fow: &Fow,
     units: &HashMap<UnitId, Unit>,
     player_id: &PlayerId,
 ) -> HashSet<UnitId> {
     let mut visible_enemies = HashSet::new();
     for (id, unit) in units {
-        let unit_type = db.unit_type(&unit.type_id);
-        if unit.player_id != *player_id && fow.is_visible(unit_type, &unit.pos) {
+        if unit.player_id != *player_id && fow.is_visible(db, state, unit, &unit.pos) {
             visible_enemies.insert(id.clone());
         }
     }
@@ -94,10 +108,13 @@ fn show_or_hide_passive_enemies(
         }
         let unit = units.get(&id).expect("Can`t find unit");
         events.push_back(CoreEvent::ShowUnit {
-            unit_id: id.clone(),
-            pos: unit.pos.clone(),
-            type_id: unit.type_id.clone(),
-            player_id: unit.player_id.clone(),
+            unit_info: UnitInfo {
+                unit_id: id.clone(),
+                pos: unit.pos.clone(),
+                type_id: unit.type_id.clone(),
+                player_id: unit.player_id.clone(),
+                passanger_id: None,
+            },
         });
     }
     let lost_units = old.difference(new);
@@ -185,6 +202,7 @@ impl Core {
     // TODO: Move to scenario.json
     fn get_units(&mut self) {
         let tank_id = self.db.unit_type_id("tank");
+        let truck_id = self.db.unit_type_id("truck");
         let soldier_id = self.db.unit_type_id("soldier");
         let scout_id = self.db.unit_type_id("scout");
         let p_id_0 = PlayerId{id: 0};
@@ -192,6 +210,7 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 1, y: 3}}, &truck_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
@@ -199,6 +218,7 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
+        self.add_unit(&MapPos{v: Vector2{x: 8, y: 4}}, &truck_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
     }
@@ -211,11 +231,14 @@ impl Core {
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
         let new_unit_id = self.get_new_unit_id();
-        let event = CoreEvent::CreateUnit{
-            unit_id: new_unit_id,
-            pos: pos.clone(),
-            type_id: type_id.clone(),
-            player_id: player_id.clone(),
+        let event = CoreEvent::CreateUnit {
+            unit_info: UnitInfo {
+                unit_id: new_unit_id,
+                pos: pos.clone(),
+                type_id: type_id.clone(),
+                player_id: player_id.clone(),
+                passanger_id: None,
+            },
         };
         self.do_core_event(event);
     }
@@ -289,6 +312,7 @@ impl Core {
         i.events.pop_front()
     }
 
+    // TODO: &UnitType -> &UnitId? &Unit?
     fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
         los(self.state.map(), unit_type, from, to)
     }
@@ -299,7 +323,7 @@ impl Core {
         defender_id: UnitId,
         defender_pos: &MapPos,
         fire_mode: FireMode,
-        remove_move_points: bool,
+        remove_move_points: bool, // TODO: clarify
     ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
         let attacker = self.state.unit(&attacker_id);
@@ -317,7 +341,7 @@ impl Core {
         }
         let killed = self.get_killed_count(attacker, defender);
         let fow = &self.players_info[&defender.player_id].fow;
-        let is_ambush = !fow.is_visible(attacker_type, &attacker.pos)
+        let is_ambush = !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos)
             && thread_rng().gen_range(1, 10) > 3;
         events.push(CoreEvent::AttackUnit {
             attacker_id: if is_ambush { None } else { Some(attacker_id) },
@@ -335,10 +359,9 @@ impl Core {
     {
         let mut events = Vec::new();
         let unit = self.state.unit(unit_id);
-        let unit_type = self.db.unit_type(&unit.type_id);
         for (_, enemy_unit) in self.state.units() {
-            // TODO: check if unit is still alive
-            if enemy_unit.player_id == self.current_player_id {
+            // if enemy_unit.player_id == self.current_player_id {
+            if enemy_unit.player_id == unit.player_id {
                 continue;
             }
             let enemy_reactive_attack_points = enemy_unit.reactive_attack_points
@@ -350,7 +373,7 @@ impl Core {
                 continue;
             }
             let fow = &self.players_info[&enemy_unit.player_id].fow;
-            if !fow.is_visible(unit_type, pos) {
+            if !fow.is_visible(&self.db, &self.state, unit, pos) {
                 continue;
             }
             let max_distance = self.db.unit_max_attack_dist(enemy_unit);
@@ -366,6 +389,7 @@ impl Core {
                 unit_id.clone(),
                 pos,
                 FireMode::Reactive,
+                // TODO: simplify this
                 if let &MoveMode::Fast = move_mode {
                     true
                 } else {
@@ -427,10 +451,13 @@ impl Core {
             },
             Command::CreateUnit{pos} => {
                 events.push(CoreEvent::CreateUnit {
-                    unit_id: self.get_new_unit_id(),
-                    pos: pos,
-                    type_id: self.db.unit_type_id("soldier"),
-                    player_id: self.current_player_id.clone(),
+                    unit_info: UnitInfo {
+                        unit_id: self.get_new_unit_id(),
+                        pos: pos,
+                        type_id: self.db.unit_type_id("soldier"),
+                        player_id: self.current_player_id.clone(),
+                        passanger_id: None,
+                    },
                 });
             },
             Command::Move{ref unit_id, ref path, ref mode} => {
@@ -457,6 +484,28 @@ impl Core {
                     let pos = &self.state.unit(&attacker_id).pos;
                     events.extend(self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos));
                 }
+            },
+            Command::LoadUnit{transporter_id, passanger_id} => {
+                events.push(CoreEvent::LoadUnit {
+                    transporter_id: transporter_id,
+                    passanger_id: passanger_id,
+                });
+            },
+            Command::UnloadUnit{transporter_id, passanger_id, pos} => {
+                let passanger = self.state.unit(&passanger_id);
+                events.push(CoreEvent::UnloadUnit {
+                    transporter_id: transporter_id,
+                    unit_info: UnitInfo {
+                        unit_id: passanger_id.clone(),
+                        pos: pos.clone(),
+                        type_id: passanger.type_id.clone(),
+                        player_id: passanger.player_id.clone(),
+                        passanger_id: None,
+                    },
+                });
+                // TODO: simplify `&MoveMode::Hunt` thing
+                events.extend(self.reaction_fire(
+                    &passanger_id, &MoveMode::Hunt, &pos));
             },
         };
         events
@@ -501,10 +550,13 @@ impl Core {
 
     fn create_show_unit_event(&self, unit: &Unit) -> CoreEvent {
         CoreEvent::ShowUnit {
-            unit_id: unit.id.clone(),
-            pos: unit.pos.clone(),
-            type_id: unit.type_id.clone(),
-            player_id: unit.player_id.clone(),
+            unit_info: UnitInfo {
+                unit_id: unit.id.clone(),
+                pos: unit.pos.clone(),
+                type_id: unit.type_id.clone(),
+                player_id: unit.player_id.clone(),
+                passanger_id: unit.passanger_id.clone(),
+            },
         }
     }
 
@@ -518,15 +570,13 @@ impl Core {
         let mut events = vec![];
         if let Some(attacker_id) = attacker_id.clone() {
             let attacker = self.state.unit(&attacker_id);
-            let attacker_type = self.db.unit_type(&attacker.type_id);
-            if !fow.is_visible(attacker_type, &attacker.pos) {
+            if !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos) {
                 events.push(self.create_show_unit_event(&attacker));
             }
         }
         // if defender is not dead...
         if let Some(defender) = self.state.units().get(defender_id) {
-            let defender_type = self.db.unit_type(&defender.type_id);
-            if !fow.is_visible(defender_type, &defender.pos) {
+            if !fow.is_visible(&self.db, &self.state, defender, &defender.pos) {
                 events.push(self.create_show_unit_event(&defender));
             }
         }
@@ -543,11 +593,10 @@ impl Core {
         let mut events = vec![];
         let unit = self.state.unit(unit_id);
         let fow = &self.players_info[player_id].fow;
-        let unit_type = self.db.unit_type(&unit.type_id);
         let len = path.nodes().len();
         let mut sub_path = Vec::new();
         let first_pos = path.nodes()[0].pos.clone();
-        if fow.is_visible(unit_type, &first_pos) {
+        if fow.is_visible(&self.db, &self.state, unit, &first_pos) {
             sub_path.push(PathNode {
                 cost: MoveCost{n: 0},
                 pos: first_pos,
@@ -556,14 +605,17 @@ impl Core {
         for i in 1 .. len {
             let prev_node = path.nodes()[i - 1].clone();
             let next_node = path.nodes()[i].clone();
-            let prev_vis = fow.is_visible(unit_type, &prev_node.pos);
-            let next_vis = fow.is_visible(unit_type, &next_node.pos);
+            let prev_vis = fow.is_visible(&self.db, &self.state, unit, &prev_node.pos);
+            let next_vis = fow.is_visible(&self.db, &self.state, unit, &next_node.pos);
             if !prev_vis && next_vis {
                 events.push(CoreEvent::ShowUnit {
-                    unit_id: unit.id.clone(),
-                    pos: prev_node.pos.clone(),
-                    type_id: unit.type_id.clone(),
-                    player_id: unit.player_id.clone(),
+                    unit_info: UnitInfo {
+                        unit_id: unit.id.clone(),
+                        pos: prev_node.pos.clone(),
+                        type_id: unit.type_id.clone(),
+                        player_id: unit.player_id.clone(),
+                        passanger_id: unit.passanger_id.clone(),
+                    },
                 });
                 sub_path.push(PathNode {
                     cost: MoveCost{n: 0},
@@ -620,16 +672,15 @@ impl Core {
             &CoreEvent::EndTurn{..} => {
                 events.push(event.clone());
             },
-            &CoreEvent::CreateUnit {
+            &CoreEvent::CreateUnit{unit_info: UnitInfo {
                 ref pos,
                 ref unit_id,
                 player_id: ref new_unit_player_id,
                 ..
-            } => {
+            }} => {
                 let unit = self.state.unit(unit_id);
-                let unit_type = self.db.unit_type(&unit.type_id);
                 if *player_id == *new_unit_player_id
-                    || fow.is_visible(unit_type, pos)
+                    || fow.is_visible(&self.db, &self.state, unit, pos)
                 {
                     events.push(event.clone());
                     active_unit_ids.insert(unit_id.clone());
@@ -647,6 +698,36 @@ impl Core {
             },
             &CoreEvent::ShowUnit{..} => panic!(),
             &CoreEvent::HideUnit{..} => panic!(),
+            &CoreEvent::LoadUnit{ref passanger_id, ..} => {
+                let passanger = self.state.unit(passanger_id);
+                if passanger.player_id == *player_id {
+                    events.push(event.clone());
+                } else if fow.is_visible(&self.db, &self.state, passanger, &passanger.pos) {
+                    events.push(event.clone());
+                }
+            },
+            &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
+                active_unit_ids.insert(unit_info.unit_id.clone());
+                let passanger = self.state.unit(&unit_info.unit_id);
+                if passanger.player_id == *player_id {
+                    events.push(event.clone());
+                } else if fow.is_visible(&self.db, &self.state, passanger, &unit_info.pos) {
+                    let transporter = self.state.unit(transporter_id);
+                    if !fow.is_visible(&self.db, &self.state, transporter, &transporter.pos) {
+                        events.push(CoreEvent::ShowUnit {
+                            unit_info: UnitInfo {
+                                unit_id: transporter.id.clone(),
+                                pos: transporter.pos.clone(),
+                                type_id: transporter.type_id.clone(),
+                                player_id: transporter.player_id.clone(),
+                                passanger_id: transporter.passanger_id.clone(),
+                            },
+                        });
+                        active_unit_ids.insert(transporter_id.clone());
+                    }
+                    events.push(event.clone());
+                }
+            },
         }
         (events, active_unit_ids)
     }
@@ -666,6 +747,7 @@ impl Core {
                 i.events.push_back(event);
                 let new_visible_enemies = get_visible_enemies(
                     &self.db,
+                    &self.state,
                     &i.fow,
                     self.state.units(),
                     &player.id

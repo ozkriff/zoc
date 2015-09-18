@@ -21,6 +21,7 @@ pub struct Unit {
     pub reactive_attack_points: Option<ZInt>,
     pub count: ZInt,
     pub morale: ZInt,
+    pub passanger_id: Option<UnitId>,
 }
 
 pub struct WeaponType {
@@ -49,6 +50,7 @@ pub struct UnitType {
     pub reactive_attack_points: ZInt,
     pub los_range: ZInt,
     pub cover_los_range: ZInt,
+    pub is_transporter: bool,
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

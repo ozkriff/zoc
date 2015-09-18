@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{PlayerId, MapPos, Size2, ZInt};
-use core::{CoreEvent};
+use core::{UnitInfo, CoreEvent};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use fov::{fov};
@@ -85,7 +85,7 @@ impl Fow {
         }
     }
 
-    pub fn is_visible(&self, unit_type: &UnitType, pos: &MapPos) -> bool {
+    fn check_terrain_visibility(&self, unit_type: &UnitType, pos: &MapPos) -> bool {
         match *self.map.tile(pos) {
             TileVisibility::Excellent => true,
             TileVisibility::Normal => match unit_type.class {
@@ -94,6 +94,25 @@ impl Fow {
             },
             TileVisibility::No => false,
         }
+    }
+
+    pub fn is_visible(
+        &self,
+        db: &Db,
+        state: &InternalState,
+        unit: &Unit,
+        pos: &MapPos,
+    ) -> bool {
+        for (_, other_unit) in state.units() {
+            if let Some(ref passanger_id) = other_unit.passanger_id {
+                if *passanger_id == unit.id {
+                    // println!("HIDDEN PASSANGER"); // TODO
+                    return false;
+                }
+            }
+        }
+        let unit_type = db.unit_type(&unit.type_id);
+        self.check_terrain_visibility(unit_type, pos)
     }
 
     fn clear(&mut self) {
@@ -133,7 +152,11 @@ impl Fow {
                     self.reset(db, state);
                 }
             },
-            &CoreEvent::CreateUnit{ref unit_id, ref player_id, ..} => {
+            &CoreEvent::CreateUnit{unit_info: UnitInfo {
+                ref unit_id,
+                ref player_id,
+                ..
+            }} => {
                 let unit = state.unit(unit_id);
                 if self.player_id == *player_id {
                     fov_unit(db, state.map(), &mut self.map, unit);
@@ -142,6 +165,12 @@ impl Fow {
             &CoreEvent::AttackUnit{..} => {},
             &CoreEvent::ShowUnit{..} => {},
             &CoreEvent::HideUnit{..} => {},
+            &CoreEvent::LoadUnit{..} => {},
+            &CoreEvent::UnloadUnit{ref unit_info, ..} => {
+                let unit = state.unit(&unit_info.unit_id);
+                let pos = &unit_info.pos;
+                fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
+            },
         }
     }
 }

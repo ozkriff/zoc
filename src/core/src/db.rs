@@ -47,12 +47,29 @@ fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
             armor: 11,
             toughness: 9,
             weapon_skill: 5,
-            weapon_type_id: cannon_id,
+            weapon_type_id: cannon_id.clone(),
             move_points: 5,
             attack_points: 2,
             reactive_attack_points: 1,
             los_range: 6,
             cover_los_range: 0,
+            is_transporter: false,
+        },
+        UnitType {
+            name: "truck".to_string(),
+            class: UnitClass::Vehicle,
+            size: 6,
+            count: 1,
+            armor: 2,
+            toughness: 3,
+            weapon_skill: 0,
+            weapon_type_id: cannon_id.clone(), // TODO: remove hack
+            move_points: 7,
+            attack_points: 0,
+            reactive_attack_points: 0,
+            los_range: 6,
+            cover_los_range: 0,
+            is_transporter: true,
         },
         UnitType {
             name: "soldier".to_string(),
@@ -68,6 +85,7 @@ fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
             reactive_attack_points: 1,
             los_range: 6,
             cover_los_range: 1,
+            is_transporter: false,
         },
         UnitType {
             name: "scout".to_string(),
@@ -83,6 +101,7 @@ fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
             reactive_attack_points: 1,
             los_range: 8,
             cover_los_range: 2,
+            is_transporter: false,
         },
     ]
 }
