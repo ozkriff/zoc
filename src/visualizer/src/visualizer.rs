@@ -905,7 +905,7 @@ impl Visualizer {
             VirtualKeyCode::Equals | VirtualKeyCode::Key2 => {
                 self.camera.change_zoom(0.7);
             },
-            key => println!("KEY: {:?}", key),
+            _ => println!("Unknown key pressed"),
         }
     }
 
