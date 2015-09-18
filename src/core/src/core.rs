@@ -360,7 +360,6 @@ impl Core {
         let mut events = Vec::new();
         let unit = self.state.unit(unit_id);
         for (_, enemy_unit) in self.state.units() {
-            // if enemy_unit.player_id == self.current_player_id {
             if enemy_unit.player_id == unit.player_id {
                 continue;
             }
