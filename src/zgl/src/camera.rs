@@ -33,7 +33,7 @@ impl Camera {
             z_angle: rad(0.0),
             pos: WorldPos{v: Vector::from_value(0.0)},
             max_pos: WorldPos{v: Vector::from_value(0.0)},
-            zoom: 16.0,
+            zoom: 20.0,
             projection_mat: get_projection_mat(win_size),
         }
     }
@@ -80,7 +80,7 @@ impl Camera {
 
     pub fn change_zoom(&mut self, ratio: ZFloat) {
         self.zoom *= ratio;
-        self.zoom = clamp(self.zoom, 5.0, 40.0);
+        self.zoom = clamp(self.zoom, 10.0, 40.0);
     }
 
     pub fn get_z_angle(&self) -> &Rad<ZFloat> {
