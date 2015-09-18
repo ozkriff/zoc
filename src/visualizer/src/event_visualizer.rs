@@ -271,13 +271,12 @@ impl EventAttackUnitVisualizer {
         let from = defender_pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        // TODO: units()[] -> unit()
-        let defender_map_pos = state.units()[&defender_id].pos.clone();
+        let defender_map_pos = state.unit(&defender_id).pos.clone();
         let shell_move = if let Some(attacker_id) = attacker_id {
             let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
                 .expect("Can not find attacker")
                 .pos.clone();
-            let attacker_map_pos = state.units()[&attacker_id].pos.clone();
+            let attacker_map_pos = state.unit(&attacker_id).pos.clone();
             if let core::FireMode::Reactive = mode {
                 map_text.add_text(&attacker_map_pos, "reaction fire");
             }
@@ -295,13 +294,13 @@ impl EventAttackUnitVisualizer {
             map_text.add_text(&defender_map_pos, "Ambushed");
             None
         };
-        let is_target_destroyed = state.units()[&defender_id].count - killed <= 0;
+        let is_target_destroyed = state.unit(&defender_id).count - killed <= 0;
         if killed > 0 {
             map_text.add_text(&defender_map_pos, &format!("-{}", killed));
         } else {
             map_text.add_text(&defender_map_pos, "miss");
         }
-        let defender_morale = state.units()[&defender_id].morale;
+        let defender_morale = state.unit(&defender_id).morale;
         let is_target_suppressed = defender_morale < 50
             && defender_morale + suppression >= 50;
         if !is_target_destroyed {
@@ -410,7 +409,7 @@ impl EventHideUnitVisualizer {
         unit_id: &UnitId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        let pos = state.units()[unit_id].pos.clone(); // TODO: units()[...] -> unit(...)
+        let pos = state.unit(unit_id).pos.clone();
         map_text.add_text(&pos, "lost");
         let unit_node_id = unit_id_to_node_id(&unit_id);
         scene.nodes.remove(&unit_node_id);
