@@ -65,7 +65,7 @@ impl Dir {
                 return Dir::from_int(i as ZInt);
             }
         }
-        panic!("impossible positions: {:?}, {:?}", from, to); // TODO: remove ':?'
+        panic!("impossible positions: {}, {}", from, to);
     }
 
     // TODO: take '&self'
