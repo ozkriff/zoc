@@ -8,6 +8,7 @@ use core::game_state::GameState;
 use core::core::{self, UnitInfo};
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
+use core::db::{Db};
 use zgl::mesh::{MeshId};
 use zgl::types::{Time, WorldPos};
 use geom;
@@ -146,7 +147,7 @@ impl EventVisualizer for EventEndTurnVisualizer {
 }
 
 fn show_unit_at(
-    core: &core::Core,
+    db: &Db,
     scene: &mut Scene,
     unit_info: &UnitInfo,
     mesh_id: &MeshId,
@@ -160,7 +161,7 @@ fn show_unit_at(
         pos: to.clone(),
         rot: rot,
         mesh_id: None,
-        children: get_unit_scene_nodes(core, &unit_info.type_id, mesh_id),
+        children: get_unit_scene_nodes(db, &unit_info.type_id, mesh_id),
     });
     scene.nodes.insert(marker_id(&unit_info.unit_id), SceneNode {
         pos: WorldPos{v: to.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))},
@@ -176,11 +177,11 @@ pub struct EventCreateUnitVisualizer {
 }
 
 fn get_unit_scene_nodes(
-    core: &core::Core, // TODO: Core -> Db
+    db: &Db,
     type_id: &UnitTypeId,
     mesh_id: &MeshId,
 ) -> Vec<SceneNode> {
-    let count = core.db().unit_type(type_id).count;
+    let count = db.unit_type(type_id).count;
     let mut vec = Vec::new();
     if count == 1 {
         vec![SceneNode {
@@ -205,7 +206,7 @@ fn get_unit_scene_nodes(
 
 impl EventCreateUnitVisualizer {
     pub fn new(
-        core: &core::Core,
+        db: &Db,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
@@ -214,7 +215,7 @@ impl EventCreateUnitVisualizer {
         let node_id = unit_id_to_node_id(&unit_info.unit_id);
         let to = geom::map_pos_to_world_pos(&unit_info.pos);
         let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
-        show_unit_at(core, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 1.0);
         let new_node = scene.node_mut(&node_id);
         new_node.pos = from.clone();
@@ -377,7 +378,7 @@ pub struct EventShowUnitVisualizer;
 
 impl EventShowUnitVisualizer {
     pub fn new(
-        core: &core::Core,
+        db: &Db,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
@@ -385,7 +386,7 @@ impl EventShowUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(&unit_info.pos, "spotted");
-        show_unit_at(core, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         Box::new(EventShowUnitVisualizer)
     }
 }
@@ -435,7 +436,7 @@ pub struct EventUnloadUnitVisualizer {
 
 impl EventUnloadUnitVisualizer {
     pub fn new(
-        core: &core::Core,
+        db: &Db,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
@@ -447,7 +448,7 @@ impl EventUnloadUnitVisualizer {
         let node_id = unit_id_to_node_id(&unit_info.unit_id);
         let to = geom::map_pos_to_world_pos(&unit_info.pos);
         let from = geom::map_pos_to_world_pos(transporter_pos);
-        show_unit_at(core, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let unit_node = scene.node_mut(&node_id);
         unit_node.pos = from.clone();
         unit_node.rot = geom::get_rot_angle(&from, &to);

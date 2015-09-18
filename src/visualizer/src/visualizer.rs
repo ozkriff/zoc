@@ -1160,7 +1160,7 @@ impl Visualizer {
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, &unit_info.player_id);
                 EventCreateUnitVisualizer::new(
-                    &self.core, scene, unit_info, mesh_id, marker_mesh_id)
+                    self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
             },
             &CoreEvent::AttackUnit {
                 ref attacker_id,
@@ -1188,7 +1188,7 @@ impl Visualizer {
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, &unit_info.player_id);
                 EventShowUnitVisualizer::new(
-                    &self.core, // TODO: &Core -> &Db
+                    self.core.db(),
                     scene,
                     unit_info,
                     mesh_id,
@@ -1219,7 +1219,7 @@ impl Visualizer {
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, &unit_info.player_id);
                 EventUnloadUnitVisualizer::new(
-                    &self.core, // TODO: &Core -> &Db
+                    self.core.db(),
                     scene,
                     unit_info,
                     mesh_id,
