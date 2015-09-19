@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use rand::{thread_rng, Rng};
+use std::cmp;
 use std::collections::{HashMap, HashSet, LinkedList};
 use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
@@ -339,7 +340,8 @@ impl Core {
         if attacker.morale < 50 {
             return events;
         }
-        let killed = self.get_killed_count(attacker, defender);
+        let killed = cmp::max(
+            defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
         let is_ambush = !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos)
             && thread_rng().gen_range(1, 10) > 3;
