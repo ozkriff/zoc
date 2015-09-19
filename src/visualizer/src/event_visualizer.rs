@@ -264,6 +264,7 @@ impl EventAttackUnitVisualizer {
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
+        let defender = state.unit(&defender_id);
         let defender_node_id = unit_id_to_node_id(&defender_id);
         let defender_pos = scene.nodes.get(&defender_node_id)
             .expect("Can not find defender")
@@ -271,7 +272,6 @@ impl EventAttackUnitVisualizer {
         let from = defender_pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        let defender_map_pos = state.unit(&defender_id).pos.clone();
         let shell_move = if let Some(attacker_id) = attacker_id {
             let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
                 .expect("Can not find attacker")
@@ -291,25 +291,24 @@ impl EventAttackUnitVisualizer {
             };
             Some(shell_move)
         } else {
-            map_text.add_text(&defender_map_pos, "Ambushed");
+            map_text.add_text(&defender.pos, "Ambushed");
             None
         };
-        let is_target_destroyed = state.unit(&defender_id).count - killed <= 0;
+        let is_target_destroyed = defender.count - killed <= 0;
         if killed > 0 {
-            map_text.add_text(&defender_map_pos, &format!("-{}", killed));
+            map_text.add_text(&defender.pos, &format!("-{}", killed));
         } else {
-            map_text.add_text(&defender_map_pos, "miss");
+            map_text.add_text(&defender.pos, "miss");
         }
-        let defender_morale = state.unit(&defender_id).morale;
-        let is_target_suppressed = defender_morale < 50
-            && defender_morale + suppression >= 50;
+        let is_target_suppressed = defender.morale < 50
+            && defender.morale + suppression >= 50;
         if !is_target_destroyed {
             map_text.add_text(
-                &defender_map_pos,
+                &defender.pos,
                 &format!("morale: -{}", suppression),
             );
             if is_target_suppressed {
-                map_text.add_text(&defender_map_pos, "suppressed");
+                map_text.add_text(&defender.pos, "suppressed");
             }
         }
         Box::new(EventAttackUnitVisualizer {
