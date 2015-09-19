@@ -340,7 +340,7 @@ impl Core {
         if attacker.morale < 50 {
             return events;
         }
-        let killed = cmp::max(
+        let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
         let is_ambush = !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos)
