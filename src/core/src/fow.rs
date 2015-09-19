@@ -106,7 +106,6 @@ impl Fow {
         for (_, other_unit) in state.units() {
             if let Some(ref passanger_id) = other_unit.passanger_id {
                 if *passanger_id == unit.id {
-                    // println!("HIDDEN PASSANGER"); // TODO
                     return false;
                 }
             }

@@ -240,7 +240,7 @@ impl Core {
                 passanger_id: None,
             },
         };
-        self.do_core_event(event);
+        self.do_core_event(&event);
     }
 
     pub fn map_size(&self) -> &Size2 {
@@ -360,6 +360,7 @@ impl Core {
         let mut events = Vec::new();
         let unit = self.state.unit(unit_id);
         for (_, enemy_unit) in self.state.units() {
+            // TODO: extract all checks to reusable 'can_attack' func
             if enemy_unit.player_id == unit.player_id {
                 continue;
             }
@@ -430,10 +431,7 @@ impl Core {
         events
     }
 
-    // TODO: rename: simulation_step?
-    // Apply events immediately after adding event to array.
-    fn command_to_event(&mut self, command: Command) -> Vec<CoreEvent> {
-        let mut events = Vec::new();
+    fn simulation_step(&mut self, command: Command) {
         match command {
             Command::EndTurn => {
                 let old_id = self.current_player_id.id;
@@ -443,13 +441,13 @@ impl Core {
                 } else {
                     old_id + 1
                 };
-                events.push(CoreEvent::EndTurn {
+                self.do_core_event(&CoreEvent::EndTurn {
                     old_id: PlayerId{id: old_id},
                     new_id: PlayerId{id: new_id},
                 });
             },
             Command::CreateUnit{pos} => {
-                events.push(CoreEvent::CreateUnit {
+                let e = CoreEvent::CreateUnit {
                     unit_info: UnitInfo {
                         unit_id: self.get_new_unit_id(),
                         pos: pos,
@@ -457,67 +455,66 @@ impl Core {
                         player_id: self.current_player_id.clone(),
                         passanger_id: None,
                     },
-                });
+                };
+                self.do_core_event(&e);
             },
             Command::Move{ref unit_id, ref path, ref mode} => {
                 // TODO: do some checks?
                 let e = self.reaction_fire_move(path, unit_id, mode);
                 if e.is_empty() {
-                    events.push(CoreEvent::Move {
+                    self.do_core_event(&CoreEvent::Move {
                         unit_id: unit_id.clone(),
                         path: path.clone(),
                         mode: mode.clone(),
                     });
                 } else {
-                    events.extend(e);
+                    self.do_core_events(&e);
                 }
             },
             Command::AttackUnit{attacker_id, defender_id} => {
                 // TODO: do some checks?
-                let defender_pos = &self.state.unit(&defender_id).pos;
+                let defender_pos = self.state.unit(&defender_id).pos.clone();
                 let e = self.command_attack_unit_to_event(
-                    attacker_id.clone(), defender_id, defender_pos, FireMode::Active, false);
+                    attacker_id.clone(), defender_id, &defender_pos, FireMode::Active, false);
                 let is_target_alive = !e.is_empty() && !is_target_dead(&self.state, &e[0]);
-                events.extend(e);
+                self.do_core_events(&e);
                 if is_target_alive {
-                    let pos = &self.state.unit(&attacker_id).pos;
-                    events.extend(self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos));
+                    let pos = &self.state.unit(&attacker_id).pos.clone();
+                    let events = self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos);
+                    self.do_core_events(&events);
                 }
             },
             Command::LoadUnit{transporter_id, passanger_id} => {
-                events.push(CoreEvent::LoadUnit {
+                self.do_core_event(&CoreEvent::LoadUnit {
                     transporter_id: transporter_id,
                     passanger_id: passanger_id,
                 });
             },
             Command::UnloadUnit{transporter_id, passanger_id, pos} => {
-                let passanger = self.state.unit(&passanger_id);
-                events.push(CoreEvent::UnloadUnit {
-                    transporter_id: transporter_id,
-                    unit_info: UnitInfo {
-                        unit_id: passanger_id.clone(),
-                        pos: pos.clone(),
-                        type_id: passanger.type_id.clone(),
-                        player_id: passanger.player_id.clone(),
-                        passanger_id: None,
-                    },
-                });
+                let e = {
+                    let passanger = self.state.unit(&passanger_id);
+                    CoreEvent::UnloadUnit {
+                        transporter_id: transporter_id,
+                        unit_info: UnitInfo {
+                            unit_id: passanger_id.clone(),
+                            pos: pos.clone(),
+                            type_id: passanger.type_id.clone(),
+                            player_id: passanger.player_id.clone(),
+                            passanger_id: None,
+                        },
+                    }
+                };
+                self.do_core_event(&e);
                 // TODO: simplify `&MoveMode::Hunt` thing
-                events.extend(self.reaction_fire(
-                    &passanger_id, &MoveMode::Hunt, &pos));
+                let reaction_fire_events = self.reaction_fire(
+                    &passanger_id, &MoveMode::Hunt, &pos);
+                self.do_core_events(&reaction_fire_events);
             },
         };
-        events
     }
 
     pub fn do_command(&mut self, command: Command) {
-        let events = self.command_to_event(command);
-        if events.is_empty() {
-            println!("BAD COMMAND!");
-        }
-        for event in events.into_iter() {
-            self.do_core_event(event);
-        }
+        self.simulation_step(command);
     }
 
     fn do_ai(&mut self) {
@@ -731,8 +728,14 @@ impl Core {
         (events, active_unit_ids)
     }
 
-    fn do_core_event(&mut self, event: CoreEvent) {
-        if let CoreEvent::EndTurn{ref old_id, ref new_id} = event {
+    fn do_core_events(&mut self, events: &[CoreEvent]) {
+        for event in events {
+            self.do_core_event(event);
+        }
+    }
+
+    fn do_core_event(&mut self, event: &CoreEvent) {
+        if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
         }
         self.state.apply_event(&self.db, &event);
