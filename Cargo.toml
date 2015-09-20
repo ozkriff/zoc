@@ -3,6 +3,11 @@
 name = "zoc"
 version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
+description = "ZoC is turn-based hexagonal strategy game written in Rust"
+readme = "README.md"
+license = "MIT"
+keywords = ["opengl", "3D", "game"]
+repository = "https://github.com/ozkriff/zoc"
 
 [[bin]]
 name = "zoc"
