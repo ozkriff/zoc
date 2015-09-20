@@ -882,6 +882,7 @@ impl Visualizer {
                 self.print_info();
             },
             VirtualKeyCode::U => {
+                self.pick_tile();
                 self.create_unit();
             },
             VirtualKeyCode::L => {
