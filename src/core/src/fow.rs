@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{PlayerId, MapPos, Size2, ZInt};
-use core::{UnitInfo, CoreEvent};
+use core::{CoreEvent};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use fov::{fov};
@@ -151,17 +151,20 @@ impl Fow {
                     self.reset(db, state);
                 }
             },
-            &CoreEvent::CreateUnit{unit_info: UnitInfo {
-                ref unit_id,
-                ref player_id,
-                ..
-            }} => {
-                let unit = state.unit(unit_id);
-                if self.player_id == *player_id {
+            &CoreEvent::CreateUnit{ref unit_info} => {
+                let unit = state.unit(&unit_info.unit_id);
+                if self.player_id == unit_info.player_id {
                     fov_unit(db, state.map(), &mut self.map, unit);
                 }
             },
-            &CoreEvent::AttackUnit{..} => {},
+            &CoreEvent::AttackUnit{ref is_ambush, ref attacker_id, ..} => {
+                if let &Some(ref attacker_id) = attacker_id {
+                    if !*is_ambush {
+                        let pos = &state.unit(attacker_id).pos;
+                        *self.map.tile_mut(pos) = TileVisibility::Excellent;
+                    }
+                }
+            },
             &CoreEvent::ShowUnit{..} => {},
             &CoreEvent::HideUnit{..} => {},
             &CoreEvent::LoadUnit{..} => {},

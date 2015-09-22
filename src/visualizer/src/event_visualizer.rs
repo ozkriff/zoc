@@ -261,6 +261,7 @@ impl EventAttackUnitVisualizer {
         killed: ZInt,
         suppression: ZInt,
         mode: core::FireMode,
+        is_ambush: bool,
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
@@ -291,8 +292,10 @@ impl EventAttackUnitVisualizer {
             };
             Some(shell_move)
         } else {
-            map_text.add_text(&defender.pos, "Ambushed");
             None
+        };
+        if is_ambush {
+            map_text.add_text(&defender.pos, "Ambushed");
         };
         let is_target_destroyed = defender.count - killed <= 0;
         if killed > 0 {

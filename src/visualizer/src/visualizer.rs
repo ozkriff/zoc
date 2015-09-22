@@ -1169,6 +1169,7 @@ impl Visualizer {
                 ref killed,
                 ref suppression,
                 ref mode,
+                ref is_ambush,
                 ..
             } => {
                 EventAttackUnitVisualizer::new(
@@ -1179,6 +1180,7 @@ impl Visualizer {
                     killed.clone(),
                     suppression.clone(),
                     mode.clone(),
+                    is_ambush.clone(),
                     self.mesh_ids.shell_mesh_id.clone(),
                     &mut self.map_text_manager,
                 )

@@ -23,6 +23,7 @@ pub enum FireMode {
     Reactive,
 }
 
+// TODO: Add 'struct AttackInfo'
 #[derive(Clone)]
 pub struct UnitInfo {
     pub unit_id: UnitId,
@@ -53,6 +54,7 @@ pub enum CoreEvent {
         killed: ZInt,
         suppression: ZInt,
         remove_move_points: bool,
+        is_ambush: bool,
     },
     ShowUnit {
         unit_info: UnitInfo,
@@ -68,15 +70,6 @@ pub enum CoreEvent {
         unit_info: UnitInfo,
         transporter_id: UnitId,
     },
-}
-
-fn is_target_dead(state: &InternalState, event: &CoreEvent) -> bool {
-    match event {
-        &CoreEvent::AttackUnit{ref defender_id, ref killed, ..} => {
-            state.unit(defender_id).count - *killed <= 0
-        },
-        _ => panic!("wrong event type"),
-    }
 }
 
 fn get_visible_enemies(
@@ -322,12 +315,13 @@ impl Core {
         los(self.state.map(), unit_type, from, to)
     }
 
+    // TODO: receive AttackInfo
     fn command_attack_unit_to_event(
         &self,
-        attacker_id: UnitId,
-        defender_id: UnitId,
+        attacker_id: &UnitId,
+        defender_id: &UnitId,
         defender_pos: &MapPos,
-        fire_mode: FireMode,
+        fire_mode: &FireMode,
         remove_move_points: bool, // TODO: clarify
     ) -> Vec<CoreEvent> {
         let mut events = Vec::new();
@@ -347,94 +341,124 @@ impl Core {
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
-        let is_ambush = !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos)
-            && thread_rng().gen_range(1, 10) > 3;
+        let is_visible = fow.is_visible(
+            &self.db, &self.state, attacker, &attacker.pos);
+        let is_ambush = !is_visible && thread_rng().gen_range(1, 10) > 3;
         events.push(CoreEvent::AttackUnit {
-            attacker_id: if is_ambush { None } else { Some(attacker_id) },
-            defender_id: defender_id,
+            attacker_id: Some(attacker_id.clone()),
+            defender_id: defender_id.clone(),
             killed: killed,
-            mode: fire_mode,
+            mode: fire_mode.clone(),
             suppression: 10 + 20 * killed,
             remove_move_points: remove_move_points,
+            is_ambush: is_ambush,
         });
         events
     }
 
-    fn reaction_fire(&self, unit_id: &UnitId, move_mode: &MoveMode, pos: &MapPos)
-        -> Vec<CoreEvent>
-    {
-        let mut events = Vec::new();
+    fn can_unit_make_reaction_attack(
+        &self,
+        defender: &Unit,
+        defender_pos: &MapPos,
+        attacker: &Unit,
+    ) -> bool {
+        assert!(attacker.player_id != defender.player_id);
+        let enemy_reactive_attack_points = attacker.reactive_attack_points
+            .expect("Core must know about everything").clone();
+        if enemy_reactive_attack_points <= 0 {
+            return false;
+        }
+        if attacker.morale < 50 {
+            return false;
+        }
+        let fow = &self.players_info[&attacker.player_id].fow;
+        if !fow.is_visible(&self.db, &self.state, defender, defender_pos) {
+            return false;
+        }
+        let max_distance = self.db.unit_max_attack_dist(attacker);
+        if distance(&attacker.pos, defender_pos) > max_distance {
+            return false;
+        }
+        let enemy_type = self.db.unit_type(&attacker.type_id);
+        if !self.los(enemy_type, &attacker.pos, defender_pos) {
+            return false;
+        }
+        true
+    }
+
+    fn reaction_fire_check(&self, unit_id: &UnitId, pos: &MapPos) -> bool {
         let unit = self.state.unit(unit_id);
-        for (_, enemy_unit) in self.state.units() {
-            // TODO: extract all checks to reusable 'can_attack' func
-            if enemy_unit.player_id == unit.player_id {
-                continue;
+        for (_, attacker) in self.state.units() {
+            if attacker.player_id == unit.player_id {
+                continue; // This is not enemy
             }
-            let enemy_reactive_attack_points = enemy_unit.reactive_attack_points
-                .expect("Core must know about everything").clone();
-            if enemy_reactive_attack_points <= 0 {
-                continue;
-            }
-            if enemy_unit.morale < 50 {
-                continue;
-            }
-            let fow = &self.players_info[&enemy_unit.player_id].fow;
-            if !fow.is_visible(&self.db, &self.state, unit, pos) {
-                continue;
-            }
-            let max_distance = self.db.unit_max_attack_dist(enemy_unit);
-            if distance(&enemy_unit.pos, pos) > max_distance {
-                continue;
-            }
-            let enemy_type = self.db.unit_type(&enemy_unit.type_id);
-            if !self.los(enemy_type, &enemy_unit.pos, pos) {
-                continue;
-            }
-            let e = self.command_attack_unit_to_event(
-                enemy_unit.id.clone(),
-                unit_id.clone(),
-                pos,
-                FireMode::Reactive,
-                // TODO: simplify this
-                if let &MoveMode::Fast = move_mode {
-                    true
-                } else {
-                    false
-                },
-            );
-            let is_target_dead = !e.is_empty() && is_target_dead(&self.state, &e[0]);
-            events.extend(e);
-            if is_target_dead {
-                break;
+            if self.can_unit_make_reaction_attack(unit, pos, attacker) {
+                return true;
             }
         }
-        events
+        false
+    }
+
+    fn reaction_fire(&mut self, unit_id: &UnitId, move_mode: &MoveMode, pos: &MapPos) {
+        let unit_ids: Vec<_> = self.state.units().keys()
+            .map(|id| id.clone()).collect();
+        for enemy_unit_id in unit_ids {
+            let event = {
+                let enemy_unit = self.state.unit(&enemy_unit_id);
+                let unit = self.state.unit(unit_id);
+                if enemy_unit.player_id == unit.player_id {
+                    continue;
+                }
+                if !self.can_unit_make_reaction_attack(unit, pos, enemy_unit) {
+                    continue;
+                }
+                self.command_attack_unit_to_event(
+                    &enemy_unit.id,
+                    &unit_id,
+                    pos,
+                    &FireMode::Reactive,
+                    // TODO: simplify this
+                    if let &MoveMode::Fast = move_mode {
+                        true
+                    } else {
+                        false
+                    },
+                )
+            };
+            self.do_core_events(&event);
+            if self.state.units().get(unit_id).is_none() {
+                // unit is killed
+                return;
+            }
+        }
     }
 
     fn reaction_fire_move(
-        &self,
+        &mut self,
         path: &MapPath,
         unit_id: &UnitId,
         move_mode: &MoveMode,
-    ) -> Vec<CoreEvent> {
-        let mut events = Vec::new();
+    ) {
         let len = path.nodes().len();
         for i in 1 .. len {
             let pos = &path.nodes()[i].pos;
-            let e = self.reaction_fire(unit_id, move_mode, pos);
-            if !e.is_empty() {
+            if self.reaction_fire_check(unit_id, pos) {
                 let mut new_nodes = path.nodes().clone();
                 new_nodes.truncate(i + 1);
-                events.push(CoreEvent::Move {
+                self.do_core_event(&CoreEvent::Move {
                     unit_id: unit_id.clone(),
                     path: MapPath::new(new_nodes),
                     mode: move_mode.clone(),
                 });
-                events.extend(e);
-                break;
+                self.reaction_fire(unit_id, move_mode, pos);
+                return;
             }
         }
-        events
+        self.do_core_event(&CoreEvent::Move {
+            unit_id: unit_id.clone(),
+            path: path.clone(),
+            mode: move_mode.clone(),
+        });
     }
 
     fn simulation_step(&mut self, command: Command) {
@@ -453,7 +477,7 @@ impl Core {
                 });
             },
             Command::CreateUnit{pos} => {
-                let e = CoreEvent::CreateUnit {
+                let event = CoreEvent::CreateUnit {
                     unit_info: UnitInfo {
                         unit_id: self.get_new_unit_id(),
                         pos: pos,
@@ -462,32 +486,27 @@ impl Core {
                         passanger_id: None,
                     },
                 };
-                self.do_core_event(&e);
+                self.do_core_event(&event);
             },
             Command::Move{ref unit_id, ref path, ref mode} => {
                 // TODO: do some checks?
-                let e = self.reaction_fire_move(path, unit_id, mode);
-                if e.is_empty() {
-                    self.do_core_event(&CoreEvent::Move {
-                        unit_id: unit_id.clone(),
-                        path: path.clone(),
-                        mode: mode.clone(),
-                    });
-                } else {
-                    self.do_core_events(&e);
-                }
+                self.reaction_fire_move(path, unit_id, mode);
             },
-            Command::AttackUnit{attacker_id, defender_id} => {
+            Command::AttackUnit{ref attacker_id, ref defender_id} => {
                 // TODO: do some checks?
                 let defender_pos = self.state.unit(&defender_id).pos.clone();
-                let e = self.command_attack_unit_to_event(
-                    attacker_id.clone(), defender_id, &defender_pos, FireMode::Active, false);
-                let is_target_alive = !e.is_empty() && !is_target_dead(&self.state, &e[0]);
-                self.do_core_events(&e);
+                let event = self.command_attack_unit_to_event(
+                    attacker_id,
+                    defender_id,
+                    &defender_pos,
+                    &FireMode::Active,
+                    false, // TODO: ?
+                );
+                self.do_core_events(&event);
+                let is_target_alive = self.state.units().get(&defender_id).is_some();
                 if is_target_alive {
                     let pos = &self.state.unit(&attacker_id).pos.clone();
-                    let events = self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos);
-                    self.do_core_events(&events);
+                    self.reaction_fire(&attacker_id, &MoveMode::Hunt, pos);
                 }
             },
             Command::LoadUnit{transporter_id, passanger_id} => {
@@ -497,7 +516,7 @@ impl Core {
                 });
             },
             Command::UnloadUnit{transporter_id, passanger_id, pos} => {
-                let e = {
+                let event = {
                     let passanger = self.state.unit(&passanger_id);
                     CoreEvent::UnloadUnit {
                         transporter_id: transporter_id,
@@ -510,11 +529,9 @@ impl Core {
                         },
                     }
                 };
-                self.do_core_event(&e);
+                self.do_core_event(&event);
                 // TODO: simplify `&MoveMode::Hunt` thing
-                let reaction_fire_events = self.reaction_fire(
-                    &passanger_id, &MoveMode::Hunt, &pos);
-                self.do_core_events(&reaction_fire_events);
+                self.reaction_fire(&passanger_id, &MoveMode::Hunt, &pos);
             },
         };
     }
@@ -560,29 +577,6 @@ impl Core {
                 passanger_id: unit.passanger_id.clone(),
             },
         }
-    }
-
-    fn filter_attack_event(
-        &self,
-        player_id: &PlayerId,
-        attacker_id: &Option<UnitId>,
-        defender_id: &UnitId,
-    ) -> Vec<CoreEvent> {
-        let fow = &self.players_info[player_id].fow;
-        let mut events = vec![];
-        if let Some(attacker_id) = attacker_id.clone() {
-            let attacker = self.state.unit(&attacker_id);
-            if !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos) {
-                events.push(self.create_show_unit_event(&attacker));
-            }
-        }
-        // if defender is not dead...
-        if let Some(defender) = self.state.units().get(defender_id) {
-            if !fow.is_visible(&self.db, &self.state, defender, &defender.pos) {
-                events.push(self.create_show_unit_event(&defender));
-            }
-        }
-        events
     }
 
     fn filter_move_event(
@@ -674,29 +668,49 @@ impl Core {
             &CoreEvent::EndTurn{..} => {
                 events.push(event.clone());
             },
-            &CoreEvent::CreateUnit{unit_info: UnitInfo {
-                ref pos,
-                ref unit_id,
-                player_id: ref new_unit_player_id,
-                ..
-            }} => {
-                let unit = self.state.unit(unit_id);
-                if *player_id == *new_unit_player_id
-                    || fow.is_visible(&self.db, &self.state, unit, pos)
+            &CoreEvent::CreateUnit{ref unit_info} => {
+                let unit = self.state.unit(&unit_info.unit_id);
+                if *player_id == unit_info.player_id
+                    || fow.is_visible(&self.db, &self.state, unit, &unit_info.pos)
                 {
                     events.push(event.clone());
-                    active_unit_ids.insert(unit_id.clone());
+                    active_unit_ids.insert(unit_info.unit_id.clone());
                 }
             },
-            &CoreEvent::AttackUnit{ref attacker_id, ref defender_id, ..} => {
-                let filtered_events = self.filter_attack_event(
-                    player_id, attacker_id, defender_id);
-                events.extend(filtered_events);
-                if let &Some(ref attacker_id) = attacker_id {
+            &CoreEvent::AttackUnit {
+                ref attacker_id,
+                ref defender_id,
+                ref mode,
+                ref killed,
+                ref suppression,
+                ref remove_move_points,
+                ref is_ambush,
+            } => {
+                let attacker_id = attacker_id.clone()
+                    .expect("Core must know about everything");
+                let attacker = self.state.unit(&attacker_id);
+                if *player_id != attacker.player_id && !*is_ambush {
+                    // show attacker if this is not ambush
+                    let attacker = self.state.unit(&attacker_id);
+                    if !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos) {
+                        events.push(self.create_show_unit_event(&attacker));
+                    }
                     active_unit_ids.insert(attacker_id.clone());
                 }
-                active_unit_ids.insert(defender_id.clone());
-                events.push(event.clone());
+                active_unit_ids.insert(defender_id.clone()); // if defender is killed
+                events.push(CoreEvent::AttackUnit {
+                    attacker_id: if *player_id == attacker.player_id || !*is_ambush {
+                        Some(attacker_id)
+                    } else {
+                        None
+                    },
+                    defender_id: defender_id.clone(),
+                    mode: mode.clone(),
+                    killed: killed.clone(),
+                    suppression: suppression.clone(),
+                    remove_move_points: remove_move_points.clone(),
+                    is_ambush: is_ambush.clone(),
+                });
             },
             &CoreEvent::ShowUnit{..} => panic!(),
             &CoreEvent::HideUnit{..} => panic!(),
@@ -758,7 +772,7 @@ impl Core {
                     &self.state,
                     &i.fow,
                     self.state.units(),
-                    &player.id
+                    &player.id,
                 );
                 let show_hide_events = show_or_hide_passive_enemies(
                     self.state.units(),

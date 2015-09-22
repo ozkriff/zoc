@@ -146,6 +146,7 @@ impl<'a> InternalState {
                 ref killed,
                 ref suppression,
                 ref remove_move_points,
+                ..
             } => {
                 {
                     let unit = self.units.get_mut(defender_id)
