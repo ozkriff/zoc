@@ -231,6 +231,10 @@ impl Core {
     }
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
+        if self.state.is_tile_occupied(pos) {
+            println!("Sorry, tile is occupied");
+            return;
+        }
         let new_unit_id = self.get_new_unit_id();
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
