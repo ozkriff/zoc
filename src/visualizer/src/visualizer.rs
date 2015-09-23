@@ -1162,25 +1162,12 @@ impl Visualizer {
                 EventCreateUnitVisualizer::new(
                     self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
             },
-            &CoreEvent::AttackUnit {
-                ref attacker_id,
-                ref defender_id,
-                ref killed,
-                ref suppression,
-                ref mode,
-                ref is_ambush,
-                ..
-            } => {
+            &CoreEvent::AttackUnit{ref attack_info} => {
                 EventAttackUnitVisualizer::new(
                     state,
                     scene,
-                    attacker_id.clone(),
-                    defender_id.clone(),
-                    killed.clone(),
-                    suppression.clone(),
-                    mode.clone(),
-                    is_ambush.clone(),
-                    self.mesh_ids.shell_mesh_id.clone(),
+                    attack_info,
+                    &self.mesh_ids.shell_mesh_id,
                     &mut self.map_text_manager,
                 )
             },
@@ -1255,7 +1242,7 @@ impl Visualizer {
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
         // TODO: simplify
-        if let Some(CoreEvent::AttackUnit{ref defender_id, ref killed, ..})
+        if let Some(CoreEvent::AttackUnit{ref attack_info})
             = self.event
         {
             let mut i = self.player_info.get_mut(self.core.player_id());
@@ -1264,8 +1251,9 @@ impl Visualizer {
                 Some(ref id) => id.clone(),
                 None => return,
             };
-            if selected_unit_id == *defender_id
-                && state.units()[defender_id].count - *killed <= 0
+            let defender = state.unit(&attack_info.defender_id);
+            if selected_unit_id == attack_info.defender_id
+                && defender.count - attack_info.killed <= 0
             {
                 self.selected_unit_id = None;
             }

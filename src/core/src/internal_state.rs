@@ -138,41 +138,33 @@ impl<'a> InternalState {
             &CoreEvent::CreateUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Full);
             },
-            &CoreEvent::AttackUnit {
-                ref attacker_id,
-                ref defender_id,
-                ref mode,
-                ref killed,
-                ref suppression,
-                ref remove_move_points,
-                ..
-            } => {
+            &CoreEvent::AttackUnit{ref attack_info} => {
                 {
-                    let unit = self.units.get_mut(defender_id)
+                    let unit = self.units.get_mut(&attack_info.defender_id)
                         .expect("Can`t find defender");
-                    unit.count -= *killed;
-                    unit.morale -= *suppression;
-                    if *remove_move_points {
+                    unit.count -= attack_info.killed;
+                    unit.morale -= attack_info.suppression;
+                    if attack_info.remove_move_points {
                         unit.move_points = 0;
                     }
                 }
-                let count = self.units[defender_id].count.clone();
+                let count = self.units[&attack_info.defender_id].count.clone();
                 if count <= 0 {
                     // TODO: kill\unload passangers
-                    assert!(self.units.get(defender_id).is_some());
-                    self.units.remove(defender_id);
+                    assert!(self.units.get(&attack_info.defender_id).is_some());
+                    self.units.remove(&attack_info.defender_id);
                 }
-                let attacker_id = match attacker_id.clone() {
+                let attacker_id = match attack_info.attacker_id.clone() {
                     Some(attacker_id) => attacker_id,
                     None => return,
                 };
                 if let Some(unit) = self.units.get_mut(&attacker_id) {
-                    match mode {
-                        &FireMode::Active => {
+                    match attack_info.mode {
+                        FireMode::Active => {
                             assert!(unit.attack_points >= 1);
                             unit.attack_points -= 1;
                         },
-                        &FireMode::Reactive => {
+                        FireMode::Reactive => {
                             if let Some(ref mut reactive_attack_points)
                                 = unit.reactive_attack_points
                             {

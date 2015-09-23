@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
 use common::types::{ZFloat, UnitId, ZInt, MapPos};
 use core::game_state::GameState;
-use core::core::{self, UnitInfo};
+use core::core::{self, UnitInfo, AttackInfo};
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
 use core::db::{Db};
@@ -256,36 +256,31 @@ impl EventAttackUnitVisualizer {
     pub fn new(
         state: &GameState,
         scene: &mut Scene,
-        attacker_id: Option<UnitId>,
-        defender_id: UnitId,
-        killed: ZInt,
-        suppression: ZInt,
-        mode: core::FireMode,
-        is_ambush: bool,
-        shell_mesh_id: MeshId,
+        attack_info: &AttackInfo,
+        shell_mesh_id: &MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        let defender = state.unit(&defender_id);
-        let defender_node_id = unit_id_to_node_id(&defender_id);
+        let defender = state.unit(&attack_info.defender_id);
+        let defender_node_id = unit_id_to_node_id(&attack_info.defender_id);
         let defender_pos = scene.nodes.get(&defender_node_id)
             .expect("Can not find defender")
             .pos.clone();
         let from = defender_pos.clone();
         let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
-        let shell_move = if let Some(attacker_id) = attacker_id {
+        let shell_move = if let Some(ref attacker_id) = attack_info.attacker_id {
             let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
                 .expect("Can not find attacker")
                 .pos.clone();
             let attacker_map_pos = state.unit(&attacker_id).pos.clone();
-            if let core::FireMode::Reactive = mode {
+            if let core::FireMode::Reactive = attack_info.mode {
                 map_text.add_text(&attacker_map_pos, "reaction fire");
             }
             let shell_move = {
                 scene.nodes.insert(SHELL_NODE_ID, SceneNode {
                     pos: from.clone(),
                     rot: rad(0.0),
-                    mesh_id: Some(shell_mesh_id),
+                    mesh_id: Some(shell_mesh_id.clone()),
                     children: Vec::new(),
                 });
                 MoveHelper::new(&attacker_pos, &defender_pos, 10.0)
@@ -294,29 +289,29 @@ impl EventAttackUnitVisualizer {
         } else {
             None
         };
-        if is_ambush {
+        if attack_info.is_ambush {
             map_text.add_text(&defender.pos, "Ambushed");
         };
-        let is_target_destroyed = defender.count - killed <= 0;
-        if killed > 0 {
-            map_text.add_text(&defender.pos, &format!("-{}", killed));
+        let is_target_destroyed = defender.count - attack_info.killed <= 0;
+        if attack_info.killed > 0 {
+            map_text.add_text(&defender.pos, &format!("-{}", attack_info.killed));
         } else {
             map_text.add_text(&defender.pos, "miss");
         }
         let is_target_suppressed = defender.morale < 50
-            && defender.morale + suppression >= 50;
+            && defender.morale + attack_info.suppression >= 50;
         if !is_target_destroyed {
             map_text.add_text(
                 &defender.pos,
-                &format!("morale: -{}", suppression),
+                &format!("morale: -{}", attack_info.suppression),
             );
             if is_target_suppressed {
                 map_text.add_text(&defender.pos, "suppressed");
             }
         }
         Box::new(EventAttackUnitVisualizer {
-            defender_id: defender_id,
-            killed: killed,
+            defender_id: attack_info.defender_id.clone(),
+            killed: attack_info.killed.clone(),
             is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,

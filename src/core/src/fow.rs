@@ -157,9 +157,9 @@ impl Fow {
                     fov_unit(db, state.map(), &mut self.map, unit);
                 }
             },
-            &CoreEvent::AttackUnit{ref is_ambush, ref attacker_id, ..} => {
-                if let &Some(ref attacker_id) = attacker_id {
-                    if !*is_ambush {
+            &CoreEvent::AttackUnit{ref attack_info} => {
+                if let Some(ref attacker_id) = attack_info.attacker_id {
+                    if !attack_info.is_ambush {
                         let pos = &state.unit(attacker_id).pos;
                         *self.map.tile_mut(pos) = TileVisibility::Excellent;
                     }
