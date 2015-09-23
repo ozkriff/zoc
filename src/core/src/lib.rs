@@ -7,7 +7,6 @@ extern crate common;
 
 pub mod geom;
 pub mod map;
-pub mod command;
 pub mod db;
 pub mod unit;
 pub mod dir;

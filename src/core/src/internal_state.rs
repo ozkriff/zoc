@@ -3,11 +3,10 @@
 use std::collections::{HashMap};
 use cgmath::{Vector2};
 use common::types::{PlayerId, UnitId, MapPos, Size2};
-use core::{CoreEvent, FireMode, UnitInfo};
+use core::{CoreEvent, MoveMode, FireMode, UnitInfo};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use command::{MoveMode};
 
 pub enum InfoLevel {
     Full,

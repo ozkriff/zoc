@@ -5,10 +5,9 @@ use game_state::{GameState};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
-use command::{Command, MoveMode};
 use unit::{Unit};
 use db::{Db};
-use core::{CoreEvent, los};
+use core::{CoreEvent, Command, MoveMode, los};
 
 pub struct Ai {
     id: PlayerId,

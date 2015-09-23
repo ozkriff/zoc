@@ -9,7 +9,6 @@ use common::misc::{clamp};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath, PathNode, MoveCost};
-use command::{Command, MoveMode};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
 use player::{Player};
@@ -21,6 +20,22 @@ use fov::{fov};
 pub enum FireMode {
     Active,
     Reactive,
+}
+
+#[derive(Clone)]
+pub enum MoveMode {
+    Fast,
+    Hunt,
+}
+
+#[derive(Clone)]
+pub enum Command {
+    Move{unit_id: UnitId, path: MapPath, mode: MoveMode},
+    EndTurn,
+    CreateUnit{pos: MapPos},
+    AttackUnit{attacker_id: UnitId, defender_id: UnitId},
+    LoadUnit{transporter_id: UnitId, passanger_id: UnitId},
+    UnloadUnit{transporter_id: UnitId, passanger_id: UnitId, pos: MapPos},
 }
 
 // TODO: Add 'struct AttackInfo'
