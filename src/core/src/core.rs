@@ -91,6 +91,16 @@ pub enum CoreEvent {
     },
 }
 
+fn unit_to_info(unit: &Unit) -> UnitInfo {
+    UnitInfo {
+        unit_id: unit.id.clone(),
+        pos: unit.pos.clone(),
+        type_id: unit.type_id.clone(),
+        player_id: unit.player_id.clone(),
+        passanger_id: unit.passanger_id.clone(),
+    }
+}
+
 fn get_visible_enemies(
     db: &Db,
     state: &InternalState,
@@ -121,13 +131,7 @@ fn show_or_hide_passive_enemies(
         }
         let unit = units.get(&id).expect("Can`t find unit");
         events.push_back(CoreEvent::ShowUnit {
-            unit_info: UnitInfo {
-                unit_id: id.clone(),
-                pos: unit.pos.clone(),
-                type_id: unit.type_id.clone(),
-                player_id: unit.player_id.clone(),
-                passanger_id: None,
-            },
+            unit_info: unit_to_info(unit),
         });
     }
     let lost_units = old.difference(new);
@@ -540,11 +544,8 @@ impl Core {
                     CoreEvent::UnloadUnit {
                         transporter_id: transporter_id,
                         unit_info: UnitInfo {
-                            unit_id: passanger_id.clone(),
                             pos: pos.clone(),
-                            type_id: passanger.type_id.clone(),
-                            player_id: passanger.player_id.clone(),
-                            passanger_id: None,
+                            .. unit_to_info(passanger)
                         },
                     }
                 };
@@ -587,13 +588,7 @@ impl Core {
 
     fn create_show_unit_event(&self, unit: &Unit) -> CoreEvent {
         CoreEvent::ShowUnit {
-            unit_info: UnitInfo {
-                unit_id: unit.id.clone(),
-                pos: unit.pos.clone(),
-                type_id: unit.type_id.clone(),
-                player_id: unit.player_id.clone(),
-                passanger_id: unit.passanger_id.clone(),
-            },
+            unit_info: unit_to_info(unit),
         }
     }
 
@@ -624,11 +619,8 @@ impl Core {
             if !prev_vis && next_vis {
                 events.push(CoreEvent::ShowUnit {
                     unit_info: UnitInfo {
-                        unit_id: unit.id.clone(),
                         pos: prev_node.pos.clone(),
-                        type_id: unit.type_id.clone(),
-                        player_id: unit.player_id.clone(),
-                        passanger_id: unit.passanger_id.clone(),
+                        .. unit_to_info(unit)
                     },
                 });
                 sub_path.push(PathNode {
@@ -739,13 +731,7 @@ impl Core {
                     let transporter = self.state.unit(transporter_id);
                     if !fow.is_visible(&self.db, &self.state, transporter, &transporter.pos) {
                         events.push(CoreEvent::ShowUnit {
-                            unit_info: UnitInfo {
-                                unit_id: transporter.id.clone(),
-                                pos: transporter.pos.clone(),
-                                type_id: transporter.type_id.clone(),
-                                player_id: transporter.player_id.clone(),
-                                passanger_id: transporter.passanger_id.clone(),
-                            },
+                            unit_info: unit_to_info(transporter),
                         });
                         active_unit_ids.insert(transporter_id.clone());
                     }
