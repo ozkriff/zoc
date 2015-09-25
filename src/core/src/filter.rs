@@ -13,12 +13,13 @@ pub fn get_visible_enemies(
     db: &Db,
     state: &InternalState,
     fow: &Fow,
-    units: &HashMap<UnitId, Unit>,
     player_id: &PlayerId,
 ) -> HashSet<UnitId> {
     let mut visible_enemies = HashSet::new();
-    for (id, unit) in units {
-        if unit.player_id != *player_id && fow.is_visible(db, state, unit, &unit.pos) {
+    for (id, unit) in state.units() {
+        if unit.player_id != *player_id
+            && fow.is_visible(db, state, unit, &unit.pos)
+        {
             visible_enemies.insert(id.clone());
         }
     }

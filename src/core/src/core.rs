@@ -586,7 +586,6 @@ impl Core {
                     &self.db,
                     &self.state,
                     &i.fow,
-                    self.state.units(),
                     &player.id,
                 );
                 let show_hide_events = filter::show_or_hide_passive_enemies(
