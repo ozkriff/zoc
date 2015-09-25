@@ -7,6 +7,7 @@ use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use common::misc::{clamp};
 use internal_state::{InternalState};
+use game_state::{GameState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
@@ -101,6 +102,44 @@ pub enum CoreEvent {
         unit_id: UnitId,
         mode: ReactionFireMode,
     },
+}
+
+fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
+    let mut transporter_id = None;
+    for unit in units {
+        let unit_type = db.unit_type(&unit.type_id);
+        if unit_type.is_transporter {
+            transporter_id = Some(unit.id.clone());
+        }
+    }
+    transporter_id
+}
+
+pub fn get_unit_id_at(db: &Db, state: &GameState, pos: &MapPos) -> Option<UnitId> {
+    let units_at = state.units_at(pos);
+    if units_at.len() == 1 {
+        let unit_id = units_at[0].id.clone();
+        Some(unit_id)
+    } else if units_at.len() > 1 {
+        let transporter_id = find_transporter_id(db, &units_at)
+            .expect("Multiple units in tile, but no transporter");
+        for unit in &units_at {
+            if unit.id == transporter_id {
+                continue;
+            }
+            let transporter = state.unit(&transporter_id);
+            if let Some(ref passanger_id) = transporter.passanger_id {
+                if *passanger_id != unit.id {
+                    panic!("Non-passanger unit in multiunit tile");
+                }
+            } else {
+                panic!("Multiple units in tile, but transporter is empty");
+            }
+        }
+        Some(transporter_id)
+    } else {
+        None
+    }
 }
 
 pub fn unit_to_info(unit: &Unit) -> UnitInfo {
