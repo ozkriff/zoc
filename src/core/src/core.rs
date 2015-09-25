@@ -536,11 +536,8 @@ impl Core {
                     attacker_id, defender_id, &defender_pos, &FireMode::Active);
                 if let Some(ref event) = event {
                     self.do_core_event(event);
-                    let is_target_alive = self.state.units().get(&defender_id).is_some();
-                    if is_target_alive {
-                        let pos = &self.state.unit(&attacker_id).pos.clone();
-                        self.reaction_fire(&attacker_id, pos);
-                    }
+                    let attacker_pos = self.state.unit(&attacker_id).pos.clone();
+                    self.reaction_fire(&attacker_id, &attacker_pos);
                 }
             },
             Command::LoadUnit{transporter_id, passanger_id} => {
