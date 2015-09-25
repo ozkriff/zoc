@@ -22,6 +22,12 @@ pub enum FireMode {
     Reactive,
 }
 
+#[derive(Clone)]
+pub enum ReactionFireMode {
+    Normal,
+    HoldFire,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub enum MoveMode {
     Fast,
@@ -36,6 +42,7 @@ pub enum Command {
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
     LoadUnit{transporter_id: UnitId, passanger_id: UnitId},
     UnloadUnit{transporter_id: UnitId, passanger_id: UnitId, pos: MapPos},
+    SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
 }
 
 #[derive(Clone)]
@@ -88,6 +95,10 @@ pub enum CoreEvent {
     UnloadUnit {
         unit_info: UnitInfo,
         transporter_id: UnitId,
+    },
+    SetReactionFireMode {
+        unit_id: UnitId,
+        mode: ReactionFireMode,
     },
 }
 
@@ -403,6 +414,9 @@ impl Core {
         if !self.los(enemy_type, &attacker.pos, defender_pos) {
             return false;
         }
+        if let ReactionFireMode::HoldFire = attacker.reaction_fire_mode {
+            return false;
+        }
         true
     }
 
@@ -551,6 +565,12 @@ impl Core {
                 };
                 self.do_core_event(&event);
                 self.reaction_fire(&passanger_id, &pos);
+            },
+            Command::SetReactionFireMode{unit_id, mode} => {
+                self.do_core_event(&CoreEvent::SetReactionFireMode {
+                    unit_id: unit_id,
+                    mode: mode,
+                });
             },
         };
     }
@@ -735,6 +755,12 @@ impl Core {
                         });
                         active_unit_ids.insert(transporter_id.clone());
                     }
+                    events.push(event.clone());
+                }
+            },
+            &CoreEvent::SetReactionFireMode{ref unit_id, ..} => {
+                let unit = self.state.unit(unit_id);
+                if unit.player_id == *player_id {
                     events.push(event.clone());
                 }
             },

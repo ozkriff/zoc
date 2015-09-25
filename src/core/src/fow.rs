@@ -175,6 +175,7 @@ impl Fow {
                     fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
                 }
             },
+            &CoreEvent::SetReactionFireMode{..} => {},
         }
     }
 }

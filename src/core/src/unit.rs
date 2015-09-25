@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt, UnitId, PlayerId, MapPos};
+use core::{ReactionFireMode};
 
 #[derive(Clone)]
 pub struct UnitTypeId{pub id: ZInt}
@@ -19,6 +20,7 @@ pub struct Unit {
     pub move_points: ZInt,
     pub attack_points: ZInt,
     pub reactive_attack_points: Option<ZInt>,
+    pub reaction_fire_mode: ReactionFireMode,
     pub count: ZInt,
     pub morale: ZInt,
     pub passanger_id: Option<UnitId>,

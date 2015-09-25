@@ -3,7 +3,7 @@
 use std::collections::{HashMap};
 use cgmath::{Vector2};
 use common::types::{PlayerId, UnitId, MapPos, Size2};
-use core::{CoreEvent, MoveMode, FireMode, UnitInfo};
+use core::{CoreEvent, MoveMode, FireMode, UnitInfo, ReactionFireMode};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
@@ -103,6 +103,7 @@ impl<'a> InternalState {
             } else {
                 None
             },
+            reaction_fire_mode: ReactionFireMode::Normal,
             count: unit_type.count,
             morale: 100,
             passanger_id: if let InfoLevel::Full = info_level {
@@ -202,6 +203,11 @@ impl<'a> InternalState {
                     return;
                 }
                 self.add_unit(db, unit_info, InfoLevel::Partial);
+            },
+            &CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
+                self.units.get_mut(unit_id)
+                    .expect("Bad unit id")
+                    .reaction_fire_mode = mode.clone();
             },
         }
     }

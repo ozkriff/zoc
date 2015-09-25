@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
 use common::types::{ZFloat, UnitId, ZInt, MapPos};
 use core::game_state::GameState;
-use core::core::{self, UnitInfo, AttackInfo};
+use core::core::{self, UnitInfo, AttackInfo, ReactionFireMode};
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
 use core::db::{Db};
@@ -515,5 +515,38 @@ impl EventVisualizer for EventLoadUnitVisualizer {
         scene.nodes.remove(&marker_id(&self.passanger_id));
     }
 }
+
+pub struct EventSetReactionFireModeVisualizer;
+
+impl EventSetReactionFireModeVisualizer {
+    pub fn new(
+        state: &GameState,
+        unit_id: &UnitId,
+        mode: &ReactionFireMode,
+        map_text: &mut MapTextManager,
+    ) -> Box<EventVisualizer> {
+        let unit_pos = &state.unit(unit_id).pos;
+        match *mode {
+            ReactionFireMode::Normal => {
+                map_text.add_text(unit_pos, "Normal fire mode");
+            },
+            ReactionFireMode::HoldFire => {
+                map_text.add_text(unit_pos, "Hold fire");
+            },
+        }
+        Box::new(EventSetReactionFireModeVisualizer)
+    }
+}
+
+impl EventVisualizer for EventSetReactionFireModeVisualizer {
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn draw(&mut self, _: &mut Scene, _: &Time) {}
+
+    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+}
+
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

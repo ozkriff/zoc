@@ -43,7 +43,7 @@ use core::map::{Map, distance, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
-use core::core::{Core, CoreEvent, Command, MoveMode, los};
+use core::core::{Core, CoreEvent, Command, MoveMode, ReactionFireMode, los};
 use core::unit::{Unit, UnitClass};
 use core::db::{Db};
 use zgl::texture::{Texture};
@@ -61,6 +61,7 @@ use event_visualizer::{
     EventAttackUnitVisualizer,
     EventShowUnitVisualizer,
     EventHideUnitVisualizer,
+    EventSetReactionFireModeVisualizer,
 };
 use unit_type_visual_info::{
     UnitTypeVisualInfo,
@@ -629,6 +630,30 @@ impl Visualizer {
         });
     }
 
+    fn change_reaction_fire_mode(&mut self) {
+        self.pick_tile();
+        let state = &self.player_info.get(self.core.player_id()).game_state;
+        let unit_id = match self.pick_result {
+            PickResult::UnitId(ref id) => id,
+            PickResult::Pos(ref pos) => {
+                self.map_text_manager.add_text(pos, "No selected unit");
+                return;
+            },
+            PickResult::None => {
+                return;
+            },
+        };
+        let unit = state.unit(&unit_id);
+        let mode = match unit.reaction_fire_mode {
+            ReactionFireMode::Normal => ReactionFireMode::HoldFire,
+            ReactionFireMode::HoldFire => ReactionFireMode::Normal,
+        };
+        self.core.do_command(Command::SetReactionFireMode {
+            unit_id: unit_id.clone(),
+            mode: mode,
+        });
+    }
+
     fn transport(&mut self) {
         self.pick_tile();
         match self.pick_result.clone() {
@@ -886,6 +911,9 @@ impl Visualizer {
             },
             VirtualKeyCode::L => {
                 self.transport();
+            },
+            VirtualKeyCode::R => {
+                self.change_reaction_fire_mode();
             },
             VirtualKeyCode::H => {
                 self.pick_tile();
@@ -1214,6 +1242,14 @@ impl Visualizer {
                     mesh_id,
                     marker_mesh_id,
                     &state.unit(transporter_id).pos,
+                    &mut self.map_text_manager,
+                )
+            },
+            &CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
+                EventSetReactionFireModeVisualizer::new(
+                    state,
+                    unit_id,
+                    mode,
                     &mut self.map_text_manager,
                 )
             },
