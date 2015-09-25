@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::collections::{HashMap, HashSet, LinkedList};
+use std::collections::{HashMap, HashSet};
 use common::types::{UnitId, PlayerId};
 use core::{MoveMode, CoreEvent, AttackInfo, UnitInfo, unit_to_info};
 use internal_state::{InternalState};
@@ -31,15 +31,15 @@ pub fn show_or_hide_passive_enemies(
     active_unit_ids: &HashSet<UnitId>,
     old: &HashSet<UnitId>,
     new: &HashSet<UnitId>,
-) -> LinkedList<CoreEvent> {
-    let mut events = LinkedList::new();
+) -> Vec<CoreEvent> {
+    let mut events = Vec::new();
     let located_units = new.difference(old);
     for id in located_units {
         if active_unit_ids.contains(id) {
             continue;
         }
         let unit = units.get(&id).expect("Can`t find unit");
-        events.push_back(CoreEvent::ShowUnit {
+        events.push(CoreEvent::ShowUnit {
             unit_info: unit_to_info(unit),
         });
     }
@@ -48,7 +48,7 @@ pub fn show_or_hide_passive_enemies(
         if active_unit_ids.contains(id) {
             continue;
         }
-        events.push_back(CoreEvent::HideUnit{unit_id: id.clone()});
+        events.push(CoreEvent::HideUnit{unit_id: id.clone()});
     }
     events
 }
