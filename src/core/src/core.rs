@@ -8,13 +8,14 @@ use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use common::misc::{clamp};
 use internal_state::{InternalState};
 use map::{Map, Terrain, distance};
-use pathfinder::{MapPath, PathNode, MoveCost};
+use pathfinder::{MapPath};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
 use player::{Player};
 use ai::{Ai};
 use fow::{Fow};
 use fov::{fov};
+use filter;
 
 #[derive(Clone)]
 pub enum FireMode {
@@ -102,7 +103,7 @@ pub enum CoreEvent {
     },
 }
 
-fn unit_to_info(unit: &Unit) -> UnitInfo {
+pub fn unit_to_info(unit: &Unit) -> UnitInfo {
     UnitInfo {
         unit_id: unit.id.clone(),
         pos: unit.pos.clone(),
@@ -110,49 +111,6 @@ fn unit_to_info(unit: &Unit) -> UnitInfo {
         player_id: unit.player_id.clone(),
         passanger_id: unit.passanger_id.clone(),
     }
-}
-
-fn get_visible_enemies(
-    db: &Db,
-    state: &InternalState,
-    fow: &Fow,
-    units: &HashMap<UnitId, Unit>,
-    player_id: &PlayerId,
-) -> HashSet<UnitId> {
-    let mut visible_enemies = HashSet::new();
-    for (id, unit) in units {
-        if unit.player_id != *player_id && fow.is_visible(db, state, unit, &unit.pos) {
-            visible_enemies.insert(id.clone());
-        }
-    }
-    visible_enemies
-}
-
-fn show_or_hide_passive_enemies(
-    units: &HashMap<UnitId, Unit>,
-    active_unit_ids: &HashSet<UnitId>,
-    old: &HashSet<UnitId>,
-    new: &HashSet<UnitId>,
-) -> LinkedList<CoreEvent> {
-    let mut events = LinkedList::new();
-    let located_units = new.difference(old);
-    for id in located_units {
-        if active_unit_ids.contains(id) {
-            continue;
-        }
-        let unit = units.get(&id).expect("Can`t find unit");
-        events.push_back(CoreEvent::ShowUnit {
-            unit_info: unit_to_info(unit),
-        });
-    }
-    let lost_units = old.difference(new);
-    for id in lost_units {
-        if active_unit_ids.contains(id) {
-            continue;
-        }
-        events.push_back(CoreEvent::HideUnit{unit_id: id.clone()});
-    }
-    events
 }
 
 struct PlayerInfo {
@@ -606,189 +564,32 @@ impl Core {
         }
     }
 
-    fn create_show_unit_event(&self, unit: &Unit) -> CoreEvent {
-        CoreEvent::ShowUnit {
-            unit_info: unit_to_info(unit),
-        }
-    }
-
-    fn filter_move_event(
-        &self,
-        player_id: &PlayerId,
-        unit_id: &UnitId,
-        path: &MapPath,
-        move_mode: &MoveMode,
-    ) -> Vec<CoreEvent> {
-        let mut events = vec![];
-        let unit = self.state.unit(unit_id);
-        let fow = &self.players_info[player_id].fow;
-        let len = path.nodes().len();
-        let mut sub_path = Vec::new();
-        let first_pos = path.nodes()[0].pos.clone();
-        if fow.is_visible(&self.db, &self.state, unit, &first_pos) {
-            sub_path.push(PathNode {
-                cost: MoveCost{n: 0},
-                pos: first_pos,
-            });
-        }
-        for i in 1 .. len {
-            let prev_node = path.nodes()[i - 1].clone();
-            let next_node = path.nodes()[i].clone();
-            let prev_vis = fow.is_visible(&self.db, &self.state, unit, &prev_node.pos);
-            let next_vis = fow.is_visible(&self.db, &self.state, unit, &next_node.pos);
-            if !prev_vis && next_vis {
-                events.push(CoreEvent::ShowUnit {
-                    unit_info: UnitInfo {
-                        pos: prev_node.pos.clone(),
-                        .. unit_to_info(unit)
-                    },
-                });
-                sub_path.push(PathNode {
-                    cost: MoveCost{n: 0},
-                    pos: prev_node.pos.clone(),
-                });
-            }
-            if prev_vis || next_vis {
-                sub_path.push(PathNode {
-                    cost: MoveCost{n: 0},
-                    pos: next_node.pos.clone(),
-                });
-            }
-            if prev_vis && !next_vis {
-                events.push(CoreEvent::Move {
-                    unit_id: unit.id.clone(),
-                    path: MapPath::new(sub_path.clone()),
-                    mode: move_mode.clone(),
-                });
-                sub_path.clear();
-                events.push(CoreEvent::HideUnit {
-                    unit_id: unit.id.clone(),
-                });
-            }
-        }
-        if sub_path.len() != 0 {
-            events.push(CoreEvent::Move {
-                unit_id: unit.id.clone(),
-                path: MapPath::new(sub_path),
-                mode: move_mode.clone(),
-            });
-        }
-        events
-    }
-
-    // TODO: add unit/functional tests
-    fn filter_events(&self, player_id: &PlayerId, event: &CoreEvent)
-        -> (Vec<CoreEvent>, HashSet<UnitId>)
-    {
-        let mut active_unit_ids = HashSet::new();
-        let mut events = vec![];
-        let fow = &self.players_info[player_id].fow;
-        match event {
-            &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
-                let unit = self.state.unit(unit_id);
-                if unit.player_id == *player_id {
-                    events.push(event.clone())
-                } else {
-                    let filtered_events = self.filter_move_event(
-                        player_id, unit_id, path, mode);
-                    events.extend(filtered_events);
-                    active_unit_ids.insert(unit_id.clone());
-                }
-            },
-            &CoreEvent::EndTurn{..} => {
-                events.push(event.clone());
-            },
-            &CoreEvent::CreateUnit{ref unit_info} => {
-                let unit = self.state.unit(&unit_info.unit_id);
-                if *player_id == unit_info.player_id
-                    || fow.is_visible(&self.db, &self.state, unit, &unit_info.pos)
-                {
-                    events.push(event.clone());
-                    active_unit_ids.insert(unit_info.unit_id.clone());
-                }
-            },
-            &CoreEvent::AttackUnit{ref attack_info} => {
-                let attacker_id = attack_info.attacker_id.clone()
-                    .expect("Core must know about everything");
-                let attacker = self.state.unit(&attacker_id);
-                if *player_id != attacker.player_id && !attack_info.is_ambush {
-                    // show attacker if this is not ambush
-                    let attacker = self.state.unit(&attacker_id);
-                    if !fow.is_visible(&self.db, &self.state, attacker, &attacker.pos) {
-                        events.push(self.create_show_unit_event(&attacker));
-                    }
-                    active_unit_ids.insert(attacker_id.clone());
-                }
-                active_unit_ids.insert(attack_info.defender_id.clone()); // if defender is killed
-                let is_attacker_visible = *player_id == attacker.player_id
-                    || !attack_info.is_ambush;
-                let attack_info = AttackInfo {
-                    attacker_id: if is_attacker_visible {
-                        Some(attacker_id)
-                    } else {
-                        None
-                    },
-                    .. attack_info.clone()
-                };
-                events.push(CoreEvent::AttackUnit{attack_info: attack_info});
-            },
-            &CoreEvent::ShowUnit{..} => panic!(),
-            &CoreEvent::HideUnit{..} => panic!(),
-            &CoreEvent::LoadUnit{ref passanger_id, ..} => {
-                let passanger = self.state.unit(passanger_id);
-                if passanger.player_id == *player_id {
-                    events.push(event.clone());
-                } else if fow.is_visible(&self.db, &self.state, passanger, &passanger.pos) {
-                    events.push(event.clone());
-                }
-            },
-            &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
-                active_unit_ids.insert(unit_info.unit_id.clone());
-                let passanger = self.state.unit(&unit_info.unit_id);
-                if passanger.player_id == *player_id {
-                    events.push(event.clone());
-                } else if fow.is_visible(&self.db, &self.state, passanger, &unit_info.pos) {
-                    let transporter = self.state.unit(transporter_id);
-                    if !fow.is_visible(&self.db, &self.state, transporter, &transporter.pos) {
-                        events.push(CoreEvent::ShowUnit {
-                            unit_info: unit_to_info(transporter),
-                        });
-                        active_unit_ids.insert(transporter_id.clone());
-                    }
-                    events.push(event.clone());
-                }
-            },
-            &CoreEvent::SetReactionFireMode{ref unit_id, ..} => {
-                let unit = self.state.unit(unit_id);
-                if unit.player_id == *player_id {
-                    events.push(event.clone());
-                }
-            },
-        }
-        (events, active_unit_ids)
-    }
-
     fn do_core_event(&mut self, event: &CoreEvent) {
         if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
         }
         self.state.apply_event(&self.db, &event);
         for player in &self.players {
-            let (filtered_events, active_unit_ids)
-                = self.filter_events(&player.id, &event);
+            let (filtered_events, active_unit_ids) = filter::filter_events(
+                &self.db,
+                &self.state,
+                &player.id,
+                &self.players_info[&player.id].fow,
+                &event,
+            );
             let mut i = self.players_info.get_mut(&player.id)
                 .expect("core: Can`t get player`s info");
             for event in filtered_events {
                 i.fow.apply_event(&self.db, &self.state, &event);
                 i.events.push_back(event);
-                let new_visible_enemies = get_visible_enemies(
+                let new_visible_enemies = filter::get_visible_enemies(
                     &self.db,
                     &self.state,
                     &i.fow,
                     self.state.units(),
                     &player.id,
                 );
-                let show_hide_events = show_or_hide_passive_enemies(
+                let show_hide_events = filter::show_or_hide_passive_enemies(
                     self.state.units(),
                     &active_unit_ids,
                     &i.visible_enemies,

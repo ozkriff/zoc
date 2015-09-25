@@ -19,5 +19,6 @@ mod player;
 mod fov;
 mod fow;
 mod internal_state;
+mod filter;
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
