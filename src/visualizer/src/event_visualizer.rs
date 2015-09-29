@@ -438,6 +438,7 @@ impl EventUnloadUnitVisualizer {
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
         transporter_pos: &MapPos,
+        unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(&unit_info.pos, "unloaded");
@@ -448,7 +449,7 @@ impl EventUnloadUnitVisualizer {
         let unit_node = scene.node_mut(&node_id);
         unit_node.pos = from.clone();
         unit_node.rot = geom::get_rot_angle(&from, &to);
-        let move_speed = 2.0; // TODO: get from unit
+        let move_speed = unit_type_visual_info.move_speed;
         Box::new(EventUnloadUnitVisualizer {
             id: unit_info.unit_id.clone(),
             move_helper: MoveHelper::new(&from, &to, move_speed),
@@ -481,6 +482,7 @@ impl EventLoadUnitVisualizer {
         state: &GameState,
         unit_id: &UnitId,
         transporter_pos: &MapPos,
+        unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         let unit_pos = &state.unit(unit_id).pos;
@@ -490,7 +492,7 @@ impl EventLoadUnitVisualizer {
         let node_id = unit_id_to_node_id(unit_id);
         let unit_node = scene.node_mut(&node_id);
         unit_node.rot = geom::get_rot_angle(&from, &to);
-        let move_speed = 2.0; // TODO: get from unit
+        let move_speed = unit_type_visual_info.move_speed;
         Box::new(EventLoadUnitVisualizer {
             passanger_id: unit_id.clone(),
             move_helper: MoveHelper::new(&from, &to, move_speed),
