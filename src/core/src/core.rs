@@ -360,6 +360,9 @@ impl Core {
         if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
             return None;
         }
+        if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
+            return None;
+        }
         if !self.los(attacker_type, &attacker.pos, defender_pos) {
             return None;
         }
