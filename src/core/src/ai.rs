@@ -86,8 +86,9 @@ impl Ai {
             if target.player_id == self.id {
                 continue;
             }
-            let max_distance = db.unit_max_attack_dist(unit);
-            if distance(&unit.pos, &target.pos) <= max_distance {
+            let attacker_type = db.unit_type(&unit.type_id);
+            let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
+            if distance(&unit.pos, &target.pos) <= weapon_type.max_distance {
                 return true;
             }
         }
@@ -108,8 +109,13 @@ impl Ai {
                 if target.player_id == self.id {
                     continue;
                 }
-                let max_distance = db.unit_max_attack_dist(unit);
-                if distance(&unit.pos, &target.pos) > max_distance {
+                // TODO: merge attack possibility handling with core.rs
+                let attacker_type = db.unit_type(&unit.type_id);
+                let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
+                if distance(&unit.pos, &target.pos) > weapon_type.max_distance {
+                    continue;
+                }
+                if distance(&unit.pos, &target.pos) < weapon_type.min_distance {
                     continue;
                 }
                 if !los(self.state.map(), unit_type, &unit.pos, &target.pos) {

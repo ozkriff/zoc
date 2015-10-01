@@ -406,8 +406,12 @@ impl Core {
         if !fow.is_visible(&self.db, &self.state, defender, defender_pos) {
             return false;
         }
-        let max_distance = self.db.unit_max_attack_dist(attacker);
-        if distance(&attacker.pos, defender_pos) > max_distance {
+        let attacker_type = self.db.unit_type(&attacker.type_id);
+        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
+        if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
+            return false;
+        }
+        if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
             return false;
         }
         let enemy_type = self.db.unit_type(&attacker.type_id);

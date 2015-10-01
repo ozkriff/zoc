@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt};
-use unit::{Unit, UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
+use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 
 fn weapon_type_id(weapon_types: &Vec<WeaponType>, name: &str)
     -> WeaponTypeId
@@ -153,13 +153,6 @@ impl Db {
 
     pub fn weapon_type_id(&self, name: &str) -> WeaponTypeId {
         weapon_type_id(&self.weapon_types, name)
-    }
-
-    pub fn unit_max_attack_dist(&self, unit: &Unit) -> ZInt {
-        let attacker_type = self.unit_type(&unit.type_id);
-        let weapon_type = &self
-            .weapon_types[attacker_type.weapon_type_id.id as usize];
-        weapon_type.max_distance
     }
 }
 

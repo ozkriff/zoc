@@ -666,11 +666,22 @@ impl Visualizer {
                 &defender.pos, "Can`t attack when suppressed");
             return;
         }
-        let max_distance = self.core.db().unit_max_attack_dist(attacker);
-        if distance(&attacker.pos, &defender.pos) > max_distance {
-            self.map_text_manager.add_text(
-                &defender.pos, "Out of range");
-            return;
+        // TODO: merge error handling of visualizer and core
+        {
+            let attacker_type = self.core.db().unit_type(&attacker.type_id);
+            let weapon_type = self.core.db().weapon_type(&attacker_type.weapon_type_id);
+            let max_distance = weapon_type.max_distance;
+            let min_distance = weapon_type.min_distance;
+            if distance(&attacker.pos, &defender.pos) > max_distance {
+                self.map_text_manager.add_text(
+                    &defender.pos, "Out of range");
+                return;
+            }
+            if distance(&attacker.pos, &defender.pos) < min_distance {
+                self.map_text_manager.add_text(
+                    &defender.pos, "Too close");
+                return;
+            }
         }
         if !self.los(attacker, &attacker.pos, &defender.pos) {
             self.map_text_manager.add_text(
