@@ -889,13 +889,13 @@ impl Visualizer {
                 self.camera.move_camera(rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.camera.move_camera(rad(PI / 2.0), s);
+                self.camera.move_camera(rad(PI * 0.5), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.camera.move_camera(rad(0.0), s);
+                self.camera.move_camera(rad(PI * 0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.camera.move_camera(rad(PI), s);
+                self.camera.move_camera(rad(PI * 1.0), s);
             },
             VirtualKeyCode::I => {
                 self.print_info();
