@@ -1022,10 +1022,11 @@ impl Visualizer {
                         self.handle_event_mouse_move(&pos);
                     },
                     glutin::TouchPhase::Started => {
+                        self.handle_event_mouse_move(&pos);
                         self.handle_event_lmb_press();
                     },
                     glutin::TouchPhase::Ended => {
-                        self.mouse_pos = pos.clone();
+                        self.handle_event_mouse_move(&pos);
                         self.handle_event_lmb_release();
                     },
                     glutin::TouchPhase::Cancelled => {
