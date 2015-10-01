@@ -766,8 +766,17 @@ impl Visualizer {
             rad(diff.y as ZFloat * per_y_pixel));
     }
 
-    #[cfg(not(target_os = "android"))]
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
+        if self.just_pressed_lmb {
+            self.just_pressed_lmb = false;
+            return;
+        }
+        self.handle_event_mouse_move_platform(pos);
+        self.mouse_pos = pos.clone();
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
         if self.is_lmb_pressed {
             self.handle_camera_move(pos);
         } else if self.is_rmb_pressed {
@@ -776,7 +785,7 @@ impl Visualizer {
     }
 
     #[cfg(target_os = "android")]
-    fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
+    fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
         if !self.is_lmb_pressed {
             return;
         }
@@ -796,10 +805,17 @@ impl Visualizer {
         }
     }
 
+    fn handle_event_lmb_press(&mut self) {
+        self.is_lmb_pressed = true;
+        self.just_pressed_lmb = true;
+        self.last_press_pos = self.mouse_pos.clone();
+    }
+
     fn print_unit_info(&self, unit_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
         let unit = state.units().get(unit_id)
             .expect("Can`t find picked unit in current state");
+        // TODO: use only one println
         println!("player_id: {}", unit.player_id.id);
         println!("move_points: {}", unit.move_points);
         println!("attack_points: {}", unit.attack_points);
@@ -905,7 +921,7 @@ impl Visualizer {
         }
     }
 
-    fn handle_event_lmb_released(&mut self) {
+    fn handle_event_lmb_release(&mut self) {
         self.is_lmb_pressed = false;
         if self.event_visualizer.is_some() {
             return;
@@ -971,20 +987,13 @@ impl Visualizer {
             },
             Event::MouseMoved((x, y)) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
-                if self.just_pressed_lmb {
-                    self.just_pressed_lmb = false;
-                } else {
-                    self.handle_event_mouse_move(&pos);
-                }
-                self.mouse_pos = pos.clone();
+                self.handle_event_mouse_move(&pos);
             },
             Event::MouseInput(Pressed, MouseButton::Left) => {
-                self.is_lmb_pressed = true;
-                self.just_pressed_lmb = true;
-                self.last_press_pos = self.mouse_pos.clone();
+                self.handle_event_lmb_press();
             },
             Event::MouseInput(Released, MouseButton::Left) => {
-                self.handle_event_lmb_released();
+                self.handle_event_lmb_release();
             },
             Event::MouseInput(Pressed, MouseButton::Right) => {
                 self.is_rmb_pressed = true;
@@ -994,6 +1003,24 @@ impl Visualizer {
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
+            },
+            Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
+                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                match phase {
+                    glutin::TouchPhase::Moved => {
+                        self.handle_event_mouse_move(&pos);
+                    },
+                    glutin::TouchPhase::Started => {
+                        self.handle_event_lmb_press();
+                    },
+                    glutin::TouchPhase::Ended => {
+                        self.mouse_pos = pos.clone();
+                        self.handle_event_lmb_release();
+                    },
+                    glutin::TouchPhase::Cancelled => {
+                        unimplemented!();
+                    },
+                }
             },
             _ => {},
         }
