@@ -79,8 +79,6 @@ use selection::{SelectionManager, get_selection_mesh};
 use map_text::{MapTextManager};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
-const CAMERA_MOVE_SPEED: ZFloat = geom::HEX_EX_RADIUS * 12.0;
-const CAMERA_MOVE_SPEED_KEY: ZFloat = geom::HEX_EX_RADIUS;
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -758,8 +756,9 @@ impl Visualizer {
 
     fn handle_camera_move(&mut self, pos: &ScreenPos) {
         let diff = pos.v - self.mouse_pos.v;
-        let per_x_pixel = CAMERA_MOVE_SPEED / (self.win_size.w as ZFloat);
-        let per_y_pixel = CAMERA_MOVE_SPEED / (self.win_size.h as ZFloat);
+        let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
+        let per_x_pixel = camera_move_speed / (self.win_size.w as ZFloat);
+        let per_y_pixel = camera_move_speed / (self.win_size.h as ZFloat);
         self.camera.move_camera(
             rad(PI), diff.x as ZFloat * per_x_pixel);
         self.camera.move_camera(
@@ -880,7 +879,8 @@ impl Visualizer {
     }
 
     fn handle_event_key_press(&mut self, key: VirtualKeyCode) {
-        let s = CAMERA_MOVE_SPEED_KEY;
+        let camera_move_speed_on_keypress = geom::HEX_EX_RADIUS;
+        let s = camera_move_speed_on_keypress;
         match key {
             VirtualKeyCode::Q | VirtualKeyCode::Escape => {
                 self.should_close = true;
