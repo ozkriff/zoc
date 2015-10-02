@@ -312,7 +312,6 @@ pub struct Visualizer {
     is_lmb_pressed: bool,
     is_rmb_pressed: bool,
     win_size: Size2,
-    just_pressed_lmb: bool, // TODO: remove this field?
     last_press_pos: ScreenPos,
     font_stash: FontStash,
     map_text_manager: MapTextManager,
@@ -420,7 +419,6 @@ impl Visualizer {
             is_lmb_pressed: false,
             is_rmb_pressed: false,
             win_size: win_size,
-            just_pressed_lmb: false,
             last_press_pos: ScreenPos{v: Vector::from_value(0)},
             font_stash: font_stash,
             button_manager: button_manager,
@@ -777,10 +775,6 @@ impl Visualizer {
     }
 
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
-        if self.just_pressed_lmb {
-            self.just_pressed_lmb = false;
-            return;
-        }
         self.handle_event_mouse_move_platform(pos);
         self.mouse_pos = pos.clone();
     }
@@ -817,7 +811,6 @@ impl Visualizer {
 
     fn handle_event_lmb_press(&mut self) {
         self.is_lmb_pressed = true;
-        self.just_pressed_lmb = true;
         self.last_press_pos = self.mouse_pos.clone();
     }
 
