@@ -28,7 +28,7 @@ to release actual game resources under proprietary license.
 
 ## Building
 
-`make` or `cargo build` (latest rust-nightly is required, see `.travis.yml`).
+`make` or `cargo build`.
 
 
 ## Running
@@ -43,7 +43,7 @@ to release actual game resources under proprietary license.
 For instructions on setting up your environment see
 https://github.com/tomaka/android-rs-glue#setting-up-your-environment.
 
-Then just: `make android_run`.
+Then just: `make android_run` (rust-nightly is required).
 
 ![android-img][]
 
