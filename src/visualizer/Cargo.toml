@@ -10,7 +10,6 @@ doctest = false
 
 [dependencies.glutin]
 version = "*"
-features = ["window"]
 
 [dependencies.core]
 path = "../core/"

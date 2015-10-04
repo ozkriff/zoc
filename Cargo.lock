@@ -18,7 +18,7 @@ dependencies = [
 [[package]]
 name = "android_glue"
 version = "0.1.0"
-source = "git+https://github.com/tomaka/android-rs-glue#5835cb5989962316ae1c6effbbfea78cba82b886"
+source = "git+https://github.com/tomaka/android-rs-glue#aa9ddafee8287f9729ae6765f9df93145769f1b5"
 
 [[package]]
 name = "android_glue"
@@ -45,7 +45,7 @@ name = "cgl"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -184,7 +184,7 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_common 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -200,7 +200,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "glutin"
-version = "0.3.7"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "android_glue 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -213,8 +213,8 @@ dependencies = [
  "gl_common 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "khronos_api 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-sys 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -251,17 +251,12 @@ dependencies = [
 
 [[package]]
 name = "khronos_api"
-version = "0.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "khronos_api"
 version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "lazy_static"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -361,7 +356,7 @@ name = "shared_library"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -428,7 +423,7 @@ dependencies = [
  "cgmath 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "common 0.0.1",
  "core 0.0.1",
- "glutin 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glutin 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -442,7 +437,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dlib 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -452,7 +447,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "mmap 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wayland-client 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
