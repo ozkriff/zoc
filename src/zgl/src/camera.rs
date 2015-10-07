@@ -39,11 +39,11 @@ impl Camera {
     }
 
     pub fn mat(&self, zgl: &Zgl) -> Matrix4<ZFloat> {
-        let mut m = self.projection_mat;
-        m = zgl.tr(m, &Vector3{x: 0.0, y: 0.0, z: -self.zoom});
-        m = zgl.rot_x(m, &-self.x_angle);
-        m = zgl.rot_z(m, &-self.z_angle);
-        m = zgl.tr(m, &self.pos.v);
+        let m = self.projection_mat;
+        let m = zgl.tr(m, &Vector3{x: 0.0, y: 0.0, z: -self.zoom});
+        let m = zgl.rot_x(m, &-self.x_angle);
+        let m = zgl.rot_z(m, &-self.z_angle);
+        let m = zgl.tr(m, &self.pos.v);
         m
     }
 
