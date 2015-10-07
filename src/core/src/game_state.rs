@@ -2,12 +2,12 @@
 
 use std::collections::{HashMap};
 use common::types::{PlayerId, UnitId, MapPos, Size2};
-use core::{CoreEvent};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
 use fow::{Fow};
+use ::{CoreEvent};
 
 pub struct GameState {
     state: InternalState,

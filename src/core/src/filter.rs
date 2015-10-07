@@ -2,12 +2,12 @@
 
 use std::collections::{HashMap, HashSet};
 use common::types::{UnitId, PlayerId};
-use core::{MoveMode, CoreEvent, AttackInfo, UnitInfo, unit_to_info};
 use internal_state::{InternalState};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use unit::{Unit};
 use db::{Db};
 use fow::{Fow};
+use ::{MoveMode, CoreEvent, AttackInfo, UnitInfo, unit_to_info};
 
 pub fn get_visible_enemies(
     db: &Db,

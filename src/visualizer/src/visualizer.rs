@@ -43,7 +43,7 @@ use core::map::{Map, distance, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
-use core::core::{
+use core::{
     Core,
     CoreEvent,
     Command,

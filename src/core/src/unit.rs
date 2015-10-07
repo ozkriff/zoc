@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt, UnitId, PlayerId, MapPos};
-use core::{ReactionFireMode};
+use ::{ReactionFireMode};
 
 #[derive(Clone)]
 pub struct UnitTypeId{pub id: ZInt}

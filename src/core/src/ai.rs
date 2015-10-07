@@ -7,7 +7,7 @@ use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use core::{CoreEvent, Command, MoveMode, los};
+use ::{CoreEvent, Command, MoveMode, los};
 
 pub struct Ai {
     id: PlayerId,
