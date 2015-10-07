@@ -12,7 +12,7 @@ use misc::{add_quad_to_vec};
 use texture::{Texture};
 use types::{VertexCoord, TextureCoord, ScreenPos};
 use mesh::{Mesh};
-use zgl::{Zgl};
+use ::{Zgl};
 
 #[derive(Clone)]
 pub struct Glyph {

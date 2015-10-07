@@ -33,8 +33,7 @@ use zgl::types::{
     Time,
     WorldPos,
 };
-use zgl::zgl;
-use zgl::zgl::{Zgl, MeshRenderMode};
+use zgl::{self, Zgl, MeshRenderMode};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
 use zgl::shader::{Shader};

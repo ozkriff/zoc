@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt};
-use zgl::{Zgl, Vbo, MeshRenderMode};
 use types::{VertexCoord, TextureCoord, Color3};
 use shader::{Shader};
 use texture::{Texture};
+use ::{Zgl, Vbo, MeshRenderMode};
 
 #[derive(Clone)]
 pub struct MeshId{pub id: ZInt}

@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, VecDeque};
 use common::types::{ZInt, ZFloat, MapPos};
-use zgl::zgl::{Zgl};
+use zgl::{Zgl};
 use zgl::mesh::{Mesh};
 use zgl::camera::Camera;
 use zgl::shader::{Shader};

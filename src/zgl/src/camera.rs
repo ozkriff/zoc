@@ -5,8 +5,8 @@ use num::{Float};
 use cgmath::{perspective, rad, Matrix4, Vector, Vector3, Rad};
 use common::types::{Size2, ZFloat};
 use common::misc::{clamp};
-use zgl::{Zgl};
 use types::{WorldPos};
+use ::{Zgl};
 
 pub struct Camera {
     x_angle: Rad<ZFloat>,

@@ -8,7 +8,7 @@ use zgl::misc::{add_quad_to_vec};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;
 use zgl::types::{TextureCoord, WorldPos};
-use zgl::zgl::{Zgl};
+use zgl::{Zgl};
 use geom;
 use scene::{
     Scene,

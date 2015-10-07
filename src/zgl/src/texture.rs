@@ -10,8 +10,8 @@ use gl::types::{GLint, GLuint, GLsizei};
 use cgmath::{Vector2};
 use shader::{Shader};
 use common::types::{Size2, ZInt};
-use zgl::{Zgl};
 use common::{fs};
+use ::{Zgl};
 
 #[derive(Clone)]
 pub struct Texture {

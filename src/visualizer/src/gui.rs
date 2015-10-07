@@ -7,7 +7,7 @@ use zgl::types::{ScreenPos, MatId};
 use zgl::shader::{Shader};
 use zgl::font_stash::{FontStash};
 use zgl::mesh::{Mesh};
-use zgl::zgl::{Zgl};
+use zgl::{Zgl};
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct ButtonId {pub id: ZInt}
