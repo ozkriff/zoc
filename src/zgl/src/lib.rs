@@ -64,7 +64,7 @@ impl MeshRenderMode {
 }
 
 pub struct Zgl {
-    pub gl: Gl, // TODO: make private
+    gl: Gl,
 }
 
 impl Zgl {
