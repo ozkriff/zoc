@@ -47,7 +47,7 @@ Then just: `make android_run` (rust-nightly is required).
 
 ![android-img][]
 
-(Tested on nexus7 2014/android 5 and fly iq440/android 4.)
+(Tested on nexus7/android5)
 
 
 ## Contribute
