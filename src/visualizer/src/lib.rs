@@ -316,6 +316,13 @@ enum PickResult {
     None,
 }
 
+pub struct MouseState {
+    pub is_left_button_pressed: bool,
+    pub is_right_button_pressed: bool,
+    pub last_press_pos: ScreenPos,
+    pub pos: ScreenPos,
+}
+
 pub struct Visualizer {
     zgl: Zgl,
     window: Window,
@@ -323,11 +330,8 @@ pub struct Visualizer {
     shader: Shader,
     basic_color_id: ColorId,
     camera: Camera,
-    mouse_pos: ScreenPos,
-    is_lmb_pressed: bool,
-    is_rmb_pressed: bool,
+    mouse: MouseState,
     win_size: Size2,
-    last_press_pos: ScreenPos,
     font_stash: FontStash,
     map_text_manager: MapTextManager,
     button_manager: ButtonManager,
@@ -427,11 +431,7 @@ impl Visualizer {
             shader: shader,
             basic_color_id: basic_color_id,
             camera: camera,
-            mouse_pos: ScreenPos{v: Vector::from_value(0)},
-            is_lmb_pressed: false,
-            is_rmb_pressed: false,
             win_size: win_size,
-            last_press_pos: ScreenPos{v: Vector::from_value(0)},
             font_stash: font_stash,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
@@ -451,6 +451,12 @@ impl Visualizer {
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
             pick_result: PickResult::None,
+            mouse: MouseState {
+                pos: ScreenPos{v: Vector::from_value(0)},
+                is_left_button_pressed: false,
+                is_right_button_pressed: false,
+                last_press_pos: ScreenPos{v: Vector::from_value(0)},
+            },
         };
         visualizer.add_map_objects();
         visualizer
@@ -461,8 +467,8 @@ impl Visualizer {
             .expect("Can`t invert camera matrix");
         let w = self.win_size.w as ZFloat;
         let h = self.win_size.h as ZFloat;
-        let x = self.mouse_pos.v.x as ZFloat;
-        let y = self.mouse_pos.v.y as ZFloat;
+        let x = self.mouse.pos.v.x as ZFloat;
+        let y = self.mouse.pos.v.y as ZFloat;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
         let p0_raw = im.mul_v(&Vector4{x: x, y: y, z: 0.0, w: 1.0});
@@ -765,7 +771,7 @@ impl Visualizer {
     }
 
     fn handle_camera_move(&mut self, pos: &ScreenPos) {
-        let diff = pos.v - self.mouse_pos.v;
+        let diff = pos.v - self.mouse.pos.v;
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
         let per_x_pixel = camera_move_speed / (self.win_size.w as ZFloat);
         let per_y_pixel = camera_move_speed / (self.win_size.h as ZFloat);
@@ -776,7 +782,7 @@ impl Visualizer {
     }
 
     fn handle_camera_rotate(&mut self, pos: &ScreenPos) {
-        let diff = pos.v - self.mouse_pos.v;
+        let diff = pos.v - self.mouse.pos.v;
         let per_x_pixel = PI / (self.win_size.w as ZFloat);
         // TODO: get max angles from camera
         let per_y_pixel = (PI / 4.0) / (self.win_size.h as ZFloat);
@@ -788,21 +794,21 @@ impl Visualizer {
 
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
         self.handle_event_mouse_move_platform(pos);
-        self.mouse_pos = pos.clone();
+        self.mouse.pos = pos.clone();
     }
 
     #[cfg(not(target_os = "android"))]
     fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
-        if self.is_lmb_pressed {
+        if self.mouse.is_left_button_pressed {
             self.handle_camera_move(pos);
-        } else if self.is_rmb_pressed {
+        } else if self.mouse.is_right_button_pressed {
             self.handle_camera_rotate(pos);
         }
     }
 
     #[cfg(target_os = "android")]
     fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
-        if !self.is_lmb_pressed {
+        if !self.mouse.is_left_button_pressed {
             return;
         }
         if self.must_rotate_camera() {
@@ -815,15 +821,15 @@ impl Visualizer {
     #[cfg(target_os = "android")]
     fn must_rotate_camera(&self) -> bool {
         if self.win_size.w > self.win_size.h {
-            self.last_press_pos.v.x > self.win_size.w / 2
+            self.mouse.last_press_pos.v.x > self.win_size.w / 2
         } else {
-            self.last_press_pos.v.y < self.win_size.h / 2
+            self.mouse.last_press_pos.v.y < self.win_size.h / 2
         }
     }
 
     fn handle_event_lmb_press(&mut self) {
-        self.is_lmb_pressed = true;
-        self.last_press_pos = self.mouse_pos.clone();
+        self.mouse.is_left_button_pressed = true;
+        self.mouse.last_press_pos = self.mouse.pos.clone();
     }
 
     fn print_unit_info(&self, unit_id: &UnitId) {
@@ -938,11 +944,11 @@ impl Visualizer {
     }
 
     fn handle_event_lmb_release(&mut self) {
-        self.is_lmb_pressed = false;
+        self.mouse.is_left_button_pressed = false;
         if self.event_visualizer.is_some() {
             return;
         }
-        if !self.is_tap(&self.mouse_pos) {
+        if !self.is_tap(&self.mouse.pos) {
             return;
         }
         self.pick_tile();
@@ -980,13 +986,13 @@ impl Visualizer {
 
     fn get_clicked_button_id(&self) -> Option<ButtonId> {
         self.button_manager.get_clicked_button_id(
-            &self.mouse_pos, &self.win_size)
+            &self.mouse.pos, &self.win_size)
     }
 
     /// Check if this was a tap or swipe
     fn is_tap(&self, pos: &ScreenPos) -> bool {
-        let x = pos.v.x - self.last_press_pos.v.x;
-        let y = pos.v.y - self.last_press_pos.v.y;
+        let x = pos.v.x - self.mouse.last_press_pos.v.x;
+        let y = pos.v.y - self.mouse.last_press_pos.v.y;
         let tolerance = 20;
         x.abs() < tolerance && y.abs() < tolerance
     }
@@ -1012,10 +1018,10 @@ impl Visualizer {
                 self.handle_event_lmb_release();
             },
             Event::MouseInput(Pressed, MouseButton::Right) => {
-                self.is_rmb_pressed = true;
+                self.mouse.is_right_button_pressed = true;
             },
             Event::MouseInput(Released, MouseButton::Right) => {
-                self.is_rmb_pressed = false;
+                self.mouse.is_right_button_pressed = false;
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
