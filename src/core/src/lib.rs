@@ -501,7 +501,7 @@ impl Core {
         for i in 1 .. len {
             let pos = &path.nodes()[i].pos;
             if self.reaction_fire_check(unit_id, pos) {
-                let mut new_nodes = path.nodes().clone();
+                let mut new_nodes = path.nodes().to_vec();
                 new_nodes.truncate(i + 1);
                 self.do_core_event(&CoreEvent::Move {
                     unit_id: unit_id.clone(),

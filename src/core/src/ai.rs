@@ -72,7 +72,7 @@ impl Ai {
         for i in 1 .. len {
             let cost = &path.nodes()[i].cost;
             if cost.n > move_points {
-                let mut new_nodes = path.nodes().clone();
+                let mut new_nodes = path.nodes().to_vec();
                 new_nodes.truncate(i);
                 return MapPath::new(new_nodes);
             }

@@ -52,7 +52,7 @@ impl Texture {
         zgl: &Zgl,
         pos: Vector2<ZInt>,
         size: Size2,
-        data: &Vec<u8>
+        data: &[u8]
     ) {
         let bytes_per_pixel = 4;
         let expected_data_length = size.w * size.h * bytes_per_pixel;

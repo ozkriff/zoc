@@ -37,7 +37,7 @@ impl MapPath {
             .pos
     }
 
-    pub fn nodes(&self) -> &Vec<PathNode> {
+    pub fn nodes(&self) -> &[PathNode] {
         &self.nodes
     }
 

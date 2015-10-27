@@ -3,7 +3,7 @@
 use common::types::{ZInt};
 use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 
-fn weapon_type_id(weapon_types: &Vec<WeaponType>, name: &str)
+fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
     -> WeaponTypeId
 {
     for (id, weapon_type) in weapon_types.iter().enumerate() {
@@ -37,7 +37,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
 }
 
 // TODO: read from json/toml config
-fn get_unit_types(weapon_types: &Vec<WeaponType>) -> Vec<UnitType> {
+fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
     let cannon_id = weapon_type_id(weapon_types, "cannon");
     let rifle_id = weapon_type_id(weapon_types, "rifle");
     vec![
