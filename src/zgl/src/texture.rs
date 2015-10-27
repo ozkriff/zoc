@@ -85,7 +85,7 @@ fn load_image(path: &Path) -> image::DynamicImage {
 fn get_empty_texture(zgl: &Zgl, size: Size2) -> Texture {
     let s = size.w;
     assert_eq!(size.w, size.h);
-    let data: Vec<_> = repeat(0u8).take((s * s) as usize * 4 ).collect();
+    let data: Vec<_> = repeat(0).take((s * s) as usize * 4 ).collect();
     let mut id = 0;
     unsafe {
         zgl.gl.GenTextures(1, &mut id);

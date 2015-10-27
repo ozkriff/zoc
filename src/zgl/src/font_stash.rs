@@ -129,7 +129,7 @@ impl FontStash {
         size: Size2,
         bitmap: Vec<u8>
     ) {
-        let mut data: Vec<_> = repeat(0u8)
+        let mut data: Vec<_> = repeat(0)
             .take((size.w * size.h) as usize * 4).collect();
         for y in 0 .. size.h {
             for x in 0 .. size.w {

@@ -78,7 +78,7 @@ pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
     let mut tex_data = Vec::new();
     let scale_1 = 0.6;
     let scale_2 = scale_1 + 0.05;
-    for num in 0i32 .. 6 {
+    for num in 0 .. 6 {
         let vertex_1_1 = geom::index_to_hex_vertex_s(scale_1, num);
         let vertex_1_2 = geom::index_to_hex_vertex_s(scale_2, num);
         let vertex_2_1 = geom::index_to_hex_vertex_s(scale_1, num + 1);

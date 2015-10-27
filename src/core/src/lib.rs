@@ -311,7 +311,7 @@ impl Core {
 
     fn hit_test(&self, attacker: &Unit, defender: &Unit) -> bool {
         fn test(needed: ZInt) -> bool {
-            let real = thread_rng().gen_range(-5i32, 5i32);
+            let real = thread_rng().gen_range(-5, 5);
             let result = real < needed;
             // println!("real:{} < needed:{} = {}", real, needed, result);
             result
