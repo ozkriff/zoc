@@ -33,7 +33,7 @@ pub struct FontStash {
 }
 
 impl FontStash {
-    pub fn new(zgl: &Zgl, font_path: &Path, size: ZFloat) -> FontStash {
+    pub fn new<P: AsRef<Path>>(zgl: &Zgl, font_path: P, size: ZFloat) -> FontStash {
         let texture_size = 1024;
         let font = Font::from_reader(&mut fs::load(font_path), size);
         let texture = Texture::new_empty(

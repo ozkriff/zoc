@@ -1,6 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-use std::path::{Path};
 use cgmath::{Vector2, rad};
 use common::types::{UnitId};
 use core::game_state::GameState;
@@ -73,7 +72,7 @@ impl SelectionManager {
 }
 
 pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
-    let tex = Texture::new(zgl, &Path::new("shell.png"));
+    let tex = Texture::new(zgl, "shell.png");
     let mut vertex_data = Vec::new();
     let mut tex_data = Vec::new();
     let scale_1 = 0.6;

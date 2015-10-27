@@ -19,7 +19,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(zgl: &Zgl, path: &Path) -> Texture {
+    pub fn new<P: AsRef<Path>>(zgl: &Zgl, path: P) -> Texture {
         load_texture(zgl, path)
     }
 
@@ -76,7 +76,7 @@ impl Texture {
     }
 }
 
-fn load_image(path: &Path) -> image::DynamicImage {
+fn load_image<P: AsRef<Path>>(path: P) -> image::DynamicImage {
     let buf = fs::load(path);
     image::load(buf, image::ImageFormat::PNG)
         .ok().expect("Can`t open img")
@@ -129,7 +129,7 @@ fn get_empty_texture(zgl: &Zgl, size: Size2) -> Texture {
     Texture{id: id}
 }
 
-fn load_texture(zgl: &Zgl, path: &Path) -> Texture {
+fn load_texture<P: AsRef<Path>>(zgl: &Zgl, path: P) -> Texture {
     let img = load_image(path);
     let mut id = 0;
     unsafe {

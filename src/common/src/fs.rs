@@ -4,10 +4,9 @@ use std::path::{Path};
 use std::io::{Cursor};
 
 #[cfg(not(target_os = "android"))]
-pub fn load(path: &Path) -> Cursor<Vec<u8>> {
+pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
     use std::fs::{File};
     use std::io::{Read};
-    use std::path::{Path};
 
     let mut buf = Vec::new();
     let mut file = File::open(&Path::new("assets").join(&path))
@@ -17,7 +16,7 @@ pub fn load(path: &Path) -> Cursor<Vec<u8>> {
 }
 
 #[cfg(target_os = "android")]
-pub fn load(path: &Path) -> Cursor<Vec<u8>> {
+pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
     use android_glue;
 
     let filename = path.to_str()

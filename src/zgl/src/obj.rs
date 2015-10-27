@@ -32,7 +32,7 @@ fn parse_charsplit<T: FromStr>(words: &mut Split<char>) -> T {
 }
 
 impl Model {
-    pub fn new(path: &Path) -> Model {
+    pub fn new<P: AsRef<Path>>(path: P) -> Model {
         let mut obj = Model {
             coords: Vec::new(),
             normals: Vec::new(),
@@ -104,7 +104,7 @@ impl Model {
         };
     }
 
-    fn read(&mut self, path: &Path) {
+    fn read<P: AsRef<Path>>(&mut self, path: P) {
         for line in fs::load(path).lines() {
             match line {
                 Ok(line) => self.read_line(&line),

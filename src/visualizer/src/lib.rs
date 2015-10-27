@@ -190,7 +190,7 @@ fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, map: &Map<Terrain>, move_poin
     mesh
 }
 
-fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
+fn get_marker<P: AsRef<Path>>(zgl: &Zgl, tex_path: P) -> Mesh {
     let n = 0.2;
     let vertex_data = vec!(
         VertexCoord{v: Vector3{x: -n, y: 0.0, z: 0.1}},
@@ -209,8 +209,8 @@ fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
 }
 
 fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
-    let tex = Texture::new(zgl, &Path::new(&format!("{}.png", name)));
-    let obj = obj::Model::new(&Path::new(&format!("{}.obj", name)));
+    let tex = Texture::new(zgl, &format!("{}.png", name));
+    let obj = obj::Model::new(&format!("{}.obj", name));
     let mut mesh = Mesh::new(zgl, &obj.build());
     mesh.add_texture(zgl, tex, &obj.build_tex_coord());
     mesh
@@ -381,7 +381,7 @@ impl Visualizer {
         camera.set_pos(get_initial_camera_pos(&map_size));
         let player_info = PlayerInfoManager::new(&map_size);
 
-        let floor_tex = Texture::new(&zgl, &Path::new("floor.png")); // TODO: !!!
+        let floor_tex = Texture::new(&zgl, "floor.png"); // TODO: !!!
 
         let mut meshes = Vec::new();
 
@@ -395,18 +395,18 @@ impl Visualizer {
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&zgl));
         let shell_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("shell.png")));
+            &mut meshes, get_marker(&zgl, "shell.png"));
         let marker_1_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("flag1.png")));
+            &mut meshes, get_marker(&zgl, "flag1.png"));
         let marker_2_mesh_id = add_mesh(
-            &mut meshes, get_marker(&zgl, &Path::new("flag2.png")));
+            &mut meshes, get_marker(&zgl, "flag2.png"));
 
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), &zgl, &mut meshes);
 
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
-            &zgl, &Path::new("DroidSerif-Regular.ttf"), font_size);
+            &zgl, "DroidSerif-Regular.ttf", font_size);
         let mut button_manager = ButtonManager::new();
         let button_end_turn_id = button_manager.add_button(Button::new(
             &zgl,
