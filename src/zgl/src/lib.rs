@@ -72,10 +72,13 @@ impl Zgl {
         where F: Fn(&str) -> *const c_void
     {
         let gl = Gl::load_with(|s| get_proc_address(s));
-        Zgl{gl: gl}
+        let zgl = Zgl{gl: gl};
+        zgl.init_opengl();
+        zgl.print_gl_info();
+        zgl
     }
 
-    pub fn init_opengl(&self) {
+    fn init_opengl(&self) {
         self.set_depth_test(true);
         unsafe {
             self.gl.Enable(gl::BLEND);
@@ -87,7 +90,7 @@ impl Zgl {
         self.check();
     }
 
-    pub fn print_gl_info(&self) {
+    fn print_gl_info(&self) {
         println!("GL_VERSION: {}", self.get_info(gl::VERSION));
         println!("GL_SHADING_LANGUAGE_VERSION: {}", self.get_info(gl::SHADING_LANGUAGE_VERSION));
         println!("GL_VENDOR: {}", self.get_info(gl::VENDOR));

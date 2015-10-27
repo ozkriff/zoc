@@ -367,8 +367,6 @@ impl Visualizer {
         };
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
-        zgl.init_opengl();
-        zgl.print_gl_info();
         let mut shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         shader.enable_texture_coords(&zgl);
         shader.activate(&zgl);
