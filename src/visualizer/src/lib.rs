@@ -367,8 +367,7 @@ impl Visualizer {
         };
         let win_size = get_win_size(&window);
         let mut zgl = Zgl::new(|s| window.get_proc_address(s));
-        let mut shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        shader.enable_texture_coords(&zgl);
+        let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         shader.activate(&zgl);
         let basic_color_id = shader.get_uniform_color(
             &zgl, "basic_color");
