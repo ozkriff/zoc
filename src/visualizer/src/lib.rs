@@ -21,7 +21,7 @@ mod geom;
 use std::f32::consts::{PI};
 use num::{Float};
 use rand::{thread_rng, Rng};
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use time::precise_time_ns;
 use std::collections::{HashMap};
 use cgmath::{
@@ -209,10 +209,8 @@ fn get_marker(zgl: &Zgl, tex_path: &Path) -> Mesh {
 }
 
 fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
-    let tex_path = PathBuf::from(format!("{}.png", name));
-    let obj_path = PathBuf::from(format!("{}.obj", name));
-    let tex = Texture::new(zgl, &tex_path);
-    let obj = obj::Model::new(&obj_path);
+    let tex = Texture::new(zgl, &Path::new(&format!("{}.png", name)));
+    let obj = obj::Model::new(&Path::new(&format!("{}.obj", name)));
     let mut mesh = Mesh::new(zgl, &obj.build());
     mesh.add_texture(zgl, tex, &obj.build_tex_coord());
     mesh
