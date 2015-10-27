@@ -1,5 +1,5 @@
 CARGO_FLAGS += -j 1
-# CARGO_FLAGS += --release
+CARGO_FLAGS += --release
 # CARGO_FLAGS += --verbose
 
 zoc:
