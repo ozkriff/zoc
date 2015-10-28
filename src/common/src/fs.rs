@@ -19,7 +19,7 @@ pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
 pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
     use android_glue;
 
-    let filename = path.to_str()
+    let filename = path.as_ref().to_str()
         .expect("Can`t convert Path to &str");
     let buf = android_glue::load_asset(filename)
         .ok().expect("Can`t load asset");

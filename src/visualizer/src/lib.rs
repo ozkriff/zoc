@@ -751,7 +751,7 @@ impl Visualizer {
 
     #[cfg(target_os = "android")]
     fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
-        if !self.mouse().is_left_button_pressed {
+        if !self.context.mouse().is_left_button_pressed {
             return;
         }
         if self.must_rotate_camera() {
@@ -763,10 +763,10 @@ impl Visualizer {
 
     #[cfg(target_os = "android")]
     fn must_rotate_camera(&self) -> bool {
-        if self.win_size.w > self.win_size.h {
-            self.context.mouse().last_press_pos.v.x > self.win_size.w / 2
+        if self.context.win_size.w > self.context.win_size.h {
+            self.context.mouse().last_press_pos.v.x > self.context.win_size.w / 2
         } else {
-            self.context.mouse().last_press_pos.v.y < self.win_size.h / 2
+            self.context.mouse().last_press_pos.v.y < self.context.win_size.h / 2
         }
     }
 
