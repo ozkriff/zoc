@@ -5,11 +5,11 @@ use common::types::{ZInt, ZFloat, MapPos};
 use zgl::{Zgl};
 use zgl::mesh::{Mesh};
 use zgl::camera::Camera;
-use zgl::shader::{Shader};
 use zgl::font_stash::{FontStash};
 use zgl::types::{Time};
 use geom;
 use move_helper::{MoveHelper};
+use context::{Context};
 
 struct ShowTextCommand {
     pos: MapPos,
@@ -94,26 +94,25 @@ impl MapTextManager {
 
     pub fn draw(
         &mut self,
-        zgl: &Zgl,
+        context: &mut Context,
         camera: &Camera,
-        shader: &Shader,
         dtime: &Time,
-        font_stash: &mut FontStash,
     ) {
-        self.do_commands(zgl, font_stash);
+        self.do_commands(&context.zgl, &mut context.font_stash);
         // TODO: I'm not sure that disabling depth test is correct solution
-        zgl.set_depth_test(false);
+        context.zgl.set_depth_test(false);
         for (_, map_text) in self.visible_labels_list.iter_mut() {
             let pos = map_text.move_helper.step(dtime);
-            let m = camera.mat(zgl);
-            let m = zgl.tr(m, &pos.v);
-            let m = zgl.scale(m, self.scale);
-            let m = zgl.rot_z(m, camera.get_z_angle());
-            let m = zgl.rot_x(m, camera.get_x_angle());
-            shader.set_uniform_mat4f(zgl, shader.get_mvp_mat(), &m);
-            map_text.mesh.draw(zgl, shader);
+            let m = camera.mat(&context.zgl);
+            let m = context.zgl.tr(m, &pos.v);
+            let m = context.zgl.scale(m, self.scale);
+            let m = context.zgl.rot_z(m, camera.get_z_angle());
+            let m = context.zgl.rot_x(m, camera.get_x_angle());
+            context.shader.set_uniform_mat4f(
+                &context.zgl, context.shader.get_mvp_mat(), &m);
+            map_text.mesh.draw(&context.zgl, &context.shader);
         }
-        zgl.set_depth_test(true);
+        context.zgl.set_depth_test(true);
         self.delete_old();
     }
 }

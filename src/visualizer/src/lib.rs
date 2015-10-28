@@ -17,6 +17,7 @@ mod selection;
 mod map_text;
 mod move_helper;
 mod geom;
+mod context;
 
 use std::f32::consts::{PI};
 use num::{Float};
@@ -39,11 +40,10 @@ use cgmath::{
     Intersect,
 };
 use glutin::{Window, WindowBuilder, VirtualKeyCode, Event, MouseButton};
-use glutin::ElementState::{Pressed, Released};
+use glutin::ElementState::{Released};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos, ZFloat};
 use zgl::types::{
     Color3,
-    ColorId,
     ScreenPos,
     VertexCoord,
     TextureCoord,
@@ -53,7 +53,6 @@ use zgl::types::{
 use zgl::{Zgl, MeshRenderMode};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
-use zgl::shader::{Shader};
 use core::map::{Map, distance, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
@@ -92,38 +91,9 @@ use unit_type_visual_info::{
 };
 use selection::{SelectionManager, get_selection_mesh};
 use map_text::{MapTextManager};
+use context::{Context};
 
 const BG_COLOR: Color3 = Color3{r: 0.8, g: 0.8, b: 0.8};
-
-static VS_SRC: &'static str = "\
-    #version 100\n\
-    uniform mat4 mvp_mat;\n\
-    attribute vec3 position;\n\
-    attribute vec2 in_texture_coordinates;\n\
-    varying vec2 texture_coordinates;\n\
-    void main() {\n\
-        gl_Position = mvp_mat * vec4(position, 1.0);\n\
-        gl_PointSize = 2.0;\n\
-        texture_coordinates = in_texture_coordinates;\n\
-    }\n\
-";
-
-static FS_SRC: &'static str = "\
-    #version 100\n\
-    precision mediump float;\n\
-    uniform sampler2D basic_texture;\n\
-    uniform vec4 basic_color;
-    varying vec2 texture_coordinates;\n\
-    void main() {\n\
-        gl_FragColor = basic_color\n\
-            * texture2D(basic_texture, texture_coordinates);\n\
-    }\n\
-";
-
-fn get_win_size(window: &Window) -> Size2 {
-    let (w, h) = window.get_inner_size().expect("Can`t get window size");
-    Size2{w: w as ZInt, h: h as ZInt}
-}
 
 fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -307,6 +277,24 @@ impl PlayerInfoManager {
     }
 }
 
+fn make_window() -> glutin::Window {
+    let gl_version = glutin::GlRequest::GlThenGles {
+        opengles_version: (2, 0),
+        opengl_version: (2, 0)
+    };
+    let window_builder = WindowBuilder::new()
+        .with_title("Zone of Control".to_owned())
+        .with_pixel_format(24, 8)
+        .with_gl(gl_version);
+    let window = window_builder.build()
+        .ok().expect("Can`t create window");
+    unsafe {
+        window.make_current()
+            .ok().expect("Can`t make window current");
+    };
+    window
+}
+
 #[derive(Clone)]
 enum PickResult {
     Pos(MapPos),
@@ -314,23 +302,10 @@ enum PickResult {
     None,
 }
 
-pub struct MouseState {
-    pub is_left_button_pressed: bool,
-    pub is_right_button_pressed: bool,
-    pub last_press_pos: ScreenPos,
-    pub pos: ScreenPos,
-}
-
 pub struct Visualizer {
-    zgl: Zgl,
-    window: Window,
     should_close: bool,
-    shader: Shader,
-    basic_color_id: ColorId,
+    context: Context,
     camera: Camera,
-    mouse: MouseState,
-    win_size: Size2,
-    font_stash: FontStash,
     map_text_manager: MapTextManager,
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
@@ -354,31 +329,10 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let gl_version = glutin::GlRequest::GlThenGles {
-            opengles_version: (2, 0),
-            opengl_version: (2, 0)
-        };
-        let window_builder = WindowBuilder::new()
-            .with_title(format!("Zone of Control"))
-            .with_pixel_format(24, 8)
-            .with_gl(gl_version);
-        let window = window_builder.build().ok().expect("Can`t create window");
-        unsafe {
-            window.make_current()
-                .ok().expect("Can`t make window current");
-        };
-        let win_size = get_win_size(&window);
-        let mut zgl = Zgl::new(|s| window.get_proc_address(s));
-        let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        shader.activate(&zgl);
-        let basic_color_id = shader.get_uniform_color(
-            &zgl, "basic_color");
-        zgl.set_clear_color(&BG_COLOR);
-        let mut camera = Camera::new(&win_size);
+        let window = make_window();
+        let zgl = Zgl::new(|s| window.get_proc_address(s));
         let core = Core::new();
         let map_size = core.map_size().clone();
-        camera.set_max_pos(get_max_camera_pos(&map_size));
-        camera.set_pos(get_initial_camera_pos(&map_size));
         let player_info = PlayerInfoManager::new(&map_size);
 
         let floor_tex = Texture::new(&zgl, "floor.png"); // TODO: !!!
@@ -404,15 +358,18 @@ impl Visualizer {
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), &zgl, &mut meshes);
 
+        let mut context = Context::new(zgl, window);
+        let mut camera = Camera::new(&context.win_size);
+        camera.set_max_pos(get_max_camera_pos(&map_size));
+        camera.set_pos(get_initial_camera_pos(&map_size));
+
         let font_size = 40.0;
         let mut font_stash = FontStash::new(
-            &zgl, "DroidSerif-Regular.ttf", font_size);
+            &context.zgl, "DroidSerif-Regular.ttf", font_size);
         let mut button_manager = ButtonManager::new();
         let button_end_turn_id = button_manager.add_button(Button::new(
-            &zgl,
-            &win_size,
+            &mut context,
             "end turn",
-            &mut font_stash,
             ScreenPos{v: Vector2{x: 10, y: 10}})
         );
         let mesh_ids = MeshIdManager {
@@ -423,14 +380,8 @@ impl Visualizer {
         };
         let map_text_manager = MapTextManager::new(&mut font_stash);
         let mut visualizer = Visualizer {
-            zgl: zgl,
-            window: window,
-            should_close: false,
-            shader: shader,
-            basic_color_id: basic_color_id,
+            context: context,
             camera: camera,
-            win_size: win_size,
-            font_stash: font_stash,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
             last_time: Time{n: precise_time_ns()},
@@ -449,24 +400,19 @@ impl Visualizer {
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
             pick_result: PickResult::None,
-            mouse: MouseState {
-                pos: ScreenPos{v: Vector::from_value(0)},
-                is_left_button_pressed: false,
-                is_right_button_pressed: false,
-                last_press_pos: ScreenPos{v: Vector::from_value(0)},
-            },
+            should_close: false,
         };
         visualizer.add_map_objects();
         visualizer
     }
 
     fn pick_world_pos(&self) -> WorldPos {
-        let im = self.camera.mat(&self.zgl).invert()
+        let im = self.camera.mat(&self.context.zgl).invert()
             .expect("Can`t invert camera matrix");
-        let w = self.win_size.w as ZFloat;
-        let h = self.win_size.h as ZFloat;
-        let x = self.mouse.pos.v.x as ZFloat;
-        let y = self.mouse.pos.v.y as ZFloat;
+        let w = self.context.win_size.w as ZFloat;
+        let h = self.context.win_size.h as ZFloat;
+        let x = self.context.mouse().pos.v.x as ZFloat;
+        let y = self.context.mouse().pos.v.y as ZFloat;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
         let p0_raw = im.mul_v(&Vector4{x: x, y: y, z: 0.0, w: 1.0});
@@ -514,7 +460,7 @@ impl Visualizer {
     }
 
     pub fn is_running(&self) -> bool {
-        !self.should_close
+        !self.context.should_close() && !self.should_close
     }
 
     fn end_turn(&mut self) {
@@ -728,7 +674,7 @@ impl Visualizer {
             let pf = &mut i.pathfinder;
             pf.fill_map(self.core.db(), state, &state.units()[unit_id]);
             self.walkable_mesh = Some(build_walkable_mesh(
-                &self.zgl, pf, state.map(), state.units()[unit_id].move_points));
+                &self.context.zgl, pf, state.map(), state.units()[unit_id].move_points));
             let scene = &mut i.scene;
             self.selection_manager.create_selection_marker(
                 state, scene, unit_id);
@@ -769,10 +715,10 @@ impl Visualizer {
     }
 
     fn handle_camera_move(&mut self, pos: &ScreenPos) {
-        let diff = pos.v - self.mouse.pos.v;
+        let diff = pos.v - self.context.mouse().pos.v;
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
-        let per_x_pixel = camera_move_speed / (self.win_size.w as ZFloat);
-        let per_y_pixel = camera_move_speed / (self.win_size.h as ZFloat);
+        let per_x_pixel = camera_move_speed / (self.context.win_size.w as ZFloat);
+        let per_y_pixel = camera_move_speed / (self.context.win_size.h as ZFloat);
         self.camera.move_camera(
             rad(PI), diff.x as ZFloat * per_x_pixel);
         self.camera.move_camera(
@@ -780,10 +726,10 @@ impl Visualizer {
     }
 
     fn handle_camera_rotate(&mut self, pos: &ScreenPos) {
-        let diff = pos.v - self.mouse.pos.v;
-        let per_x_pixel = PI / (self.win_size.w as ZFloat);
+        let diff = pos.v - self.context.mouse().pos.v;
+        let per_x_pixel = PI / (self.context.win_size.w as ZFloat);
         // TODO: get max angles from camera
-        let per_y_pixel = (PI / 4.0) / (self.win_size.h as ZFloat);
+        let per_y_pixel = (PI / 4.0) / (self.context.win_size.h as ZFloat);
         self.camera.add_horizontal_angle(
             rad(diff.x as ZFloat * per_x_pixel));
         self.camera.add_vertical_angle(
@@ -792,21 +738,20 @@ impl Visualizer {
 
     fn handle_event_mouse_move(&mut self, pos: &ScreenPos) {
         self.handle_event_mouse_move_platform(pos);
-        self.mouse.pos = pos.clone();
     }
 
     #[cfg(not(target_os = "android"))]
     fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
-        if self.mouse.is_left_button_pressed {
+        if self.context.mouse().is_left_button_pressed {
             self.handle_camera_move(pos);
-        } else if self.mouse.is_right_button_pressed {
+        } else if self.context.mouse().is_right_button_pressed {
             self.handle_camera_rotate(pos);
         }
     }
 
     #[cfg(target_os = "android")]
     fn handle_event_mouse_move_platform(&mut self, pos: &ScreenPos) {
-        if !self.mouse.is_left_button_pressed {
+        if !self.mouse().is_left_button_pressed {
             return;
         }
         if self.must_rotate_camera() {
@@ -819,15 +764,10 @@ impl Visualizer {
     #[cfg(target_os = "android")]
     fn must_rotate_camera(&self) -> bool {
         if self.win_size.w > self.win_size.h {
-            self.mouse.last_press_pos.v.x > self.win_size.w / 2
+            self.context.mouse().last_press_pos.v.x > self.win_size.w / 2
         } else {
-            self.mouse.last_press_pos.v.y < self.win_size.h / 2
+            self.context.mouse().last_press_pos.v.y < self.win_size.h / 2
         }
-    }
-
-    fn handle_event_lmb_press(&mut self) {
-        self.mouse.is_left_button_pressed = true;
-        self.mouse.last_press_pos = self.mouse.pos.clone();
     }
 
     fn print_unit_info(&self, unit_id: &UnitId) {
@@ -942,11 +882,11 @@ impl Visualizer {
     }
 
     fn handle_event_lmb_release(&mut self) {
-        self.mouse.is_left_button_pressed = false;
+        // self.mouse.is_left_button_pressed = false;
         if self.event_visualizer.is_some() {
             return;
         }
-        if !self.is_tap(&self.mouse.pos) {
+        if !self.is_tap(&self.context.mouse().pos) {
             return;
         }
         self.pick_tile();
@@ -983,43 +923,28 @@ impl Visualizer {
     }
 
     fn get_clicked_button_id(&self) -> Option<ButtonId> {
-        self.button_manager.get_clicked_button_id(
-            &self.mouse.pos, &self.win_size)
+        self.button_manager.get_clicked_button_id(&self.context)
     }
 
     /// Check if this was a tap or swipe
     fn is_tap(&self, pos: &ScreenPos) -> bool {
-        let x = pos.v.x - self.mouse.last_press_pos.v.x;
-        let y = pos.v.y - self.mouse.last_press_pos.v.y;
+        let x = pos.v.x - self.context.mouse().last_press_pos.v.x;
+        let y = pos.v.y - self.context.mouse().last_press_pos.v.y;
         let tolerance = 20;
         x.abs() < tolerance && y.abs() < tolerance
     }
 
     fn handle_event(&mut self, event: &Event) {
         match *event {
-            Event::Closed => {
-                self.should_close = true;
-            },
-            Event::Resized(w, h) => {
-                self.win_size = Size2{w: w as ZInt, h: h as ZInt};
-                self.camera.regenerate_projection_mat(&self.win_size);
-                self.zgl.set_viewport(&self.win_size);
+            Event::Resized(..) => {
+                self.camera.regenerate_projection_mat(&self.context.win_size);
             },
             Event::MouseMoved((x, y)) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 self.handle_event_mouse_move(&pos);
             },
-            Event::MouseInput(Pressed, MouseButton::Left) => {
-                self.handle_event_lmb_press();
-            },
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release();
-            },
-            Event::MouseInput(Pressed, MouseButton::Right) => {
-                self.mouse.is_right_button_pressed = true;
-            },
-            Event::MouseInput(Released, MouseButton::Right) => {
-                self.mouse.is_right_button_pressed = false;
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(key);
@@ -1032,7 +957,6 @@ impl Visualizer {
                     },
                     glutin::TouchPhase::Started => {
                         self.handle_event_mouse_move(&pos);
-                        self.handle_event_lmb_press();
                     },
                     glutin::TouchPhase::Ended => {
                         self.handle_event_mouse_move(&pos);
@@ -1048,12 +972,14 @@ impl Visualizer {
     }
 
     fn handle_events(&mut self) {
-        let events = self.window.poll_events().collect::<Vec<_>>();
+        let events = self.context.window.poll_events().collect::<Vec<_>>();
         if events.is_empty() {
             return;
         }
         for event in events {
+            self.context.handle_event_pre(&event);
             self.handle_event(&event);
+            self.context.handle_event_post(&event);
         }
     }
 
@@ -1066,13 +992,13 @@ impl Visualizer {
         node: &SceneNode,
         m: Matrix4<ZFloat>,
     ) {
-        let m = self.zgl.tr(m, &node.pos.v);
-        let m = self.zgl.rot_z(m, &node.rot);
+        let m = self.context.zgl.tr(m, &node.pos.v);
+        let m = self.context.zgl.rot_z(m, &node.rot);
         if let Some(ref mesh_id) = node.mesh_id {
-            self.shader.set_uniform_mat4f(
-                &self.zgl, self.shader.get_mvp_mat(), &m);
+            self.context.shader.set_uniform_mat4f(
+                &self.context.zgl, self.context.shader.get_mvp_mat(), &m);
             let id = mesh_id.id as usize;
-            self.meshes[id].draw(&self.zgl, &self.shader);
+            self.meshes[id].draw(&self.context.zgl, &self.context.shader);
         }
         for node in &node.children {
             self.draw_scene_node(node, m);
@@ -1081,30 +1007,26 @@ impl Visualizer {
 
     fn draw_scene_nodes(&self) {
         for (_, node) in &self.scene().nodes {
-            self.draw_scene_node(node, self.camera.mat(&self.zgl));
+            self.draw_scene_node(node, self.camera.mat(&self.context.zgl));
         }
     }
 
     fn draw_map(&mut self) {
-        self.shader.set_uniform_mat4f(
-            &self.zgl, self.shader.get_mvp_mat(), &self.camera.mat(&self.zgl));
-        self.shader.set_uniform_color(
-            &self.zgl, &self.basic_color_id, &zgl::GREY);
-        self.fow_map_mesh.draw(&self.zgl, &self.shader);
-        self.shader.set_uniform_color(
-            &self.zgl, &self.basic_color_id, &zgl::WHITE);
-        self.visible_map_mesh.draw(&self.zgl, &self.shader);
+        self.context.shader.set_uniform_mat4f(
+            &self.context.zgl, self.context.shader.get_mvp_mat(), &self.camera.mat(&self.context.zgl));
+        self.context.set_basic_color(&zgl::GREY);
+        self.fow_map_mesh.draw(&self.context.zgl, &self.context.shader);
+        self.context.set_basic_color(&zgl::WHITE);
+        self.visible_map_mesh.draw(&self.context.zgl, &self.context.shader);
     }
 
     fn draw_scene(&mut self, dtime: &Time) {
-        self.shader.set_uniform_color(
-            &self.zgl, &self.basic_color_id, &zgl::WHITE);
+        self.context.set_basic_color(&zgl::WHITE);
         self.draw_scene_nodes();
         self.draw_map();
         if let Some(ref walkable_mesh) = self.walkable_mesh {
-            self.shader.set_uniform_color(
-                &self.zgl, &self.basic_color_id, &zgl::BLUE);
-            walkable_mesh.draw(&self.zgl, &self.shader);
+            self.context.set_basic_color(&zgl::BLUE);
+            walkable_mesh.draw(&self.context.zgl, &self.context.shader);
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let i = self.player_info.get_mut(self.core.player_id());
@@ -1113,26 +1035,19 @@ impl Visualizer {
     }
 
     fn draw(&mut self, dtime: &Time) {
-        self.zgl.set_clear_color(&BG_COLOR);
-        self.zgl.clear_screen();
-        self.shader.activate(&self.zgl);
-        self.shader.set_uniform_mat4f(
-            &self.zgl,
-            self.shader.get_mvp_mat(),
-            &self.camera.mat(&self.zgl),
+        self.context.zgl.set_clear_color(&BG_COLOR);
+        self.context.zgl.clear_screen();
+        self.context.shader.activate(&self.context.zgl);
+        self.context.shader.set_uniform_mat4f(
+            &self.context.zgl,
+            self.context.shader.get_mvp_mat(),
+            &self.camera.mat(&self.context.zgl),
         );
         self.draw_scene(dtime);
-        self.shader.set_uniform_color(
-            &self.zgl, &self.basic_color_id, &zgl::BLACK);
-        self.map_text_manager.draw(
-            &self.zgl, &self.camera, &self.shader, dtime, &mut self.font_stash);
-        self.button_manager.draw(
-            &self.zgl,
-            &self.win_size,
-            &self.shader,
-            self.shader.get_mvp_mat(),
-        );
-        self.window.swap_buffers()
+        self.context.set_basic_color(&zgl::BLACK);
+        self.map_text_manager.draw(&mut self.context, &self.camera, dtime);
+        self.button_manager.draw(&self.context);
+        self.context.window.swap_buffers()
             .ok().expect("Can`t swap buffers");
     }
 
@@ -1343,16 +1258,16 @@ impl Visualizer {
                 let pf = &mut i.pathfinder;
                 pf.fill_map(self.core.db(), state, unit);
                 self.walkable_mesh = Some(build_walkable_mesh(
-                    &self.zgl, pf, state.map(), unit.move_points));
+                    &self.context.zgl, pf, state.map(), unit.move_points));
                 self.selection_manager.create_selection_marker(
                     state, scene, selected_unit_id);
             }
         }
         // TODO: recolor terrain objects
         self.visible_map_mesh = generate_visible_tiles_mesh(
-            &self.zgl, state, &self.floor_tex);
+            &self.context.zgl, state, &self.floor_tex);
         self.fow_map_mesh = generate_fogged_tiles_mesh(
-            &self.zgl, state, &self.floor_tex);
+            &self.context.zgl, state, &self.floor_tex);
     }
 
     fn logic(&mut self) {

@@ -3,11 +3,11 @@
 use std::collections::{HashMap};
 use cgmath::{Vector3};
 use common::types::{ZInt, Size2, ZFloat};
-use zgl::types::{ScreenPos, MatId};
+use zgl::types::{ScreenPos};
 use zgl::shader::{Shader};
-use zgl::font_stash::{FontStash};
 use zgl::mesh::{Mesh};
 use zgl::{Zgl};
+use context::{Context};
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct ButtonId {pub id: ZInt}
@@ -19,22 +19,16 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(
-        zgl: &Zgl,
-        win_size: &Size2,
-        label: &str,
-        font_stash: &mut FontStash,
-        pos: ScreenPos,
-    ) -> Button {
-        let text_size = (win_size.h as ZFloat) / 400.0; // TODO: 400?
-        let (_, size) = font_stash.get_text_size(zgl, label);
+    pub fn new(context: &mut Context, label: &str, pos: ScreenPos) -> Button {
+        let text_size = (context.win_size.h as ZFloat) / 400.0; // TODO: 400?
+        let (_, size) = context.font_stash.get_text_size(&context.zgl, label);
         Button {
             pos: pos,
             size: Size2 {
                 w: (size.w as ZFloat * text_size) as ZInt,
                 h: (size.h as ZFloat * text_size) as ZInt,
             },
-            mesh: font_stash.get_mesh(zgl, label, text_size, false),
+            mesh: context.font_stash.get_mesh(&context.zgl, label, text_size, false),
         }
     }
 
@@ -75,14 +69,9 @@ impl ButtonManager {
         id
     }
 
-    // TODO: context: &Context
-    pub fn get_clicked_button_id(
-        &self,
-        mouse_pos: &ScreenPos,
-        win_size: &Size2,
-    ) -> Option<ButtonId> {
-        let x = mouse_pos.v.x;
-        let y = win_size.h - mouse_pos.v.y;
+    pub fn get_clicked_button_id(&self, context: &Context) -> Option<ButtonId> {
+        let x = context.mouse().pos.v.x;
+        let y = context.win_size.h - context.mouse().pos.v.y;
         for (id, button) in self.buttons() {
             if x >= button.pos().v.x
                 && x <= button.pos().v.x + button.size().w
@@ -95,24 +84,19 @@ impl ButtonManager {
         None
     }
 
-    // TODO: context: &Context
-    pub fn draw(
-        &self,
-        zgl: &Zgl,
-        win_size: &Size2,
-        shader: &Shader,
-        mvp_mat_id: &MatId,
-    ) {
-        let m = zgl.get_2d_screen_matrix(win_size);
+    pub fn draw(&self, context: &Context) {
+        let m = context.zgl.get_2d_screen_matrix(&context.win_size);
         for (_, button) in self.buttons() {
             let text_offset = Vector3 {
                 x: button.pos().v.x as ZFloat,
                 y: button.pos().v.y as ZFloat,
                 z: 0.0,
             };
-            shader.set_uniform_mat4f(
-                zgl, mvp_mat_id, &zgl.tr(m, &text_offset));
-            button.draw(zgl, shader);
+            context.shader.set_uniform_mat4f(
+                &context.zgl,
+                context.shader.get_mvp_mat(),
+                &context.zgl.tr(m, &text_offset));
+            button.draw(&context.zgl, &context.shader);
         }
     }
 }
