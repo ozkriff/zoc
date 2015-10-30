@@ -20,7 +20,6 @@ mod geom;
 mod context;
 
 use std::f32::consts::{PI};
-use num::{Float};
 use rand::{thread_rng, Rng};
 use std::path::{Path};
 use time::precise_time_ns;
@@ -71,7 +70,7 @@ use core::db::{Db};
 use zgl::texture::{Texture};
 use zgl::obj;
 use zgl::font_stash::{FontStash};
-use gui::{ButtonManager, Button, ButtonId};
+use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{NodeId, Scene, SceneNode, MIN_MAP_OBJECT_NODE_ID};
 use event_visualizer::{
     EventVisualizer,
@@ -886,7 +885,7 @@ impl Visualizer {
         if self.event_visualizer.is_some() {
             return;
         }
-        if !self.is_tap(&self.context.mouse().pos) {
+        if !is_tap(&self.context) {
             return;
         }
         self.pick_tile();
@@ -924,14 +923,6 @@ impl Visualizer {
 
     fn get_clicked_button_id(&self) -> Option<ButtonId> {
         self.button_manager.get_clicked_button_id(&self.context)
-    }
-
-    /// Check if this was a tap or swipe
-    fn is_tap(&self, pos: &ScreenPos) -> bool {
-        let x = pos.v.x - self.context.mouse().last_press_pos.v.x;
-        let y = pos.v.y - self.context.mouse().last_press_pos.v.y;
-        let tolerance = 20;
-        x.abs() < tolerance && y.abs() < tolerance
     }
 
     fn handle_event(&mut self, event: &Event) {

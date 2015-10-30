@@ -9,6 +9,16 @@ use zgl::mesh::{Mesh};
 use zgl::{Zgl};
 use context::{Context};
 
+/// Check if this was a tap or swipe
+pub fn is_tap(context: &Context) -> bool {
+    let mouse = context.mouse();
+    let pos = &mouse.pos;
+    let x = pos.v.x - mouse.last_press_pos.v.x;
+    let y = pos.v.y - mouse.last_press_pos.v.y;
+    let tolerance = 20;
+    x.abs() < tolerance && y.abs() < tolerance
+}
+
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct ButtonId {pub id: ZInt}
 
