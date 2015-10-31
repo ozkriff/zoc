@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::fmt::{Debug};
 use std::io::{BufRead};
 use std::path::{Path};
 use std::str::{SplitWhitespace, Split, FromStr};
@@ -21,14 +22,18 @@ pub struct Model {
     faces: Vec<Face>,
 }
 
-fn parse_word<T: FromStr>(words: &mut SplitWhitespace) -> T {
+fn parse_word<T: FromStr>(words: &mut SplitWhitespace) -> T
+    where T::Err: Debug
+{
     let str = words.next().expect("Can not read next word");
-    str.parse().expect("Can not convert from string")
+    str.parse().expect("Can not parse word")
 }
 
-fn parse_charsplit<T: FromStr>(words: &mut Split<char>) -> T {
+fn parse_charsplit<T: FromStr>(words: &mut Split<char>) -> T
+    where T::Err: Debug
+{
     let str = words.next().expect("Can not read next word");
-    str.parse().expect("Can not convert from string")
+    str.parse().expect("Can not parse word")
 }
 
 impl Model {
