@@ -38,10 +38,10 @@ fn make_window() -> glutin::Window {
         .with_pixel_format(24, 8)
         .with_gl(gl_version);
     let window = window_builder.build()
-        .ok().expect("Can`t create window");
+        .expect("Can`t create window");
     unsafe {
         window.make_current()
-            .ok().expect("Can`t make window current");
+            .expect("Can`t make window current");
     };
     window
 }
@@ -85,7 +85,7 @@ impl Visualizer {
             screen.tick(&mut self.context, &dtime);
         }
         self.context.window.swap_buffers()
-            .ok().expect("Can`t swap buffers");
+            .expect("Can`t swap buffers");
     }
 
     fn handle_events(&mut self) {

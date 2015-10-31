@@ -79,7 +79,7 @@ impl Texture {
 fn load_image<P: AsRef<Path>>(path: P) -> image::DynamicImage {
     let buf = fs::load(path);
     image::load(buf, image::ImageFormat::PNG)
-        .ok().expect("Can`t open img")
+        .expect("Can`t open img")
 }
 
 fn get_empty_texture(zgl: &Zgl, size: Size2) -> Texture {

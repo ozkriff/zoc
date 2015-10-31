@@ -23,12 +23,12 @@ pub struct Model {
 
 fn parse_word<T: FromStr>(words: &mut SplitWhitespace) -> T {
     let str = words.next().expect("Can not read next word");
-    str.parse().ok().expect("Can not convert from string")
+    str.parse().expect("Can not convert from string")
 }
 
 fn parse_charsplit<T: FromStr>(words: &mut Split<char>) -> T {
     let str = words.next().expect("Can not read next word");
-    str.parse().ok().expect("Can not convert from string")
+    str.parse().expect("Can not convert from string")
 }
 
 impl Model {

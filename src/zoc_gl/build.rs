@@ -13,7 +13,7 @@ const GENERATOR: gl_generator::StaticStructGenerator = gl_generator::StaticStruc
 
 fn main() {
     let out_dir = std::env::var("OUT_DIR")
-        .ok().expect("Can`t read OUT_DIR env var");
+        .expect("Can`t read OUT_DIR env var");
     let dest = Path::new(&out_dir);
     let mut file = match std::fs::File::create(&dest.join("gl_bindings.rs")) {
         Ok(file) => file,

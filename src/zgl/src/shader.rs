@@ -13,7 +13,7 @@ use ::{Zgl};
 
 fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
     let name_c = CString::new(name.as_bytes())
-        .ok().expect("Bad attr name").as_ptr();
+        .expect("Bad attr name").as_ptr();
     let attr_id = unsafe {
         zgl.gl.GetAttribLocation(program_id.id, name_c)
     };
@@ -24,7 +24,7 @@ fn get_attr_location(program_id: &ProgramId, zgl: &Zgl, name: &str) -> AttrId {
 
 fn get_uniform(program_id: &ProgramId, zgl: &Zgl, name: &str) -> GLuint {
     let name_c = CString::new(name.as_bytes())
-        .ok().expect("Bad uniform name").as_ptr();
+        .expect("Bad uniform name").as_ptr();
     let id = unsafe {
         zgl.gl.GetUniformLocation(program_id.id, name_c)
     };
@@ -150,7 +150,7 @@ fn compile_shader(zgl: &Zgl, src: &str, ty: GLenum) -> GLuint {
         shader = zgl.gl.CreateShader(ty);
         zgl.check();
         let src_c = CString::new(src.as_bytes())
-            .ok().expect("Bad shader source").as_ptr();
+            .expect("Bad shader source").as_ptr();
         zgl.gl.ShaderSource(shader, 1, &src_c, ptr::null());
         zgl.check();
         zgl.gl.CompileShader(shader);
