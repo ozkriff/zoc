@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::cell::{RefCell};
 use std::path::{Path};
 use cgmath::{Vector};
 use cgmath::{Vector2};
@@ -9,6 +10,7 @@ use zgl::{Zgl, ColorId, Color4, ScreenPos};
 use zgl::font_stash::{FontStash};
 use zgl::shader::{Shader};
 use common::types::{Size2, ZInt};
+use screen::{ScreenCommand};
 
 static VS_SRC: &'static str = "\
     #version 100\n\
@@ -57,6 +59,7 @@ pub struct Context {
     pub basic_color_id: ColorId,
     mouse: MouseState,
     should_close: bool,
+    commands: RefCell<Vec<ScreenCommand>>, // TODO: convert to channels
 }
 
 impl Context {
@@ -77,6 +80,7 @@ impl Context {
             font_stash: font_stash,
             basic_color_id: basic_color_id,
             should_close: false,
+            commands: RefCell::new(Vec::new()),
             mouse: MouseState {
                 is_left_button_pressed: false,
                 is_right_button_pressed: false,
@@ -96,6 +100,14 @@ impl Context {
 
     pub fn set_basic_color(&self, color: &Color4) {
         self.shader.set_uniform_color(&self.zgl, &self.basic_color_id, color);
+    }
+
+    pub fn add_command(&mut self, command: ScreenCommand) {
+        self.commands.borrow_mut().push(command);
+    }
+
+    pub fn get_commnands(&mut self) -> Vec<ScreenCommand> {
+        self.commands.borrow_mut().split_off(0)
     }
 
     pub fn handle_event_pre(&mut self, event: &glutin::Event) {
