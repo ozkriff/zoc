@@ -19,13 +19,14 @@ mod move_helper;
 mod geom;
 mod screen;
 mod tactical_screen;
+mod main_menu_screen;
 mod context;
 
 use glutin::{WindowBuilder};
 use zgl::{Zgl, Time, Color3};
 use screen::{Screen, ScreenCommand};
 use context::{Context};
-use tactical_screen::{TacticalScreen};
+use main_menu_screen::{MainMenuScreen};
 
 fn make_window() -> glutin::Window {
     let gl_version = glutin::GlRequest::GlThenGles {
@@ -58,7 +59,7 @@ impl Visualizer {
         let zgl = Zgl::new(|s| window.get_proc_address(s));
         let mut context = Context::new(zgl, window);
         let screens = vec![
-            Box::new(TacticalScreen::new(&mut context)) as Box<Screen>,
+            Box::new(MainMenuScreen::new(&mut context)) as Box<Screen>,
         ];
         Visualizer {
             screens: screens,
