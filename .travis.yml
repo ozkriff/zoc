@@ -1,6 +1,12 @@
 # See LICENSE file for copyright and license details.
 
 language: rust
+
+rust:
+    - nightly
+    - beta
+    - stable
+
 sudo: false
 
 addons:
