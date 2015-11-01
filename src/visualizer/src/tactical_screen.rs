@@ -688,15 +688,15 @@ impl TacticalScreen {
         if !context.mouse().is_left_button_pressed {
             return;
         }
-        if self.must_rotate_camera() {
-            self.handle_camera_rotate(pos);
+        if self.must_rotate_camera(context) {
+            self.handle_camera_rotate(context, pos);
         } else {
-            self.handle_camera_move(pos);
+            self.handle_camera_move(context, pos);
         }
     }
 
     #[cfg(target_os = "android")]
-    fn must_rotate_camera(&self) -> bool {
+    fn must_rotate_camera(&self, context: &Context) -> bool {
         if context.win_size.w > context.win_size.h {
             context.mouse().last_press_pos.v.x > context.win_size.w / 2
         } else {
