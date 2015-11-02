@@ -275,7 +275,6 @@ pub struct TacticalScreen {
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
     floor_tex: Texture,
-    pick_result: PickResult,
 }
 
 impl TacticalScreen {
@@ -338,7 +337,6 @@ impl TacticalScreen {
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
-            pick_result: PickResult::None,
         };
         screen.add_map_objects();
         screen
@@ -398,7 +396,6 @@ impl TacticalScreen {
     }
 
     fn end_turn(&mut self) {
-        self.pick_result = PickResult::None;
         self.core.do_command(Command::EndTurn);
         self.selected_unit_id = None;
         let i = self.player_info.get_mut(self.core.player_id());
@@ -491,9 +488,9 @@ impl TacticalScreen {
     }
 
     fn change_reaction_fire_mode(&mut self, context: &Context) {
-        self.pick_tile(context);
+        let pick_result = self.pick_tile(context);
         let state = &self.player_info.get(self.core.player_id()).game_state;
-        let unit_id = match self.pick_result {
+        let unit_id = match pick_result {
             PickResult::UnitId(ref id) => id,
             PickResult::Pos(ref pos) => {
                 self.map_text_manager.add_text(pos, "No selected unit");
@@ -515,8 +512,8 @@ impl TacticalScreen {
     }
 
     fn transport(&mut self, context: &Context) {
-        self.pick_tile(context);
-        match self.pick_result.clone() {
+        let pick_result = self.pick_tile(context);
+        match pick_result {
             PickResult::Pos(ref pos) => {
                 self.unload_unit(pos);
             },
@@ -527,8 +524,9 @@ impl TacticalScreen {
         }
     }
 
-    fn create_unit(&mut self) {
-        if let PickResult::Pos(ref pos) = self.pick_result {
+    fn create_unit(&mut self, context: &Context) {
+        let pick_result = self.pick_tile(context);
+        if let PickResult::Pos(ref pos) = pick_result {
             if self.is_tile_occupied(pos) {
                 return;
             }
@@ -586,8 +584,9 @@ impl TacticalScreen {
         });
     }
 
-    fn try_to_attack_unit(&mut self) {
-        let defender_id = if let PickResult::UnitId(id) = self.pick_result.clone() {
+    fn try_to_attack_unit(&mut self, context: &Context) {
+        let pick_result = self.pick_tile(context);
+        let defender_id = if let PickResult::UnitId(id) = pick_result {
             id
         } else {
             return;
@@ -601,7 +600,8 @@ impl TacticalScreen {
     }
 
     fn select_unit(&mut self, context: &Context) {
-        if let PickResult::UnitId(ref unit_id) = self.pick_result {
+        let pick_result = self.pick_tile(context);
+        if let PickResult::UnitId(ref unit_id) = pick_result {
             self.selected_unit_id = Some(unit_id.clone());
             let mut i = self.player_info.get_mut(self.core.player_id());
             let state = &i.game_state;
@@ -752,8 +752,8 @@ impl TacticalScreen {
     }
 
     fn print_info(&mut self, context: &Context) {
-        self.pick_tile(context);
-        match self.pick_result {
+        let pick_result = self.pick_tile(context);
+        match pick_result {
             PickResult::UnitId(ref id) => self.print_unit_info(id),
             PickResult::Pos(ref pos) => self.print_terrain_info(pos),
             _ => {},
@@ -784,8 +784,7 @@ impl TacticalScreen {
                 self.print_info(context);
             },
             VirtualKeyCode::U => {
-                self.pick_tile(context);
-                self.create_unit();
+                self.create_unit(context);
             },
             VirtualKeyCode::L => {
                 self.transport(context);
@@ -794,8 +793,8 @@ impl TacticalScreen {
                 self.change_reaction_fire_mode(context);
             },
             VirtualKeyCode::H => {
-                self.pick_tile(context);
-                if let PickResult::Pos(pos) = self.pick_result.clone() {
+                let pick_result = self.pick_tile(context);
+                if let PickResult::Pos(pos) = pick_result {
                     self.move_unit(&pos, &MoveMode::Hunt);
                 } else {
                     panic!("Can`t move unit if no pos is selected");
@@ -822,11 +821,11 @@ impl TacticalScreen {
         if !is_tap(context) {
             return;
         }
-        self.pick_tile(context);
+        let pick_result = self.pick_tile(context);
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
             self.handle_event_button_press(&button_id);
         }
-        match self.pick_result.clone() {
+        match pick_result {
             PickResult::Pos(pos) => {
                 self.move_unit(&pos, &MoveMode::Fast);
             },
@@ -840,7 +839,7 @@ impl TacticalScreen {
                 if player_id == *self.core.player_id() {
                     self.select_unit(context);
                 } else {
-                    self.try_to_attack_unit();
+                    self.try_to_attack_unit(context);
                 }
             },
             PickResult::None => {},
@@ -918,8 +917,7 @@ impl TacticalScreen {
         self.button_manager.draw(&context);
     }
 
-    // TODO: Must return value.
-    fn pick_tile(&mut self, context: &Context) {
+    fn pick_tile(&mut self, context: &Context) -> PickResult {
         let p = self.pick_world_pos(context);
         let origin = MapPos{v: Vector2 {
             x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as ZInt,
@@ -939,13 +937,13 @@ impl TacticalScreen {
         }
         let pos = closest_map_pos;
         if !state.map().is_inboard(&pos) {
-            self.pick_result = PickResult::None;
+            PickResult::None
         } else {
             let unit_at = get_unit_id_at(self.core.db(), state, &pos);
             if let Some(id) = unit_at {
-                self.pick_result = PickResult::UnitId(id);
+                PickResult::UnitId(id)
             } else {
-                self.pick_result = PickResult::Pos(pos);
+                PickResult::Pos(pos)
             }
         }
     }
