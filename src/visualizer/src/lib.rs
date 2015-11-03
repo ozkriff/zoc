@@ -19,13 +19,14 @@ mod move_helper;
 mod geom;
 mod screen;
 mod tactical_screen;
+mod test_popup;
 mod main_menu_screen;
 mod context;
 
 use std::sync::mpsc::{channel, Receiver};
 use glutin::{WindowBuilder};
 use zgl::{Zgl, Time, Color3};
-use screen::{Screen, ScreenCommand};
+use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
 
@@ -49,6 +50,7 @@ fn make_window() -> glutin::Window {
 
 pub struct Visualizer {
     screens: Vec<Box<Screen>>,
+    popups: Vec<Box<Screen>>,
     should_close: bool,
     last_time: Time,
     context: Context,
@@ -66,6 +68,7 @@ impl Visualizer {
         ];
         Visualizer {
             screens: screens,
+            popups: Vec::new(),
             should_close: false,
             last_time: Time{n: time::precise_time_ns()},
             context: context,
@@ -88,6 +91,9 @@ impl Visualizer {
             let screen = self.screens.last_mut().unwrap();
             screen.tick(&mut self.context, &dtime);
         }
+        for popup in &mut self.popups {
+            popup.tick(&mut self.context, &dtime);
+        }
         self.context.window.swap_buffers()
             .expect("Can`t swap buffers");
     }
@@ -96,7 +102,15 @@ impl Visualizer {
         let events: Vec<_> = self.context.window.poll_events().collect();
         for event in &events {
             self.context.handle_event_pre(event);
-            {
+            let mut event_status = EventStatus::NotHandled;
+            for i in (0 .. self.popups.len()).rev() {
+                event_status = self.popups[i].handle_event(
+                    &mut self.context, event);
+                if let EventStatus::Handled = event_status {
+                    break;
+                }
+            }
+            if let EventStatus::NotHandled = event_status {
                 let screen = self.screens.last_mut().unwrap();
                 screen.handle_event(&mut self.context, event);
             }
@@ -110,11 +124,19 @@ impl Visualizer {
                 ScreenCommand::PushScreen(screen) => {
                     self.screens.push(screen);
                 },
+                ScreenCommand::PushPopup(popup) => {
+                    self.popups.push(popup);
+                },
                 ScreenCommand::PopScreen => {
                     let _ = self.screens.pop();
                     if self.screens.is_empty() {
                         self.should_close = true;
                     }
+                    self.popups.clear();
+                },
+                ScreenCommand::PopPopup => {
+                    assert!(self.popups.len() > 0);
+                    let _ = self.popups.pop();
                 },
             }
         }

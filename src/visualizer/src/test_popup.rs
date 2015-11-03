@@ -1,32 +1,43 @@
 // See LICENSE file for copyright and license details.
 
-use cgmath::{Vector2};
+use std::sync::mpsc::{Sender};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
-use tactical_screen::{TacticalScreen};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 
-pub struct MainMenuScreen {
-    button_start_id: ButtonId,
-    button_manager: ButtonManager,
+#[derive(Clone)]
+pub enum Command {
+    Test,
 }
 
-impl MainMenuScreen {
-    pub fn new(context: &mut Context) -> MainMenuScreen {
+#[derive(Default)]
+pub struct Options {
+    pub test: bool,
+}
+
+pub struct TestPopup {
+    game_screen_tx: Sender<Command>,
+    button_manager: ButtonManager,
+    test_button_id: ButtonId,
+}
+
+impl TestPopup {
+    pub fn new(
+        context: &mut Context,
+        pos: &ScreenPos,
+        _: Options,
+        tx: Sender<Command>,
+    ) -> TestPopup {
         let mut button_manager = ButtonManager::new();
-        // TODO: Use relative coords in ScreenPos - x: [0.0, 1.0], y: [0.0, 1.0]
-        // TODO: Add analog of Qt::Alignment
-        let button_start_id = button_manager.add_button(Button::new(
-            context,
-            "start",
-            ScreenPos{v: Vector2{x: 10, y: 10}})
-        );
-        MainMenuScreen {
+        let test_button_id = button_manager.add_button(
+            Button::new(context, "test", pos.clone()));
+        TestPopup {
+            game_screen_tx: tx,
             button_manager: button_manager,
-            button_start_id: button_start_id,
+            test_button_id: test_button_id,
         }
     }
 
@@ -39,16 +50,21 @@ impl MainMenuScreen {
         }
     }
 
+    fn return_command(&self, context: &mut Context, command: Command) {
+        self.game_screen_tx.send(command).unwrap();
+        context.add_command(ScreenCommand::PopPopup);
+    }
+
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
         button_id: &ButtonId
     ) {
-        if *button_id == self.button_start_id {
-            let tactical_screen = Box::new(TacticalScreen::new(context));
-            context.add_command(ScreenCommand::PushScreen(tactical_screen));
+        let id = button_id.clone();
+        if id == self.test_button_id {
+            self.return_command(context, Command::Test);
         } else {
-            panic!("Bad button id: {}", button_id.id);
+            panic!("Bad button id: {}", id.id);
         }
     }
 
@@ -57,21 +73,27 @@ impl MainMenuScreen {
             glutin::VirtualKeyCode::Q
                 | glutin::VirtualKeyCode::Escape =>
             {
-                context.add_command(ScreenCommand::PopScreen);
+                context.add_command(ScreenCommand::PopPopup);
             },
             _ => {},
         }
     }
 }
 
-impl Screen for MainMenuScreen {
+impl Screen for TestPopup {
     fn tick(&mut self, context: &mut Context, _: &Time) {
         context.set_basic_color(&zgl::BLACK);
         self.button_manager.draw(context);
     }
 
-    fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
+    fn handle_event(
+        &mut self,
+        context: &mut Context,
+        event: &glutin::Event,
+    ) -> EventStatus {
+        let mut event_status = EventStatus::Handled;
         match *event {
+            Event::MouseMoved(_) => {},
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
             },
@@ -86,9 +108,9 @@ impl Screen for MainMenuScreen {
             glutin::Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(context, key);
             },
-            _ => {},
+            _ => event_status = EventStatus::NotHandled,
         }
-        EventStatus::Handled
+        event_status
     }
 }
 

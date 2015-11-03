@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::path::{Path};
@@ -65,7 +66,8 @@ use selection::{SelectionManager, get_selection_mesh};
 use map_text::{MapTextManager};
 use context::{Context};
 use geom;
-use screen::{Screen, ScreenCommand};
+use screen::{Screen, ScreenCommand, EventStatus};
+use test_popup::{self, TestPopup};
 
 fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -275,6 +277,8 @@ pub struct TacticalScreen {
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
     floor_tex: Texture,
+    tx: Sender<test_popup::Command>,
+    rx: Receiver<test_popup::Command>,
 }
 
 impl TacticalScreen {
@@ -319,6 +323,7 @@ impl TacticalScreen {
             marker_2_mesh_id: marker_2_mesh_id,
         };
         let map_text_manager = MapTextManager::new(&mut font_stash);
+        let (tx, rx) = channel();
         let mut screen = TacticalScreen {
             camera: camera,
             button_manager: button_manager,
@@ -337,6 +342,8 @@ impl TacticalScreen {
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
             floor_tex: floor_tex,
+            tx: tx,
+            rx: rx,
         };
         screen.add_map_objects();
         screen
@@ -522,6 +529,17 @@ impl TacticalScreen {
             },
             PickResult::None => {},
         }
+    }
+
+    fn create_test_popup(&mut self, context: &mut Context) {
+        let options = test_popup::Options {
+            .. Default::default()
+        };
+        let mut pos = context.mouse().pos.clone();
+        pos.v.y = context.win_size.h - pos.v.y;
+        let screen = TestPopup::new(
+            context, &pos, options, self.tx.clone());
+        context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
     }
 
     fn create_unit(&mut self, context: &Context) {
@@ -809,6 +827,10 @@ impl TacticalScreen {
             },
             VirtualKeyCode::Equals | VirtualKeyCode::Key2 => {
                 self.camera.change_zoom(0.7);
+            },
+            // TODO
+            VirtualKeyCode::Key3 => {
+                self.create_test_popup(context);
             },
             _ => println!("Unknown key pressed"),
         }
@@ -1143,15 +1165,26 @@ impl TacticalScreen {
             self.end_event_visualization(context);
         }
     }
+
+    fn handle_test_popup_commands(&mut self) {
+        while let Ok(command) = self.rx.try_recv() {
+            match command {
+                test_popup::Command::Test => {
+                    println!("Good work, TestPopup!");
+                },
+            }
+        }
+    }
 }
 
 impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: &Time) {
         self.logic(context);
         self.draw(context, dtime);
+        self.handle_test_popup_commands();
     }
 
-    fn handle_event(&mut self, context: &mut Context, event: &Event) {
+    fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
         match *event {
             Event::Resized(..) => {
                 self.camera.regenerate_projection_mat(&context.win_size);
@@ -1186,6 +1219,7 @@ impl Screen for TacticalScreen {
             },
             _ => {},
         }
+        EventStatus::Handled
     }
 }
 
