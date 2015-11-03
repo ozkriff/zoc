@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use std::cell::{RefCell};
+use std::sync::mpsc::{Sender};
 use std::path::{Path};
 use cgmath::{Vector};
 use cgmath::{Vector2};
@@ -59,11 +59,11 @@ pub struct Context {
     pub basic_color_id: ColorId,
     mouse: MouseState,
     should_close: bool,
-    commands: RefCell<Vec<ScreenCommand>>, // TODO: convert to channels
+    commands_tx: Sender<ScreenCommand>,
 }
 
 impl Context {
-    pub fn new(zgl: Zgl, window: glutin::Window) -> Context {
+    pub fn new(zgl: Zgl, window: glutin::Window, tx: Sender<ScreenCommand>) -> Context {
         let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
         shader.activate(&zgl);
         let basic_color_id = shader.get_uniform_color(&zgl, "basic_color");
@@ -80,7 +80,7 @@ impl Context {
             font_stash: font_stash,
             basic_color_id: basic_color_id,
             should_close: false,
-            commands: RefCell::new(Vec::new()),
+            commands_tx: tx,
             mouse: MouseState {
                 is_left_button_pressed: false,
                 is_right_button_pressed: false,
@@ -103,11 +103,8 @@ impl Context {
     }
 
     pub fn add_command(&mut self, command: ScreenCommand) {
-        self.commands.borrow_mut().push(command);
-    }
-
-    pub fn get_commnands(&mut self) -> Vec<ScreenCommand> {
-        self.commands.borrow_mut().split_off(0)
+        self.commands_tx.send(command)
+            .expect("Can't send command to Visualizer");
     }
 
     pub fn handle_event_pre(&mut self, event: &glutin::Event) {

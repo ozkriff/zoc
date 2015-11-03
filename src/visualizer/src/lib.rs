@@ -22,6 +22,7 @@ mod tactical_screen;
 mod main_menu_screen;
 mod context;
 
+use std::sync::mpsc::{channel, Receiver};
 use glutin::{WindowBuilder};
 use zgl::{Zgl, Time, Color3};
 use screen::{Screen, ScreenCommand};
@@ -51,13 +52,15 @@ pub struct Visualizer {
     should_close: bool,
     last_time: Time,
     context: Context,
+    rx: Receiver<ScreenCommand>,
 }
 
 impl Visualizer {
     pub fn new() -> Visualizer {
         let window = make_window();
         let zgl = Zgl::new(|s| window.get_proc_address(s));
-        let mut context = Context::new(zgl, window);
+        let (tx, rx) = channel();
+        let mut context = Context::new(zgl, window, tx);
         let screens = vec![
             Box::new(MainMenuScreen::new(&mut context)) as Box<Screen>,
         ];
@@ -66,6 +69,7 @@ impl Visualizer {
             should_close: false,
             last_time: Time{n: time::precise_time_ns()},
             context: context,
+            rx: rx,
         }
     }
 
@@ -101,8 +105,7 @@ impl Visualizer {
     }
 
     fn handle_commands(&mut self) {
-        let commands = self.context.get_commnands();
-        for command in commands {
+        while let Ok(command) = self.rx.try_recv() {
             match command {
                 ScreenCommand::PushScreen(screen) => {
                     self.screens.push(screen);
