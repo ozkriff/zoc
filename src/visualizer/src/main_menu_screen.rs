@@ -1,16 +1,19 @@
 // See LICENSE file for copyright and license details.
 
+use std::default::{Default};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use tactical_screen::{TacticalScreen};
+use core;
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 
 pub struct MainMenuScreen {
-    button_start_id: ButtonId,
+    button_start_hotseat_id: ButtonId,
+    button_start_vs_ai_id: ButtonId,
     button_manager: ButtonManager,
 }
 
@@ -19,14 +22,24 @@ impl MainMenuScreen {
         let mut button_manager = ButtonManager::new();
         // TODO: Use relative coords in ScreenPos - x: [0.0, 1.0], y: [0.0, 1.0]
         // TODO: Add analog of Qt::Alignment
-        let button_start_id = button_manager.add_button(Button::new(
+        let mut button_pos = ScreenPos{v: Vector2{x: 10, y: 10}};
+        let button_start_hotseat_id = button_manager.add_button(Button::new(
             context,
-            "start",
-            ScreenPos{v: Vector2{x: 10, y: 10}})
-        );
+            "start hotseat",
+            button_pos.clone(),
+        ));
+        // TODO: Add something like QLayout
+        button_pos.v.y += button_manager.buttons()[&button_start_hotseat_id]
+            .size().h;
+        let button_start_vs_ai_id = button_manager.add_button(Button::new(
+            context,
+            "start human vs ai",
+            button_pos.clone(),
+        ));
         MainMenuScreen {
             button_manager: button_manager,
-            button_start_id: button_start_id,
+            button_start_hotseat_id: button_start_hotseat_id,
+            button_start_vs_ai_id: button_start_vs_ai_id,
         }
     }
 
@@ -44,8 +57,16 @@ impl MainMenuScreen {
         context: &mut Context,
         button_id: &ButtonId
     ) {
-        if *button_id == self.button_start_id {
-            let tactical_screen = Box::new(TacticalScreen::new(context));
+        if *button_id == self.button_start_hotseat_id {
+            let core_options = Default::default();
+            let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
+            context.add_command(ScreenCommand::PushScreen(tactical_screen));
+        } else if *button_id == self.button_start_vs_ai_id {
+            let core_options = core::Options {
+                game_type: core::GameType::SingleVsAi,
+                .. Default::default()
+            };
+            let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
         } else {
             panic!("Bad button id: {}", button_id.id);

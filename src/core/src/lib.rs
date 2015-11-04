@@ -177,6 +177,23 @@ struct PlayerInfo {
     visible_enemies: HashSet<UnitId>,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum GameType {
+    Hotseat,
+    SingleVsAi,
+}
+
+impl Default for GameType {
+    fn default() -> GameType {
+        GameType::Hotseat
+    }
+}
+
+#[derive(Default)]
+pub struct Options {
+    pub game_type: GameType,
+}
+
 pub struct Core {
     state: InternalState,
     players: Vec<Player>,
@@ -187,11 +204,10 @@ pub struct Core {
     next_unit_id: UnitId,
 }
 
-fn get_players_list() -> Vec<Player> {
+fn get_players_list(game_type: &GameType) -> Vec<Player> {
     vec!(
         Player{id: PlayerId{id: 0}, is_ai: false},
-        // Player{id: PlayerId{id: 1}, is_ai: true},
-        Player{id: PlayerId{id: 1}, is_ai: false},
+        Player{id: PlayerId{id: 1}, is_ai: GameType::SingleVsAi == *game_type},
     )
 }
 
@@ -224,11 +240,11 @@ pub fn los(
 }
 
 impl Core {
-    pub fn new() -> Core {
-        let map_size = Size2{w: 10, h: 8};
+    pub fn new(options: &Options) -> Core {
+        let map_size = Size2{w: 10, h: 8}; // TODO: read from config file
         let mut core = Core {
             state: InternalState::new(&map_size),
-            players: get_players_list(),
+            players: get_players_list(&options.game_type),
             current_player_id: PlayerId{id: 0},
             db: Db::new(),
             ai: Ai::new(&PlayerId{id:1}, &map_size),

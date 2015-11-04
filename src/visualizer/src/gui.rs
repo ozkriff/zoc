@@ -29,6 +29,7 @@ pub struct Button {
 }
 
 impl Button {
+    // TODO: ScreenPos -> &ScreenPos
     pub fn new(context: &mut Context, label: &str, pos: ScreenPos) -> Button {
         let text_size = (context.win_size.h as ZFloat) / 400.0; // TODO: 400?
         let (_, size) = context.font_stash.get_text_size(&context.zgl, label);

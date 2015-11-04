@@ -31,6 +31,7 @@ use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::pathfinder::Pathfinder;
 use core::{
+    self,
     Core,
     CoreEvent,
     Command,
@@ -282,8 +283,8 @@ pub struct TacticalScreen {
 }
 
 impl TacticalScreen {
-    pub fn new(context: &mut Context) -> TacticalScreen {
-        let core = Core::new();
+    pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
+        let core = Core::new(core_options);
         let map_size = core.map_size().clone();
         let player_info = PlayerInfoManager::new(&map_size);
         let floor_tex = Texture::new(&context.zgl, "floor.png"); // TODO: !!!
