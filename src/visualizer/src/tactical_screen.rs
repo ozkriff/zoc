@@ -829,8 +829,8 @@ impl TacticalScreen {
         let pick_result = self.pick_tile(context);
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
             self.handle_event_button_press(&button_id);
+            return;
         }
-        // TODO: exit if button clicked
         match pick_result {
             PickResult::Pos(pos) => {
                 self.move_unit(&pos, &MoveMode::Fast);
