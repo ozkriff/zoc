@@ -603,36 +603,18 @@ impl TacticalScreen {
         });
     }
 
-    fn try_to_attack_unit(&mut self, context: &Context) {
-        let pick_result = self.pick_tile(context);
-        let defender_id = if let PickResult::UnitId(id) = pick_result {
-            id
-        } else {
-            return;
-        };
-        let attacker_id = if let Some(id) = self.selected_unit_id.clone() {
-            id
-        } else {
-            return;
-        };
-        self.attack_unit(&attacker_id, &defender_id)
-    }
-
-    fn select_unit(&mut self, context: &Context) {
-        let pick_result = self.pick_tile(context);
-        if let PickResult::UnitId(ref unit_id) = pick_result {
-            self.selected_unit_id = Some(unit_id.clone());
-            let mut i = self.player_info.get_mut(self.core.player_id());
-            let state = &i.game_state;
-            let pf = &mut i.pathfinder;
-            pf.fill_map(self.core.db(), state, &state.units()[unit_id]);
-            self.walkable_mesh = Some(build_walkable_mesh(
-                &context.zgl, pf, state.map(), state.units()[unit_id].move_points));
-            let scene = &mut i.scene;
-            self.selection_manager.create_selection_marker(
-                state, scene, unit_id);
-            // TODO: highlight potential targets
-        }
+    fn select_unit(&mut self, context: &Context, unit_id: &UnitId) {
+        self.selected_unit_id = Some(unit_id.clone());
+        let mut i = self.player_info.get_mut(self.core.player_id());
+        let state = &i.game_state;
+        let pf = &mut i.pathfinder;
+        pf.fill_map(self.core.db(), state, &state.units()[unit_id]);
+        self.walkable_mesh = Some(build_walkable_mesh(
+            &context.zgl, pf, state.map(), state.units()[unit_id].move_points));
+        let scene = &mut i.scene;
+        self.selection_manager.create_selection_marker(
+            state, scene, unit_id);
+        // TODO: highlight potential targets
     }
 
     fn move_unit(&mut self, pos: &MapPos, move_mode: &MoveMode) {
@@ -848,6 +830,7 @@ impl TacticalScreen {
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
             self.handle_event_button_press(&button_id);
         }
+        // TODO: exit if button clicked
         match pick_result {
             PickResult::Pos(pos) => {
                 self.move_unit(&pos, &MoveMode::Fast);
@@ -860,9 +843,9 @@ impl TacticalScreen {
                     unit.player_id.clone()
                 };
                 if player_id == *self.core.player_id() {
-                    self.select_unit(context);
-                } else {
-                    self.try_to_attack_unit(context);
+                    self.select_unit(context, &unit_id);
+                } else if let Some(attacker_id) = self.selected_unit_id.clone() {
+                    self.attack_unit(&attacker_id, &unit_id);
                 }
             },
             PickResult::None => {},
