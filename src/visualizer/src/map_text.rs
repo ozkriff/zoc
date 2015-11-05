@@ -42,7 +42,7 @@ impl MapTextManager {
     pub fn add_text(&mut self, pos: &MapPos, text: &str) {
         self.commands.push_back(ShowTextCommand {
             pos: pos.clone(),
-            text: text.to_string(),
+            text: text.to_owned(),
         });
     }
 

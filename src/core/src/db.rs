@@ -18,7 +18,7 @@ fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
 fn get_weapon_types() -> Vec<WeaponType> {
     vec![
         WeaponType {
-            name: "cannon".to_string(),
+            name: "cannon".to_owned(),
             damage: 9,
             ap: 9,
             accuracy: 5,
@@ -26,7 +26,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 2,
         },
         WeaponType {
-            name: "rifle".to_string(),
+            name: "rifle".to_owned(),
             damage: 2,
             ap: 1,
             accuracy: 5,
@@ -42,7 +42,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
     let rifle_id = weapon_type_id(weapon_types, "rifle");
     vec![
         UnitType {
-            name: "tank".to_string(),
+            name: "tank".to_owned(),
             class: UnitClass::Vehicle,
             size: 6,
             count: 1,
@@ -58,7 +58,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
         },
         UnitType {
-            name: "truck".to_string(),
+            name: "truck".to_owned(),
             class: UnitClass::Vehicle,
             size: 6,
             count: 1,
@@ -74,7 +74,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: true,
         },
         UnitType {
-            name: "soldier".to_string(),
+            name: "soldier".to_owned(),
             class: UnitClass::Infantry,
             size: 4,
             count: 4,
@@ -90,7 +90,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
         },
         UnitType {
-            name: "scout".to_string(),
+            name: "scout".to_owned(),
             class: UnitClass::Infantry,
             size: 4,
             count: 2,
