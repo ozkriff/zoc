@@ -468,8 +468,7 @@ impl TacticalScreen {
             self.map_text_manager.add_text(&pos, "No selected unit");
             return;
         };
-        let transporter = state.units().get(&transporter_id)
-            .expect("Bad transporter_id");
+        let transporter = state.unit(&transporter_id);
         // TODO: Duplicate all this checks ib Core
         // TODO: check that tile is empty and walkable for passanger
         if !self.core.db().unit_type(&transporter.type_id).is_transporter {
@@ -565,8 +564,8 @@ impl TacticalScreen {
 
     fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
-        let attacker = &state.units()[attacker_id];
-        let defender = &state.units()[defender_id];
+        let attacker = &state.unit(attacker_id);
+        let defender = &state.unit(defender_id);
         if attacker.attack_points <= 0 {
             self.map_text_manager.add_text(
                 &defender.pos, "No attack points");
@@ -610,9 +609,9 @@ impl TacticalScreen {
         let mut i = self.player_info.get_mut(self.core.player_id());
         let state = &i.game_state;
         let pf = &mut i.pathfinder;
-        pf.fill_map(self.core.db(), state, &state.units()[unit_id]);
+        pf.fill_map(self.core.db(), state, state.unit(unit_id));
         self.walkable_mesh = Some(build_walkable_mesh(
-            &context.zgl, pf, state.map(), state.units()[unit_id].move_points));
+            &context.zgl, pf, state.map(), state.unit(unit_id).move_points));
         let scene = &mut i.scene;
         self.selection_manager.create_selection_marker(
             state, scene, unit_id);
@@ -628,7 +627,7 @@ impl TacticalScreen {
             return;
         }
         let i = self.player_info.get_mut(self.core.player_id());
-        let unit = &i.game_state.units()[&unit_id];
+        let unit = i.game_state.unit(&unit_id);
         if let Some(path) = i.pathfinder.get_path(&pos) {
             let cost = if let &MoveMode::Hunt = move_mode {
                 path.total_cost().n * 2
@@ -708,7 +707,7 @@ impl TacticalScreen {
     }
 
     fn print_unit_info(&self, unit_id: &UnitId) {
-        let unit = &self.current_state().units()[unit_id];
+        let unit = self.current_state().unit(unit_id);
         // TODO: use only one println
         println!("player_id: {}", unit.player_id.id);
         println!("move_points: {}", unit.move_points);
@@ -836,7 +835,7 @@ impl TacticalScreen {
             },
             PickResult::UnitId(unit_id) => {
                 let player_id = self.current_state()
-                    .units()[&unit_id].player_id.clone();
+                    .unit(&unit_id).player_id.clone();
                 if player_id == *self.core.player_id() {
                     self.select_unit(context, &unit_id);
                 } else if let Some(attacker_id) = self.selected_unit_id.clone() {
@@ -959,7 +958,7 @@ impl TacticalScreen {
         let state = &i.game_state;
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ..} => {
-                let type_id = state.units()[unit_id].type_id.clone();
+                let type_id = state.unit(unit_id).type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
                 EventMoveVisualizer::new(
