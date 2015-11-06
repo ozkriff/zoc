@@ -643,9 +643,6 @@ impl Core {
     }
 
     fn do_core_event(&mut self, event: &CoreEvent) {
-        if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
-            self.handle_end_turn_event(old_id, new_id);
-        }
         self.state.apply_event(&self.db, &event);
         for player in &self.players {
             let (filtered_events, active_unit_ids) = filter::filter_events(
@@ -675,6 +672,9 @@ impl Core {
                 i.events.extend(show_hide_events);
                 i.visible_enemies = new_visible_enemies;
             }
+        }
+        if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
+            self.handle_end_turn_event(old_id, new_id);
         }
     }
 }
