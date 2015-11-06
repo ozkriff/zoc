@@ -26,7 +26,7 @@ impl MainMenuScreen {
         let button_start_hotseat_id = button_manager.add_button(Button::new(
             context,
             "start hotseat",
-            button_pos.clone(),
+            &button_pos,
         ));
         // TODO: Add something like QLayout
         button_pos.v.y += button_manager.buttons()[&button_start_hotseat_id]
@@ -34,7 +34,7 @@ impl MainMenuScreen {
         let button_start_vs_ai_id = button_manager.add_button(Button::new(
             context,
             "start human vs ai",
-            button_pos.clone(),
+            &button_pos,
         ));
         MainMenuScreen {
             button_manager: button_manager,

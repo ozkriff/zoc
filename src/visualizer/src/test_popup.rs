@@ -33,7 +33,7 @@ impl TestPopup {
     ) -> TestPopup {
         let mut button_manager = ButtonManager::new();
         let test_button_id = button_manager.add_button(
-            Button::new(context, "test", pos.clone()));
+            Button::new(context, "test", pos));
         TestPopup {
             game_screen_tx: tx,
             button_manager: button_manager,

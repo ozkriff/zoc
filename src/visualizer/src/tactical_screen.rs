@@ -315,7 +315,7 @@ impl TacticalScreen {
         let button_end_turn_id = button_manager.add_button(Button::new(
             context,
             "end turn",
-            ScreenPos{v: Vector2{x: 10, y: 10}})
+            &ScreenPos{v: Vector2{x: 10, y: 10}})
         );
         let mesh_ids = MeshIdManager {
             trees_mesh_id: trees_mesh_id,
