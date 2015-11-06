@@ -411,9 +411,12 @@ impl TacticalScreen {
         self.walkable_mesh = None;
     }
 
+    fn current_state(&self) -> &GameState {
+        &self.player_info.get(self.core.player_id()).game_state
+    }
+
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
-        let i = self.player_info.get(self.core.player_id());
-        i.game_state.is_tile_occupied(pos)
+        self.current_state().is_tile_occupied(pos)
     }
 
     fn load_unit(&mut self, passanger_id: &UnitId) {
@@ -556,8 +559,7 @@ impl TacticalScreen {
 
     pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
         let unit_type = self.core.db().unit_type(&unit.type_id);
-        let i = self.player_info.get(self.core.player_id());
-        let map = i.game_state.map();
+        let map = self.current_state().map();
         los(map, unit_type, from, to)
     }
 
@@ -706,9 +708,7 @@ impl TacticalScreen {
     }
 
     fn print_unit_info(&self, unit_id: &UnitId) {
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        let unit = state.units().get(unit_id)
-            .expect("Can`t find picked unit in current state");
+        let unit = &self.current_state().units()[unit_id];
         // TODO: use only one println
         println!("player_id: {}", unit.player_id.id);
         println!("move_points: {}", unit.move_points);
@@ -745,8 +745,7 @@ impl TacticalScreen {
     }
 
     fn print_terrain_info(&self, pos: &MapPos) {
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        match state.map().tile(pos) {
+        match self.current_state().map().tile(pos) {
             &Terrain::Trees => println!("Trees"),
             &Terrain::Plain => println!("Plain"),
         }
@@ -836,12 +835,8 @@ impl TacticalScreen {
                 self.move_unit(&pos, &MoveMode::Fast);
             },
             PickResult::UnitId(unit_id) => {
-                let player_id = {
-                    let state = &self.player_info.get(self.core.player_id()).game_state;
-                    let unit = state.units().get(&unit_id)
-                        .expect("Can`t find picked unit in current state");
-                    unit.player_id.clone()
-                };
+                let player_id = self.current_state()
+                    .units()[&unit_id].player_id.clone();
                 if player_id == *self.core.player_id() {
                     self.select_unit(context, &unit_id);
                 } else if let Some(attacker_id) = self.selected_unit_id.clone() {
@@ -932,7 +927,7 @@ impl TacticalScreen {
         let origin_world_pos = geom::map_pos_to_world_pos(&origin);
         let mut closest_map_pos = origin.clone();
         let mut min_dist = (origin_world_pos.v - p.v).length();
-        let state = &self.player_info.get_mut(self.core.player_id()).game_state;
+        let state = self.current_state();
         for map_pos in spiral_iter(&origin, 1) {
             let pos = geom::map_pos_to_world_pos(&map_pos);
             let d = (pos.v - p.v).length();
