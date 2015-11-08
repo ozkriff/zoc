@@ -5,6 +5,7 @@ use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
 use game_state::{GameState};
+use state::{State};
 use dir::{Dir};
 
 #[derive(Clone)]

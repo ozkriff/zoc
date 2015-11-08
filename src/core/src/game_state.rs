@@ -6,9 +6,11 @@ use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
+use state::{State};
 use fow::{Fow};
 use ::{CoreEvent};
 
+// TODO: rename to PartialState? SubjectiveState?
 pub struct GameState {
     state: InternalState,
     fow: Fow,
@@ -22,31 +24,33 @@ impl<'a> GameState {
         }
     }
 
-    pub fn units(&self) -> &HashMap<UnitId, Unit> {
-        &self.state.units()
-    }
-
-    pub fn unit(&'a self, id: &UnitId) -> &'a Unit {
-        self.state.unit(id)
-    }
-
-    pub fn map(&'a self) -> &Map<Terrain> {
-        &self.state.map()
-    }
-
-    pub fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
-        self.state.units_at(pos)
-    }
-
     pub fn is_tile_visible(&self, pos: &MapPos) -> bool {
         self.fow.is_tile_visible(pos)
     }
+}
 
-    pub fn is_tile_occupied(&self, pos: &MapPos) -> bool {
+impl<'a> State<'a> for GameState {
+    fn units(&self) -> &HashMap<UnitId, Unit> {
+        &self.state.units()
+    }
+
+    fn unit(&'a self, id: &UnitId) -> &'a Unit {
+        self.state.unit(id)
+    }
+
+    fn map(&'a self) -> &Map<Terrain> {
+        &self.state.map()
+    }
+
+    fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
+        self.state.units_at(pos)
+    }
+
+    fn is_tile_occupied(&self, pos: &MapPos) -> bool {
         self.state.is_tile_occupied(pos)
     }
 
-    pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
+    fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         self.state.apply_event(db, event);
         self.fow.apply_event(db, &self.state, event);
     }

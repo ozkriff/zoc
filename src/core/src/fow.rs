@@ -2,6 +2,7 @@
 
 use common::types::{PlayerId, MapPos, Size2, ZInt};
 use internal_state::{InternalState};
+use state::{State};
 use map::{Map, Terrain, distance};
 use fov::{fov};
 use db::{Db};

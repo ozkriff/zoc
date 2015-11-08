@@ -3,6 +3,7 @@
 use cgmath::{Vector2, rad};
 use common::types::{UnitId};
 use core::game_state::GameState;
+use core::state::{State};
 use zgl::misc::{add_quad_to_vec};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;

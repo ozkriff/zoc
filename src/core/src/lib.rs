@@ -11,6 +11,7 @@ pub mod db;
 pub mod unit;
 pub mod dir;
 pub mod game_state;
+pub mod state;
 pub mod pathfinder;
 
 mod ai;
@@ -28,6 +29,7 @@ use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use common::misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState};
+use state::{State};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};

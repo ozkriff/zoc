@@ -6,6 +6,7 @@ use common::types::{PlayerId, UnitId, MapPos, Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
+use state::{State};
 use ::{CoreEvent, MoveMode, FireMode, UnitInfo, ReactionFireMode};
 
 pub enum InfoLevel {
@@ -31,33 +32,6 @@ impl<'a> InternalState {
             units: HashMap::new(),
             map: map,
         }
-    }
-
-    pub fn units(&self) -> &HashMap<UnitId, Unit> {
-        &self.units
-    }
-
-    pub fn unit(&'a self, id: &UnitId) -> &'a Unit {
-        &self.units[id]
-    }
-
-    pub fn map(&'a self) -> &Map<Terrain> {
-        &self.map
-    }
-
-    pub fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
-        let mut units = Vec::new();
-        for (_, unit) in &self.units {
-            if unit.pos == *pos {
-                units.push(unit);
-            }
-        }
-        units
-    }
-
-    pub fn is_tile_occupied(&self, pos: &MapPos) -> bool {
-        // TODO: optimize
-        self.units_at(pos).len() > 0
     }
 
     /// Converts active ap (attack points) to reactive
@@ -113,8 +87,36 @@ impl<'a> InternalState {
             },
         });
     }
+}
 
-    pub fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
+impl<'a> State<'a> for InternalState {
+    fn units(&self) -> &HashMap<UnitId, Unit> {
+        &self.units
+    }
+
+    fn unit(&'a self, id: &UnitId) -> &'a Unit {
+        &self.units[id]
+    }
+
+    fn map(&'a self) -> &Map<Terrain> {
+        &self.map
+    }
+
+    fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
+        let mut units = Vec::new();
+        for (_, unit) in &self.units {
+            if unit.pos == *pos {
+                units.push(unit);
+            }
+        }
+        units
+    }
+
+    fn is_tile_occupied(&self, pos: &MapPos) -> bool {
+        self.units_at(pos).len() > 0
+    }
+
+    fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
                 let pos = path.destination().clone();

@@ -5,6 +5,7 @@ use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
 use common::types::{ZFloat, UnitId, ZInt, MapPos};
 use core::game_state::GameState;
+use core::state::{State};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode};
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};

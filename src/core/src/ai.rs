@@ -2,6 +2,7 @@
 
 use common::types::{Size2, ZInt, PlayerId, MapPos};
 use game_state::{GameState};
+use state::{State};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
