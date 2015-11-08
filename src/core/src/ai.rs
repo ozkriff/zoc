@@ -95,7 +95,7 @@ impl Ai {
         false
     }
 
-    pub fn try_get_move_command(&mut self, db: &Db) -> Option<Command> {
+    pub fn try_get_attack_command(&mut self, db: &Db) -> Option<Command> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
@@ -130,7 +130,7 @@ impl Ai {
         None
     }
 
-    pub fn try_get_attack_command(&mut self, db: &Db) -> Option<Command> {
+    pub fn try_get_move_command(&mut self, db: &Db) -> Option<Command> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
