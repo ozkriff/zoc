@@ -8,7 +8,7 @@ use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use ::{CoreEvent, Command, MoveMode, los};
+use ::{CoreEvent, Command, MoveMode, check_command};
 
 pub struct Ai {
     id: PlayerId,
@@ -105,27 +105,17 @@ impl Ai {
             if unit.attack_points <= 0 {
                 continue;
             }
-            let unit_type = db.unit_type(&unit.type_id);
             for (_, target) in self.state.units() {
                 if target.player_id == self.id {
                     continue;
                 }
-                // TODO: merge attack possibility handling with core.rs
-                let attacker_type = db.unit_type(&unit.type_id);
-                let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-                if distance(&unit.pos, &target.pos) > weapon_type.max_distance {
-                    continue;
-                }
-                if distance(&unit.pos, &target.pos) < weapon_type.min_distance {
-                    continue;
-                }
-                if !los(self.state.map(), unit_type, &unit.pos, &target.pos) {
-                    continue;
-                }
-                return Some(Command::AttackUnit {
+                let command = Command::AttackUnit {
                     attacker_id: unit.id.clone(),
                     defender_id: target.id.clone(),
-                });
+                };
+                if let Ok(()) = check_command(db, &self.state, &command) {
+                    return Some(command);
+                }
             }
         }
         None
@@ -140,6 +130,7 @@ impl Ai {
                 continue;
             }
             self.pathfinder.fill_map(db, &self.state, unit);
+            // TODO: if no enemy is visible then move to random invisible tile
             let destination = match self.get_best_pos() {
                 Some(destination) => destination,
                 None => continue,

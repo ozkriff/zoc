@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::error::{Error};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
@@ -26,7 +27,7 @@ use zgl::types::{ScreenPos, VertexCoord, TextureCoord, Time, WorldPos};
 use zgl::{self, Zgl, MeshRenderMode};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
-use core::map::{Map, distance, Terrain, spiral_iter};
+use core::map::{Map, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::game_state::GameState;
 use core::state::{State};
@@ -38,10 +39,10 @@ use core::{
     Command,
     MoveMode,
     ReactionFireMode,
-    los,
+    check_command,
     get_unit_id_at,
 };
-use core::unit::{Unit, UnitClass};
+use core::unit::{UnitClass};
 use core::db::{Db};
 use zgl::texture::{Texture};
 use zgl::obj;
@@ -430,35 +431,15 @@ impl TacticalScreen {
             self.map_text_manager.add_text(&pos, "No selected unit");
             return;
         };
-        let transporter = state.unit(&transporter_id);
-        if !self.core.db().unit_type(&transporter.type_id).is_transporter {
-            self.map_text_manager.add_text(&pos, "Not transporter");
-            return;
-        }
-        match self.core.db().unit_type(&passanger.type_id).class {
-            UnitClass::Infantry => {},
-            _ => {
-                self.map_text_manager.add_text(&pos, "Bad passanger class");
-                return;
-            }
-        }
-        if transporter.passanger_id.is_some() {
-            self.map_text_manager.add_text(&pos, "Transporter is not empty");
-            return;
-        }
-        if distance(&transporter.pos, &pos) > 1 {
-            self.map_text_manager.add_text(&pos, "Distance > 1");
-            return;
-        }
-        // TODO: 0 -> real move cost of transport tile for passanger
-        if passanger.move_points == 0 {
-            self.map_text_manager.add_text(&pos, "Passanger move point == 0");
-            return;
-        }
-        self.core.do_command(Command::LoadUnit {
+        let command = Command::LoadUnit {
             transporter_id: transporter_id,
             passanger_id: passanger_id.clone(),
-        });
+        };
+        if let Err(err) = check_command(self.core.db(), state, &command) {
+            self.map_text_manager.add_text(&pos, err.description());
+            return;
+        }
+        self.core.do_command(command);
     }
 
     fn unload_unit(&mut self, pos: &MapPos) {
@@ -470,16 +451,6 @@ impl TacticalScreen {
             return;
         };
         let transporter = state.unit(&transporter_id);
-        // TODO: Duplicate all this checks ib Core
-        // TODO: check that tile is empty and walkable for passanger
-        if !self.core.db().unit_type(&transporter.type_id).is_transporter {
-            self.map_text_manager.add_text(&pos, "Not transporter");
-            return;
-        }
-        if distance(&transporter.pos, &pos) > 1 {
-            self.map_text_manager.add_text(&pos, "Distance > 1");
-            return;
-        }
         let passanger_id = match transporter.passanger_id.clone() {
             Some(id) => id,
             None => {
@@ -487,15 +458,16 @@ impl TacticalScreen {
                 return;
             },
         };
-        if state.units_at(pos).len() > 0 {
-            self.map_text_manager.add_text(&pos, "Destination tile is not empty");
-            return;
-        }
-        self.core.do_command(Command::UnloadUnit {
+        let command = Command::UnloadUnit {
             transporter_id: transporter_id,
             passanger_id: passanger_id,
             pos: pos.clone(),
-        });
+        };
+        if let Err(err) = check_command(self.core.db(), state, &command) {
+            self.map_text_manager.add_text(&pos, err.description());
+            return;
+        }
+        self.core.do_command(command);
     }
 
     fn change_reaction_fire_mode(&mut self, context: &Context) {
@@ -557,52 +529,18 @@ impl TacticalScreen {
         }
     }
 
-    pub fn los(&self, unit: &Unit, from: &MapPos, to: &MapPos) -> bool {
-        let unit_type = self.core.db().unit_type(&unit.type_id);
-        let map = self.current_state().map();
-        los(map, unit_type, from, to)
-    }
-
     fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
-        let attacker = &state.unit(attacker_id);
-        let defender = &state.unit(defender_id);
-        if attacker.attack_points <= 0 {
-            self.map_text_manager.add_text(
-                &defender.pos, "No attack points");
-            return;
-        }
-        if attacker.morale < 50 {
-            self.map_text_manager.add_text(
-                &defender.pos, "Can`t attack when suppressed");
-            return;
-        }
-        // TODO: merge error handling of visualizer and core
-        {
-            let attacker_type = self.core.db().unit_type(&attacker.type_id);
-            let weapon_type = self.core.db().weapon_type(&attacker_type.weapon_type_id);
-            let max_distance = weapon_type.max_distance;
-            let min_distance = weapon_type.min_distance;
-            if distance(&attacker.pos, &defender.pos) > max_distance {
-                self.map_text_manager.add_text(
-                    &defender.pos, "Out of range");
-                return;
-            }
-            if distance(&attacker.pos, &defender.pos) < min_distance {
-                self.map_text_manager.add_text(
-                    &defender.pos, "Too close");
-                return;
-            }
-        }
-        if !self.los(attacker, &attacker.pos, &defender.pos) {
-            self.map_text_manager.add_text(
-                &defender.pos, "No LOS");
-            return;
-        }
-        self.core.do_command(Command::AttackUnit {
+        let command = Command::AttackUnit {
             attacker_id: attacker_id.clone(),
             defender_id: defender_id.clone(),
-        });
+        };
+        if let Err(err) = check_command(self.core.db(), state, &command) {
+            let defender = &state.unit(defender_id);
+            self.map_text_manager.add_text(&defender.pos, err.description());
+            return;
+        }
+        self.core.do_command(command);
     }
 
     fn select_unit(&mut self, context: &Context, unit_id: &UnitId) {
@@ -624,31 +562,26 @@ impl TacticalScreen {
             Some(ref unit_id) => unit_id.clone(),
             None => return,
         };
-        if self.is_tile_occupied(&pos) {
-            return;
-        }
         let i = self.player_info.get_mut(self.core.player_id());
-        let unit = i.game_state.unit(&unit_id);
-        if let Some(path) = i.pathfinder.get_path(&pos) {
-            let cost = if let &MoveMode::Hunt = move_mode {
-                path.total_cost().n * 2
-            } else {
-                path.total_cost().n
-            };
-            if cost > unit.move_points {
+        let state = &i.game_state;
+        let path = match i.pathfinder.get_path(&pos) {
+            Some(path) => path,
+            None => {
                 self.map_text_manager.add_text(
-                    &pos, "Not enough move points");
+                    &pos, "Can not reach this tile");
                 return;
             }
-            self.core.do_command(Command::Move {
-                unit_id: unit_id,
-                path: path,
-                mode: move_mode.clone(),
-            });
-        } else {
-            self.map_text_manager.add_text(
-                &pos, "Can not reach this tile");
+        };
+        let command = Command::Move {
+            unit_id: unit_id,
+            path: path,
+            mode: move_mode.clone(),
+        };
+        if let Err(err) = check_command(self.core.db(), state, &command) {
+            self.map_text_manager.add_text(&pos, err.description());
+            return;
         }
+        self.core.do_command(command);
     }
 
     fn handle_camera_move(&mut self, context: &Context, pos: &ScreenPos) {
@@ -752,6 +685,7 @@ impl TacticalScreen {
     }
 
     fn print_info(&mut self, context: &Context) {
+        // TODO: move this to `fn Core::get_unit_info(...) -> &str`?
         let pick_result = self.pick_tile(context);
         match pick_result {
             PickResult::UnitId(ref id) => self.print_unit_info(id),

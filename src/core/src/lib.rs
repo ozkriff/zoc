@@ -179,6 +179,229 @@ struct PlayerInfo {
     visible_enemies: HashSet<UnitId>,
 }
 
+#[derive(Debug)]
+pub enum CommandError {
+    TileIsOccupied,
+    NotEnoughMovePoints,
+    NotEnoughAttackPoints,
+    NotEnoughReactiveAttackPoints,
+    BadMorale,
+    OutOfRange,
+    TooClose,
+    NoLos,
+    BadTransporterClass,
+    BadPassangerClass,
+    TransporterIsNotEmpty,
+    TransporterIsEmpty,
+    TransporterIsTooFarAway,
+    PassangerHasNotEnoughMovePoints,
+    UnloadDistanceIsTooBig,
+    DestinationTileIsNotEmpty,
+    BadUnitId,
+    BadTransporterId,
+    BadPassangerId,
+    BadAttackerId,
+    BadDefenderId,
+    BadPath,
+}
+
+impl CommandError {
+    fn to_str(&self) -> &str {
+        match *self {
+            CommandError::TileIsOccupied => "Tile is occupied",
+            CommandError::NotEnoughMovePoints => "Not enough move points",
+            CommandError::NotEnoughAttackPoints => "No attack points",
+            CommandError::NotEnoughReactiveAttackPoints => "No reactive attack points",
+            CommandError::BadMorale => "Can`t attack when suppresset",
+            CommandError::OutOfRange => "Out of range",
+            CommandError::TooClose => "Too close",
+            CommandError::NoLos => "No Line of Sight",
+            CommandError::BadTransporterClass => "Bad transporter class",
+            CommandError::BadPassangerClass => "Bad passanger class",
+            CommandError::TransporterIsNotEmpty => "Transporter is not empty",
+            CommandError::TransporterIsEmpty => "Transporter is empty",
+            CommandError::TransporterIsTooFarAway => "Transporter is too far away",
+            CommandError::PassangerHasNotEnoughMovePoints => "Passanger has not enough move points",
+            CommandError::UnloadDistanceIsTooBig => "Unload pos it too far away",
+            CommandError::DestinationTileIsNotEmpty => "Destination tile is not empty",
+            CommandError::BadUnitId => "Bad unit id",
+            CommandError::BadTransporterId => "Bad transporter id",
+            CommandError::BadPassangerId => "Bad passanger id",
+            CommandError::BadAttackerId => "Bad attacker id",
+            CommandError::BadDefenderId => "Bad defender id",
+            CommandError::BadPath => "Bad path",
+        }
+    }
+}
+
+impl std::fmt::Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(self.to_str())
+    }
+}
+
+impl std::error::Error for CommandError {
+    fn description(&self) -> &str {
+        self.to_str()
+    }
+}
+
+fn check_attack_at<'a, S: State<'a>>(
+    db: &Db,
+    state: &'a S,
+    attacker_id: &UnitId,
+    defender_id: &UnitId,
+    defender_pos: &MapPos,
+    fire_mode: &FireMode,
+) -> Result<(), CommandError> {
+    if state.units().get(attacker_id).is_none() {
+        return Err(CommandError::BadAttackerId);
+    }
+    if state.units().get(defender_id).is_none() {
+        return Err(CommandError::BadDefenderId);
+    }
+    let attacker = state.unit(attacker_id);
+    let reactive_attack_points = attacker.reactive_attack_points.unwrap();
+    match *fire_mode {
+        FireMode::Active => if attacker.attack_points <= 0 {
+            return Err(CommandError::NotEnoughAttackPoints);
+        },
+        FireMode::Reactive => if reactive_attack_points <= 0 {
+            return Err(CommandError::NotEnoughReactiveAttackPoints);
+        },
+    }
+    // TODO: magic number
+    if attacker.morale < 50 {
+        return Err(CommandError::BadMorale);
+    }
+    let attacker_type = db.unit_type(&attacker.type_id);
+    let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
+    if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
+        return Err(CommandError::OutOfRange);
+    }
+    if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
+        return Err(CommandError::TooClose);
+    }
+    if !los(state.map(), attacker_type, &attacker.pos, defender_pos) {
+        return Err(CommandError::NoLos);
+    }
+    Ok(())
+}
+
+fn check_attack<'a, S: State<'a>>(
+    db: &Db,
+    state: &'a S,
+    attacker_id: &UnitId,
+    defender_id: &UnitId,
+) -> Result<(), CommandError> {
+    let defender = state.unit(defender_id);
+    check_attack_at(db, state, attacker_id, defender_id, &defender.pos, &FireMode::Active)
+}
+
+pub fn check_command<'a, S: State<'a>>(
+    db: &Db,
+    state: &'a S,
+    command: &Command,
+) -> Result<(), CommandError> {
+    match command {
+        &Command::EndTurn => Ok(()),
+        &Command::CreateUnit{ref pos} => {
+            if state.is_tile_occupied(pos) {
+                Err(CommandError::TileIsOccupied)
+            } else {
+                Ok(())
+            }
+        },
+        &Command::Move{ref unit_id, ref path, ref mode} => {
+            if state.units().get(unit_id).is_none() {
+                return Err(CommandError::BadUnitId);
+            }
+            // unit stands at first pos
+            for i in 1 .. path.nodes().len() {
+                let pos = &path.nodes()[i].pos;
+                if state.is_tile_occupied(pos) {
+                    return Err(CommandError::BadPath);
+                }
+            }
+            let unit = state.unit(&unit_id);
+            let cost_modifier = match mode {
+                &MoveMode::Fast => 1,
+                &MoveMode::Hunt => 2,
+            };
+            // TODO: we believe that path's cost is correct. this is bad.
+            let cost = path.total_cost().n * cost_modifier;
+            if cost > unit.move_points {
+                return Err(CommandError::NotEnoughMovePoints);
+            }
+            Ok(())
+        },
+        &Command::AttackUnit{ref attacker_id, ref defender_id} => {
+            check_attack(db, state, attacker_id, defender_id)
+        },
+        &Command::LoadUnit{ref transporter_id, ref passanger_id} => {
+            if state.units().get(transporter_id).is_none() {
+                return Err(CommandError::BadTransporterId);
+            }
+            if state.units().get(passanger_id).is_none() {
+                return Err(CommandError::BadPassangerId);
+            }
+            let passanger = state.unit(&passanger_id);
+            let pos = passanger.pos.clone();
+            let transporter = state.unit(&transporter_id);
+            if !db.unit_type(&transporter.type_id).is_transporter {
+                return Err(CommandError::BadTransporterClass);
+            }
+            match db.unit_type(&passanger.type_id).class {
+                UnitClass::Infantry => {},
+                _ => {
+                    return Err(CommandError::BadPassangerClass);
+                }
+            }
+            if transporter.passanger_id.is_some() {
+                return Err(CommandError::TransporterIsNotEmpty);
+            }
+            if distance(&transporter.pos, &pos) > 1 {
+                return Err(CommandError::TransporterIsTooFarAway);
+            }
+            // TODO: 0 -> real move cost of transport tile for passanger
+            if passanger.move_points == 0 {
+                return Err(CommandError::PassangerHasNotEnoughMovePoints);
+            }
+            Ok(())
+        },
+        &Command::UnloadUnit{ref transporter_id, ref passanger_id, ref pos} => {
+            if state.units().get(transporter_id).is_none() {
+                return Err(CommandError::BadTransporterId);
+            }
+            if state.units().get(passanger_id).is_none() {
+                return Err(CommandError::BadPassangerId);
+            }
+            let transporter = state.unit(&transporter_id);
+            if !db.unit_type(&transporter.type_id).is_transporter {
+                return Err(CommandError::BadTransporterClass);
+            }
+            if distance(&transporter.pos, &pos) > 1 {
+                return Err(CommandError::UnloadDistanceIsTooBig);
+            }
+            if let None = transporter.passanger_id {
+                return Err(CommandError::TransporterIsEmpty);
+            }
+            if state.is_tile_occupied(pos) {
+                return Err(CommandError::DestinationTileIsNotEmpty);
+            }
+            // TODO: check that tile is walkable for passanger
+            Ok(())
+        },
+        &Command::SetReactionFireMode{ref unit_id, ..} => {
+            if state.units().get(unit_id).is_none() {
+                Err(CommandError::BadUnitId)
+            } else {
+                Ok(())
+            }
+        },
+    }
+}
+
 #[derive(PartialEq, Eq)]
 pub enum GameType {
     Hotseat,
@@ -293,7 +516,7 @@ impl Core {
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
         if self.state.is_tile_occupied(pos) {
-            println!("Sorry, tile is occupied");
+            println!("Sorry, tile is occupied"); // TODO: ?
             return;
         }
         let new_unit_id = self.get_new_unit_id();
@@ -378,11 +601,6 @@ impl Core {
         i.events.pop_front()
     }
 
-    // TODO: &UnitType -> &UnitId? &Unit?
-    fn los(&self, unit_type: &UnitType, from: &MapPos, to: &MapPos) -> bool {
-        los(self.state.map(), unit_type, from, to)
-    }
-
     fn command_attack_unit_to_event(
         &self,
         attacker_id: &UnitId,
@@ -392,18 +610,15 @@ impl Core {
     ) -> Option<CoreEvent> {
         let attacker = self.state.unit(&attacker_id);
         let defender = self.state.unit(&defender_id);
-        let attacker_type = self.db.unit_type(&attacker.type_id);
-        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
-            return None;
-        }
-        if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
-            return None;
-        }
-        if !self.los(attacker_type, &attacker.pos, defender_pos) {
-            return None;
-        }
-        if attacker.morale < 50 {
+        let check_attack_result = check_attack_at(
+            &self.db,
+            &self.state,
+            attacker_id,
+            defender_id,
+            defender_pos,
+            fire_mode,
+        );
+        if let Err(..) = check_attack_result {
             return None;
         }
         let killed = cmp::min(
@@ -411,13 +626,13 @@ impl Core {
         let fow = &self.players_info[&defender.player_id].fow;
         let is_visible = fow.is_visible(
             &self.db, &self.state, attacker, &attacker.pos);
-        let is_ambush = !is_visible && thread_rng().gen_range(1, 10) > 3;
+        let is_ambush = !is_visible && thread_rng().gen_range(1, 10) > 3; // TODO: remove magic
         let attack_info = AttackInfo {
             attacker_id: Some(attacker_id.clone()),
             defender_id: defender_id.clone(),
             killed: killed,
             mode: fire_mode.clone(),
-            suppression: 10 + 20 * killed,
+            suppression: 10 + 20 * killed, // TODO: remove magic
             remove_move_points: false,
             is_ambush: is_ambush,
         };
@@ -431,34 +646,18 @@ impl Core {
         attacker: &Unit,
     ) -> bool {
         assert!(attacker.player_id != defender.player_id);
-        let enemy_reactive_attack_points = attacker.reactive_attack_points
-            .expect("Core must know about everything").clone();
-        if enemy_reactive_attack_points <= 0 {
-            return false;
-        }
-        if attacker.morale < 50 {
-            return false;
-        }
-        let fow = &self.players_info[&attacker.player_id].fow;
-        if !fow.is_visible(&self.db, &self.state, defender, defender_pos) {
-            return false;
-        }
-        let attacker_type = self.db.unit_type(&attacker.type_id);
-        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
-            return false;
-        }
-        if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
-            return false;
-        }
-        let enemy_type = self.db.unit_type(&attacker.type_id);
-        if !self.los(enemy_type, &attacker.pos, defender_pos) {
-            return false;
-        }
         if let ReactionFireMode::HoldFire = attacker.reaction_fire_mode {
             return false;
         }
-        true
+        let check_attack_result = check_attack_at(
+            &self.db,
+            &self.state,
+            &attacker.id,
+            &defender.id,
+            defender_pos,
+            &FireMode::Reactive,
+        );
+        check_attack_result.is_ok()
     }
 
     fn reaction_fire_check(&self, unit_id: &UnitId, pos: &MapPos) -> bool {
@@ -543,6 +742,10 @@ impl Core {
     }
 
     fn simulation_step(&mut self, command: Command) {
+        if let Err(err) = check_command(&self.db, &self.state, &command) {
+            println!("Bad command: {:?}", err);
+            return;
+        }
         match command {
             Command::EndTurn => {
                 let old_id = self.current_player_id.id;
