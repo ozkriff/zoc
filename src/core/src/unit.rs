@@ -23,7 +23,7 @@ pub struct Unit {
     pub reaction_fire_mode: ReactionFireMode,
     pub count: ZInt,
     pub morale: ZInt,
-    pub passanger_id: Option<UnitId>,
+    pub passenger_id: Option<UnitId>,
 }
 
 pub struct WeaponType {

@@ -63,8 +63,8 @@ pub enum Command {
     EndTurn,
     CreateUnit{pos: MapPos},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
-    LoadUnit{transporter_id: UnitId, passanger_id: UnitId},
-    UnloadUnit{transporter_id: UnitId, passanger_id: UnitId, pos: MapPos},
+    LoadUnit{transporter_id: UnitId, passenger_id: UnitId},
+    UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: MapPos},
     SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
 }
 
@@ -74,7 +74,7 @@ pub struct UnitInfo {
     pub pos: MapPos,
     pub type_id: UnitTypeId,
     pub player_id: PlayerId,
-    pub passanger_id: Option<UnitId>,
+    pub passenger_id: Option<UnitId>,
 }
 
 #[derive(Clone)]
@@ -113,7 +113,7 @@ pub enum CoreEvent {
     },
     LoadUnit {
         transporter_id: UnitId,
-        passanger_id: UnitId,
+        passenger_id: UnitId,
     },
     UnloadUnit {
         unit_info: UnitInfo,
@@ -149,9 +149,9 @@ pub fn get_unit_id_at(db: &Db, state: &GameState, pos: &MapPos) -> Option<UnitId
                 continue;
             }
             let transporter = state.unit(&transporter_id);
-            if let Some(ref passanger_id) = transporter.passanger_id {
-                if *passanger_id != unit.id {
-                    panic!("Non-passanger unit in multiunit tile");
+            if let Some(ref passenger_id) = transporter.passenger_id {
+                if *passenger_id != unit.id {
+                    panic!("Non-passenger unit in multiunit tile");
                 }
             } else {
                 panic!("Multiple units in tile, but transporter is empty");
@@ -169,7 +169,7 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
         pos: unit.pos.clone(),
         type_id: unit.type_id.clone(),
         player_id: unit.player_id.clone(),
-        passanger_id: unit.passanger_id.clone(),
+        passenger_id: unit.passenger_id.clone(),
     }
 }
 
@@ -190,16 +190,16 @@ pub enum CommandError {
     TooClose,
     NoLos,
     BadTransporterClass,
-    BadPassangerClass,
+    BadPassengerClass,
     TransporterIsNotEmpty,
     TransporterIsEmpty,
     TransporterIsTooFarAway,
-    PassangerHasNotEnoughMovePoints,
+    PassengerHasNotEnoughMovePoints,
     UnloadDistanceIsTooBig,
     DestinationTileIsNotEmpty,
     BadUnitId,
     BadTransporterId,
-    BadPassangerId,
+    BadPassengerId,
     BadAttackerId,
     BadDefenderId,
     BadPath,
@@ -217,16 +217,16 @@ impl CommandError {
             CommandError::TooClose => "Too close",
             CommandError::NoLos => "No Line of Sight",
             CommandError::BadTransporterClass => "Bad transporter class",
-            CommandError::BadPassangerClass => "Bad passanger class",
+            CommandError::BadPassengerClass => "Bad passenger class",
             CommandError::TransporterIsNotEmpty => "Transporter is not empty",
             CommandError::TransporterIsEmpty => "Transporter is empty",
             CommandError::TransporterIsTooFarAway => "Transporter is too far away",
-            CommandError::PassangerHasNotEnoughMovePoints => "Passanger has not enough move points",
+            CommandError::PassengerHasNotEnoughMovePoints => "Passenger has not enough move points",
             CommandError::UnloadDistanceIsTooBig => "Unload pos it too far away",
             CommandError::DestinationTileIsNotEmpty => "Destination tile is not empty",
             CommandError::BadUnitId => "Bad unit id",
             CommandError::BadTransporterId => "Bad transporter id",
-            CommandError::BadPassangerId => "Bad passanger id",
+            CommandError::BadPassengerId => "Bad passenger id",
             CommandError::BadAttackerId => "Bad attacker id",
             CommandError::BadDefenderId => "Bad defender id",
             CommandError::BadPath => "Bad path",
@@ -338,43 +338,43 @@ pub fn check_command<'a, S: State<'a>>(
         &Command::AttackUnit{ref attacker_id, ref defender_id} => {
             check_attack(db, state, attacker_id, defender_id)
         },
-        &Command::LoadUnit{ref transporter_id, ref passanger_id} => {
+        &Command::LoadUnit{ref transporter_id, ref passenger_id} => {
             if state.units().get(transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
-            if state.units().get(passanger_id).is_none() {
-                return Err(CommandError::BadPassangerId);
+            if state.units().get(passenger_id).is_none() {
+                return Err(CommandError::BadPassengerId);
             }
-            let passanger = state.unit(&passanger_id);
-            let pos = passanger.pos.clone();
+            let passenger = state.unit(&passenger_id);
+            let pos = passenger.pos.clone();
             let transporter = state.unit(&transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
-            match db.unit_type(&passanger.type_id).class {
+            match db.unit_type(&passenger.type_id).class {
                 UnitClass::Infantry => {},
                 _ => {
-                    return Err(CommandError::BadPassangerClass);
+                    return Err(CommandError::BadPassengerClass);
                 }
             }
-            if transporter.passanger_id.is_some() {
+            if transporter.passenger_id.is_some() {
                 return Err(CommandError::TransporterIsNotEmpty);
             }
             if distance(&transporter.pos, &pos) > 1 {
                 return Err(CommandError::TransporterIsTooFarAway);
             }
-            // TODO: 0 -> real move cost of transport tile for passanger
-            if passanger.move_points == 0 {
-                return Err(CommandError::PassangerHasNotEnoughMovePoints);
+            // TODO: 0 -> real move cost of transport tile for passenger
+            if passenger.move_points == 0 {
+                return Err(CommandError::PassengerHasNotEnoughMovePoints);
             }
             Ok(())
         },
-        &Command::UnloadUnit{ref transporter_id, ref passanger_id, ref pos} => {
+        &Command::UnloadUnit{ref transporter_id, ref passenger_id, ref pos} => {
             if state.units().get(transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
-            if state.units().get(passanger_id).is_none() {
-                return Err(CommandError::BadPassangerId);
+            if state.units().get(passenger_id).is_none() {
+                return Err(CommandError::BadPassengerId);
             }
             let transporter = state.unit(&transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
@@ -383,13 +383,13 @@ pub fn check_command<'a, S: State<'a>>(
             if distance(&transporter.pos, &pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
-            if let None = transporter.passanger_id {
+            if let None = transporter.passenger_id {
                 return Err(CommandError::TransporterIsEmpty);
             }
             if state.is_tile_occupied(pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
-            // TODO: check that tile is walkable for passanger
+            // TODO: check that tile is walkable for passenger
             Ok(())
         },
         &Command::SetReactionFireMode{ref unit_id, ..} => {
@@ -526,7 +526,7 @@ impl Core {
                 pos: pos.clone(),
                 type_id: type_id.clone(),
                 player_id: player_id.clone(),
-                passanger_id: None,
+                passenger_id: None,
             },
         };
         self.do_core_event(&event);
@@ -767,7 +767,7 @@ impl Core {
                         pos: pos,
                         type_id: self.db.unit_type_id("soldier"),
                         player_id: self.current_player_id.clone(),
-                        passanger_id: None,
+                        passenger_id: None,
                     },
                 };
                 self.do_core_event(&event);
@@ -787,25 +787,25 @@ impl Core {
                     self.reaction_fire(&attacker_id, &attacker_pos);
                 }
             },
-            Command::LoadUnit{transporter_id, passanger_id} => {
+            Command::LoadUnit{transporter_id, passenger_id} => {
                 self.do_core_event(&CoreEvent::LoadUnit {
                     transporter_id: transporter_id,
-                    passanger_id: passanger_id,
+                    passenger_id: passenger_id,
                 });
             },
-            Command::UnloadUnit{transporter_id, passanger_id, pos} => {
+            Command::UnloadUnit{transporter_id, passenger_id, pos} => {
                 let event = {
-                    let passanger = self.state.unit(&passanger_id);
+                    let passenger = self.state.unit(&passenger_id);
                     CoreEvent::UnloadUnit {
                         transporter_id: transporter_id,
                         unit_info: UnitInfo {
                             pos: pos.clone(),
-                            .. unit_to_info(passanger)
+                            .. unit_to_info(passenger)
                         },
                     }
                 };
                 self.do_core_event(&event);
-                self.reaction_fire(&passanger_id, &pos);
+                self.reaction_fire(&passenger_id, &pos);
             },
             Command::SetReactionFireMode{unit_id, mode} => {
                 self.do_core_event(&CoreEvent::SetReactionFireMode {

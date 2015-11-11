@@ -180,20 +180,20 @@ pub fn filter_events(
         },
         &CoreEvent::ShowUnit{..} => panic!(),
         &CoreEvent::HideUnit{..} => panic!(),
-        &CoreEvent::LoadUnit{ref passanger_id, ..} => {
-            let passanger = state.unit(passanger_id);
-            if passanger.player_id == *player_id {
+        &CoreEvent::LoadUnit{ref passenger_id, ..} => {
+            let passenger = state.unit(passenger_id);
+            if passenger.player_id == *player_id {
                 events.push(event.clone());
-            } else if fow.is_visible(db, state, passanger, &passanger.pos) {
+            } else if fow.is_visible(db, state, passenger, &passenger.pos) {
                 events.push(event.clone());
             }
         },
         &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
             active_unit_ids.insert(unit_info.unit_id.clone());
-            let passanger = state.unit(&unit_info.unit_id);
-            if passanger.player_id == *player_id {
+            let passenger = state.unit(&unit_info.unit_id);
+            if passenger.player_id == *player_id {
                 events.push(event.clone());
-            } else if fow.is_visible(db, state, passanger, &unit_info.pos) {
+            } else if fow.is_visible(db, state, passenger, &unit_info.pos) {
                 let transporter = state.unit(transporter_id);
                 if !fow.is_visible(db, state, transporter, &transporter.pos) {
                     events.push(CoreEvent::ShowUnit {

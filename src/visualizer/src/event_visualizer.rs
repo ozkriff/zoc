@@ -473,7 +473,7 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
 }
 
 pub struct EventLoadUnitVisualizer {
-    passanger_id: UnitId,
+    passenger_id: UnitId,
     move_helper: MoveHelper,
 }
 
@@ -495,7 +495,7 @@ impl EventLoadUnitVisualizer {
         unit_node.rot = geom::get_rot_angle(&from, &to);
         let move_speed = unit_type_visual_info.move_speed;
         Box::new(EventLoadUnitVisualizer {
-            passanger_id: unit_id.clone(),
+            passenger_id: unit_id.clone(),
             move_helper: MoveHelper::new(&from, &to, move_speed),
         })
     }
@@ -507,15 +507,15 @@ impl EventVisualizer for EventLoadUnitVisualizer {
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
-        let node_id = unit_id_to_node_id(&self.passanger_id);
+        let node_id = unit_id_to_node_id(&self.passenger_id);
         let node = scene.node_mut(&node_id);
         node.pos = self.move_helper.step(dtime);
     }
 
 
     fn end(&mut self, scene: &mut Scene, _: &GameState) {
-        scene.nodes.remove(&unit_id_to_node_id(&self.passanger_id));
-        scene.nodes.remove(&marker_id(&self.passanger_id));
+        scene.nodes.remove(&unit_id_to_node_id(&self.passenger_id));
+        scene.nodes.remove(&marker_id(&self.passenger_id));
     }
 }
 

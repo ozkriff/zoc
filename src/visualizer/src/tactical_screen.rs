@@ -421,10 +421,10 @@ impl TacticalScreen {
         self.current_state().is_tile_occupied(pos)
     }
 
-    fn load_unit(&mut self, passanger_id: &UnitId) {
+    fn load_unit(&mut self, passenger_id: &UnitId) {
         let state = &self.player_info.get(self.core.player_id()).game_state;
-        let passanger = state.unit(&passanger_id);
-        let pos = passanger.pos.clone();
+        let passenger = state.unit(&passenger_id);
+        let pos = passenger.pos.clone();
         let transporter_id = if let Some(id) = self.selected_unit_id.clone() {
             id
         } else {
@@ -433,7 +433,7 @@ impl TacticalScreen {
         };
         let command = Command::LoadUnit {
             transporter_id: transporter_id,
-            passanger_id: passanger_id.clone(),
+            passenger_id: passenger_id.clone(),
         };
         if let Err(err) = check_command(self.core.db(), state, &command) {
             self.map_text_manager.add_text(&pos, err.description());
@@ -451,7 +451,7 @@ impl TacticalScreen {
             return;
         };
         let transporter = state.unit(&transporter_id);
-        let passanger_id = match transporter.passanger_id.clone() {
+        let passenger_id = match transporter.passenger_id.clone() {
             Some(id) => id,
             None => {
                 self.map_text_manager.add_text(&pos, "Transporter is empty");
@@ -460,7 +460,7 @@ impl TacticalScreen {
         };
         let command = Command::UnloadUnit {
             transporter_id: transporter_id,
-            passanger_id: passanger_id,
+            passenger_id: passenger_id,
             pos: pos.clone(),
         };
         if let Err(err) = check_command(self.core.db(), state, &command) {
@@ -500,8 +500,8 @@ impl TacticalScreen {
             PickResult::Pos(ref pos) => {
                 self.unload_unit(pos);
             },
-            PickResult::UnitId(ref passanger_id) => {
-                self.load_unit(passanger_id);
+            PickResult::UnitId(ref passenger_id) => {
+                self.load_unit(passenger_id);
             },
             PickResult::None => {},
         }
@@ -945,14 +945,14 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::LoadUnit{ref passanger_id, ref transporter_id} => {
-                let type_id = state.unit(passanger_id).type_id.clone();
+            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id} => {
+                let type_id = state.unit(passenger_id).type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
                 EventLoadUnitVisualizer::new(
                     scene,
                     state,
-                    passanger_id,
+                    passenger_id,
                     &state.unit(transporter_id).pos,
                     unit_type_visual_info,
                     &mut self.map_text_manager,

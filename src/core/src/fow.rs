@@ -105,8 +105,8 @@ impl Fow {
         pos: &MapPos,
     ) -> bool {
         for (_, other_unit) in state.units() {
-            if let Some(ref passanger_id) = other_unit.passanger_id {
-                if *passanger_id == unit.id {
+            if let Some(ref passenger_id) = other_unit.passenger_id {
+                if *passenger_id == unit.id {
                     return false;
                 }
             }

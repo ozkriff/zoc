@@ -80,8 +80,8 @@ impl<'a> InternalState {
             reaction_fire_mode: ReactionFireMode::Normal,
             count: unit_type.count,
             morale: 100,
-            passanger_id: if let InfoLevel::Full = info_level {
-                unit_info.passanger_id.clone()
+            passenger_id: if let InfoLevel::Full = info_level {
+                unit_info.passenger_id.clone()
             } else {
                 None
             },
@@ -125,7 +125,7 @@ impl<'a> State<'a> for InternalState {
                 unit.pos = pos;
                 assert!(unit.move_points > 0);
                 if db.unit_type(&unit.type_id).is_transporter {
-                    // TODO: get passanger and update its pos
+                    // TODO: get passenger and update its pos
                 }
                 if let &MoveMode::Fast = mode {
                     unit.move_points -= path.total_cost().n;
@@ -153,7 +153,7 @@ impl<'a> State<'a> for InternalState {
                 }
                 let count = self.units[&attack_info.defender_id].count.clone();
                 if count <= 0 {
-                    // TODO: kill\unload passangers
+                    // TODO: kill\unload passengers
                     assert!(self.units.get(&attack_info.defender_id).is_some());
                     self.units.remove(&attack_info.defender_id);
                 }
@@ -185,21 +185,21 @@ impl<'a> State<'a> for InternalState {
                 assert!(self.units.get(unit_id).is_some());
                 self.units.remove(unit_id);
             },
-            &CoreEvent::LoadUnit{ref passanger_id, ref transporter_id} => {
-                // TODO: hide info abiut passanger from enemy player
+            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id} => {
+                // TODO: hide info abiut passenger from enemy player
                 self.units.get_mut(transporter_id)
                     .expect("Bad transporter_id")
-                    .passanger_id = Some(passanger_id.clone());
+                    .passenger_id = Some(passenger_id.clone());
                 let transporter_pos = self.units[transporter_id].pos.clone();
-                let passanger = self.units.get_mut(passanger_id)
-                    .expect("Bad passanger_id");
-                passanger.pos = transporter_pos;
-                passanger.move_points = 0;
+                let passenger = self.units.get_mut(passenger_id)
+                    .expect("Bad passenger_id");
+                passenger.pos = transporter_pos;
+                passenger.move_points = 0;
             },
             &CoreEvent::UnloadUnit{ref transporter_id, ref unit_info} => {
                 self.units.get_mut(transporter_id)
                     .expect("Bad transporter_id")
-                    .passanger_id = None;
+                    .passenger_id = None;
                 if let Some(unit) = self.units.get_mut(&unit_info.unit_id) {
                     unit.pos = unit_info.pos.clone();
                     return;
