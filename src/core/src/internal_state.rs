@@ -6,7 +6,7 @@ use common::types::{PlayerId, UnitId, MapPos, Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use state::{State};
+use game_state::{GameState};
 use ::{CoreEvent, MoveMode, FireMode, UnitInfo, ReactionFireMode};
 
 pub enum InfoLevel {
@@ -89,7 +89,7 @@ impl<'a> InternalState {
     }
 }
 
-impl<'a> State<'a> for InternalState {
+impl<'a> GameState<'a> for InternalState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
         &self.units
     }

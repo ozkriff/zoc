@@ -4,8 +4,8 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
 use common::types::{ZFloat, UnitId, ZInt, MapPos};
-use core::game_state::GameState;
-use core::state::{State};
+use core::partial_state::{PartialState};
+use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode};
 use core::unit::{UnitTypeId};
 use core::pathfinder::{MapPath};
@@ -35,7 +35,7 @@ fn marker_id(unit_id: &UnitId) -> NodeId {
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
     fn draw(&mut self, scene: &mut Scene, dtime: &Time);
-    fn end(&mut self, scene: &mut Scene, state: &GameState);
+    fn end(&mut self, scene: &mut Scene, state: &PartialState);
 }
 
 // TODO: store CoreEvent
@@ -69,7 +69,7 @@ impl EventVisualizer for EventMoveVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &GameState) {
+    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
         assert!(self.path.len() == 1);
         let node_id = unit_id_to_node_id(&self.unit_id);
         let node = scene.node_mut(&node_id);
@@ -144,7 +144,7 @@ impl EventVisualizer for EventEndTurnVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: &Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 fn show_unit_at(
@@ -238,7 +238,7 @@ impl EventVisualizer for EventCreateUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 fn vec3_z(z: ZFloat) -> Vector3<ZFloat> {
@@ -255,7 +255,7 @@ pub struct EventAttackUnitVisualizer {
 
 impl EventAttackUnitVisualizer {
     pub fn new(
-        state: &GameState,
+        state: &PartialState,
         scene: &mut Scene,
         attack_info: &AttackInfo,
         shell_mesh_id: &MeshId,
@@ -354,7 +354,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &GameState) {
+    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
         let node_id = unit_id_to_node_id(&self.defender_id);
         if self.killed > 0 {
             let children = &mut scene.node_mut(&node_id).children;
@@ -395,7 +395,7 @@ impl EventVisualizer for EventShowUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: &Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 pub struct EventHideUnitVisualizer;
@@ -403,7 +403,7 @@ pub struct EventHideUnitVisualizer;
 impl EventHideUnitVisualizer {
     pub fn new(
         scene: &mut Scene,
-        state: &GameState,
+        state: &PartialState,
         unit_id: &UnitId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
@@ -423,7 +423,7 @@ impl EventVisualizer for EventHideUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: &Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 pub struct EventUnloadUnitVisualizer {
@@ -469,7 +469,7 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 pub struct EventLoadUnitVisualizer {
@@ -480,7 +480,7 @@ pub struct EventLoadUnitVisualizer {
 impl EventLoadUnitVisualizer {
     pub fn new(
         scene: &mut Scene,
-        state: &GameState,
+        state: &PartialState,
         unit_id: &UnitId,
         transporter_pos: &MapPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
@@ -513,7 +513,7 @@ impl EventVisualizer for EventLoadUnitVisualizer {
     }
 
 
-    fn end(&mut self, scene: &mut Scene, _: &GameState) {
+    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
         scene.nodes.remove(&unit_id_to_node_id(&self.passenger_id));
         scene.nodes.remove(&marker_id(&self.passenger_id));
     }
@@ -523,7 +523,7 @@ pub struct EventSetReactionFireModeVisualizer;
 
 impl EventSetReactionFireModeVisualizer {
     pub fn new(
-        state: &GameState,
+        state: &PartialState,
         unit_id: &UnitId,
         mode: &ReactionFireMode,
         map_text: &mut MapTextManager,
@@ -548,7 +548,7 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: &Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &GameState) {}
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
 

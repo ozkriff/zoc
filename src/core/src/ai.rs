@@ -2,7 +2,7 @@
 
 use common::types::{Size2, ZInt, PlayerId, MapPos};
 use game_state::{GameState};
-use state::{State};
+use partial_state::{PartialState};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};
 use dir::{Dir};
@@ -12,7 +12,7 @@ use ::{CoreEvent, Command, MoveMode, check_command};
 
 pub struct Ai {
     id: PlayerId,
-    state: GameState,
+    state: PartialState,
     pathfinder: Pathfinder,
 }
 
@@ -20,7 +20,7 @@ impl Ai {
     pub fn new(id: &PlayerId, map_size: &Size2) -> Ai {
         Ai {
             id: id.clone(),
-            state: GameState::new(map_size, id),
+            state: PartialState::new(map_size, id),
             pathfinder: Pathfinder::new(map_size),
         }
     }

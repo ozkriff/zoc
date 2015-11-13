@@ -4,8 +4,8 @@ use common::types::{ZInt, MapPos, Size2};
 use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
+use partial_state::{PartialState};
 use game_state::{GameState};
-use state::{State};
 use dir::{Dir};
 
 #[derive(Clone)]
@@ -63,7 +63,7 @@ impl Tile {
 
 const MAX_COST: MoveCost = MoveCost{n: 30000};
 
-fn tile_cost(db: &Db, state: &GameState, unit: &Unit, pos: &MapPos)
+fn tile_cost(db: &Db, state: &PartialState, unit: &Unit, pos: &MapPos)
     -> MoveCost
 {
     let unit_type = db.unit_type(&unit.type_id);
@@ -104,7 +104,7 @@ impl Pathfinder {
     fn process_neighbour_pos(
         &mut self,
         db: &Db,
-        state: &GameState,
+        state: &PartialState,
         unit: &Unit,
         original_pos: &MapPos,
         neighbour_pos: &MapPos
@@ -133,7 +133,7 @@ impl Pathfinder {
     fn try_to_push_neighbours(
         &mut self,
         db: &Db,
-        state: &GameState,
+        state: &PartialState,
         unit: &Unit,
         pos: MapPos,
     ) {
@@ -155,7 +155,7 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, db: &Db, state: &GameState, unit: &Unit) {
+    pub fn fill_map(&mut self, db: &Db, state: &PartialState, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos.clone());

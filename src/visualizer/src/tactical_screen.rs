@@ -29,8 +29,8 @@ use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
 use core::map::{Map, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
-use core::game_state::GameState;
-use core::state::{State};
+use core::partial_state::{PartialState};
+use core::game_state::{GameState};
 use core::pathfinder::Pathfinder;
 use core::{
     self,
@@ -83,7 +83,7 @@ fn get_max_camera_pos(map_size: &Size2) -> WorldPos {
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
-fn gen_tiles<F>(zgl: &Zgl, state: &GameState, tex: &Texture, cond: F) -> Mesh
+fn gen_tiles<F>(zgl: &Zgl, state: &PartialState, tex: &Texture, cond: F) -> Mesh
     where F: Fn(bool) -> bool
 {
     let mut vertex_data = Vec::new();
@@ -110,11 +110,11 @@ fn gen_tiles<F>(zgl: &Zgl, state: &GameState, tex: &Texture, cond: F) -> Mesh
     mesh
 }
 
-fn generate_visible_tiles_mesh(zgl: &Zgl, state: &GameState, tex: &Texture) -> Mesh {
+fn generate_visible_tiles_mesh(zgl: &Zgl, state: &PartialState, tex: &Texture) -> Mesh {
     gen_tiles(zgl, state, tex, |vis| vis)
 }
 
-fn generate_fogged_tiles_mesh(zgl: &Zgl, state: &GameState, tex: &Texture) -> Mesh {
+fn generate_fogged_tiles_mesh(zgl: &Zgl, state: &PartialState, tex: &Texture) -> Mesh {
     gen_tiles(zgl, state, tex, |vis| !vis)
 }
 
@@ -217,7 +217,7 @@ fn get_unit_type_visual_info(
 }
 
 struct PlayerInfo {
-    game_state: GameState,
+    game_state: PartialState,
     pathfinder: Pathfinder,
     scene: Scene,
 }
@@ -230,12 +230,12 @@ impl PlayerInfoManager {
     fn new(map_size: &Size2) -> PlayerInfoManager {
         let mut m = HashMap::new();
         m.insert(PlayerId{id: 0}, PlayerInfo {
-            game_state: GameState::new(map_size, &PlayerId{id: 0}),
+            game_state: PartialState::new(map_size, &PlayerId{id: 0}),
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
         });
         m.insert(PlayerId{id: 1}, PlayerInfo {
-            game_state: GameState::new(map_size, &PlayerId{id: 1}),
+            game_state: PartialState::new(map_size, &PlayerId{id: 1}),
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
         });
@@ -413,7 +413,7 @@ impl TacticalScreen {
         self.walkable_mesh = None;
     }
 
-    fn current_state(&self) -> &GameState {
+    fn current_state(&self) -> &PartialState {
         &self.player_info.get(self.core.player_id()).game_state
     }
 

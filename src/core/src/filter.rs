@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use common::types::{UnitId, PlayerId};
 use internal_state::{InternalState};
-use state::{State};
+use game_state::{GameState};
 use pathfinder::{MapPath, PathNode, MoveCost};
 use unit::{Unit};
 use db::{Db};

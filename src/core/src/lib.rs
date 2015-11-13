@@ -10,8 +10,8 @@ pub mod map;
 pub mod db;
 pub mod unit;
 pub mod dir;
+pub mod partial_state;
 pub mod game_state;
-pub mod state;
 pub mod pathfinder;
 
 mod ai;
@@ -29,7 +29,7 @@ use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use common::misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState};
-use state::{State};
+use partial_state::{PartialState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
@@ -136,7 +136,7 @@ fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
     transporter_id
 }
 
-pub fn get_unit_id_at(db: &Db, state: &GameState, pos: &MapPos) -> Option<UnitId> {
+pub fn get_unit_id_at(db: &Db, state: &PartialState, pos: &MapPos) -> Option<UnitId> {
     let units_at = state.units_at(pos);
     if units_at.len() == 1 {
         let unit_id = units_at[0].id.clone();
@@ -246,7 +246,7 @@ impl std::error::Error for CommandError {
     }
 }
 
-fn check_attack_at<'a, S: State<'a>>(
+fn check_attack_at<'a, S: GameState<'a>>(
     db: &Db,
     state: &'a S,
     attacker_id: &UnitId,
@@ -288,7 +288,7 @@ fn check_attack_at<'a, S: State<'a>>(
     Ok(())
 }
 
-fn check_attack<'a, S: State<'a>>(
+fn check_attack<'a, S: GameState<'a>>(
     db: &Db,
     state: &'a S,
     attacker_id: &UnitId,
@@ -298,7 +298,7 @@ fn check_attack<'a, S: State<'a>>(
     check_attack_at(db, state, attacker_id, defender_id, &defender.pos, &FireMode::Active)
 }
 
-pub fn check_command<'a, S: State<'a>>(
+pub fn check_command<'a, S: GameState<'a>>(
     db: &Db,
     state: &'a S,
     command: &Command,

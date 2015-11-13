@@ -2,8 +2,8 @@
 
 use cgmath::{Vector2, rad};
 use common::types::{UnitId};
-use core::game_state::GameState;
-use core::state::{State};
+use core::partial_state::{PartialState};
+use core::game_state::{GameState};
 use zgl::misc::{add_quad_to_vec};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;
@@ -33,7 +33,7 @@ impl SelectionManager {
         self.unit_id = Some(unit_id);
     }
 
-    fn get_pos(&self, state: &GameState) -> WorldPos {
+    fn get_pos(&self, state: &PartialState) -> WorldPos {
         let unit_id = self.unit_id.clone()
             .expect("Can`t get pos if no unit is selected");
         let map_pos = state.units()[&unit_id].pos.clone();
@@ -41,7 +41,7 @@ impl SelectionManager {
     }
 
     /*
-    pub fn move_selection_marker(&self, state: &GameState, scene: &mut Scene) {
+    pub fn move_selection_marker(&self, state: &PartialState, scene: &mut Scene) {
         let node = scene.node(&SELECTION_NODE_ID);
         node.pos = self.get_pos(state);
     }
@@ -49,7 +49,7 @@ impl SelectionManager {
 
     pub fn create_selection_marker(
         &mut self,
-        state: &GameState,
+        state: &PartialState,
         scene: &mut Scene,
         unit_id: &UnitId,
     ) {
