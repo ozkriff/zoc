@@ -34,10 +34,6 @@ impl<'a> State<'a> for GameState {
         &self.state.units()
     }
 
-    fn unit(&'a self, id: &UnitId) -> &'a Unit {
-        self.state.unit(id)
-    }
-
     fn map(&'a self) -> &Map<Terrain> {
         &self.state.map()
     }
