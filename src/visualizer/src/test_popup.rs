@@ -98,11 +98,8 @@ impl Screen for TestPopup {
                 self.handle_event_lmb_release(context);
             },
             Event::Touch(glutin::Touch{phase, ..}) => {
-                match phase {
-                    glutin::TouchPhase::Ended => {
-                        self.handle_event_lmb_release(context);
-                    },
-                    _ => {},
+                if let glutin::TouchPhase::Ended = phase {
+                    self.handle_event_lmb_release(context);
                 }
             },
             glutin::Event::KeyboardInput(Released, _, Some(key)) => {
