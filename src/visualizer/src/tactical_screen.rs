@@ -266,6 +266,7 @@ pub struct TacticalScreen {
     map_text_manager: MapTextManager,
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
+    button_deselect_unit_id: ButtonId,
     player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
@@ -314,11 +315,12 @@ impl TacticalScreen {
         let mut font_stash = FontStash::new(
             &context.zgl, "DroidSerif-Regular.ttf", font_size);
         let mut button_manager = ButtonManager::new();
-        let button_end_turn_id = button_manager.add_button(Button::new(
-            context,
-            "end turn",
-            &ScreenPos{v: Vector2{x: 10, y: 10}})
-        );
+        let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
+        let button_end_turn_id = button_manager.add_button(
+            Button::new(context, "end turn", &pos));
+        pos.v.y += button_manager.buttons()[&button_end_turn_id].size().h;
+        let button_deselect_unit_id = button_manager.add_button(
+            Button::new(context, "[X]", &pos));
         let mesh_ids = MeshIdManager {
             trees_mesh_id: trees_mesh_id,
             shell_mesh_id: shell_mesh_id,
@@ -331,6 +333,7 @@ impl TacticalScreen {
             camera: camera,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
+            button_deselect_unit_id: button_deselect_unit_id,
             player_info: player_info,
             core: core,
             event: None,
@@ -407,6 +410,10 @@ impl TacticalScreen {
 
     fn end_turn(&mut self) {
         self.core.do_command(Command::EndTurn);
+        self.deselect_unit();
+    }
+
+    fn deselect_unit(&mut self) {
         self.selected_unit_id = None;
         let i = self.player_info.get_mut(self.core.player_id());
         self.selection_manager.deselect(&mut i.scene);
@@ -784,6 +791,8 @@ impl TacticalScreen {
     fn handle_event_button_press(&mut self, button_id: &ButtonId) {
         if *button_id == self.button_end_turn_id {
             self.end_turn();
+        } else if *button_id == self.button_deselect_unit_id {
+            self.deselect_unit();
         } else {
             panic!("BUTTON ID ERROR");
         }
