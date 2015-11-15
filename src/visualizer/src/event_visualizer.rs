@@ -217,7 +217,7 @@ impl EventCreateUnitVisualizer {
         let to = geom::map_pos_to_world_pos(&unit_info.pos);
         let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
-        let move_helper = MoveHelper::new(&from, &to, 1.0);
+        let move_helper = MoveHelper::new(&from, &to, 2.0);
         let new_node = scene.node_mut(&node_id);
         new_node.pos = from.clone();
         Box::new(EventCreateUnitVisualizer {
