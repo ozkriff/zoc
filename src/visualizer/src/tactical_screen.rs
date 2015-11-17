@@ -31,7 +31,7 @@ use core::map::{Map, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
-use core::pathfinder::Pathfinder;
+use core::pathfinder::{Pathfinder};
 use core::{
     self,
     Core,
@@ -72,7 +72,7 @@ use map_text::{MapTextManager};
 use context::{Context};
 use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
-use test_popup::{self, TestPopup};
+use context_menu_popup::{self, ContextMenuPopup};
 
 fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -256,11 +256,29 @@ impl PlayerInfoManager {
     }
 }
 
-#[derive(Clone)]
-enum PickResult {
+#[derive(Clone, PartialEq)]
+pub enum PickResult {
     Pos(MapPos),
     UnitId(UnitId),
-    None,
+    None, // TODO: remove this field, use Option
+}
+
+impl PickResult {
+    pub fn pos(&self) -> MapPos {
+        if let &PickResult::Pos(ref pos) = self {
+            pos.clone()
+        } else {
+            panic!("Error getting pos from PickResult")
+        }
+    }
+
+    pub fn unit_id(&self) -> UnitId {
+        if let &PickResult::UnitId(ref id) = self {
+            id.clone()
+        } else {
+            panic!("Error getting unit_id from PickResult")
+        }
+    }
 }
 
 pub struct TacticalScreen {
@@ -285,8 +303,8 @@ pub struct TacticalScreen {
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
     floor_tex: Texture,
-    tx: Sender<test_popup::Command>,
-    rx: Receiver<test_popup::Command>,
+    tx: Sender<context_menu_popup::Command>,
+    rx: Receiver<context_menu_popup::Command>,
 }
 
 impl TacticalScreen {
@@ -440,99 +458,94 @@ impl TacticalScreen {
         self.current_state().is_tile_occupied(pos)
     }
 
-    fn load_unit(&mut self, passenger_id: &UnitId) {
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        let passenger = state.unit(&passenger_id);
-        let pos = passenger.pos.clone();
-        let transporter_id = if let Some(id) = self.selected_unit_id.clone() {
-            id
-        } else {
-            self.map_text_manager.add_text(&pos, "No selected unit");
-            return;
-        };
-        let command = Command::LoadUnit {
-            transporter_id: transporter_id,
-            passenger_id: passenger_id.clone(),
-        };
-        if let Err(err) = check_command(self.core.db(), state, &command) {
-            self.map_text_manager.add_text(&pos, err.description());
-            return;
-        }
-        self.core.do_command(command);
-    }
-
-    fn unload_unit(&mut self, pos: &MapPos) {
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        let transporter_id = if let Some(id) = self.selected_unit_id.clone() {
-            id
-        } else {
-            self.map_text_manager.add_text(&pos, "No selected unit");
-            return;
-        };
+    fn can_unload_unit(&self, transporter_id: &UnitId, pos: &MapPos) -> bool {
+        let state = self.current_state();
         let transporter = state.unit(&transporter_id);
-        let passenger_id = match transporter.passenger_id.clone() {
-            Some(id) => id,
-            None => {
-                self.map_text_manager.add_text(&pos, "Transporter is empty");
+        let passenger_id = match transporter.passenger_id {
+            Some(ref id) => id.clone(),
+            None => return false,
+        };
+        check_command(self.core.db(), state, &Command::UnloadUnit {
+            transporter_id: transporter_id.clone(),
+            passenger_id: passenger_id.clone(),
+            pos: pos.clone(),
+        }).is_ok()
+    }
+
+    // TODO: show commands preview
+    fn try_create_context_menu_popup(
+        &mut self,
+        context: &mut Context,
+        selected_unit_id: &UnitId,
+        pick_result: &PickResult,
+    ) {
+        // TODO: extract func 'context_context_menu_options'
+        let mut options = context_menu_popup::Options::new();
+        match pick_result {
+            &PickResult::UnitId(ref unit_id) => {
+                let state = self.current_state();
+                let db = self.core.db();
+                let player_id = self.current_state().unit(unit_id)
+                    .player_id.clone();
+                if player_id == *self.core.player_id() {
+                    if *unit_id == *selected_unit_id {
+                        // TODO: do not show both options if unit has no weapons
+                        let unit = state.unit(&unit_id);
+                        options.show_enable_reaction_fire
+                            = unit.reaction_fire_mode == ReactionFireMode::HoldFire;
+                        options.show_disable_reaction_fire
+                            = unit.reaction_fire_mode == ReactionFireMode::Normal;
+                    } else {
+                        options.show_select_button = true;
+                        let command = Command::LoadUnit {
+                            transporter_id: selected_unit_id.clone(),
+                            passenger_id: unit_id.clone(),
+                        };
+                        options.show_load_button = check_command(
+                            db, state, &command).is_ok()
+                    }
+                } else {
+                    let command = Command::AttackUnit {
+                        attacker_id: selected_unit_id.clone(),
+                        defender_id: unit_id.clone(),
+                    };
+                    options.show_attack_button = check_command(
+                        db, state, &command).is_ok()
+                }
+            },
+            &PickResult::Pos(ref pos) => {
+                let db = self.core.db();
+                let i = self.player_info.get(self.core.player_id());
+                let state = &i.game_state;
+                assert!(!self.is_tile_occupied(&pos));
+                let path = match i.pathfinder.get_path(&pos) {
+                    Some(path) => path,
+                    None => return,
+                };
+                options.show_move_button = check_command(db, state, &Command::Move {
+                    unit_id: selected_unit_id.clone(),
+                    path: path.clone(),
+                    mode: MoveMode::Fast,
+                }).is_ok();
+                options.show_hunt_button = check_command(db, state, &Command::Move {
+                    unit_id: selected_unit_id.clone(),
+                    path: path.clone(),
+                    mode: MoveMode::Hunt,
+                }).is_ok();
+                options.show_unload_button = self.can_unload_unit(
+                    &selected_unit_id, pos);
+            },
+            &PickResult::None => {
                 return;
             },
         };
-        let command = Command::UnloadUnit {
-            transporter_id: transporter_id,
-            passenger_id: passenger_id,
-            pos: pos.clone(),
-        };
-        if let Err(err) = check_command(self.core.db(), state, &command) {
-            self.map_text_manager.add_text(&pos, err.description());
+        if options == context_menu_popup::Options::new() {
             return;
         }
-        self.core.do_command(command);
-    }
-
-    fn change_reaction_fire_mode(&mut self, context: &Context) {
-        let pick_result = self.pick_tile(context);
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        let unit_id = match pick_result {
-            PickResult::UnitId(ref id) => id,
-            PickResult::Pos(ref pos) => {
-                self.map_text_manager.add_text(pos, "No selected unit");
-                return;
-            },
-            PickResult::None => {
-                return;
-            },
-        };
-        let unit = state.unit(&unit_id);
-        let mode = match unit.reaction_fire_mode {
-            ReactionFireMode::Normal => ReactionFireMode::HoldFire,
-            ReactionFireMode::HoldFire => ReactionFireMode::Normal,
-        };
-        self.core.do_command(Command::SetReactionFireMode {
-            unit_id: unit_id.clone(),
-            mode: mode,
-        });
-    }
-
-    fn transport(&mut self, context: &Context) {
-        let pick_result = self.pick_tile(context);
-        match pick_result {
-            PickResult::Pos(ref pos) => {
-                self.unload_unit(pos);
-            },
-            PickResult::UnitId(ref passenger_id) => {
-                self.load_unit(passenger_id);
-            },
-            PickResult::None => {},
-        }
-    }
-
-    fn create_test_popup(&mut self, context: &mut Context) {
-        let options = test_popup::Options {
-            .. Default::default()
-        };
+        options.pick_result =  pick_result.clone();
         let mut pos = context.mouse().pos.clone();
         pos.v.y = context.win_size.h - pos.v.y;
-        let screen = TestPopup::new(
+        let screen = ContextMenuPopup::new(
             context, &pos, options, self.tx.clone());
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
     }
@@ -548,20 +561,7 @@ impl TacticalScreen {
         }
     }
 
-    fn attack_unit(&mut self, attacker_id: &UnitId, defender_id: &UnitId) {
-        let state = &self.player_info.get(self.core.player_id()).game_state;
-        let command = Command::AttackUnit {
-            attacker_id: attacker_id.clone(),
-            defender_id: defender_id.clone(),
-        };
-        if let Err(err) = check_command(self.core.db(), state, &command) {
-            let defender = &state.unit(defender_id);
-            self.map_text_manager.add_text(&defender.pos, err.description());
-            return;
-        }
-        self.core.do_command(command);
-    }
-
+    // TODO: add ability to select enemy units
     fn select_unit(&mut self, context: &Context, unit_id: &UnitId) {
         self.selected_unit_id = Some(unit_id.clone());
         let mut i = self.player_info.get_mut(self.core.player_id());
@@ -577,30 +577,15 @@ impl TacticalScreen {
     }
 
     fn move_unit(&mut self, pos: &MapPos, move_mode: &MoveMode) {
-        let unit_id = match self.selected_unit_id {
-            Some(ref unit_id) => unit_id.clone(),
-            None => return,
-        };
+        let unit_id = self.selected_unit_id.as_ref().unwrap();
+        assert!(!self.is_tile_occupied(&pos));
         let i = self.player_info.get_mut(self.core.player_id());
-        let state = &i.game_state;
-        let path = match i.pathfinder.get_path(&pos) {
-            Some(path) => path,
-            None => {
-                self.map_text_manager.add_text(
-                    &pos, "Can not reach this tile");
-                return;
-            }
-        };
-        let command = Command::Move {
-            unit_id: unit_id,
+        let path = i.pathfinder.get_path(&pos).unwrap();
+        self.core.do_command(Command::Move {
+            unit_id: unit_id.clone(),
             path: path,
             mode: move_mode.clone(),
-        };
-        if let Err(err) = check_command(self.core.db(), state, &command) {
-            self.map_text_manager.add_text(&pos, err.description());
-            return;
-        }
-        self.core.do_command(command);
+        });
     }
 
     fn handle_camera_move(&mut self, context: &Context, pos: &ScreenPos) {
@@ -739,20 +724,6 @@ impl TacticalScreen {
             VirtualKeyCode::U => {
                 self.create_unit(context);
             },
-            VirtualKeyCode::L => {
-                self.transport(context);
-            },
-            VirtualKeyCode::R => {
-                self.change_reaction_fire_mode(context);
-            },
-            VirtualKeyCode::H => {
-                let pick_result = self.pick_tile(context);
-                if let PickResult::Pos(pos) = pick_result {
-                    self.move_unit(&pos, &MoveMode::Hunt);
-                } else {
-                    panic!("Can`t move unit if no pos is selected");
-                }
-            },
             VirtualKeyCode::C => {
                 let p = self.pick_world_pos(context);
                 self.add_marker(&p);
@@ -763,15 +734,11 @@ impl TacticalScreen {
             VirtualKeyCode::Equals | VirtualKeyCode::Key2 => {
                 self.camera.change_zoom(0.7);
             },
-            // TODO
-            VirtualKeyCode::Key3 => {
-                self.create_test_popup(context);
-            },
             _ => println!("Unknown key pressed"),
         }
     }
 
-    fn handle_event_lmb_release(&mut self, context: &Context) {
+    fn handle_event_lmb_release(&mut self, context: &mut Context) {
         if self.event_visualizer.is_some() {
             return;
         }
@@ -783,20 +750,10 @@ impl TacticalScreen {
             self.handle_event_button_press(context, &button_id);
             return;
         }
-        match pick_result {
-            PickResult::Pos(pos) => {
-                self.move_unit(&pos, &MoveMode::Fast);
-            },
-            PickResult::UnitId(unit_id) => {
-                let player_id = self.current_state()
-                    .unit(&unit_id).player_id.clone();
-                if player_id == *self.core.player_id() {
-                    self.select_unit(context, &unit_id);
-                } else if let Some(attacker_id) = self.selected_unit_id.clone() {
-                    self.attack_unit(&attacker_id, &unit_id);
-                }
-            },
-            PickResult::None => {},
+        if let Some(id) = self.selected_unit_id.clone() {
+            self.try_create_context_menu_popup(context, &id, &pick_result);
+        } else if let PickResult::UnitId(ref unit_id) = pick_result {
+            self.select_unit(context, unit_id);
         }
     }
 
@@ -1112,11 +1069,54 @@ impl TacticalScreen {
         }
     }
 
-    fn handle_test_popup_commands(&mut self) {
+    fn handle_context_menu_popup_commands(&mut self, context: &Context) {
         while let Ok(command) = self.rx.try_recv() {
+            let selected_unit_id = self.selected_unit_id.clone().unwrap();
             match command {
-                test_popup::Command::Test => {
-                    println!("Good work, TestPopup!");
+                context_menu_popup::Command::Select{id} => {
+                    self.select_unit(context, &id);
+                },
+                context_menu_popup::Command::Move{pos} => {
+                    self.move_unit(&pos, &MoveMode::Fast);
+                },
+                context_menu_popup::Command::Hunt{pos} => {
+                    self.move_unit(&pos, &MoveMode::Hunt);
+                },
+                context_menu_popup::Command::Attack{id} => {
+                    self.core.do_command(Command::AttackUnit {
+                        attacker_id: selected_unit_id.clone(),
+                        defender_id: id.clone(),
+                    });
+                },
+                context_menu_popup::Command::LoadUnit{passenger_id} => {
+                    self.core.do_command(Command::LoadUnit {
+                        transporter_id: selected_unit_id.clone(),
+                        passenger_id: passenger_id.clone(),
+                    });
+                },
+                context_menu_popup::Command::UnloadUnit{pos} => {
+                    let passenger_id = {
+                        let transporter = self.current_state()
+                            .unit(&selected_unit_id);
+                        transporter.passenger_id.clone().unwrap()
+                    };
+                    self.core.do_command(Command::UnloadUnit {
+                        transporter_id: selected_unit_id.clone(),
+                        passenger_id: passenger_id.clone(),
+                        pos: pos.clone(),
+                    });
+                },
+                context_menu_popup::Command::EnableReactionFire{id} => {
+                    self.core.do_command(Command::SetReactionFireMode {
+                        unit_id: id,
+                        mode: ReactionFireMode::Normal,
+                    });
+                },
+                context_menu_popup::Command::DisableReactionFire{id} => {
+                    self.core.do_command(Command::SetReactionFireMode {
+                        unit_id: id,
+                        mode: ReactionFireMode::HoldFire,
+                    });
                 },
             }
         }
@@ -1127,7 +1127,7 @@ impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: &Time) {
         self.logic(context);
         self.draw(context, dtime);
-        self.handle_test_popup_commands();
+        self.handle_context_menu_popup_commands(context);
     }
 
     fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {

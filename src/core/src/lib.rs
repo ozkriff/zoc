@@ -45,7 +45,7 @@ pub enum FireMode {
     Reactive,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ReactionFireMode {
     Normal,
     HoldFire,

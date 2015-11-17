@@ -19,7 +19,7 @@ mod move_helper;
 mod geom;
 mod screen;
 mod tactical_screen;
-mod test_popup;
+mod context_menu_popup;
 mod main_menu_screen;
 mod context;
 

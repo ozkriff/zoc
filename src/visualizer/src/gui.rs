@@ -19,6 +19,10 @@ pub fn is_tap(context: &Context) -> bool {
     x.abs() < tolerance && y.abs() < tolerance
 }
 
+pub fn basic_text_size(context: &Context) -> ZFloat {
+    (context.win_size.h as ZFloat) / 400.0 // TODO: magic num
+}
+
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct ButtonId {pub id: ZInt}
 
@@ -30,7 +34,7 @@ pub struct Button {
 
 impl Button {
     pub fn new(context: &mut Context, label: &str, pos: &ScreenPos) -> Button {
-        let text_size = (context.win_size.h as ZFloat) / 400.0; // TODO: 400?
+        let text_size = basic_text_size(context);
         let (_, size) = context.font_stash.get_text_size(&context.zgl, label);
         Button {
             pos: pos.clone(),
