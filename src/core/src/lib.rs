@@ -136,6 +136,40 @@ fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
     transporter_id
 }
 
+// TODO: simplify/optimize
+pub fn find_next_player_unit_id(
+    state: &GameState,
+    player_id: &PlayerId,
+    unit_id: &UnitId,
+) -> UnitId {
+    let mut i = state.units().iter().cycle().filter(
+        |&(_, unit)| unit.player_id == *player_id);
+    while let Some((id, _)) = i.next() {
+        if *id == *unit_id {
+            let (id, _) = i.next().unwrap();
+            return id.clone();
+        }
+    }
+    unreachable!()
+}
+
+// TODO: simplify/optimize
+pub fn find_prev_player_unit_id(
+    state: &GameState,
+    player_id: &PlayerId,
+    unit_id: &UnitId,
+) -> UnitId {
+    let mut i = state.units().iter().cycle().filter(
+        |&(_, unit)| unit.player_id == *player_id).peekable();
+    while let Some((id, _)) = i.next() {
+        let &(next_id, _) = i.peek().clone().unwrap();
+        if *next_id == *unit_id {
+            return id.clone();
+        }
+    }
+    unreachable!()
+}
+
 pub fn get_unit_id_at(db: &Db, state: &PartialState, pos: &MapPos) -> Option<UnitId> {
     let units_at = state.units_at(pos);
     if units_at.len() == 1 {

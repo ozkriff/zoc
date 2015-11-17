@@ -41,6 +41,8 @@ use core::{
     ReactionFireMode,
     check_command,
     get_unit_id_at,
+    find_next_player_unit_id,
+    find_prev_player_unit_id,
 };
 use core::unit::{UnitClass};
 use core::db::{Db};
@@ -267,6 +269,8 @@ pub struct TacticalScreen {
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
     button_deselect_unit_id: ButtonId,
+    button_next_unit_id: ButtonId,
+    button_prev_unit_id: ButtonId,
     player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
@@ -321,6 +325,12 @@ impl TacticalScreen {
         pos.v.y += button_manager.buttons()[&button_end_turn_id].size().h;
         let button_deselect_unit_id = button_manager.add_button(
             Button::new(context, "[X]", &pos));
+        pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
+        let button_prev_unit_id = button_manager.add_button(
+            Button::new(context, "[<]", &pos));
+        pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
+        let button_next_unit_id = button_manager.add_button(
+            Button::new(context, "[>]", &pos));
         let mesh_ids = MeshIdManager {
             trees_mesh_id: trees_mesh_id,
             shell_mesh_id: shell_mesh_id,
@@ -334,6 +344,8 @@ impl TacticalScreen {
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
             button_deselect_unit_id: button_deselect_unit_id,
+            button_prev_unit_id: button_prev_unit_id,
+            button_next_unit_id: button_next_unit_id,
             player_info: player_info,
             core: core,
             event: None,
@@ -768,7 +780,7 @@ impl TacticalScreen {
         }
         let pick_result = self.pick_tile(context);
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
-            self.handle_event_button_press(&button_id);
+            self.handle_event_button_press(context, &button_id);
             return;
         }
         match pick_result {
@@ -788,11 +800,23 @@ impl TacticalScreen {
         }
     }
 
-    fn handle_event_button_press(&mut self, button_id: &ButtonId) {
+    fn handle_event_button_press(&mut self, context: &Context, button_id: &ButtonId) {
         if *button_id == self.button_end_turn_id {
             self.end_turn();
         } else if *button_id == self.button_deselect_unit_id {
             self.deselect_unit();
+        } else if *button_id == self.button_prev_unit_id {
+            if let Some(id) = self.selected_unit_id.clone() {
+                let prev_id = find_prev_player_unit_id(
+                    self.current_state(), self.core.player_id(), &id);
+                self.select_unit(context, &prev_id);
+            }
+        } else if *button_id == self.button_next_unit_id {
+            if let Some(id) = self.selected_unit_id.clone() {
+                let next_id = find_next_player_unit_id(
+                    self.current_state(), self.core.player_id(), &id);
+                self.select_unit(context, &next_id);
+            }
         } else {
             panic!("BUTTON ID ERROR");
         }
