@@ -538,11 +538,10 @@ impl TacticalScreen {
         if options == context_menu_popup::Options::new() {
             return;
         }
-        options.pick_result = Some(pick_result.clone());
         let mut pos = context.mouse().pos.clone();
         pos.v.y = context.win_size.h - pos.v.y;
         let screen = ContextMenuPopup::new(
-            context, &pos, options, self.tx.clone());
+            context, &pos, options, pick_result, self.tx.clone());
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
     }
 
