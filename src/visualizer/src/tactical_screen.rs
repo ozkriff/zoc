@@ -260,7 +260,6 @@ impl PlayerInfoManager {
 pub enum PickResult {
     Pos(MapPos),
     UnitId(UnitId),
-    None, // TODO: remove this field, use Option
 }
 
 impl PickResult {
@@ -535,14 +534,11 @@ impl TacticalScreen {
                 options.show_unload_button = self.can_unload_unit(
                     &selected_unit_id, pos);
             },
-            &PickResult::None => {
-                return;
-            },
         };
         if options == context_menu_popup::Options::new() {
             return;
         }
-        options.pick_result =  pick_result.clone();
+        options.pick_result = Some(pick_result.clone());
         let mut pos = context.mouse().pos.clone();
         pos.v.y = context.win_size.h - pos.v.y;
         let screen = ContextMenuPopup::new(
@@ -552,7 +548,7 @@ impl TacticalScreen {
 
     fn create_unit(&mut self, context: &Context) {
         let pick_result = self.pick_tile(context);
-        if let PickResult::Pos(ref pos) = pick_result {
+        if let Some(PickResult::Pos(ref pos)) = pick_result {
             if self.is_tile_occupied(pos) {
                 return;
             }
@@ -692,8 +688,8 @@ impl TacticalScreen {
         // TODO: move this to `fn Core::get_unit_info(...) -> &str`?
         let pick_result = self.pick_tile(context);
         match pick_result {
-            PickResult::UnitId(ref id) => self.print_unit_info(id),
-            PickResult::Pos(ref pos) => self.print_terrain_info(pos),
+            Some(PickResult::UnitId(ref id)) => self.print_unit_info(id),
+            Some(PickResult::Pos(ref pos)) => self.print_terrain_info(pos),
             _ => {},
         }
         println!("");
@@ -750,6 +746,11 @@ impl TacticalScreen {
             self.handle_event_button_press(context, &button_id);
             return;
         }
+        let pick_result = if let Some(pick_result) = pick_result {
+            pick_result
+        } else {
+            return;
+        };
         if let Some(id) = self.selected_unit_id.clone() {
             self.try_create_context_menu_popup(context, &id, &pick_result);
         } else if let PickResult::UnitId(ref unit_id) = pick_result {
@@ -842,7 +843,7 @@ impl TacticalScreen {
         self.button_manager.draw(&context);
     }
 
-    fn pick_tile(&mut self, context: &Context) -> PickResult {
+    fn pick_tile(&mut self, context: &Context) -> Option<PickResult> {
         let p = self.pick_world_pos(context);
         let origin = MapPos{v: Vector2 {
             x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as ZInt,
@@ -862,13 +863,13 @@ impl TacticalScreen {
         }
         let pos = closest_map_pos;
         if !state.map().is_inboard(&pos) {
-            PickResult::None
+            None
         } else {
             let unit_at = get_unit_id_at(self.core.db(), state, &pos);
             if let Some(id) = unit_at {
-                PickResult::UnitId(id)
+                Some(PickResult::UnitId(id))
             } else {
-                PickResult::Pos(pos)
+                Some(PickResult::Pos(pos))
             }
         }
     }

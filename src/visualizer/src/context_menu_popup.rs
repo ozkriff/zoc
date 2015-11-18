@@ -32,7 +32,7 @@ pub struct Options {
     pub show_unload_button: bool,
     pub show_enable_reaction_fire: bool,
     pub show_disable_reaction_fire: bool,
-    pub pick_result: PickResult,
+    pub pick_result: Option<PickResult>, // TODO: remove Option
 }
 
 impl Options {
@@ -46,7 +46,7 @@ impl Options {
             show_unload_button: false,
             show_enable_reaction_fire: false,
             show_disable_reaction_fire: false,
-            pick_result: PickResult::None,
+            pick_result: None,
         }
     }
 }
@@ -72,7 +72,7 @@ impl ContextMenuPopup {
         options: Options,
         tx: Sender<Command>,
     ) -> ContextMenuPopup {
-        assert!(options.pick_result != PickResult::None);
+        assert!(options.pick_result.is_some());
         let mut button_manager = ButtonManager::new();
         let mut select_button_id = None;
         let mut move_button_id = None;
@@ -141,7 +141,7 @@ impl ContextMenuPopup {
             unload_unit_button_id: unload_unit_button_id,
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
-            pick_result: options.pick_result,
+            pick_result: options.pick_result.unwrap(),
         }
     }
 
