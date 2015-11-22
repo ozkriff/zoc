@@ -68,7 +68,6 @@ impl Dir {
         panic!("impossible positions: {}, {}", from, to);
     }
 
-    // TODO: take '&self'
     pub fn get_neighbour_pos(pos: &MapPos, dir: &Dir) -> MapPos {
         let is_odd_row = pos.v.y % 2 != 0;
         let subtable_index = if is_odd_row { 1 } else { 0 };
