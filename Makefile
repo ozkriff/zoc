@@ -2,19 +2,22 @@ CARGO_FLAGS += -j 1
 CARGO_FLAGS += --release
 # CARGO_FLAGS += --verbose
 
-zoc:
+zoc: assets
 	cargo build $(CARGO_FLAGS)
 
 test:
 	cargo test --package core $(CARGO_FLAGS)
 	cargo test --package visualizer $(CARGO_FLAGS)
 
-run:
+run: assets
 	RUST_BACKTRACE=1 cargo run $(CARGO_FLAGS)
+
+assets:
+	git clone --depth=1 https://github.com/ozkriff/zoc_assets assets
 
 ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
 
-android:
+android: assets
 	cargo build --target arm-linux-androideabi -j 1 --release
 
 android_run: android

@@ -18,9 +18,8 @@ ZoC is turn-based hexagonal strategy game written in
 ## Assets
 
 Basic game assets are stored in [separate repo][].
-ZoC expects them in `assets` directory:
 
-`git clone --depth=1 https://github.com/ozkriff/zoc_assets assets`
+Run `make assets` to download them.
 
 NOTE: If game will not die in early stage of development I'm planning
 to release actual game resources under proprietary license.
