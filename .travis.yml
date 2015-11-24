@@ -15,9 +15,6 @@ addons:
             - libxxf86vm-dev
             - libxcursor-dev
 
-install:
-    - git clone --depth=1 https://github.com/ozkriff/zoc_assets assets
-
 script:
     - make && make test
 
