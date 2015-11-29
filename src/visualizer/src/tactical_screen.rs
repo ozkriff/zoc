@@ -339,7 +339,7 @@ impl TacticalScreen {
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
             Button::new(context, "end turn", &pos));
-        pos.v.y += button_manager.buttons()[&button_end_turn_id].size().h;
+        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as ZFloat * 1.2) as ZInt; // TODO
         let button_deselect_unit_id = button_manager.add_button(
             Button::new(context, "[X]", &pos));
         pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
