@@ -4,6 +4,7 @@ extern crate num;
 extern crate rand;
 extern crate time;
 extern crate cgmath;
+extern crate collision;
 extern crate glutin;
 extern crate common;
 extern crate core;
@@ -60,7 +61,7 @@ pub struct Visualizer {
 impl Visualizer {
     pub fn new() -> Visualizer {
         let window = make_window();
-        let zgl = Zgl::new(|s| window.get_proc_address(s));
+        let zgl = Zgl::new(|s| window.get_proc_address(s) as *const _);
         let (tx, rx) = channel();
         let mut context = Context::new(zgl, window, tx);
         let screens = vec![

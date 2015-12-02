@@ -16,7 +16,7 @@ pub struct MoveHelper {
 impl MoveHelper {
     // TODO: speed: ZFloat -> Speed (add 'Speed' to src/visualizer/types.rs
     pub fn new(from: &WorldPos, to: &WorldPos, speed: ZFloat) -> MoveHelper {
-        let dir = to.v.sub_v(&from.v).normalize();
+        let dir = (to.v - from.v).normalize();
         let dist = geom::dist(from, to);
         MoveHelper {
             to: to.clone(),
@@ -44,7 +44,7 @@ impl MoveHelper {
         let dt = dtime.n as ZFloat / 1000000000.0;
         let step = self.dir.mul_s(dt);
         self.current_dist += step.length();
-        self.current.v.add_self_v(&step);
+        self.current.v.add_self_v(step);
         if self.is_finished() {
             self.current = self.to.clone();
         }

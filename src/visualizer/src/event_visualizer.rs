@@ -55,7 +55,7 @@ impl EventVisualizer for EventMoveVisualizer {
         let pos = self.move_helper.step(dtime);
         {
             let marker_node = scene.node_mut(&marker_id(&self.unit_id));
-            marker_node.pos.v = pos.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0));
+            marker_node.pos.v = pos.v + vec3_z(geom::HEX_EX_RADIUS / 2.0);
         }
         let node_id = unit_id_to_node_id(&self.unit_id);
         let node = scene.node_mut(&node_id);
@@ -165,7 +165,7 @@ fn show_unit_at(
         children: get_unit_scene_nodes(db, &unit_info.type_id, mesh_id),
     });
     scene.nodes.insert(marker_id(&unit_info.unit_id), SceneNode {
-        pos: WorldPos{v: to.v.add_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))},
+        pos: WorldPos{v: to.v + vec3_z(geom::HEX_EX_RADIUS / 2.0)},
         rot: rad(0.0),
         mesh_id: Some(marker_mesh_id.clone()),
         children: Vec::new(),
@@ -215,7 +215,7 @@ impl EventCreateUnitVisualizer {
     ) -> Box<EventVisualizer> {
         let node_id = unit_id_to_node_id(&unit_info.unit_id);
         let to = geom::map_pos_to_world_pos(&unit_info.pos);
-        let from = WorldPos{v: to.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
+        let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 2.0);
         let new_node = scene.node_mut(&node_id);
@@ -267,7 +267,7 @@ impl EventAttackUnitVisualizer {
             .expect("Can not find defender")
             .pos.clone();
         let from = defender_pos.clone();
-        let to = WorldPos{v: from.v.sub_v(&vec3_z(geom::HEX_EX_RADIUS / 2.0))};
+        let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
         let shell_move = if let Some(ref attacker_id) = attack_info.attacker_id {
             let attacker_pos = scene.nodes.get(&unit_id_to_node_id(&attacker_id))
@@ -349,7 +349,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             for i in 0 .. self.killed as usize {
                 let child = children.get_mut(i)
                     .expect("draw: no child");
-                child.pos.v.add_self_v(&step);
+                child.pos.v.add_self_v(step);
             }
         }
     }

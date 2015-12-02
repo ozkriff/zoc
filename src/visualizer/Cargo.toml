@@ -8,9 +8,6 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 name = "visualizer"
 doctest = false
 
-[dependencies.glutin]
-version = "*"
-
 [dependencies.core]
 path = "../core/"
 
@@ -21,6 +18,8 @@ path = "../common/"
 path = "../zgl/"
 
 [dependencies]
+glutin = "*"
+collision = "*"
 cgmath = "*"
 time = "*"
 rand = "*"

@@ -2,7 +2,6 @@
 
 extern crate num;
 extern crate rand;
-extern crate libc;
 extern crate time;
 extern crate cgmath;
 extern crate zoc_gl as gl;
@@ -35,8 +34,7 @@ pub use types::{
 
 use std::mem;
 use common::types::{Size2, ZInt, ZFloat};
-use cgmath::{Matrix, Matrix4, Matrix3, Vector3, Rad, ortho};
-use libc::c_void;
+use cgmath::{Matrix, Matrix4, Matrix3, SquareMatrix, Vector3, Rad, ortho};
 use gl::Gl;
 use gl::types::{GLuint, GLsizeiptr};
 use std::ffi::{CStr};
@@ -69,7 +67,7 @@ pub struct Zgl {
 
 impl Zgl {
     pub fn new<F>(get_proc_address: F) -> Zgl
-        where F: Fn(&str) -> *const c_void
+        where F: Fn(&str) -> *const std::os::raw::c_void
     {
         let gl = Gl::load_with(|s| get_proc_address(s));
         let zgl = Zgl{gl: gl};
@@ -144,7 +142,7 @@ impl Zgl {
     // Rotations go through the Basis types, which are guaranteed to be
     // orthogonal matrices."
     pub fn tr(&self, m: Matrix4<ZFloat>, v: &Vector3<ZFloat>) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::identity();
+        let mut t = Matrix4::one();
         t[3][0] = v.x;
         t[3][1] = v.y;
         t[3][2] = v.z;
@@ -152,7 +150,7 @@ impl Zgl {
     }
 
     pub fn scale(&self, m: Matrix4<ZFloat>, scale: ZFloat) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::identity();
+        let mut t = Matrix4::one();
         t[0][0] = scale;
         t[1][1] = scale;
         t[2][2] = scale;

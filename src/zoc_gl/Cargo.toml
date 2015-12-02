@@ -13,5 +13,4 @@ khronos_api = "*"
 gl_generator = "*"
 
 [dependencies]
-libc = "*"
 gl_common = "*"

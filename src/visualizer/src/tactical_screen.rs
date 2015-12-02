@@ -15,11 +15,11 @@ use cgmath::{
     rad,
     Matrix,
     Matrix4,
-    Plane,
+    SquareMatrix,
     Point,
-    Ray,
-    Intersect,
+    Point3,
 };
+use collision::{Plane, Ray, Intersect};
 use glutin::{self, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Released};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos, ZFloat};
@@ -393,12 +393,12 @@ impl TacticalScreen {
         let y = context.mouse().pos.v.y as ZFloat;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
-        let p0_raw = im.mul_v(&Vector4{x: x, y: y, z: 0.0, w: 1.0});
+        let p0_raw = im.mul_v(Vector4{x: x, y: y, z: 0.0, w: 1.0});
         let p0 = (p0_raw.div_s(p0_raw.w)).truncate();
-        let p1_raw = im.mul_v(&Vector4{x: x, y: y, z: 1.0, w: 1.0});
+        let p1_raw = im.mul_v(Vector4{x: x, y: y, z: 1.0, w: 1.0});
         let p1 = (p1_raw.div_s(p1_raw.w)).truncate();
         let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
-        let ray = Ray::new(Point::from_vec(&p0), p1 - p0);
+        let ray = Ray::new(Point3::from_vec(p0), p1 - p0);
         let p = (plane, ray).intersection()
             .expect("Can`t find mouse ray/plane intersection");
         WorldPos{v: p.to_vec()}
