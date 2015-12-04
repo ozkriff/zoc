@@ -74,6 +74,14 @@ use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context_menu_popup::{self, ContextMenuPopup};
 
+fn is_select_only_options(options: &context_menu_popup::Options) -> bool {
+    let select_only_options = context_menu_popup::Options {
+        show_select_button: true,
+        ..context_menu_popup::Options::new()
+    };
+    *options == select_only_options
+}
+
 fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
     WorldPos{v: Vector3{x: pos.v.x / 2.0, y: pos.v.y / 2.0, z: 0.0}}
@@ -536,6 +544,10 @@ impl TacticalScreen {
             },
         };
         if options == context_menu_popup::Options::new() {
+            return;
+        }
+        if is_select_only_options(&options) {
+            self.select_unit(context, &pick_result.unit_id());
             return;
         }
         let mut pos = context.mouse().pos.clone();
