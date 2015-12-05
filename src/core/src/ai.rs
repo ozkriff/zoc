@@ -153,9 +153,9 @@ impl Ai {
     }
 
     pub fn get_command(&mut self, db: &Db) -> Command {
-        if let Some(cmd) = self.try_get_move_command(db) {
+        if let Some(cmd) = self.try_get_attack_command(db) {
             cmd
-        } else if let Some(cmd) = self.try_get_attack_command(db) {
+        } else if let Some(cmd) = self.try_get_move_command(db) {
             cmd
         } else {
             Command::EndTurn
