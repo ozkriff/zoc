@@ -78,8 +78,7 @@ impl Ai {
                 return MapPath::new(new_nodes);
             }
         }
-        assert!(false); // TODO
-        return path;
+        unreachable!();
     }
 
     fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
