@@ -15,7 +15,7 @@ pub struct PartialState {
     fow: Fow,
 }
 
-impl<'a> PartialState {
+impl PartialState {
     pub fn new(map_size: &Size2, player_id: &PlayerId) -> PartialState {
         PartialState {
             state: InternalState::new(map_size),
@@ -28,16 +28,16 @@ impl<'a> PartialState {
     }
 }
 
-impl<'a> GameState<'a> for PartialState {
+impl GameState for PartialState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
         &self.state.units()
     }
 
-    fn map(&'a self) -> &Map<Terrain> {
+    fn map(&self) -> &Map<Terrain> {
         &self.state.map()
     }
 
-    fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
+    fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         self.state.units_at(pos)
     }
 

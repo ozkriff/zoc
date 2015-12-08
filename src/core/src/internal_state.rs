@@ -19,7 +19,7 @@ pub struct InternalState {
     map: Map<Terrain>,
 }
 
-impl<'a> InternalState {
+impl InternalState {
     pub fn new(map_size: &Size2) -> InternalState {
         let mut map = Map::new(map_size, Terrain::Plain);
         // TODO: read from scenario.json?
@@ -89,20 +89,16 @@ impl<'a> InternalState {
     }
 }
 
-impl<'a> GameState<'a> for InternalState {
+impl GameState for InternalState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
         &self.units
     }
 
-    fn unit(&'a self, id: &UnitId) -> &'a Unit {
-        &self.units[id]
-    }
-
-    fn map(&'a self) -> &Map<Terrain> {
+    fn map(&self) -> &Map<Terrain> {
         &self.map
     }
 
-    fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit> {
+    fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         let mut units = Vec::new();
         for (_, unit) in &self.units {
             if unit.pos == *pos {

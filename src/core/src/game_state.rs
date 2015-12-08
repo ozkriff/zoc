@@ -7,14 +7,14 @@ use db::{Db};
 use map::{Map, Terrain};
 use ::{CoreEvent};
 
-pub trait GameState<'a> {
-    fn map(&'a self) -> &Map<Terrain>;
-    fn units_at(&'a self, pos: &MapPos) -> Vec<&'a Unit>;
+pub trait GameState {
+    fn map(&self) -> &Map<Terrain>;
+    fn units_at(&self, pos: &MapPos) -> Vec<&Unit>;
     fn is_tile_occupied(&self, pos: &MapPos) -> bool;
     fn apply_event(&mut self, db: &Db, event: &CoreEvent);
     fn units(&self) -> &HashMap<UnitId, Unit>;
 
-    fn unit(&'a self, id: &UnitId) -> &'a Unit {
+    fn unit(&self, id: &UnitId) -> &Unit {
         &self.units()[id]
     }
 }

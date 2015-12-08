@@ -280,9 +280,9 @@ impl std::error::Error for CommandError {
     }
 }
 
-fn check_attack_at<'a, S: GameState<'a>>(
+fn check_attack_at<S: GameState>(
     db: &Db,
-    state: &'a S,
+    state: &S,
     attacker_id: &UnitId,
     defender_id: &UnitId,
     defender_pos: &MapPos,
@@ -322,9 +322,9 @@ fn check_attack_at<'a, S: GameState<'a>>(
     Ok(())
 }
 
-fn check_attack<'a, S: GameState<'a>>(
+fn check_attack<S: GameState>(
     db: &Db,
-    state: &'a S,
+    state: &S,
     attacker_id: &UnitId,
     defender_id: &UnitId,
 ) -> Result<(), CommandError> {
@@ -332,9 +332,9 @@ fn check_attack<'a, S: GameState<'a>>(
     check_attack_at(db, state, attacker_id, defender_id, &defender.pos, &FireMode::Active)
 }
 
-pub fn check_command<'a, S: GameState<'a>>(
+pub fn check_command<S: GameState>(
     db: &Db,
-    state: &'a S,
+    state: &S,
     command: &Command,
 ) -> Result<(), CommandError> {
     match command {
