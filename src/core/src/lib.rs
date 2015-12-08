@@ -683,6 +683,10 @@ impl Core {
         if let ReactionFireMode::HoldFire = attacker.reaction_fire_mode {
             return false;
         }
+        let fow = &self.players_info[&attacker.player_id].fow;
+        if !fow.is_visible(&self.db, &self.state, defender, defender_pos) {
+            return false;
+        }
         let check_attack_result = check_attack_at(
             &self.db,
             &self.state,
