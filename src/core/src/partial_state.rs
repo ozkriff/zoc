@@ -6,7 +6,7 @@ use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
-use game_state::{GameState};
+use game_state::{GameState, GameStateMut};
 use fow::{Fow};
 use ::{CoreEvent};
 
@@ -44,7 +44,9 @@ impl GameState for PartialState {
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
         self.state.is_tile_occupied(pos)
     }
+}
 
+impl GameStateMut for PartialState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         self.state.apply_event(db, event);
         self.fow.apply_event(db, &self.state, event);

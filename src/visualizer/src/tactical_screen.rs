@@ -30,7 +30,7 @@ use zgl::camera::Camera;
 use core::map::{Map, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{GameState, GameStateMut};
 use core::pathfinder::{Pathfinder};
 use core::{
     self,

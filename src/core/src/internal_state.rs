@@ -6,7 +6,7 @@ use common::types::{PlayerId, UnitId, MapPos, Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use game_state::{GameState};
+use game_state::{GameState, GameStateMut};
 use ::{CoreEvent, MoveMode, FireMode, UnitInfo, ReactionFireMode};
 
 pub enum InfoLevel {
@@ -111,7 +111,9 @@ impl GameState for InternalState {
     fn is_tile_occupied(&self, pos: &MapPos) -> bool {
         self.units_at(pos).len() > 0
     }
+}
 
+impl GameStateMut for InternalState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
             &CoreEvent::Move{ref unit_id, ref path, ref mode} => {

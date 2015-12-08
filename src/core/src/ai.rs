@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{Size2, ZInt, PlayerId, MapPos};
-use game_state::{GameState};
+use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
 use pathfinder::{MapPath, Pathfinder};

@@ -28,7 +28,7 @@ use cgmath::{Vector2};
 use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
 use common::misc::{clamp};
 use internal_state::{InternalState};
-use game_state::{GameState};
+use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{Map, Terrain, distance};
 use pathfinder::{MapPath};
