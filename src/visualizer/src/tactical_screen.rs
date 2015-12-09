@@ -73,6 +73,7 @@ use context::{Context};
 use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context_menu_popup::{self, ContextMenuPopup};
+use end_turn_screen::{EndTurnScreen};
 
 fn is_select_only_options(options: &context_menu_popup::Options) -> bool {
     let select_only_options = context_menu_popup::Options {
@@ -447,7 +448,12 @@ impl TacticalScreen {
         }
     }
 
-    fn end_turn(&mut self) {
+    fn end_turn(&mut self, context: &mut Context) {
+        if self.player_info.info.len() > 1 {
+            let next_id = self.core.next_player_id(self.core.player_id());
+            let screen = Box::new(EndTurnScreen::new(context, &next_id));
+            context.add_command(ScreenCommand::PushScreen(screen));
+        }
         self.core.do_command(Command::EndTurn);
         self.deselect_unit();
     }
@@ -771,9 +777,9 @@ impl TacticalScreen {
         }
     }
 
-    fn handle_event_button_press(&mut self, context: &Context, button_id: &ButtonId) {
+    fn handle_event_button_press(&mut self, context: &mut Context, button_id: &ButtonId) {
         if *button_id == self.button_end_turn_id {
-            self.end_turn();
+            self.end_turn(context);
         } else if *button_id == self.button_deselect_unit_id {
             self.deselect_unit();
         } else if *button_id == self.button_prev_unit_id {

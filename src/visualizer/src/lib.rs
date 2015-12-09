@@ -22,6 +22,7 @@ mod screen;
 mod tactical_screen;
 mod context_menu_popup;
 mod main_menu_screen;
+mod end_turn_screen;
 mod context;
 
 use std::sync::mpsc::{channel, Receiver};
