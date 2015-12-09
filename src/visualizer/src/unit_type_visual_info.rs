@@ -25,7 +25,7 @@ impl UnitTypeVisualInfoManager {
         self.list.insert(index, info);
     }
 
-    pub fn get<'a>(&'a self, type_id: &UnitTypeId) -> &'a UnitTypeVisualInfo {
+    pub fn get(&self, type_id: &UnitTypeId) -> &UnitTypeVisualInfo {
         &self.list[type_id.id as usize]
     }
 }

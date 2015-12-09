@@ -252,11 +252,11 @@ impl PlayerInfoManager {
         PlayerInfoManager{info: m}
     }
 
-    fn get<'a>(&'a self, player_id: &PlayerId) -> &'a PlayerInfo {
+    fn get(&self, player_id: &PlayerId) -> &PlayerInfo {
         &self.info[player_id]
     }
 
-    fn get_mut<'a>(&'a mut self, player_id: &PlayerId) -> &'a mut PlayerInfo {
+    fn get_mut(&mut self, player_id: &PlayerId) -> &mut PlayerInfo {
         match self.info.get_mut(player_id) {
             Some(i) => i,
             None => panic!("Can`t find player_info for id={}", player_id.id),
