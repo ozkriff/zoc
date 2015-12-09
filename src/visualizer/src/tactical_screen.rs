@@ -237,18 +237,20 @@ struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    fn new(map_size: &Size2) -> PlayerInfoManager {
+    fn new(map_size: &Size2, options: &core::Options) -> PlayerInfoManager {
         let mut m = HashMap::new();
         m.insert(PlayerId{id: 0}, PlayerInfo {
             game_state: PartialState::new(map_size, &PlayerId{id: 0}),
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
         });
-        m.insert(PlayerId{id: 1}, PlayerInfo {
-            game_state: PartialState::new(map_size, &PlayerId{id: 1}),
-            pathfinder: Pathfinder::new(map_size),
-            scene: Scene::new(),
-        });
+        if options.game_type == core::GameType::Hotseat {
+            m.insert(PlayerId{id: 1}, PlayerInfo {
+                game_state: PartialState::new(map_size, &PlayerId{id: 1}),
+                pathfinder: Pathfinder::new(map_size),
+                scene: Scene::new(),
+            });
+        }
         PlayerInfoManager{info: m}
     }
 
@@ -318,7 +320,7 @@ impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = Core::new(core_options);
         let map_size = core.map_size().clone();
-        let player_info = PlayerInfoManager::new(&map_size);
+        let player_info = PlayerInfoManager::new(&map_size, core_options);
         let floor_tex = Texture::new(&context.zgl, "floor.png"); // TODO: !!!
         let mut meshes = Vec::new();
         let visible_map_mesh = generate_visible_tiles_mesh(
