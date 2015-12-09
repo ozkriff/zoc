@@ -779,6 +779,16 @@ impl Core {
         });
     }
 
+    pub fn next_player_id(&self, id: &PlayerId) -> PlayerId {
+        let old_id = id.id;
+        let max_id = self.players.len() as ZInt;
+        PlayerId{id: if old_id + 1 == max_id {
+            0
+        } else {
+            old_id + 1
+        }}
+    }
+
     fn simulation_step(&mut self, command: Command) {
         if let Err(err) = check_command(&self.db, &self.state, &command) {
             println!("Bad command: {:?}", err);
@@ -786,16 +796,11 @@ impl Core {
         }
         match command {
             Command::EndTurn => {
-                let old_id = self.current_player_id.id;
-                let max_id = self.players.len() as ZInt;
-                let new_id = if old_id + 1 == max_id {
-                    0
-                } else {
-                    old_id + 1
-                };
+                let old_id = self.current_player_id.clone();
+                let new_id = self.next_player_id(&old_id);
                 self.do_core_event(&CoreEvent::EndTurn {
-                    old_id: PlayerId{id: old_id},
-                    new_id: PlayerId{id: new_id},
+                    old_id: old_id,
+                    new_id: new_id,
                 });
             },
             Command::CreateUnit{pos} => {
