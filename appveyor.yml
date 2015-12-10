@@ -1,0 +1,27 @@
+# See LICENSE file for copyright and license details.
+
+platform:
+    - i686
+    - x86_64
+
+install:
+    - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-$Env:PLATFORM-pc-windows-gnu.exe" -FileName rust.exe
+    - cmd: rust.exe /VERYSILENT /NORESTART /DIR=C:\Rust
+    - ps: >-
+        if ($Env:PLATFORM -eq "i686") {
+            $Env:MINGW = "C:\mingw"
+        } else {
+            Start-FileDownload "http://libgd.blob.core.windows.net/mingw/mingw-w64-dgn-x86_64-20141001.7z" -FileName mingw-w64.7z;
+            7z x -oC:\ mingw-w64.7z | Out-Null;
+            $Env:MINGW = "C:\mingw64"
+        }
+    - cmd: SET PATH=%MINGW%\bin;C:\Rust\bin;%PATH%
+    - rustc -V
+    - cargo -V
+
+build_script:
+- cargo build -j 1
+
+test: false
+
+# vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

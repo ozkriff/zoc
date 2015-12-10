@@ -4,6 +4,7 @@ Zone of Control
 
 |license|_
 |travis-ci|_
+|appveyor-ci|_
 |gitter|_
 
 
@@ -74,9 +75,11 @@ MIT_
 
 .. |license| image:: http://img.shields.io/badge/license-MIT-blue.svg
 .. |travis-ci| image:: https://travis-ci.org/ozkriff/zoc.svg?branch=master
+.. |appveyor-ci| image:: https://ci.appveyor.com/api/projects/status/49kqaol7dlt2xrec/branch/master?svg=true
 .. |gitter| image:: https://badges.gitter.im/....svg
 .. _Rust: https://rust-lang.org
 .. _MIT: https://github.com/ozkriff/zoc/blob/master/LICENSE
 .. _license: https://github.com/ozkriff/zoc/blob/master/LICENSE
 .. _travis-ci: https://travis-ci.org/ozkriff/zoc
+.. _appveyor-ci: https://ci.appveyor.com/project/ozkriff/zoc
 .. _gitter: https://gitter.im/ozkriff/zoc
