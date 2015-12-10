@@ -1089,56 +1089,64 @@ impl TacticalScreen {
         }
     }
 
+    fn handle_context_menu_popup_command(
+        &mut self,
+        context: &Context,
+        command: context_menu_popup::Command,
+    ) {
+        let selected_unit_id = self.selected_unit_id.clone().unwrap();
+        match command {
+            context_menu_popup::Command::Select{id} => {
+                self.select_unit(context, &id);
+            },
+            context_menu_popup::Command::Move{pos} => {
+                self.move_unit(&pos, &MoveMode::Fast);
+            },
+            context_menu_popup::Command::Hunt{pos} => {
+                self.move_unit(&pos, &MoveMode::Hunt);
+            },
+            context_menu_popup::Command::Attack{id} => {
+                self.core.do_command(Command::AttackUnit {
+                    attacker_id: selected_unit_id.clone(),
+                    defender_id: id.clone(),
+                });
+            },
+            context_menu_popup::Command::LoadUnit{passenger_id} => {
+                self.core.do_command(Command::LoadUnit {
+                    transporter_id: selected_unit_id.clone(),
+                    passenger_id: passenger_id.clone(),
+                });
+            },
+            context_menu_popup::Command::UnloadUnit{pos} => {
+                let passenger_id = {
+                    let transporter = self.current_state()
+                        .unit(&selected_unit_id);
+                    transporter.passenger_id.clone().unwrap()
+                };
+                self.core.do_command(Command::UnloadUnit {
+                    transporter_id: selected_unit_id.clone(),
+                    passenger_id: passenger_id.clone(),
+                    pos: pos.clone(),
+                });
+            },
+            context_menu_popup::Command::EnableReactionFire{id} => {
+                self.core.do_command(Command::SetReactionFireMode {
+                    unit_id: id,
+                    mode: ReactionFireMode::Normal,
+                });
+            },
+            context_menu_popup::Command::DisableReactionFire{id} => {
+                self.core.do_command(Command::SetReactionFireMode {
+                    unit_id: id,
+                    mode: ReactionFireMode::HoldFire,
+                });
+            },
+        }
+    }
+
     fn handle_context_menu_popup_commands(&mut self, context: &Context) {
         while let Ok(command) = self.rx.try_recv() {
-            let selected_unit_id = self.selected_unit_id.clone().unwrap();
-            match command {
-                context_menu_popup::Command::Select{id} => {
-                    self.select_unit(context, &id);
-                },
-                context_menu_popup::Command::Move{pos} => {
-                    self.move_unit(&pos, &MoveMode::Fast);
-                },
-                context_menu_popup::Command::Hunt{pos} => {
-                    self.move_unit(&pos, &MoveMode::Hunt);
-                },
-                context_menu_popup::Command::Attack{id} => {
-                    self.core.do_command(Command::AttackUnit {
-                        attacker_id: selected_unit_id.clone(),
-                        defender_id: id.clone(),
-                    });
-                },
-                context_menu_popup::Command::LoadUnit{passenger_id} => {
-                    self.core.do_command(Command::LoadUnit {
-                        transporter_id: selected_unit_id.clone(),
-                        passenger_id: passenger_id.clone(),
-                    });
-                },
-                context_menu_popup::Command::UnloadUnit{pos} => {
-                    let passenger_id = {
-                        let transporter = self.current_state()
-                            .unit(&selected_unit_id);
-                        transporter.passenger_id.clone().unwrap()
-                    };
-                    self.core.do_command(Command::UnloadUnit {
-                        transporter_id: selected_unit_id.clone(),
-                        passenger_id: passenger_id.clone(),
-                        pos: pos.clone(),
-                    });
-                },
-                context_menu_popup::Command::EnableReactionFire{id} => {
-                    self.core.do_command(Command::SetReactionFireMode {
-                        unit_id: id,
-                        mode: ReactionFireMode::Normal,
-                    });
-                },
-                context_menu_popup::Command::DisableReactionFire{id} => {
-                    self.core.do_command(Command::SetReactionFireMode {
-                        unit_id: id,
-                        mode: ReactionFireMode::HoldFire,
-                    });
-                },
-            }
+            self.handle_context_menu_popup_command(context, command);
         }
     }
 }
