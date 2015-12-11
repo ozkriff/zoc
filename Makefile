@@ -1,4 +1,3 @@
-CARGO_FLAGS += -j 1
 CARGO_FLAGS += --release
 # CARGO_FLAGS += --verbose
 
@@ -18,7 +17,7 @@ assets:
 ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
 
 android: assets
-	cargo build --target arm-linux-androideabi -j 1 --release
+	cargo build --target arm-linux-androideabi --release
 
 android_run: android
 	cp target/arm-linux-androideabi/release/zoc target/arm-linux-androideabi/release/zoc.apk

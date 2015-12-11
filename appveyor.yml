@@ -20,7 +20,7 @@ install:
     - cargo -V
 
 build_script:
-- cargo build -j 1
+- cargo build
 
 test: false
 
