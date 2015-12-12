@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::default::{Default};
 use std::iter::{repeat};
 use num::{Float};
 use cgmath::{Vector};
@@ -12,16 +13,19 @@ pub enum Terrain {
     Trees,
 }
 
+impl Default for Terrain {
+    fn default() -> Terrain { Terrain::Plain }
+}
+
 pub struct Map<T> {
     tiles: Vec<T>,
     size: Size2,
 }
 
-impl<T: Clone> Map<T> {
-    // TODO: remove 'empty'
-    pub fn new(size: &Size2, empty: T) -> Map<T> {
-        let tiles_count = size.w * size.h;
-        let tiles = repeat(empty).take(tiles_count as usize).collect();
+impl<T: Clone + Default> Map<T> {
+    pub fn new(size: &Size2) -> Map<T> {
+        let tiles_count = (size.w * size.h) as usize;
+        let tiles = repeat(Default::default()).take(tiles_count).collect();
         Map {
             tiles: tiles,
             size: size.clone(),

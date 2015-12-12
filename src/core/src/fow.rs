@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::default::{Default};
 use common::types::{PlayerId, MapPos, Size2, ZInt};
 use internal_state::{InternalState};
 use game_state::{GameState};
@@ -15,6 +16,10 @@ pub enum TileVisibility {
     // Bad,
     Normal,
     Excellent,
+}
+
+impl Default for TileVisibility {
+    fn default() -> Self { TileVisibility::No }
 }
 
 pub fn fov_unit(
@@ -73,7 +78,7 @@ pub struct Fow {
 impl Fow {
     pub fn new(map_size: &Size2, player_id: &PlayerId) -> Fow {
         Fow {
-            map: Map::new(map_size, TileVisibility::No),
+            map: Map::new(map_size),
             player_id: player_id.clone(),
         }
     }

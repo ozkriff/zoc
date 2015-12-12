@@ -21,7 +21,7 @@ pub struct InternalState {
 
 impl InternalState {
     pub fn new(map_size: &Size2) -> InternalState {
-        let mut map = Map::new(map_size, Terrain::Plain);
+        let mut map = Map::new(map_size);
         // TODO: read from scenario.json?
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;

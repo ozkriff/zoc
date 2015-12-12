@@ -1,5 +1,6 @@
 // See LICENSE file for copyright and license details.
 
+use std::default::{Default};
 use common::types::{ZInt, MapPos, Size2};
 use db::{Db};
 use unit::{Unit, UnitClass};
@@ -61,6 +62,15 @@ impl Tile {
     pub fn cost(&self) -> &MoveCost { &self.cost }
 }
 
+impl Default for Tile {
+    fn default() -> Tile {
+        Tile {
+            cost: MoveCost{n: 0},
+            parent: None,
+        }
+    }
+}
+
 const MAX_COST: MoveCost = MoveCost{n: 30000};
 
 fn tile_cost(db: &Db, state: &PartialState, unit: &Unit, pos: &MapPos)
@@ -90,10 +100,7 @@ impl Pathfinder {
     pub fn new(map_size: &Size2) -> Pathfinder {
         Pathfinder {
             queue: Vec::new(),
-            map: Map::new(map_size, Tile {
-                cost: MoveCost{n: 0},
-                parent: None,
-            }),
+            map: Map::new(map_size),
         }
     }
 
