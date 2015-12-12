@@ -148,6 +148,30 @@ fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, map: &Map<Terrain>, move_poin
     mesh
 }
 
+fn build_targets_mesh(db: &Db, zgl: &Zgl, state: &PartialState, unit_id: &UnitId) -> Mesh {
+    let mut vertex_data = Vec::new();
+    let unit = state.unit(unit_id);
+    for (enemy_id, enemy) in state.units() {
+        if unit.player_id == enemy.player_id {
+            continue;
+        }
+        let command = Command::AttackUnit {
+            attacker_id: unit_id.clone(),
+            defender_id: enemy_id.clone(),
+        };
+        if !check_command(db, state, &command).is_ok() {
+            continue;
+        }
+        let world_pos_from = geom::map_pos_to_world_pos(&unit.pos);
+        let world_pos_to = geom::map_pos_to_world_pos(&enemy.pos);
+        vertex_data.push(VertexCoord{v: geom::lift(world_pos_from.v)});
+        vertex_data.push(VertexCoord{v: geom::lift(world_pos_to.v)});
+    }
+    let mut mesh = Mesh::new(zgl, &vertex_data);
+    mesh.set_mode(MeshRenderMode::Lines);
+    mesh
+}
+
 fn get_marker<P: AsRef<Path>>(zgl: &Zgl, tex_path: P) -> Mesh {
     let n = 0.2;
     let vertex_data = vec!(
@@ -310,6 +334,7 @@ pub struct TacticalScreen {
     selection_manager: SelectionManager,
     // TODO: move to 'meshes'
     walkable_mesh: Option<Mesh>,
+    targets_mesh: Option<Mesh>,
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
     floor_tex: Texture,
@@ -384,6 +409,7 @@ impl TacticalScreen {
             selected_unit_id: None,
             selection_manager: SelectionManager::new(selection_marker_mesh_id),
             walkable_mesh: None,
+            targets_mesh: None,
             map_text_manager: map_text_manager,
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
@@ -463,6 +489,7 @@ impl TacticalScreen {
         let i = self.player_info.get_mut(self.core.player_id());
         self.selection_manager.deselect(&mut i.scene);
         self.walkable_mesh = None;
+        self.targets_mesh = None;
     }
 
     fn current_state(&self) -> &PartialState {
@@ -585,10 +612,11 @@ impl TacticalScreen {
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
         self.walkable_mesh = Some(build_walkable_mesh(
             &context.zgl, pf, state.map(), state.unit(unit_id).move_points));
+        self.targets_mesh = Some(build_targets_mesh(
+            self.core.db(), &context.zgl, state, unit_id));
         let scene = &mut i.scene;
         self.selection_manager.create_selection_marker(
             state, scene, unit_id);
-        // TODO: highlight potential targets
     }
 
     fn move_unit(&mut self, pos: &MapPos, move_mode: &MoveMode) {
@@ -849,6 +877,10 @@ impl TacticalScreen {
             context.set_basic_color(&zgl::BLUE);
             walkable_mesh.draw(&context.zgl, &context.shader);
         }
+        if let Some(ref targets_mesh) = self.targets_mesh {
+            context.set_basic_color(&zgl::RED);
+            targets_mesh.draw(&context.zgl, &context.shader);
+        }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let i = self.player_info.get_mut(self.core.player_id());
             event_visualizer.draw(&mut i.scene, dtime);
@@ -1014,6 +1046,7 @@ impl TacticalScreen {
             let i = &mut self.player_info.get_mut(self.core.player_id());
             self.selection_manager.deselect(&mut i.scene);
             self.walkable_mesh = None;
+            self.targets_mesh = None;
         }
     }
 
@@ -1040,33 +1073,17 @@ impl TacticalScreen {
 
     fn end_event_visualization(&mut self, context: &Context) {
         self.attacker_died_from_reaction_fire();
+        if let Some(ref selected_unit_id) = self.selected_unit_id.clone() {
+            // TODO: do this only if this is last unshowed CoreEvent
+            self.select_unit(context, selected_unit_id);
+        }
         let mut i = self.player_info.get_mut(self.core.player_id());
         let scene = &mut i.scene;
         let state = &mut i.game_state;
-        if let Some(ref mut event_visualizer) = self.event_visualizer {
-            event_visualizer.end(scene, state);
-        } else {
-            panic!("end_event_visualization: self.event_visualizer == None");
-        }
-        if let Some(ref event) = self.event {
-            state.apply_event(self.core.db(), event);
-        } else {
-            panic!("end_event_visualization: self.event == None");
-        }
+        self.event_visualizer.as_mut().unwrap().end(scene, state);
+        state.apply_event(self.core.db(), self.event.as_ref().unwrap());
         self.event_visualizer = None;
         self.event = None;
-        if let Some(ref selected_unit_id) = self.selected_unit_id {
-            if let Some(unit) = state.units().get(selected_unit_id) {
-                // TODO: do this only if this is last unshowed CoreEvent
-                let pf = &mut i.pathfinder;
-                pf.fill_map(self.core.db(), state, unit);
-                self.walkable_mesh = Some(build_walkable_mesh(
-                    &context.zgl, pf, state.map(), unit.move_points));
-                self.selection_manager.create_selection_marker(
-                    state, scene, selected_unit_id);
-            }
-        }
-        // TODO: recolor terrain objects
         self.visible_map_mesh = generate_visible_tiles_mesh(
             &context.zgl, state, &self.floor_tex);
         self.fow_map_mesh = generate_fogged_tiles_mesh(
