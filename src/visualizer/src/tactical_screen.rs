@@ -1073,21 +1073,23 @@ impl TacticalScreen {
 
     fn end_event_visualization(&mut self, context: &Context) {
         self.attacker_died_from_reaction_fire();
+        {
+            let i = self.player_info.get_mut(self.core.player_id());
+            let scene = &mut i.scene;
+            let state = &mut i.game_state;
+            self.event_visualizer.as_mut().unwrap().end(scene, state);
+            state.apply_event(self.core.db(), self.event.as_ref().unwrap());
+            self.visible_map_mesh = generate_visible_tiles_mesh(
+                &context.zgl, state, &self.floor_tex);
+            self.fow_map_mesh = generate_fogged_tiles_mesh(
+                &context.zgl, state, &self.floor_tex);
+        }
+        self.event_visualizer = None;
+        self.event = None;
         if let Some(ref selected_unit_id) = self.selected_unit_id.clone() {
             // TODO: do this only if this is last unshowed CoreEvent
             self.select_unit(context, selected_unit_id);
         }
-        let mut i = self.player_info.get_mut(self.core.player_id());
-        let scene = &mut i.scene;
-        let state = &mut i.game_state;
-        self.event_visualizer.as_mut().unwrap().end(scene, state);
-        state.apply_event(self.core.db(), self.event.as_ref().unwrap());
-        self.event_visualizer = None;
-        self.event = None;
-        self.visible_map_mesh = generate_visible_tiles_mesh(
-            &context.zgl, state, &self.floor_tex);
-        self.fow_map_mesh = generate_fogged_tiles_mesh(
-            &context.zgl, state, &self.floor_tex);
     }
 
     fn logic(&mut self, context: &Context) {
