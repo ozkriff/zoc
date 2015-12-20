@@ -40,6 +40,10 @@ impl MoveHelper {
         self.current.clone()
     }
 
+    pub fn destination(&self) -> &WorldPos {
+        &self.to
+    }
+
     pub fn step_diff(&mut self, dtime: &Time) -> Vector3<ZFloat> {
         let dt = dtime.n as ZFloat / 1000000000.0;
         let step = self.dir.mul_s(dt);

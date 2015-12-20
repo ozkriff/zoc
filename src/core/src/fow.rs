@@ -142,14 +142,11 @@ impl Fow {
         event: &CoreEvent,
     ) {
         match event {
-            &CoreEvent::Move{ref unit_id, ref path, ..} => {
+            &CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
-                    for path_node in path.nodes() {
-                        let p = &path_node.pos;
-                        fov_unit_in_pos(
-                            db, state.map(), &mut self.map, unit, p);
-                    }
+                    fov_unit_in_pos(
+                        db, state.map(), &mut self.map, unit, to);
                 }
             },
             &CoreEvent::EndTurn{ref new_id, ..} => {

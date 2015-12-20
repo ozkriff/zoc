@@ -9,47 +9,10 @@ use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir};
 
-#[derive(Clone)]
-pub struct PathNode {
-    pub cost: MoveCost,
-    pub pos: MapPos,
-}
-
 // TODO: add `join` method
+// TODO: rename to MovePoints
 #[derive(Clone)]
 pub struct MoveCost{pub n: ZInt}
-
-#[derive(Clone)]
-pub struct MapPath {
-    nodes: Vec<PathNode>,
-}
-
-impl MapPath {
-    pub fn new(nodes: Vec<PathNode>) -> MapPath {
-        MapPath{nodes: nodes}
-    }
-
-    // pub fn len(&self) -> ZInt {
-    //     self.nodes.len() as ZInt
-    // }
-
-    pub fn destination(&self) -> &MapPos {
-        &self.nodes.last()
-            .expect("Path have no nodes!")
-            .pos
-    }
-
-    pub fn nodes(&self) -> &[PathNode] {
-        &self.nodes
-    }
-
-    // TODO: store in node only its own cost, not total cost
-    pub fn total_cost(&self) -> &MoveCost {
-        &self.nodes.last()
-            .expect("Path has no nodes")
-            .cost
-    }
-}
 
 #[derive(Clone)]
 pub struct Tile {
@@ -71,9 +34,32 @@ impl Default for Tile {
     }
 }
 
+pub fn truncate_path(db: &Db, state: &PartialState, path: &[MapPos], unit: &Unit) -> Vec<MapPos> {
+    let mut new_path = Vec::new();
+    let mut cost = 0; // TODO: ZInt -> MovePoints
+    for pos in path {
+        cost += tile_cost(db, state, unit, &pos).n;
+        if cost > unit.move_points {
+            break;
+        }
+        new_path.push(pos.clone());
+    }
+    new_path
+}
+
+pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[MapPos])
+    -> MoveCost
+{
+    let mut cost = MoveCost{n: 0};
+    for node in path {
+        cost.n += tile_cost(db, state, unit, node).n;
+    }
+    cost
+}
+
 const MAX_COST: MoveCost = MoveCost{n: 30000};
 
-fn tile_cost(db: &Db, state: &PartialState, unit: &Unit, pos: &MapPos)
+pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &MapPos)
     -> MoveCost
 {
     let unit_type = db.unit_type(&unit.type_id);
@@ -178,27 +164,23 @@ impl Pathfinder {
     }
     */
 
-    pub fn get_path(&self, destination: &MapPos) -> Option<MapPath> {
+    pub fn get_path(&self, destination: &MapPos) -> Option<Vec<MapPos>> {
         let mut path = Vec::new();
         let mut pos = destination.clone();
         if self.map.tile(&pos).cost.n == MAX_COST.n {
             return None;
         }
-        assert!(self.map.is_inboard(&pos));
-        let start_cost = self.map.tile(&pos).cost.clone();
-        path.push(PathNode{cost: start_cost, pos: pos.clone()});
         while self.map.tile(&pos).cost.n != 0 {
+            assert!(self.map.is_inboard(&pos));
+            path.push(pos.clone());
             let parent_dir = match self.map.tile(&pos).parent() {
                 &Some(ref dir) => dir,
                 &None => return None,
             };
             pos = Dir::get_neighbour_pos(&pos, parent_dir);
-            assert!(self.map.is_inboard(&pos));
-            let cost = self.map.tile(&pos).cost.clone();
-            path.push(PathNode{cost: cost, pos: pos.clone()});
         }
         path.reverse();
-        Some(MapPath{nodes: path})
+        Some(path)
     }
 }
 

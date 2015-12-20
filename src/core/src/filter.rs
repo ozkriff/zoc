@@ -4,11 +4,10 @@ use std::collections::{HashMap, HashSet};
 use common::types::{UnitId, PlayerId};
 use internal_state::{InternalState};
 use game_state::{GameState};
-use pathfinder::{MapPath, PathNode, MoveCost};
 use unit::{Unit};
 use db::{Db};
 use fow::{Fow};
-use ::{MoveMode, CoreEvent, AttackInfo, UnitInfo, unit_to_info};
+use ::{CoreEvent, AttackInfo, UnitInfo, unit_to_info};
 
 pub fn get_visible_enemies(
     db: &Db,
@@ -54,70 +53,7 @@ pub fn show_or_hide_passive_enemies(
     events
 }
 
-fn filter_move_event(
-    db: &Db,
-    state: &InternalState,
-    fow: &Fow,
-    unit_id: &UnitId,
-    path: &MapPath,
-    move_mode: &MoveMode,
-) -> Vec<CoreEvent> {
-    let mut events = vec![];
-    let unit = state.unit(unit_id);
-    let len = path.nodes().len();
-    let mut sub_path = Vec::new();
-    let first_pos = path.nodes()[0].pos.clone();
-    if fow.is_visible(db, state, unit, &first_pos) {
-        sub_path.push(PathNode {
-            cost: MoveCost{n: 0},
-            pos: first_pos,
-        });
-    }
-    for i in 1 .. len {
-        let prev_node = path.nodes()[i - 1].clone();
-        let next_node = path.nodes()[i].clone();
-        let prev_vis = fow.is_visible(db, state, unit, &prev_node.pos);
-        let next_vis = fow.is_visible(db, state, unit, &next_node.pos);
-        if !prev_vis && next_vis {
-            events.push(CoreEvent::ShowUnit {
-                unit_info: UnitInfo {
-                    pos: prev_node.pos.clone(),
-                    .. unit_to_info(unit)
-                },
-            });
-            sub_path.push(PathNode {
-                cost: MoveCost{n: 0},
-                pos: prev_node.pos.clone(),
-            });
-        }
-        if prev_vis || next_vis {
-            sub_path.push(PathNode {
-                cost: MoveCost{n: 0},
-                pos: next_node.pos.clone(),
-            });
-        }
-        if prev_vis && !next_vis {
-            events.push(CoreEvent::Move {
-                unit_id: unit.id.clone(),
-                path: MapPath::new(sub_path.clone()),
-                mode: move_mode.clone(),
-            });
-            sub_path.clear();
-            events.push(CoreEvent::HideUnit {
-                unit_id: unit.id.clone(),
-            });
-        }
-    }
-    if sub_path.len() != 0 {
-        events.push(CoreEvent::Move {
-            unit_id: unit.id.clone(),
-            path: MapPath::new(sub_path),
-            mode: move_mode.clone(),
-        });
-    }
-    events
-}
-
+// TODO: join state and fow into TmpPartialState
 pub fn filter_events(
     db: &Db,
     state: &InternalState,
@@ -128,14 +64,29 @@ pub fn filter_events(
     let mut active_unit_ids = HashSet::new();
     let mut events = vec![];
     match event {
-        &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
+        &CoreEvent::Move{ref unit_id, ref from, ref to, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == *player_id {
                 events.push(event.clone())
             } else {
-                let filtered_events = filter_move_event(
-                    db, state, fow, unit_id, path, mode);
-                events.extend(filtered_events);
+                let prev_vis = fow.is_visible(db, state, unit, from);
+                let next_vis = fow.is_visible(db, state, unit, to);
+                if !prev_vis && next_vis {
+                    events.push(CoreEvent::ShowUnit {
+                        unit_info: UnitInfo {
+                            pos: from.clone(),
+                            .. unit_to_info(unit)
+                        },
+                    });
+                }
+                if prev_vis || next_vis {
+                    events.push(event.clone());
+                }
+                if prev_vis && !next_vis {
+                    events.push(CoreEvent::HideUnit {
+                        unit_id: unit.id.clone(),
+                    });
+                }
                 active_unit_ids.insert(unit_id.clone());
             }
         },

@@ -7,7 +7,7 @@ use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use game_state::{GameState, GameStateMut};
-use ::{CoreEvent, MoveMode, FireMode, UnitInfo, ReactionFireMode};
+use ::{CoreEvent, FireMode, UnitInfo, ReactionFireMode};
 
 pub enum InfoLevel {
     Full,
@@ -116,20 +116,15 @@ impl GameState for InternalState {
 impl GameStateMut for InternalState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
-            &CoreEvent::Move{ref unit_id, ref path, ref mode} => {
-                let pos = path.destination().clone();
+            &CoreEvent::Move{ref unit_id, ref to, ref cost, ..} => {
                 let unit = self.units.get_mut(unit_id)
                     .expect("Bad move unit id");
-                unit.pos = pos;
+                unit.pos = to.clone();
                 assert!(unit.move_points > 0);
                 if db.unit_type(&unit.type_id).is_transporter {
                     // TODO: get passenger and update its pos
                 }
-                if let &MoveMode::Fast = mode {
-                    unit.move_points -= path.total_cost().n;
-                } else {
-                    unit.move_points -= path.total_cost().n * 2;
-                }
+                unit.move_points -= *cost;
                 assert!(unit.move_points >= 0);
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {

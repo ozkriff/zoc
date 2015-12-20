@@ -31,7 +31,7 @@ use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{Map, Terrain, distance};
-use pathfinder::{MapPath};
+use pathfinder::{path_cost, tile_cost};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
 use player::{Player};
@@ -51,7 +51,7 @@ pub enum ReactionFireMode {
     HoldFire,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq)]
 pub enum MoveMode {
     Fast,
     Hunt,
@@ -59,7 +59,7 @@ pub enum MoveMode {
 
 #[derive(Clone)]
 pub enum Command {
-    Move{unit_id: UnitId, path: MapPath, mode: MoveMode},
+    Move{unit_id: UnitId, path: Vec<MapPos>, mode: MoveMode},
     EndTurn,
     CreateUnit{pos: MapPos},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
@@ -92,8 +92,10 @@ pub struct AttackInfo {
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
-        path: MapPath,
+        from: MapPos,
+        to: MapPos,
         mode: MoveMode,
+        cost: ZInt,
     },
     EndTurn {
         old_id: PlayerId,
@@ -134,6 +136,13 @@ fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
         }
     }
     transporter_id
+}
+
+pub fn move_cost_modifier(mode: &MoveMode) -> ZInt {
+    match *mode {
+        MoveMode::Fast => 1,
+        MoveMode::Hunt => 2,
+    }
 }
 
 // TODO: simplify/optimize
@@ -280,12 +289,11 @@ impl std::error::Error for CommandError {
     }
 }
 
-fn check_attack_at<S: GameState>(
+fn check_attack<S: GameState>(
     db: &Db,
     state: &S,
     attacker_id: &UnitId,
     defender_id: &UnitId,
-    defender_pos: &MapPos,
     fire_mode: &FireMode,
 ) -> Result<(), CommandError> {
     if state.units().get(attacker_id).is_none() {
@@ -295,6 +303,7 @@ fn check_attack_at<S: GameState>(
         return Err(CommandError::BadDefenderId);
     }
     let attacker = state.unit(attacker_id);
+    let defender = state.unit(defender_id);
     let reactive_attack_points = attacker.reactive_attack_points.unwrap();
     match *fire_mode {
         FireMode::Active => if attacker.attack_points <= 0 {
@@ -310,26 +319,16 @@ fn check_attack_at<S: GameState>(
     }
     let attacker_type = db.unit_type(&attacker.type_id);
     let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-    if distance(&attacker.pos, defender_pos) > weapon_type.max_distance {
+    if distance(&attacker.pos, &defender.pos) > weapon_type.max_distance {
         return Err(CommandError::OutOfRange);
     }
-    if distance(&attacker.pos, defender_pos) < weapon_type.min_distance {
+    if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !los(state.map(), attacker_type, &attacker.pos, defender_pos) {
+    if !los(state.map(), attacker_type, &attacker.pos, &defender.pos) {
         return Err(CommandError::NoLos);
     }
     Ok(())
-}
-
-fn check_attack<S: GameState>(
-    db: &Db,
-    state: &S,
-    attacker_id: &UnitId,
-    defender_id: &UnitId,
-) -> Result<(), CommandError> {
-    let defender = state.unit(defender_id);
-    check_attack_at(db, state, attacker_id, defender_id, &defender.pos, &FireMode::Active)
 }
 
 pub fn check_command<S: GameState>(
@@ -350,27 +349,21 @@ pub fn check_command<S: GameState>(
             if state.units().get(unit_id).is_none() {
                 return Err(CommandError::BadUnitId);
             }
-            // unit stands at first pos
-            for i in 1 .. path.nodes().len() {
-                let pos = &path.nodes()[i].pos;
+            for pos in path {
                 if state.is_tile_occupied(pos) {
                     return Err(CommandError::BadPath);
                 }
             }
             let unit = state.unit(&unit_id);
-            let cost_modifier = match mode {
-                &MoveMode::Fast => 1,
-                &MoveMode::Hunt => 2,
-            };
-            // TODO: we believe that path's cost is correct. this is bad.
-            let cost = path.total_cost().n * cost_modifier;
+            let cost = path_cost(db, state, unit, &path).n
+                * move_cost_modifier(mode);
             if cost > unit.move_points {
                 return Err(CommandError::NotEnoughMovePoints);
             }
             Ok(())
         },
         &Command::AttackUnit{ref attacker_id, ref defender_id} => {
-            check_attack(db, state, attacker_id, defender_id)
+            check_attack(db, state, attacker_id, defender_id, &FireMode::Active)
         },
         &Command::LoadUnit{ref transporter_id, ref passenger_id} => {
             if state.units().get(transporter_id).is_none() {
@@ -434,6 +427,13 @@ pub fn check_command<S: GameState>(
             }
         },
     }
+}
+
+#[derive(PartialEq, Clone)]
+enum ReactionFireResult {
+    Attacked,
+    Killed,
+    None,
 }
 
 #[derive(PartialEq, Eq)]
@@ -639,17 +639,15 @@ impl Core {
         &self,
         attacker_id: &UnitId,
         defender_id: &UnitId,
-        defender_pos: &MapPos,
         fire_mode: &FireMode,
     ) -> Option<CoreEvent> {
         let attacker = self.state.unit(&attacker_id);
         let defender = self.state.unit(&defender_id);
-        let check_attack_result = check_attack_at(
+        let check_attack_result = check_attack(
             &self.db,
             &self.state,
             attacker_id,
             defender_id,
-            defender_pos,
             fire_mode,
         );
         if let Err(..) = check_attack_result {
@@ -676,46 +674,34 @@ impl Core {
     fn can_unit_make_reaction_attack(
         &self,
         defender: &Unit,
-        defender_pos: &MapPos,
         attacker: &Unit,
     ) -> bool {
         assert!(attacker.player_id != defender.player_id);
         if let ReactionFireMode::HoldFire = attacker.reaction_fire_mode {
             return false;
         }
+        // TODO: move to `check_attack`
         let fow = &self.players_info[&attacker.player_id].fow;
-        if !fow.is_visible(&self.db, &self.state, defender, defender_pos) {
+        if !fow.is_visible(&self.db, &self.state, defender, &defender.pos) {
             return false;
         }
-        let check_attack_result = check_attack_at(
+        let check_attack_result = check_attack(
             &self.db,
             &self.state,
             &attacker.id,
             &defender.id,
-            defender_pos,
             &FireMode::Reactive,
         );
         check_attack_result.is_ok()
     }
 
-    fn reaction_fire_check(&self, unit_id: &UnitId, pos: &MapPos) -> bool {
-        let unit = self.state.unit(unit_id);
-        for (_, attacker) in self.state.units() {
-            if attacker.player_id == unit.player_id {
-                continue; // This is not enemy
-            }
-            if self.can_unit_make_reaction_attack(unit, pos, attacker) {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn reaction_fire_internal<F>(&mut self, unit_id: &UnitId, pos: &MapPos, f: F)
-        where F: Fn(AttackInfo) -> AttackInfo
+    // TODO: simplify
+    fn reaction_fire_internal<F>(&mut self, unit_id: &UnitId, f: F) -> ReactionFireResult
+        where F: Fn(&mut AttackInfo)
     {
         let unit_ids: Vec<_> = self.state.units().keys()
             .map(|id| id.clone()).collect();
+        let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
             let event = {
                 let enemy_unit = self.state.unit(&enemy_unit_id);
@@ -723,60 +709,29 @@ impl Core {
                 if enemy_unit.player_id == unit.player_id {
                     continue;
                 }
-                if !self.can_unit_make_reaction_attack(unit, pos, enemy_unit) {
+                if !self.can_unit_make_reaction_attack(unit, enemy_unit) {
                     continue;
                 }
                 let event = self.command_attack_unit_to_event(
-                    &enemy_unit.id, &unit_id, pos, &FireMode::Reactive);
-                if let Some(CoreEvent::AttackUnit{attack_info}) = event {
-                    CoreEvent::AttackUnit{attack_info: f(attack_info)}
+                    &enemy_unit.id, &unit_id, &FireMode::Reactive);
+                if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
+                    f(&mut attack_info);
+                    CoreEvent::AttackUnit{attack_info: attack_info}
                 } else {
                     continue;
                 }
             };
             self.do_core_event(&event);
+            result = ReactionFireResult::Attacked;
             if self.state.units().get(unit_id).is_none() {
-                // unit is killed
-                return;
+                return ReactionFireResult::Killed;
             }
         }
+        result
     }
 
-    fn reaction_fire(&mut self, unit_id: &UnitId, pos: &MapPos) {
-        self.reaction_fire_internal(unit_id, pos, |i| i);
-    }
-
-    fn reaction_fire_move(
-        &mut self,
-        path: &MapPath,
-        unit_id: &UnitId,
-        move_mode: &MoveMode,
-    ) {
-        let len = path.nodes().len();
-        for i in 1 .. len {
-            let pos = &path.nodes()[i].pos;
-            if self.reaction_fire_check(unit_id, pos) {
-                let mut new_nodes = path.nodes().to_vec();
-                new_nodes.truncate(i + 1);
-                self.do_core_event(&CoreEvent::Move {
-                    unit_id: unit_id.clone(),
-                    path: MapPath::new(new_nodes),
-                    mode: move_mode.clone(),
-                });
-                self.reaction_fire_internal(unit_id, pos, |attack_info| {
-                    AttackInfo {
-                        remove_move_points: *move_mode == MoveMode::Fast,
-                        .. attack_info
-                    }
-                });
-                return;
-            }
-        }
-        self.do_core_event(&CoreEvent::Move {
-            unit_id: unit_id.clone(),
-            path: path.clone(),
-            mode: move_mode.clone(),
-        });
+    fn reaction_fire(&mut self, unit_id: &UnitId) {
+        self.reaction_fire_internal(unit_id, |_| {});
     }
 
     pub fn next_player_id(&self, id: &PlayerId) -> PlayerId {
@@ -815,19 +770,40 @@ impl Core {
                 };
                 self.do_core_event(&event);
             },
-            Command::Move{ref unit_id, ref path, ref mode} => {
-                // TODO: do some checks?
-                self.reaction_fire_move(path, unit_id, mode);
+            Command::Move{unit_id, path, mode} => {
+                let is_careful_move = mode == MoveMode::Hunt;
+                for pos in path {
+                    let event = {
+                        let unit = self.state.unit(&unit_id);
+                        // TODO: ZInt -> MoveCost -> MovePoints
+                        let cost = tile_cost(&self.db, &self.state, unit, &pos).n
+                            * move_cost_modifier(&mode);
+                        CoreEvent::Move {
+                            unit_id: unit_id.clone(),
+                            from: unit.pos.clone(),
+                            to: pos.clone(),
+                            mode: mode.clone(),
+                            cost: cost,
+                        }
+                    };
+                    self.do_core_event(&event);
+                    let reaction_fire_result = self.reaction_fire_internal(
+                        &unit_id,
+                        |attack_info| {
+                            attack_info.remove_move_points = !is_careful_move;
+                        },
+                    );
+                    if reaction_fire_result != ReactionFireResult::None {
+                        break;
+                    }
+                }
             },
             Command::AttackUnit{ref attacker_id, ref defender_id} => {
-                // TODO: do some checks?
-                let defender_pos = self.state.unit(&defender_id).pos.clone();
-                let event = self.command_attack_unit_to_event(
-                    attacker_id, defender_id, &defender_pos, &FireMode::Active);
-                if let Some(ref event) = event {
+                if let Some(ref event) = self.command_attack_unit_to_event(
+                    attacker_id, defender_id, &FireMode::Active)
+                {
                     self.do_core_event(event);
-                    let attacker_pos = self.state.unit(&attacker_id).pos.clone();
-                    self.reaction_fire(&attacker_id, &attacker_pos);
+                    self.reaction_fire(&attacker_id);
                 }
             },
             Command::LoadUnit{transporter_id, passenger_id} => {
@@ -848,7 +824,7 @@ impl Core {
                     }
                 };
                 self.do_core_event(&event);
-                self.reaction_fire(&passenger_id, &pos);
+                self.reaction_fire(&passenger_id);
             },
             Command::SetReactionFireMode{unit_id, mode} => {
                 self.do_core_event(&CoreEvent::SetReactionFireMode {

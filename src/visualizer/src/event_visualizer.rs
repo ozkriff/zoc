@@ -8,7 +8,6 @@ use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode};
 use core::unit::{UnitTypeId};
-use core::pathfinder::{MapPath};
 use core::db::{Db};
 use zgl::mesh::{MeshId};
 use zgl::types::{Time, WorldPos};
@@ -38,17 +37,14 @@ pub trait EventVisualizer {
     fn end(&mut self, scene: &mut Scene, state: &PartialState);
 }
 
-// TODO: store CoreEvent
 pub struct EventMoveVisualizer {
     unit_id: UnitId,
-    path: Vec<WorldPos>,
     move_helper: MoveHelper,
-    speed: ZFloat,
 }
 
 impl EventVisualizer for EventMoveVisualizer {
     fn is_finished(&self) -> bool {
-        self.path.len() == 1
+        self.move_helper.is_finished()
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
@@ -58,74 +54,34 @@ impl EventVisualizer for EventMoveVisualizer {
             marker_node.pos.v = pos.v + vec3_z(geom::HEX_EX_RADIUS / 2.0);
         }
         let node_id = unit_id_to_node_id(&self.unit_id);
-        let node = scene.node_mut(&node_id);
-        node.pos = pos;
-        if self.move_helper.is_finished() {
-            let _ = self.path.remove(0);
-            if self.path.len() > 1 {
-                self.update_waypoint(node);
-            }
-            node.pos = self.current_waypoint().clone();
-        }
+        scene.node_mut(&node_id).pos = pos;
     }
 
     fn end(&mut self, scene: &mut Scene, _: &PartialState) {
-        assert!(self.path.len() == 1);
         let node_id = unit_id_to_node_id(&self.unit_id);
         let node = scene.node_mut(&node_id);
-        node.pos = self.current_waypoint().clone();
+        node.pos = self.move_helper.destination().clone();
     }
 }
 
 impl EventMoveVisualizer {
     pub fn new(
         scene: &mut Scene,
-        unit_id: UnitId,
+        unit_id: &UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
-        path: MapPath,
+        destination: &MapPos,
     ) -> Box<EventVisualizer> {
-        let mut world_path = Vec::new();
-        for path_node in path.nodes() {
-            let world_pos = geom::map_pos_to_world_pos(&path_node.pos);
-            world_path.push(world_pos);
-        }
         let speed = unit_type_visual_info.move_speed;
-        let node_id = unit_id_to_node_id(&unit_id);
+        let node_id = unit_id_to_node_id(unit_id);
         let node = scene.node_mut(&node_id);
-        node.rot = geom::get_rot_angle(
-            &world_path[0], &world_path[1]);
-        let move_helper = MoveHelper::new(
-            &world_path[0], &world_path[1], speed);
-        let mut vis = Box::new(EventMoveVisualizer {
+        let from = node.pos.clone();
+        let to = geom::map_pos_to_world_pos(destination);
+        node.rot = geom::get_rot_angle(&from, &to);
+        let move_helper = MoveHelper::new(&from, &to, speed);
+        Box::new(EventMoveVisualizer {
             unit_id: unit_id.clone(),
-            path: world_path,
             move_helper: move_helper,
-            speed: speed,
-        });
-        vis.update_waypoint(node);
-        vis
-    }
-
-    fn update_waypoint(&mut self, node: &mut SceneNode) {
-        self.move_helper = MoveHelper::new(
-            self.current_waypoint(),
-            self.next_waypoint(),
-            self.speed,
-        );
-        node.rot = geom::get_rot_angle(
-            self.current_waypoint(),
-            self.next_waypoint()
-        );
-    }
-
-    fn current_waypoint(&self) -> &WorldPos {
-        assert!(self.path.len() >= 1);
-        &self.path[0]
-    }
-
-    fn next_waypoint(&self) -> &WorldPos {
-        assert!(self.path.len() >= 2);
-        &self.path[1]
+        })
     }
 }
 

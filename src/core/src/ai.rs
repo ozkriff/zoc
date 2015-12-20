@@ -1,10 +1,10 @@
 // See LICENSE file for copyright and license details.
 
-use common::types::{Size2, ZInt, PlayerId, MapPos};
+use common::types::{Size2, PlayerId, MapPos};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
-use pathfinder::{MapPath, Pathfinder};
+use pathfinder::{Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
@@ -30,7 +30,7 @@ impl Ai {
     }
 
     // TODO: move fill_map here
-    fn get_best_pos(&self) -> Option<MapPos> {
+    fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<MapPos> {
         let mut best_pos = None;
         let mut best_cost = None;
         for (_, enemy) in self.state.units() {
@@ -50,7 +50,8 @@ impl Ai {
                     Some(path) => path,
                     None => continue,
                 };
-                let cost = path.total_cost().n;
+                // TODO: ZInt -> MovePoints
+                let cost = path_cost(db, &self.state, unit, &path).n;
                 if let Some(ref mut best_cost) = best_cost {
                     if *best_cost > cost {
                         *best_cost = cost;
@@ -63,22 +64,6 @@ impl Ai {
             }
         }
         best_pos
-    }
-
-    fn truncate_path(&self, path: MapPath, move_points: ZInt) -> MapPath {
-        if path.total_cost().n <= move_points {
-            return path;
-        }
-        let len = path.nodes().len();
-        for i in 1 .. len {
-            let cost = &path.nodes()[i].cost;
-            if cost.n > move_points {
-                let mut new_nodes = path.nodes().to_vec();
-                new_nodes.truncate(i);
-                return MapPath::new(new_nodes);
-            }
-        }
-        unreachable!();
     }
 
     fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
@@ -130,7 +115,7 @@ impl Ai {
             }
             self.pathfinder.fill_map(db, &self.state, unit);
             // TODO: if no enemy is visible then move to random invisible tile
-            let destination = match self.get_best_pos() {
+            let destination = match self.get_best_pos(db, unit) {
                 Some(destination) => destination,
                 None => continue,
             };
@@ -141,7 +126,7 @@ impl Ai {
             if unit.move_points == 0 {
                 continue;
             }
-            let path = self.truncate_path(path, unit.move_points);
+            let path = truncate_path(db, &self.state, &path, unit);
             return Some(Command::Move {
                 unit_id: unit.id.clone(),
                 path: path,

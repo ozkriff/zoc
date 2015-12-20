@@ -17,7 +17,7 @@ pub struct Unit {
     pub pos: MapPos,
     pub player_id: PlayerId,
     pub type_id: UnitTypeId,
-    pub move_points: ZInt,
+    pub move_points: ZInt, // TODO: ZInt -> MoveCost -> MovePoints
     pub attack_points: ZInt,
     pub reactive_attack_points: Option<ZInt>,
     pub reaction_fire_mode: ReactionFireMode,
@@ -48,7 +48,7 @@ pub struct UnitType {
     pub toughness: ZInt,
     pub weapon_skill: ZInt,
     pub weapon_type_id: WeaponTypeId,
-    pub move_points: ZInt,
+    pub move_points: ZInt, // TODO: ZInt -> MoveCost -> MovePoints
     pub attack_points: ZInt,
     pub reactive_attack_points: ZInt,
     pub los_range: ZInt,

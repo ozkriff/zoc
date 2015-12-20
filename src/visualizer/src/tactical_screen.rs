@@ -934,16 +934,10 @@ impl TacticalScreen {
         let scene = &mut i.scene;
         let state = &i.game_state;
         match event {
-            &CoreEvent::Move{ref unit_id, ref path, ..} => {
+            &CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let type_id = state.unit(unit_id).type_id.clone();
-                let unit_type_visual_info
-                    = self.unit_type_visual_info.get(&type_id);
-                EventMoveVisualizer::new(
-                    scene,
-                    unit_id.clone(),
-                    unit_type_visual_info,
-                    path.clone(),
-                )
+                let visual_info = self.unit_type_visual_info.get(&type_id);
+                EventMoveVisualizer::new(scene, unit_id, visual_info, to)
             },
             &CoreEvent::EndTurn{..} => {
                 EventEndTurnVisualizer::new()
