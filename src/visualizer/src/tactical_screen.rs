@@ -1086,24 +1086,19 @@ impl TacticalScreen {
         }
         self.event_visualizer = None;
         self.event = None;
-        if let Some(ref selected_unit_id) = self.selected_unit_id.clone() {
-            // TODO: do this only if this is last unshowed CoreEvent
-            self.select_unit(context, selected_unit_id);
+        if let Some(event) = self.core.get_event() {
+            self.start_event_visualization(context, event);
+        } else if let Some(ref unit_id) = self.selected_unit_id.clone() {
+            self.select_unit(context, unit_id);
         }
     }
 
     fn logic(&mut self, context: &Context) {
-        while self.event_visualizer.is_none() {
-            // TODO: convert to iterator
+        if self.event_visualizer.is_none() {
             if let Some(event) = self.core.get_event() {
                 self.start_event_visualization(context, event);
-            } else {
-                break;
             }
-        }
-        if self.event_visualizer.is_some()
-            && self.is_event_visualization_finished()
-        {
+        } else if self.is_event_visualization_finished() {
             self.end_event_visualization(context);
         }
     }
