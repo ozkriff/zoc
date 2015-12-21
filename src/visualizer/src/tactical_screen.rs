@@ -39,6 +39,7 @@ use core::{
     Command,
     MoveMode,
     ReactionFireMode,
+    MovePoints,
     check_command,
     get_unit_id_at,
     find_next_player_unit_id,
@@ -129,10 +130,15 @@ fn generate_fogged_tiles_mesh(zgl: &Zgl, state: &PartialState, tex: &Texture) ->
     gen_tiles(zgl, state, tex, |vis| !vis)
 }
 
-fn build_walkable_mesh(zgl: &Zgl, pf: &Pathfinder, map: &Map<Terrain>, move_points: ZInt) -> Mesh {
+fn build_walkable_mesh(
+    zgl: &Zgl,
+    pf: &Pathfinder,
+    map: &Map<Terrain>,
+    move_points: &MovePoints,
+) -> Mesh {
     let mut vertex_data = Vec::new();
     for tile_pos in map.get_iter() {
-        if pf.get_map().tile(&tile_pos).cost().n > move_points {
+        if pf.get_map().tile(&tile_pos).cost().n > move_points.n {
             continue;
         }
         if let &Some(ref parent_dir) = pf.get_map().tile(&tile_pos).parent() {
@@ -611,7 +617,7 @@ impl TacticalScreen {
         let pf = &mut i.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
         self.walkable_mesh = Some(build_walkable_mesh(
-            &context.zgl, pf, state.map(), state.unit(unit_id).move_points));
+            &context.zgl, pf, state.map(), &state.unit(unit_id).move_points));
         self.targets_mesh = Some(build_targets_mesh(
             self.core.db(), &context.zgl, state, unit_id));
         let scene = &mut i.scene;
@@ -691,7 +697,7 @@ impl TacticalScreen {
         let unit = self.current_state().unit(unit_id);
         // TODO: use only one println
         println!("player_id: {}", unit.player_id.id);
-        println!("move_points: {}", unit.move_points);
+        println!("move_points: {}", unit.move_points.n);
         println!("attack_points: {}", unit.attack_points);
         if let Some(reactive_attack_points) = unit.reactive_attack_points {
             println!("reactive_attack_points: {}", reactive_attack_points);
@@ -711,7 +717,7 @@ impl TacticalScreen {
         println!("type: armor: {}", unit_type.armor);
         println!("type: toughness: {}", unit_type.toughness);
         println!("type: weapon_skill: {}", unit_type.weapon_skill);
-        println!("type: mp: {}", unit_type.move_points);
+        println!("type: mp: {}", unit_type.move_points.n);
         println!("type: ap: {}", unit_type.attack_points);
         println!("type: reactive_ap: {}", unit_type.reactive_attack_points);
         println!("type: los_range: {}", unit_type.los_range);

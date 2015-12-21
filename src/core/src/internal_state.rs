@@ -52,7 +52,7 @@ impl InternalState {
         for (_, unit) in self.units.iter_mut() {
             if unit.player_id == *player_id {
                 let unit_type = db.unit_type(&unit.type_id);
-                unit.move_points = unit_type.move_points;
+                unit.move_points = unit_type.move_points.clone();
                 unit.attack_points = unit_type.attack_points;
                 if let Some(ref mut reactive_attack_points) = unit.reactive_attack_points {
                     *reactive_attack_points = unit_type.reactive_attack_points;
@@ -70,7 +70,7 @@ impl InternalState {
             pos: unit_info.pos.clone(),
             player_id: unit_info.player_id.clone(),
             type_id: unit_info.type_id.clone(),
-            move_points: unit_type.move_points,
+            move_points: unit_type.move_points.clone(),
             attack_points: unit_type.attack_points,
             reactive_attack_points: if let InfoLevel::Full = info_level {
                 Some(unit_type.reactive_attack_points)
@@ -120,12 +120,12 @@ impl GameStateMut for InternalState {
                 let unit = self.units.get_mut(unit_id)
                     .expect("Bad move unit id");
                 unit.pos = to.clone();
-                assert!(unit.move_points > 0);
+                assert!(unit.move_points.n > 0);
                 if db.unit_type(&unit.type_id).is_transporter {
                     // TODO: get passenger and update its pos
                 }
-                unit.move_points -= *cost;
-                assert!(unit.move_points >= 0);
+                unit.move_points.n -= cost.n;
+                assert!(unit.move_points.n >= 0);
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
@@ -141,7 +141,7 @@ impl GameStateMut for InternalState {
                     unit.count -= attack_info.killed;
                     unit.morale -= attack_info.suppression;
                     if attack_info.remove_move_points {
-                        unit.move_points = 0;
+                        unit.move_points.n = 0;
                     }
                 }
                 let count = self.units[&attack_info.defender_id].count.clone();
@@ -187,7 +187,7 @@ impl GameStateMut for InternalState {
                 let passenger = self.units.get_mut(passenger_id)
                     .expect("Bad passenger_id");
                 passenger.pos = transporter_pos;
-                passenger.move_points = 0;
+                passenger.move_points.n = 0;
             },
             &CoreEvent::UnloadUnit{ref transporter_id, ref unit_info} => {
                 self.units.get_mut(transporter_id)

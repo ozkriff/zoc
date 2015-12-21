@@ -40,6 +40,9 @@ use fow::{Fow};
 use fov::{fov};
 
 #[derive(Clone)]
+pub struct MovePoints{pub n: ZInt}
+
+#[derive(Clone)]
 pub enum FireMode {
     Active,
     Reactive,
@@ -95,7 +98,7 @@ pub enum CoreEvent {
         from: MapPos,
         to: MapPos,
         mode: MoveMode,
-        cost: ZInt,
+        cost: MovePoints,
     },
     EndTurn {
         old_id: PlayerId,
@@ -357,7 +360,7 @@ pub fn check_command<S: GameState>(
             let unit = state.unit(&unit_id);
             let cost = path_cost(db, state, unit, &path).n
                 * move_cost_modifier(mode);
-            if cost > unit.move_points {
+            if cost > unit.move_points.n {
                 return Err(CommandError::NotEnoughMovePoints);
             }
             Ok(())
@@ -391,7 +394,7 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::TransporterIsTooFarAway);
             }
             // TODO: 0 -> real move cost of transport tile for passenger
-            if passenger.move_points == 0 {
+            if passenger.move_points.n == 0 {
                 return Err(CommandError::PassengerHasNotEnoughMovePoints);
             }
             Ok(())
@@ -775,9 +778,10 @@ impl Core {
                 for pos in path {
                     let event = {
                         let unit = self.state.unit(&unit_id);
-                        // TODO: ZInt -> MoveCost -> MovePoints
-                        let cost = tile_cost(&self.db, &self.state, unit, &pos).n
-                            * move_cost_modifier(&mode);
+                        let cost = MovePoints {
+                            n: tile_cost(&self.db, &self.state, unit, &pos).n
+                                * move_cost_modifier(&mode)
+                        };
                         CoreEvent::Move {
                             unit_id: unit_id.clone(),
                             from: unit.pos.clone(),

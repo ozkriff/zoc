@@ -123,7 +123,7 @@ impl Ai {
                 Some(path) => path,
                 None => continue,
             };
-            if unit.move_points == 0 {
+            if unit.move_points.n == 0 {
                 continue;
             }
             let path = truncate_path(db, &self.state, &path, unit);
