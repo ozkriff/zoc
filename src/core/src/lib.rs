@@ -679,13 +679,17 @@ impl Core {
         let fow = &self.players_info[&defender.player_id].fow;
         let is_visible = fow.is_visible(
             &self.db, &self.state, attacker, &attacker.pos);
-        let is_ambush = !is_visible && thread_rng().gen_range(1, 10) > 3; // TODO: remove magic
+        let ambush_chance = 70;
+        let is_ambush = !is_visible
+            && thread_rng().gen_range(1, 100) <= ambush_chance;
+        let base_suppression = 10;
+        let per_death_suppression = 20;
         let attack_info = AttackInfo {
             attacker_id: Some(attacker_id.clone()),
             defender_id: defender_id.clone(),
             killed: killed,
             mode: fire_mode.clone(),
-            suppression: 10 + 20 * killed, // TODO: remove magic
+            suppression: base_suppression + per_death_suppression * killed,
             remove_move_points: false,
             is_ambush: is_ambush,
         };
