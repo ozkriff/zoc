@@ -15,17 +15,16 @@ pub mod game_state;
 pub mod pathfinder;
 
 mod ai;
-mod player;
 mod fov;
 mod fow;
 mod internal_state;
 mod filter;
 
 use rand::{thread_rng, Rng};
-use std::cmp;
+use std::{cmp, fmt};
 use std::collections::{HashMap, HashSet, LinkedList};
 use cgmath::{Vector2};
-use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos};
+use common::types::{Size2, ZInt};
 use common::misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
@@ -34,13 +33,32 @@ use map::{Map, Terrain, distance};
 use pathfinder::{path_cost, tile_cost};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
-use player::{Player};
 use ai::{Ai};
 use fow::{Fow};
 use fov::{fov};
 
 #[derive(Clone)]
 pub struct MovePoints{pub n: ZInt}
+
+#[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
+pub struct PlayerId{pub id: ZInt}
+
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+pub struct UnitId{pub id: ZInt}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct MapPos{pub v: Vector2<ZInt>}
+
+impl fmt::Display for MapPos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MapPos({}, {})", self.v.x, self.v.y)
+    }
+}
+
+pub struct Player {
+    pub id: PlayerId,
+    pub is_ai: bool, // TODO: use enum
+}
 
 #[derive(Clone)]
 pub enum FireMode {

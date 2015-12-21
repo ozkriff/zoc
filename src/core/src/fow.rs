@@ -1,14 +1,14 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use common::types::{PlayerId, MapPos, Size2, ZInt};
+use common::types::{Size2, ZInt};
 use internal_state::{InternalState};
 use game_state::{GameState};
 use map::{Map, Terrain, distance};
 use fov::{fov};
 use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
-use ::{CoreEvent};
+use ::{CoreEvent, PlayerId, MapPos};
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum TileVisibility {

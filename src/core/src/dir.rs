@@ -1,7 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2};
-use common::types::{ZInt, MapPos};
+use common::types::{ZInt};
+use ::{MapPos};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Dir {

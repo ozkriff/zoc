@@ -3,12 +3,13 @@
 use std::sync::mpsc::{Sender};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use common::types::{UnitId, MapPos, ZInt, ZFloat};
+use common::types::{ZInt, ZFloat};
 use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
 use tactical_screen::{PickResult};
+use core::{UnitId, MapPos};
 
 #[derive(Clone)]
 pub enum Command {

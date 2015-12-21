@@ -22,7 +22,7 @@ use cgmath::{
 use collision::{Plane, Ray, Intersect};
 use glutin::{self, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Released};
-use common::types::{Size2, ZInt, UnitId, PlayerId, MapPos, ZFloat};
+use common::types::{Size2, ZInt, ZFloat};
 use zgl::types::{ScreenPos, VertexCoord, TextureCoord, Time, WorldPos};
 use zgl::{self, Zgl, MeshRenderMode};
 use zgl::mesh::{Mesh, MeshId};
@@ -40,6 +40,9 @@ use core::{
     MoveMode,
     ReactionFireMode,
     MovePoints,
+    UnitId,
+    PlayerId,
+    MapPos,
     check_command,
     get_unit_id_at,
     find_next_player_unit_id,

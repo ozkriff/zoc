@@ -4,8 +4,9 @@ use std::default::{Default};
 use std::iter::{repeat};
 use num::{Float};
 use cgmath::{Vector};
-use common::types::{Size2, ZInt, MapPos};
+use common::types::{Size2, ZInt};
 use dir::{Dir, DirIter, dirs};
+use ::{MapPos};
 
 #[derive(Clone)]
 pub enum Terrain {

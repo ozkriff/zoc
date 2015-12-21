@@ -1,11 +1,10 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use common::types::{UnitId, MapPos};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use ::{CoreEvent};
+use ::{CoreEvent, UnitId, MapPos};
 
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;

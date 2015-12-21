@@ -3,11 +3,11 @@
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use common::types::{PlayerId};
 use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, is_tap};
+use core::{PlayerId};
 
 pub struct EndTurnScreen {
     button_manager: ButtonManager,

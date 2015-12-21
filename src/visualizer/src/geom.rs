@@ -3,9 +3,9 @@
 use std::f32::consts::{PI};
 use num::{Float};
 use cgmath::{Vector3, Vector, Rad, Angle, rad};
-use common::types::{ZInt, ZFloat, MapPos};
+use common::types::{ZInt, ZFloat};
 use zgl::types::{VertexCoord, WorldPos};
-use core::geom;
+use core::{MapPos, geom};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 

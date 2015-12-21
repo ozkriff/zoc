@@ -5,9 +5,10 @@
 use std::f32::consts::{PI};
 use num::{Float};
 use cgmath::{EuclideanVector};
-use common::types::{MapPos, ZInt, ZFloat};
+use common::types::{ZInt, ZFloat};
 use map::{Map, Terrain, distance, spiral_iter};
 use geom;
+use ::{MapPos};
 
 struct Shadow {
     left: ZFloat,

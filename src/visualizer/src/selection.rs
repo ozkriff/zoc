@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2, rad};
-use common::types::{UnitId};
+use core::{UnitId};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use zgl::misc::{add_quad_to_vec};

@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use common::types::{Size2, PlayerId, MapPos};
+use common::types::{Size2};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
@@ -8,7 +8,7 @@ use pathfinder::{Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use ::{CoreEvent, Command, MoveMode, check_command};
+use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, check_command};
 
 pub struct Ai {
     id: PlayerId,

@@ -1,14 +1,14 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use common::types::{ZInt, MapPos, Size2};
+use common::types::{ZInt, Size2};
 use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir};
-use ::{MovePoints};
+use ::{MovePoints, MapPos};
 
 #[derive(Clone)]
 pub struct Tile {

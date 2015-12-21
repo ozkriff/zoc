@@ -1,14 +1,14 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use common::types::{PlayerId, UnitId, MapPos, Size2};
+use common::types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use fow::{Fow};
-use ::{CoreEvent};
+use ::{CoreEvent, PlayerId, UnitId, MapPos};
 
 pub struct PartialState {
     state: InternalState,

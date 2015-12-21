@@ -2,12 +2,20 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use common::types::{PlayerId, UnitId, MapPos, Size2};
+use common::types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use game_state::{GameState, GameStateMut};
-use ::{CoreEvent, FireMode, UnitInfo, ReactionFireMode};
+use ::{
+    CoreEvent,
+    FireMode,
+    UnitInfo,
+    ReactionFireMode,
+    PlayerId,
+    UnitId,
+    MapPos,
+};
 
 pub enum InfoLevel {
     Full,

@@ -1,7 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap, VecDeque};
-use common::types::{ZInt, ZFloat, MapPos};
+use common::types::{ZInt, ZFloat};
+use core::{MapPos};
 use zgl::{Zgl};
 use zgl::mesh::{Mesh};
 use zgl::camera::Camera;

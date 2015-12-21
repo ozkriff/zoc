@@ -3,10 +3,10 @@
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Vector, rad};
-use common::types::{ZFloat, UnitId, ZInt, MapPos};
+use common::types::{ZFloat, ZInt};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
-use core::{self, UnitInfo, AttackInfo, ReactionFireMode};
+use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, MapPos};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
 use zgl::mesh::{MeshId};

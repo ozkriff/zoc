@@ -1,13 +1,12 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap, HashSet};
-use common::types::{UnitId, PlayerId};
 use internal_state::{InternalState};
 use game_state::{GameState};
 use unit::{Unit};
 use db::{Db};
 use fow::{Fow};
-use ::{CoreEvent, AttackInfo, UnitInfo, unit_to_info};
+use ::{CoreEvent, AttackInfo, UnitInfo, UnitId, PlayerId, unit_to_info};
 
 pub fn get_visible_enemies(
     db: &Db,
