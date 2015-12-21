@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt};
-use ::{ReactionFireMode, MovePoints, UnitId, PlayerId, MapPos};
+use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, MapPos};
 
 #[derive(Clone)]
 pub struct UnitTypeId{pub id: ZInt}
@@ -18,8 +18,8 @@ pub struct Unit {
     pub player_id: PlayerId,
     pub type_id: UnitTypeId,
     pub move_points: MovePoints,
-    pub attack_points: ZInt, // TODO: AttackPoints
-    pub reactive_attack_points: Option<ZInt>,
+    pub attack_points: AttackPoints,
+    pub reactive_attack_points: Option<AttackPoints>,
     pub reaction_fire_mode: ReactionFireMode,
     pub count: ZInt,
     pub morale: ZInt,
@@ -49,8 +49,8 @@ pub struct UnitType {
     pub weapon_skill: ZInt,
     pub weapon_type_id: WeaponTypeId,
     pub move_points: MovePoints,
-    pub attack_points: ZInt,
-    pub reactive_attack_points: ZInt,
+    pub attack_points: AttackPoints,
+    pub reactive_attack_points: AttackPoints,
     pub los_range: ZInt,
     pub cover_los_range: ZInt,
     pub is_transporter: bool,

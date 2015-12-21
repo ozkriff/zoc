@@ -2,7 +2,7 @@
 
 use common::types::{ZInt};
 use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
-use ::{MovePoints};
+use ::{MovePoints, AttackPoints};
 
 fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
     -> WeaponTypeId
@@ -52,8 +52,8 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             weapon_skill: 5,
             weapon_type_id: cannon_id.clone(),
             move_points: MovePoints{n: 5},
-            attack_points: 2,
-            reactive_attack_points: 1,
+            attack_points: AttackPoints{n: 2},
+            reactive_attack_points: AttackPoints{n: 1},
             los_range: 6,
             cover_los_range: 0,
             is_transporter: false,
@@ -68,8 +68,8 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             weapon_skill: 0,
             weapon_type_id: cannon_id.clone(), // TODO: remove hack
             move_points: MovePoints{n: 7},
-            attack_points: 0,
-            reactive_attack_points: 0,
+            attack_points: AttackPoints{n: 0},
+            reactive_attack_points: AttackPoints{n: 0},
             los_range: 6,
             cover_los_range: 0,
             is_transporter: true,
@@ -84,8 +84,8 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             weapon_skill: 5,
             weapon_type_id: rifle_id.clone(),
             move_points: MovePoints{n: 4},
-            attack_points: 2,
-            reactive_attack_points: 1,
+            attack_points: AttackPoints{n: 2},
+            reactive_attack_points: AttackPoints{n: 1},
             los_range: 6,
             cover_los_range: 1,
             is_transporter: false,
@@ -100,8 +100,8 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             weapon_skill: 5,
             weapon_type_id: rifle_id.clone(),
             move_points: MovePoints{n: 6},
-            attack_points: 2,
-            reactive_attack_points: 1,
+            attack_points: AttackPoints{n: 2},
+            reactive_attack_points: AttackPoints{n: 1},
             los_range: 8,
             cover_los_range: 2,
             is_transporter: false,

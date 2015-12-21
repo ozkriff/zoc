@@ -701,9 +701,9 @@ impl TacticalScreen {
         // TODO: use only one println
         println!("player_id: {}", unit.player_id.id);
         println!("move_points: {}", unit.move_points.n);
-        println!("attack_points: {}", unit.attack_points);
-        if let Some(reactive_attack_points) = unit.reactive_attack_points {
-            println!("reactive_attack_points: {}", reactive_attack_points);
+        println!("attack_points: {}", unit.attack_points.n);
+        if let Some(ref reactive_attack_points) = unit.reactive_attack_points {
+            println!("reactive_attack_points: {}", reactive_attack_points.n);
         } else {
             println!("reactive_attack_points: ???");
         }
@@ -721,8 +721,8 @@ impl TacticalScreen {
         println!("type: toughness: {}", unit_type.toughness);
         println!("type: weapon_skill: {}", unit_type.weapon_skill);
         println!("type: mp: {}", unit_type.move_points.n);
-        println!("type: ap: {}", unit_type.attack_points);
-        println!("type: reactive_ap: {}", unit_type.reactive_attack_points);
+        println!("type: ap: {}", unit_type.attack_points.n);
+        println!("type: reactive_ap: {}", unit_type.reactive_attack_points.n);
         println!("type: los_range: {}", unit_type.los_range);
         println!("type: cover_los_range: {}", unit_type.cover_los_range);
         let weapon_type = self.core.db().weapon_type(&unit_type.weapon_type_id);

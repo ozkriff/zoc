@@ -79,8 +79,7 @@ impl Ai {
             if unit.player_id != self.id {
                 continue;
             }
-            // println!("id: {}, ap: {}", unit.id.id, unit.attack_points);
-            if unit.attack_points <= 0 {
+            if unit.attack_points.n <= 0 {
                 continue;
             }
             for (_, target) in self.state.units() {

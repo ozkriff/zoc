@@ -49,9 +49,9 @@ impl InternalState {
                 if let Some(ref mut reactive_attack_points)
                     = unit.reactive_attack_points
                 {
-                    *reactive_attack_points += unit.attack_points;
+                    reactive_attack_points.n += unit.attack_points.n;
                 }
-                unit.attack_points = 0;
+                unit.attack_points.n = 0;
             }
         }
     }
@@ -61,9 +61,9 @@ impl InternalState {
             if unit.player_id == *player_id {
                 let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points.clone();
-                unit.attack_points = unit_type.attack_points;
+                unit.attack_points = unit_type.attack_points.clone();
                 if let Some(ref mut reactive_attack_points) = unit.reactive_attack_points {
-                    *reactive_attack_points = unit_type.reactive_attack_points;
+                    *reactive_attack_points = unit_type.reactive_attack_points.clone();
                 }
                 unit.morale += 10;
             }
@@ -79,9 +79,9 @@ impl InternalState {
             player_id: unit_info.player_id.clone(),
             type_id: unit_info.type_id.clone(),
             move_points: unit_type.move_points.clone(),
-            attack_points: unit_type.attack_points,
+            attack_points: unit_type.attack_points.clone(),
             reactive_attack_points: if let InfoLevel::Full = info_level {
-                Some(unit_type.reactive_attack_points)
+                Some(unit_type.reactive_attack_points.clone())
             } else {
                 None
             },
@@ -165,15 +165,15 @@ impl GameStateMut for InternalState {
                 if let Some(unit) = self.units.get_mut(&attacker_id) {
                     match attack_info.mode {
                         FireMode::Active => {
-                            assert!(unit.attack_points >= 1);
-                            unit.attack_points -= 1;
+                            assert!(unit.attack_points.n >= 1);
+                            unit.attack_points.n -= 1;
                         },
                         FireMode::Reactive => {
                             if let Some(ref mut reactive_attack_points)
                                 = unit.reactive_attack_points
                             {
-                                assert!(*reactive_attack_points >= 1);
-                                *reactive_attack_points -= 1;
+                                assert!(reactive_attack_points.n >= 1);
+                                reactive_attack_points.n -= 1;
                             }
                         },
                     }

@@ -40,6 +40,9 @@ use fov::{fov};
 #[derive(Clone)]
 pub struct MovePoints{pub n: ZInt}
 
+#[derive(Clone)]
+pub struct AttackPoints{pub n: ZInt}
+
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
 pub struct PlayerId{pub id: ZInt}
 
@@ -325,12 +328,13 @@ fn check_attack<S: GameState>(
     }
     let attacker = state.unit(attacker_id);
     let defender = state.unit(defender_id);
-    let reactive_attack_points = attacker.reactive_attack_points.unwrap();
+    let reactive_attack_points = attacker
+        .reactive_attack_points.as_ref().unwrap().clone();
     match *fire_mode {
-        FireMode::Active => if attacker.attack_points <= 0 {
+        FireMode::Active => if attacker.attack_points.n <= 0 {
             return Err(CommandError::NotEnoughAttackPoints);
         },
-        FireMode::Reactive => if reactive_attack_points <= 0 {
+        FireMode::Reactive => if reactive_attack_points.n <= 0 {
             return Err(CommandError::NotEnoughReactiveAttackPoints);
         },
     }
