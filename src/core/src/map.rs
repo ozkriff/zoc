@@ -201,8 +201,8 @@ pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
 #[cfg(test)]
 mod tests {
     use cgmath::{Vector2};
-    use common::types::{MapPos};
     use super::{ring_iter, spiral_iter};
+    use ::{MapPos};
 
     #[test]
     fn test_ring_1() {
