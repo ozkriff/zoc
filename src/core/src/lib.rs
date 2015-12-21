@@ -334,8 +334,8 @@ fn check_attack<S: GameState>(
             return Err(CommandError::NotEnoughReactiveAttackPoints);
         },
     }
-    // TODO: magic number
-    if attacker.morale < 50 {
+    let minimal_ok_morale = 50;
+    if attacker.morale < minimal_ok_morale {
         return Err(CommandError::BadMorale);
     }
     let attacker_type = db.unit_type(&attacker.type_id);
