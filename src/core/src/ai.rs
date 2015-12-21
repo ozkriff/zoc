@@ -8,7 +8,7 @@ use pathfinder::{Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, check_command};
+use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, MovePoints, check_command};
 
 pub struct Ai {
     id: PlayerId,
@@ -32,7 +32,7 @@ impl Ai {
     // TODO: move fill_map here
     fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<MapPos> {
         let mut best_pos = None;
-        let mut best_cost = None;
+        let mut best_cost = MovePoints{n: 0};
         for (_, enemy) in self.state.units() {
             if enemy.player_id == self.id {
                 continue;
@@ -50,15 +50,9 @@ impl Ai {
                     Some(path) => path,
                     None => continue,
                 };
-                // TODO: ZInt -> MovePoints
-                let cost = path_cost(db, &self.state, unit, &path).n;
-                if let Some(ref mut best_cost) = best_cost {
-                    if *best_cost > cost {
-                        *best_cost = cost;
-                        best_pos = Some(destination.clone());
-                    }
-                } else {
-                    best_cost = Some(cost);
+                let cost = path_cost(db, &self.state, unit, &path);
+                if best_cost.n > cost.n {
+                    best_cost.n = cost.n;
                     best_pos = Some(destination.clone());
                 }
             }
