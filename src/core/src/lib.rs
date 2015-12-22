@@ -361,18 +361,10 @@ impl std::error::Error for CommandError {
 fn check_attack<S: GameState>(
     db: &Db,
     state: &S,
-    attacker_id: &UnitId,
-    defender_id: &UnitId,
+    attacker: &Unit,
+    defender: &Unit,
     fire_mode: &FireMode,
 ) -> Result<(), CommandError> {
-    if state.units().get(attacker_id).is_none() {
-        return Err(CommandError::BadAttackerId);
-    }
-    if state.units().get(defender_id).is_none() {
-        return Err(CommandError::BadDefenderId);
-    }
-    let attacker = state.unit(attacker_id);
-    let defender = state.unit(defender_id);
     let reactive_attack_points = attacker
         .reactive_attack_points.as_ref().unwrap().clone();
     match *fire_mode {
@@ -433,7 +425,15 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         &Command::AttackUnit{ref attacker_id, ref defender_id} => {
-            check_attack(db, state, attacker_id, defender_id, &FireMode::Active)
+            if state.units().get(attacker_id).is_none() {
+                return Err(CommandError::BadAttackerId);
+            }
+            if state.units().get(defender_id).is_none() {
+                return Err(CommandError::BadDefenderId);
+            }
+            let attacker = state.unit(attacker_id);
+            let defender = state.unit(defender_id);
+            check_attack(db, state, attacker, defender, &FireMode::Active)
         },
         &Command::LoadUnit{ref transporter_id, ref passenger_id} => {
             if state.units().get(transporter_id).is_none() {
@@ -716,8 +716,8 @@ impl Core {
         let check_attack_result = check_attack(
             &self.db,
             &self.state,
-            attacker_id,
-            defender_id,
+            attacker,
+            defender,
             fire_mode,
         );
         if let Err(..) = check_attack_result {
@@ -762,8 +762,8 @@ impl Core {
         let check_attack_result = check_attack(
             &self.db,
             &self.state,
-            &attacker.id,
-            &defender.id,
+            attacker,
+            defender,
             &FireMode::Reactive,
         );
         check_attack_result.is_ok()
