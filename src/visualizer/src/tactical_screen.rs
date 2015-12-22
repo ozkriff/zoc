@@ -48,7 +48,6 @@ use core::{
     find_next_player_unit_id,
     find_prev_player_unit_id,
 };
-use core::unit::{UnitClass};
 use core::db::{Db};
 use zgl::texture::{Texture};
 use zgl::obj;
@@ -696,56 +695,17 @@ impl TacticalScreen {
         }
     }
 
-    fn print_unit_info(&self, unit_id: &UnitId) {
-        let unit = self.current_state().unit(unit_id);
-        // TODO: use only one println
-        println!("player_id: {}", unit.player_id.id);
-        println!("move_points: {}", unit.move_points.n);
-        println!("attack_points: {}", unit.attack_points.n);
-        if let Some(ref reactive_attack_points) = unit.reactive_attack_points {
-            println!("reactive_attack_points: {}", reactive_attack_points.n);
-        } else {
-            println!("reactive_attack_points: ???");
-        }
-        println!("count: {}", unit.count);
-        println!("morale: {}", unit.morale);
-        let unit_type = self.core.db().unit_type(&unit.type_id);
-        println!("type: name: {}", unit_type.name);
-        match unit_type.class {
-            UnitClass::Infantry => println!("type: class: Infantry"),
-            UnitClass::Vehicle => println!("type: class: Vehicle"),
-        }
-        println!("type: count: {}", unit_type.count);
-        println!("type: size: {}", unit_type.size);
-        println!("type: armor: {}", unit_type.armor);
-        println!("type: toughness: {}", unit_type.toughness);
-        println!("type: weapon_skill: {}", unit_type.weapon_skill);
-        println!("type: mp: {}", unit_type.move_points.n);
-        println!("type: ap: {}", unit_type.attack_points.n);
-        println!("type: reactive_ap: {}", unit_type.reactive_attack_points.n);
-        println!("type: los_range: {}", unit_type.los_range);
-        println!("type: cover_los_range: {}", unit_type.cover_los_range);
-        let weapon_type = self.core.db().weapon_type(&unit_type.weapon_type_id);
-        println!("weapon: name: {}", weapon_type.name);
-        println!("weapon: damage: {}", weapon_type.damage);
-        println!("weapon: ap: {}", weapon_type.ap);
-        println!("weapon: accuracy: {}", weapon_type.accuracy);
-        println!("weapon: max_distance: {}", weapon_type.max_distance);
-    }
-
-    fn print_terrain_info(&self, pos: &MapPos) {
-        match self.current_state().map().tile(pos) {
-            &Terrain::Trees => println!("Trees"),
-            &Terrain::Plain => println!("Plain"),
-        }
-    }
-
     fn print_info(&mut self, context: &Context) {
         // TODO: move this to `fn Core::get_unit_info(...) -> &str`?
         let pick_result = self.pick_tile(context);
         match pick_result {
-            Some(PickResult::UnitId(ref id)) => self.print_unit_info(id),
-            Some(PickResult::Pos(ref pos)) => self.print_terrain_info(pos),
+            Some(PickResult::UnitId(ref id)) => {
+                core::print_unit_info(
+                    self.core.db(), self.current_state().unit(id));
+            },
+            Some(PickResult::Pos(ref pos)) => {
+                core::print_terrain_info(self.current_state(), pos);
+            },
             _ => {},
         }
         println!("");

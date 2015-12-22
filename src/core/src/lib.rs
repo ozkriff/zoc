@@ -246,6 +246,51 @@ struct PlayerInfo {
     visible_enemies: HashSet<UnitId>,
 }
 
+pub fn print_unit_info(db: &Db, unit: &Unit) {
+    let unit_type = db.unit_type(&unit.type_id);
+    let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
+    println!("unit:");
+    println!("  player_id: {}", unit.player_id.id);
+    println!("  move_points: {}", unit.move_points.n);
+    println!("  attack_points: {}", unit.attack_points.n);
+    if let Some(ref reactive_attack_points) = unit.reactive_attack_points {
+        println!("  reactive_attack_points: {}", reactive_attack_points.n);
+    } else {
+        println!("  reactive_attack_points: ?");
+    }
+    println!("  count: {}", unit.count);
+    println!("  morale: {}", unit.morale);
+    println!("type:");
+    println!("  name: {}", unit_type.name);
+    match unit_type.class {
+        UnitClass::Infantry => println!("  class: Infantry"),
+        UnitClass::Vehicle => println!("  class: Vehicle"),
+    }
+    println!("  count: {}", unit_type.count);
+    println!("  size: {}", unit_type.size);
+    println!("  armor: {}", unit_type.armor);
+    println!("  toughness: {}", unit_type.toughness);
+    println!("  weapon_skill: {}", unit_type.weapon_skill);
+    println!("  mp: {}", unit_type.move_points.n);
+    println!("  ap: {}", unit_type.attack_points.n);
+    println!("  reactive_ap: {}", unit_type.reactive_attack_points.n);
+    println!("  los_range: {}", unit_type.los_range);
+    println!("  cover_los_range: {}", unit_type.cover_los_range);
+    println!("weapon:");
+    println!("  name: {}", weapon_type.name);
+    println!("  damage: {}", weapon_type.damage);
+    println!("  ap: {}", weapon_type.ap);
+    println!("  accuracy: {}", weapon_type.accuracy);
+    println!("  max_distance: {}", weapon_type.max_distance);
+}
+
+pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
+    match state.map().tile(pos) {
+        &Terrain::Trees => println!("Trees"),
+        &Terrain::Plain => println!("Plain"),
+    }
+}
+
 #[derive(Debug)]
 pub enum CommandError {
     TileIsOccupied,
