@@ -845,6 +845,7 @@ impl Core {
                 self.do_core_event(&event);
             },
             Command::Move{unit_id, path, mode} => {
+                let player_id = self.state.unit(&unit_id).player_id.clone();
                 let is_careful_move = mode == MoveMode::Hunt;
                 for pos in path {
                     let event = {
@@ -861,6 +862,8 @@ impl Core {
                             cost: cost,
                         }
                     };
+                    let pre_visible_enemies = self.players_info[&player_id]
+                        .visible_enemies.clone();
                     self.do_core_event(&event);
                     let reaction_fire_result = self.reaction_fire_internal(
                         &unit_id,
@@ -869,6 +872,10 @@ impl Core {
                         },
                     );
                     if reaction_fire_result != ReactionFireResult::None {
+                        break;
+                    }
+                    let i = &self.players_info[&player_id];
+                    if pre_visible_enemies != i.visible_enemies {
                         break;
                     }
                 }
