@@ -177,7 +177,7 @@ impl Zgl {
                 gl::INVALID_VALUE => "GL_INVALID_VALUE",
                 gl::NO_ERROR => "GL_NO_ERROR",
                 gl::OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
-                _ => panic!("Bad gl error code: {}", error_code),
+                _ => panic!("Bad gl error code: 0x{:x} ({})", error_code, error_code),
             };
             panic!("gl error: {}({})", description, error_code);
         }
