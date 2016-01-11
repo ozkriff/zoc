@@ -58,7 +58,7 @@ Make sure that path in `.cargo/config` is correct.
 
 Then just: ``make android_run`` (rust-nightly is required).
 
-(Tested on nexus7/android5)
+(Tested on nexus7/android6)
 
 
 Contribute
