@@ -10,15 +10,12 @@ use zgl::texture::Texture;
 use zgl::types::{TextureCoord, WorldPos};
 use zgl::{Zgl};
 use geom;
-use scene::{
-    Scene,
-    SceneNode,
-    SELECTION_NODE_ID,
-};
+use scene::{Scene, SceneNode, NodeId};
 
 pub struct SelectionManager {
     unit_id: Option<UnitId>,
     mesh_id: MeshId,
+    selection_marker_node_id: Option<NodeId>,
 }
 
 impl SelectionManager {
@@ -26,11 +23,8 @@ impl SelectionManager {
         SelectionManager {
             unit_id: None,
             mesh_id: mesh_id,
+            selection_marker_node_id: None,
         }
-    }
-
-    fn set_unit_id(&mut self, unit_id: UnitId) {
-        self.unit_id = Some(unit_id);
     }
 
     fn get_pos(&self, state: &PartialState) -> WorldPos {
@@ -40,22 +34,17 @@ impl SelectionManager {
         WorldPos{v: geom::lift(geom::map_pos_to_world_pos(&map_pos).v)}
     }
 
-    /*
-    pub fn move_selection_marker(&self, state: &PartialState, scene: &mut Scene) {
-        let node = scene.node(&SELECTION_NODE_ID);
-        node.pos = self.get_pos(state);
-    }
-    */
-
     pub fn create_selection_marker(
         &mut self,
         state: &PartialState,
         scene: &mut Scene,
         unit_id: &UnitId,
     ) {
-        self.set_unit_id(unit_id.clone());
-        if scene.nodes.get(&SELECTION_NODE_ID).is_some() {
-            scene.nodes.remove(&SELECTION_NODE_ID);
+        self.unit_id = Some(unit_id.clone());
+        if let Some(ref node_id) = self.selection_marker_node_id {
+            if scene.nodes().get(node_id).is_some() {
+                scene.remove_node(node_id);
+            }
         }
         let node = SceneNode {
             pos: self.get_pos(state),
@@ -63,12 +52,15 @@ impl SelectionManager {
             mesh_id: Some(self.mesh_id.clone()),
             children: Vec::new(),
         };
-        scene.nodes.insert(SELECTION_NODE_ID, node);
+        self.selection_marker_node_id = Some(scene.add_node(node));
     }
 
     pub fn deselect(&mut self, scene: &mut Scene) {
-        scene.nodes.remove(&SELECTION_NODE_ID);
         self.unit_id = None;
+        if let Some(ref node_id) = self.selection_marker_node_id {
+            scene.remove_node(node_id);
+        }
+        self.selection_marker_node_id = None;
     }
 }
 

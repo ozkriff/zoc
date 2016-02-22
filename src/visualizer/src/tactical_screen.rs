@@ -53,7 +53,7 @@ use zgl::texture::{Texture};
 use zgl::obj;
 use zgl::font_stash::{FontStash};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
-use scene::{NodeId, Scene, SceneNode, MIN_MAP_OBJECT_NODE_ID};
+use scene::{Scene, SceneNode};
 use event_visualizer::{
     EventVisualizer,
     EventMoveVisualizer,
@@ -451,8 +451,7 @@ impl TacticalScreen {
 
     fn add_marker(&mut self, pos: &WorldPos) {
         for (_, player_info) in self.player_info.info.iter_mut() {
-            let node_id = NodeId{id: 3000}; // TODO: remove magic
-            player_info.scene.nodes.insert(node_id, SceneNode {
+            player_info.scene.add_node(SceneNode {
                 pos: pos.clone(),
                 rot: rad(0.0),
                 mesh_id: Some(self.mesh_ids.shell_mesh_id.clone()),
@@ -462,21 +461,18 @@ impl TacticalScreen {
     }
 
     fn add_map_objects(&mut self) {
-        let mut node_id = MIN_MAP_OBJECT_NODE_ID.clone();
-
         for (_, player_info) in self.player_info.info.iter_mut() {
             let map = &player_info.game_state.map();
             for tile_pos in map.get_iter() {
                 if let &Terrain::Trees = map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                    player_info.scene.nodes.insert(node_id.clone(), SceneNode {
+                    player_info.scene.add_node(SceneNode {
                         pos: pos.clone(),
                         rot: rot,
                         mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
                         children: Vec::new(),
                     });
-                    node_id.id += 1;
                 }
             }
         }
@@ -488,8 +484,8 @@ impl TacticalScreen {
             let screen = Box::new(EndTurnScreen::new(context, &next_id));
             context.add_command(ScreenCommand::PushScreen(screen));
         }
-        self.core.do_command(Command::EndTurn);
         self.deselect_unit();
+        self.core.do_command(Command::EndTurn);
     }
 
     fn deselect_unit(&mut self) {
@@ -820,7 +816,7 @@ impl TacticalScreen {
     }
 
     fn draw_scene_nodes(&self, context: &Context) {
-        for (_, node) in &self.scene().nodes {
+        for (_, node) in self.scene().nodes() {
             let m = self.camera.mat(&context.zgl);
             self.draw_scene_node(context, node, m);
         }

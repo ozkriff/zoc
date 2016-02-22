@@ -3,17 +3,9 @@
 use std::collections::{HashMap};
 use cgmath::{Rad};
 use common::types::{ZInt, ZFloat};
+use core::{UnitId};
 use zgl::mesh::{MeshId};
 use zgl::types::{WorldPos};
-
-// TODO: why scene knows about other systems?
-pub const MAX_UNIT_NODE_ID: NodeId = NodeId{id: 1000};
-pub const MIN_MARKER_NODE_ID: NodeId = NodeId{id: MAX_UNIT_NODE_ID.id + 1};
-pub const MAX_MARKER_NODE_ID: NodeId = NodeId{id: MAX_UNIT_NODE_ID.id * 2};
-pub const SHELL_NODE_ID: NodeId = NodeId{id: MAX_MARKER_NODE_ID.id + 1};
-pub const SELECTION_NODE_ID: NodeId = NodeId{id: SHELL_NODE_ID.id + 1};
-pub const MIN_MAP_OBJECT_NODE_ID: NodeId = NodeId{id: SELECTION_NODE_ID.id + 1};
-// pub const MAX_MAP_OBJECT_NODE_ID: NodeId = NodeId{id: MIN_MAP_OBJECT_NODE_ID.id + 100}; // TODO: 100?
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct NodeId{pub id: ZInt}
@@ -26,14 +18,49 @@ pub struct SceneNode {
 }
 
 pub struct Scene {
-    pub nodes: HashMap<NodeId, SceneNode>,
+    unit_id_to_node_id_map: HashMap<UnitId, NodeId>,
+    nodes: HashMap<NodeId, SceneNode>,
+    next_id: NodeId,
 }
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
+            unit_id_to_node_id_map: HashMap::new(),
             nodes: HashMap::new(),
+            next_id: NodeId{id: 0},
         }
+    }
+
+    pub fn unit_id_to_node_id(&self, unit_id: &UnitId) -> NodeId {
+        self.unit_id_to_node_id_map[unit_id].clone()
+    }
+
+    pub fn remove_node(&mut self, node_id: &NodeId) {
+        self.nodes.remove(node_id).unwrap();
+    }
+
+    pub fn add_node(&mut self, node: SceneNode) -> NodeId {
+        let node_id = self.next_id.clone();
+        self.next_id.id += 1;
+        assert!(!self.nodes.contains_key(&node_id));
+        self.nodes.insert(node_id.clone(), node);
+        node_id
+    }
+
+    pub fn add_unit(&mut self, unit_id: &UnitId, node: SceneNode) -> NodeId {
+        let node_id = self.add_node(node);
+        assert!(!self.unit_id_to_node_id_map.contains_key(unit_id));
+        self.unit_id_to_node_id_map.insert(unit_id.clone(), node_id.clone());
+        node_id
+    }
+
+    pub fn nodes(&self) -> &HashMap<NodeId, SceneNode> {
+        &self.nodes
+    }
+
+    pub fn node(&self, node_id: &NodeId) -> &SceneNode {
+        &self.nodes[node_id]
     }
 
     pub fn node_mut(&mut self, node_id: &NodeId) -> &mut SceneNode {
