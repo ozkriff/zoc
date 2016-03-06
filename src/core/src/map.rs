@@ -37,19 +37,22 @@ impl<T: Clone + Default> Map<T> {
         &self.size
     }
 
-    pub fn tile_mut(&mut self, pos: &MapPos) -> &mut T {
+    pub fn tile_mut<P: AsRef<MapPos>>(&mut self, pos: &P) -> &mut T {
+        let pos = pos.as_ref();
         assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &mut self.tiles[index as usize]
     }
 
-    pub fn tile(&self, pos: &MapPos) -> &T {
+    pub fn tile<P: AsRef<MapPos>>(&self, pos: &P) -> &T {
+        let pos = pos.as_ref();
         assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &self.tiles[index as usize]
     }
 
-    pub fn is_inboard(&self, pos: &MapPos) -> bool {
+    pub fn is_inboard<P: AsRef<MapPos>>(&self, pos: &P) -> bool {
+        let pos = pos.as_ref();
         let x = pos.v.x;
         let y = pos.v.y;
         x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
@@ -190,9 +193,9 @@ impl Iterator for SpiralIter {
     }
 }
 
-pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
-    let to = to.v;
-    let from = from.v;
+pub fn distance<P: AsRef<MapPos>>(from: &P, to: &P) -> ZInt {
+    let to = to.as_ref().v;
+    let from = from.as_ref().v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);
     let dy = to.y - from.y;
     (dx.abs() + dy.abs() + (dx - dy).abs()) / 2

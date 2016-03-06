@@ -58,6 +58,31 @@ impl fmt::Display for MapPos {
     }
 }
 
+#[derive(PartialEq, Clone, Debug)]
+pub enum SlotId {
+    Id(u8),
+    WholeTile,
+    // Air, // TODO: implement air units
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct ExactPos {
+    pub map_pos: MapPos,
+    pub slot_id: SlotId,
+}
+
+impl AsRef<MapPos> for ExactPos {
+    fn as_ref(&self) -> &MapPos {
+        &self.map_pos
+    }
+}
+
+impl AsRef<MapPos> for MapPos {
+    fn as_ref(&self) -> &MapPos {
+        self
+    }
+}
+
 pub struct Player {
     pub id: PlayerId,
     pub is_ai: bool, // TODO: use enum
@@ -83,19 +108,19 @@ pub enum MoveMode {
 
 #[derive(Clone)]
 pub enum Command {
-    Move{unit_id: UnitId, path: Vec<MapPos>, mode: MoveMode},
+    Move{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode},
     EndTurn,
-    CreateUnit{pos: MapPos},
+    CreateUnit{pos: ExactPos, type_id: UnitTypeId},
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
     LoadUnit{transporter_id: UnitId, passenger_id: UnitId},
-    UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: MapPos},
+    UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos},
     SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
 }
 
 #[derive(Clone)]
 pub struct UnitInfo {
     pub unit_id: UnitId,
-    pub pos: MapPos,
+    pub pos: ExactPos,
     pub type_id: UnitTypeId,
     pub player_id: PlayerId,
     pub passenger_id: Option<UnitId>,
@@ -116,8 +141,8 @@ pub struct AttackInfo {
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
-        from: MapPos,
-        to: MapPos,
+        from: ExactPos,
+        to: ExactPos,
         mode: MoveMode,
         cost: MovePoints,
     },
@@ -151,16 +176,7 @@ pub enum CoreEvent {
     },
 }
 
-fn find_transporter_id(db: &Db, units: &[&Unit]) -> Option<UnitId> {
-    let mut transporter_id = None;
-    for unit in units {
-        let unit_type = db.unit_type(&unit.type_id);
-        if unit_type.is_transporter {
-            transporter_id = Some(unit.id.clone());
-        }
-    }
-    transporter_id
-}
+pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
 
 pub fn move_cost_modifier(mode: &MoveMode) -> ZInt {
     match *mode {
@@ -203,31 +219,23 @@ pub fn find_prev_player_unit_id(
     unreachable!()
 }
 
-pub fn get_unit_id_at(db: &Db, state: &PartialState, pos: &MapPos) -> Option<UnitId> {
+pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: &MapPos) -> Vec<UnitId> {
     let units_at = state.units_at(pos);
-    if units_at.len() == 1 {
-        let unit_id = units_at[0].id.clone();
-        Some(unit_id)
-    } else if units_at.len() > 1 {
-        let transporter_id = find_transporter_id(db, &units_at)
-            .expect("Multiple units in tile, but no transporter");
-        for unit in &units_at {
-            if unit.id == transporter_id {
-                continue;
-            }
-            let transporter = state.unit(&transporter_id);
-            if let Some(ref passenger_id) = transporter.passenger_id {
-                if *passenger_id != unit.id {
-                    panic!("Non-passenger unit in multiunit tile");
-                }
-            } else {
-                panic!("Multiple units in tile, but transporter is empty");
+    let mut hidden_ids = HashSet::new();
+    for unit in &units_at {
+        if db.unit_type(&unit.type_id).is_transporter {
+            if let Some(ref passenger_id) = unit.passenger_id {
+                hidden_ids.insert(passenger_id.clone());
             }
         }
-        Some(transporter_id)
-    } else {
-        None
     }
+    let mut ids = Vec::new();
+    for unit in &units_at {
+        if !hidden_ids.contains(&unit.id) {
+            ids.push(unit.id.clone())
+        }
+    }
+    ids
 }
 
 pub fn unit_to_info(unit: &Unit) -> UnitInfo {
@@ -387,7 +395,7 @@ fn check_attack<S: GameState>(
     if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !los(state.map(), attacker_type, &attacker.pos, &defender.pos) {
+    if !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos) {
         return Err(CommandError::NoLos);
     }
     Ok(())
@@ -400,23 +408,23 @@ pub fn check_command<S: GameState>(
 ) -> Result<(), CommandError> {
     match command {
         &Command::EndTurn => Ok(()),
-        &Command::CreateUnit{ref pos} => {
-            if state.is_tile_occupied(pos) {
-                Err(CommandError::TileIsOccupied)
-            } else {
+        &Command::CreateUnit{ref pos, ref type_id} => {
+            if is_exact_pos_free(db, state, type_id, pos) {
                 Ok(())
+            } else {
+                Err(CommandError::TileIsOccupied)
             }
         },
         &Command::Move{ref unit_id, ref path, ref mode} => {
             if state.units().get(unit_id).is_none() {
                 return Err(CommandError::BadUnitId);
             }
+            let unit = state.unit(&unit_id);
             for pos in path {
-                if state.is_tile_occupied(pos) {
+                if !is_exact_pos_free(db, state, &unit.type_id, pos) {
                     return Err(CommandError::BadPath);
                 }
             }
-            let unit = state.unit(&unit_id);
             let cost = path_cost(db, state, unit, &path).n
                 * move_cost_modifier(mode);
             if cost > unit.move_points.n {
@@ -470,9 +478,10 @@ pub fn check_command<S: GameState>(
             if state.units().get(transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
-            if state.units().get(passenger_id).is_none() {
-                return Err(CommandError::BadPassengerId);
-            }
+            let passenger = match state.units().get(passenger_id) {
+                Some(passenger) => passenger,
+                None => return Err(CommandError::BadPassengerId),
+            };
             let transporter = state.unit(&transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
@@ -483,7 +492,7 @@ pub fn check_command<S: GameState>(
             if let None = transporter.passenger_id {
                 return Err(CommandError::TransporterIsEmpty);
             }
-            if state.is_tile_occupied(pos) {
+            if !is_exact_pos_free(db, state, &passenger.type_id, pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             // TODO: check that tile is walkable for passenger
@@ -568,6 +577,72 @@ pub fn los(
     v
 }
 
+pub fn get_free_exact_pos(
+    db: &Db,
+    state: &GameState,
+    type_id: &UnitTypeId,
+    pos: &MapPos,
+) -> Option<ExactPos> {
+    let slot_id = match get_free_slot_id(db, state, type_id, pos) {
+        Some(id) => id,
+        None => return None,
+    };
+    Some(ExactPos{map_pos: pos.clone(), slot_id: slot_id})
+}
+
+pub fn get_free_slot_id(
+    db: &Db,
+    state: &GameState,
+    type_id: &UnitTypeId,
+    pos: &MapPos,
+) -> Option<SlotId> {
+    let units_at = state.units_at(pos);
+    if db.unit_type(type_id).is_big {
+        if units_at.is_empty() {
+            return Some(SlotId::WholeTile);
+        } else {
+            return None;
+        }
+    }
+    let mut slots = [false, false, false];
+    for unit in &units_at {
+        match unit.pos.slot_id {
+            SlotId::Id(slot_id) => slots[slot_id as usize] = true,
+            SlotId::WholeTile => return None,
+        }
+    }
+    for i in 0..MAX_GROUND_SLOTS_COUNT {
+        if !slots[i] {
+            return Some(SlotId::Id(i as u8));
+        }
+    }
+    None
+}
+
+// TODO: join logic with get_free_slot_id
+pub fn is_exact_pos_free(
+    db: &Db,
+    state: &GameState,
+    type_id: &UnitTypeId,
+    pos: &ExactPos,
+) -> bool {
+    let units_at = state.units_at(&pos.map_pos);
+    if db.unit_type(type_id).is_big {
+        return units_at.is_empty();
+    }
+    for unit in &units_at {
+        match &unit.pos.slot_id {
+            slot_id @ &SlotId::Id(_) => {
+                if *slot_id == pos.slot_id {
+                    return false;
+                }
+            }
+            &SlotId::WholeTile => return false,
+        }
+    }
+    true
+}
+
 impl Core {
     pub fn new(options: &Options) -> Core {
         let map_size = Size2{w: 10, h: 8}; // TODO: read from config file
@@ -594,6 +669,7 @@ impl Core {
         let truck_id = self.db.unit_type_id("truck");
         let soldier_id = self.db.unit_type_id("soldier");
         let scout_id = self.db.unit_type_id("scout");
+        let mammoth_tank_id = self.db.unit_type_id("mammoth tank");
         let p_id_0 = PlayerId{id: 0};
         let p_id_1 = PlayerId{id: 1};
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
@@ -603,6 +679,7 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 1, y: 4}}, &mammoth_tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
@@ -619,15 +696,12 @@ impl Core {
     }
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
-        if self.state.is_tile_occupied(pos) {
-            println!("Sorry, tile is occupied"); // TODO: ?
-            return;
-        }
         let new_unit_id = self.get_new_unit_id();
+        let pos = get_free_exact_pos(&self.db, &self.state, type_id, pos).unwrap();
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
                 unit_id: new_unit_id,
-                pos: pos.clone(),
+                pos: pos,
                 type_id: type_id.clone(),
                 player_id: player_id.clone(),
                 passenger_id: None,
@@ -832,12 +906,13 @@ impl Core {
                     new_id: new_id,
                 });
             },
-            Command::CreateUnit{pos} => {
+            Command::CreateUnit{pos, type_id} => {
                 let event = CoreEvent::CreateUnit {
                     unit_info: UnitInfo {
                         unit_id: self.get_new_unit_id(),
                         pos: pos,
-                        type_id: self.db.unit_type_id("soldier"),
+                        // type_id: self.db.unit_type_id("soldier"),
+                        type_id: type_id,
                         player_id: self.current_player_id.clone(),
                         passenger_id: None,
                     },

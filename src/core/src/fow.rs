@@ -8,7 +8,7 @@ use map::{Map, Terrain, distance};
 use fov::{fov};
 use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
-use ::{CoreEvent, PlayerId, MapPos};
+use ::{CoreEvent, PlayerId, MapPos, ExactPos};
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum TileVisibility {
@@ -28,7 +28,7 @@ pub fn fov_unit(
     fow: &mut Map<TileVisibility>,
     unit: &Unit,
 ) {
-    fov_unit_in_pos(db, terrain, fow, unit, &unit.pos);
+    fov_unit_in_pos(db, terrain, fow, unit, &unit.pos.map_pos);
 }
 
 pub fn fov_unit_in_pos(
@@ -107,17 +107,17 @@ impl Fow {
         db: &Db,
         state: &InternalState,
         unit: &Unit,
-        pos: &MapPos,
+        pos: &ExactPos,
     ) -> bool {
         for (_, other_unit) in state.units() {
             if let Some(ref passenger_id) = other_unit.passenger_id {
-                if *passenger_id == unit.id {
+                if *passenger_id == unit.id && other_unit.pos == *pos {
                     return false;
                 }
             }
         }
         let unit_type = db.unit_type(&unit.type_id);
-        self.check_terrain_visibility(unit_type, pos)
+        self.check_terrain_visibility(unit_type, &pos.map_pos)
     }
 
     fn clear(&mut self) {
@@ -146,7 +146,7 @@ impl Fow {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     fov_unit_in_pos(
-                        db, state.map(), &mut self.map, unit, to);
+                        db, state.map(), &mut self.map, unit, &to.map_pos);
                 }
             },
             &CoreEvent::EndTurn{ref new_id, ..} => {
@@ -164,6 +164,7 @@ impl Fow {
                 if let Some(ref attacker_id) = attack_info.attacker_id {
                     if !attack_info.is_ambush {
                         let pos = &state.unit(attacker_id).pos;
+                        // TODO: do not give away all units in this tile!
                         *self.map.tile_mut(pos) = TileVisibility::Excellent;
                     }
                 }
@@ -174,7 +175,7 @@ impl Fow {
             &CoreEvent::UnloadUnit{ref unit_info, ..} => {
                 if self.player_id == unit_info.player_id {
                     let unit = state.unit(&unit_info.unit_id);
-                    let pos = &unit_info.pos;
+                    let pos = &unit_info.pos.map_pos;
                     fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
                 }
             },

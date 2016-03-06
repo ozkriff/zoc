@@ -8,17 +8,19 @@ use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir};
-use ::{MovePoints, MapPos};
+use ::{MovePoints, ExactPos, SlotId, get_free_exact_pos, MAX_GROUND_SLOTS_COUNT};
 
 #[derive(Clone)]
 pub struct Tile {
     cost: MovePoints,
     parent: Option<Dir>,
+    slot_id: SlotId,
 }
 
 impl Tile {
     pub fn parent(&self) -> &Option<Dir> { &self.parent }
     pub fn cost(&self) -> &MovePoints { &self.cost }
+    pub fn slot_id(&self) -> &SlotId { &self.slot_id }
 }
 
 impl Default for Tile {
@@ -26,11 +28,12 @@ impl Default for Tile {
         Tile {
             cost: MovePoints{n: 0},
             parent: None,
+            slot_id: SlotId::WholeTile,
         }
     }
 }
 
-pub fn truncate_path(db: &Db, state: &PartialState, path: &[MapPos], unit: &Unit) -> Vec<MapPos> {
+pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Vec<ExactPos> {
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
     for pos in path {
@@ -43,7 +46,7 @@ pub fn truncate_path(db: &Db, state: &PartialState, path: &[MapPos], unit: &Unit
     new_path
 }
 
-pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[MapPos])
+pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos])
     -> MovePoints
 {
     let mut cost = MovePoints{n: 0};
@@ -55,11 +58,12 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[MapPos])
 
 pub const MAX_COST: MovePoints = MovePoints{n: 30000};
 
-pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &MapPos)
+pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
     -> MovePoints
 {
+    let units_count = state.units_at(&pos.map_pos).len() as ZInt;
     let unit_type = db.unit_type(&unit.type_id);
-    let tile = state.map().tile(pos);
+    let tile = state.map().tile(&pos);
     let n = match unit_type.class {
         UnitClass::Infantry => match tile {
             &Terrain::Plain => 1,
@@ -70,11 +74,11 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &MapPos)
             &Terrain::Trees => 5,
         },
     };
-    MovePoints{n: n}
+    MovePoints{n: n + units_count}
 }
 
 pub struct Pathfinder {
-    queue: Vec<MapPos>,
+    queue: Vec<ExactPos>,
     map: Map<Tile>,
 }
 
@@ -95,18 +99,19 @@ impl Pathfinder {
         db: &Db,
         state: &PartialState,
         unit: &Unit,
-        original_pos: &MapPos,
-        neighbour_pos: &MapPos
+        original_pos: &ExactPos,
+        neighbour_pos: &ExactPos
     ) {
-        let old_cost = self.map.tile(original_pos).cost.clone();
+        let old_cost = self.map.tile(&original_pos).cost.clone();
         let tile_cost = tile_cost(db, state, unit, neighbour_pos);
-        let tile = self.map.tile_mut(neighbour_pos);
+        let tile = self.map.tile_mut(&neighbour_pos);
         let new_cost = MovePoints{n: old_cost.n + tile_cost.n};
-        let units_count = state.units_at(neighbour_pos).len();
-        if tile.cost.n > new_cost.n && units_count == 0 {
+        let units_count = state.units_at(&neighbour_pos.map_pos).len();
+        if tile.cost.n > new_cost.n && units_count < MAX_GROUND_SLOTS_COUNT {
             tile.cost = new_cost;
             tile.parent = Some(Dir::get_dir_from_to(
-                neighbour_pos, original_pos));
+                &neighbour_pos.map_pos, &original_pos.map_pos));
+            tile.slot_id = neighbour_pos.slot_id.clone();
             self.queue.push(neighbour_pos.clone());
         }
     }
@@ -116,6 +121,7 @@ impl Pathfinder {
             let tile = self.map.tile_mut(&pos);
             tile.cost = MAX_COST;
             tile.parent = None;
+            tile.slot_id = SlotId::WholeTile;
         }
     }
 
@@ -124,23 +130,30 @@ impl Pathfinder {
         db: &Db,
         state: &PartialState,
         unit: &Unit,
-        pos: MapPos,
+        pos: ExactPos,
     ) {
         assert!(self.map.is_inboard(&pos));
-        for i in 0 .. 6 {
+        for i in 0 .. 6 { // TODO: remove magic numer
             let dir = Dir::from_int(i as ZInt);
-            let neighbour_pos = Dir::get_neighbour_pos(&pos, &dir);
+            let neighbour_pos = Dir::get_neighbour_pos(&pos.map_pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {
+                let exact_neighbour_pos = match get_free_exact_pos(
+                    db, state, &unit.type_id, &neighbour_pos
+                ) {
+                    Some(pos) => pos,
+                    None => continue,
+                };
                 self.process_neighbour_pos(
-                    db, state, unit, &pos, &neighbour_pos);
+                    db, state, unit, &pos, &exact_neighbour_pos);
             }
         }
     }
 
-    fn push_start_pos_to_queue(&mut self, start_pos: MapPos) {
+    fn push_start_pos_to_queue(&mut self, start_pos: ExactPos) {
         let start_tile = self.map.tile_mut(&start_pos);
         start_tile.cost = MovePoints{n: 0};
         start_tile.parent = None;
+        start_tile.slot_id = start_pos.slot_id.clone();
         self.queue.push(start_pos);
     }
 
@@ -155,12 +168,12 @@ impl Pathfinder {
     }
 
     /*
-    pub fn is_reachable(&self, pos: &MapPos) -> bool {
+    pub fn is_reachable(&self, pos: &ExactPos) -> bool {
         self.map.tile(pos).cost.n != MAX_COST.n
     }
     */
 
-    pub fn get_path(&self, destination: &MapPos) -> Option<Vec<MapPos>> {
+    pub fn get_path(&self, destination: &ExactPos) -> Option<Vec<ExactPos>> {
         let mut path = Vec::new();
         let mut pos = destination.clone();
         if self.map.tile(&pos).cost.n == MAX_COST.n {
@@ -173,10 +186,18 @@ impl Pathfinder {
                 &Some(ref dir) => dir,
                 &None => return None,
             };
-            pos = Dir::get_neighbour_pos(&pos, parent_dir);
+            let neighbour_map_pos = Dir::get_neighbour_pos(&pos.map_pos, parent_dir);
+            pos = ExactPos {
+                map_pos: neighbour_map_pos.clone(),
+                slot_id: self.map.tile(&neighbour_map_pos).slot_id.clone(),
+            };
         }
         path.reverse();
-        Some(path)
+        if path.is_empty() {
+            None
+        } else {
+            Some(path)
+        }
     }
 }
 

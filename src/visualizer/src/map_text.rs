@@ -40,18 +40,18 @@ impl MapTextManager {
         }
     }
 
-    pub fn add_text(&mut self, pos: &MapPos, text: &str) {
+    pub fn add_text<P: AsRef<MapPos>>(&mut self, pos: &P, text: &str) {
         self.commands.push_back(ShowTextCommand {
-            pos: pos.clone(),
+            pos: pos.as_ref().clone(),
             text: text.to_owned(),
         });
     }
 
-    fn can_show_text_here(&self, pos: &MapPos) -> bool {
+    fn can_show_text_here<P: AsRef<MapPos>>(&self, pos: &P) -> bool {
         let min_progress = 0.3;
         for (_, map_text) in &self.visible_labels_list {
             let progress = map_text.move_helper.progress();
-            if map_text.pos == *pos && progress < min_progress {
+            if map_text.pos == *pos.as_ref() && progress < min_progress {
                 return false;
             }
         }

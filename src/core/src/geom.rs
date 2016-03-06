@@ -4,7 +4,7 @@ use cgmath::{Vector2};
 use common::types::{ZFloat};
 use ::{MapPos};
 
-pub const HEX_EX_RADIUS: ZFloat = 1.0;
+pub const HEX_EX_RADIUS: ZFloat = 1.4;
 
 // (pow(1.0, 2) - pow(0.5, 2)).sqrt()
 pub const HEX_IN_RADIUS: ZFloat = 0.866025403784 * HEX_EX_RADIUS;

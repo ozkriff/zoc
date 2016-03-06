@@ -43,6 +43,23 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
     let rifle_id = weapon_type_id(weapon_types, "rifle");
     vec![
         UnitType {
+            name: "mammoth tank".to_owned(),
+            class: UnitClass::Vehicle,
+            size: 8,
+            count: 1,
+            armor: 13,
+            toughness: 9,
+            weapon_skill: 5,
+            weapon_type_id: cannon_id.clone(),
+            move_points: MovePoints{n: 5},
+            attack_points: AttackPoints{n: 1},
+            reactive_attack_points: AttackPoints{n: 1},
+            los_range: 7,
+            cover_los_range: 0,
+            is_transporter: false,
+            is_big: true,
+        },
+        UnitType {
             name: "tank".to_owned(),
             class: UnitClass::Vehicle,
             size: 6,
@@ -57,6 +74,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             los_range: 6,
             cover_los_range: 0,
             is_transporter: false,
+            is_big: false,
         },
         UnitType {
             name: "truck".to_owned(),
@@ -73,6 +91,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             los_range: 6,
             cover_los_range: 0,
             is_transporter: true,
+            is_big: false,
         },
         UnitType {
             name: "soldier".to_owned(),
@@ -89,6 +108,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             los_range: 6,
             cover_los_range: 1,
             is_transporter: false,
+            is_big: false,
         },
         UnitType {
             name: "scout".to_owned(),
@@ -105,6 +125,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             los_range: 8,
             cover_los_range: 2,
             is_transporter: false,
+            is_big: false,
         },
     ]
 }

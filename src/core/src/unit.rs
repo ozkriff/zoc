@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use common::types::{ZInt};
-use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, MapPos};
+use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 
 #[derive(Clone)]
 pub struct UnitTypeId{pub id: ZInt}
@@ -14,7 +14,7 @@ pub enum UnitClass {
 
 pub struct Unit {
     pub id: UnitId,
-    pub pos: MapPos,
+    pub pos: ExactPos,
     pub player_id: PlayerId,
     pub type_id: UnitTypeId,
     pub move_points: MovePoints,
@@ -54,6 +54,7 @@ pub struct UnitType {
     pub los_range: ZInt,
     pub cover_los_range: ZInt,
     pub is_transporter: bool,
+    pub is_big: bool,
 }
 
 // vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

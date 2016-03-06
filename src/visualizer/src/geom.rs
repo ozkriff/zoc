@@ -5,20 +5,41 @@ use num::{Float};
 use cgmath::{Vector3, Vector, Rad, Angle, rad};
 use common::types::{ZInt, ZFloat};
 use zgl::types::{VertexCoord, WorldPos};
-use core::{MapPos, geom};
+use core::{ExactPos, MapPos, SlotId, geom};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 
 pub const MIN_LIFT_HEIGHT: ZFloat = 0.01;
 
-pub fn map_pos_to_world_pos(i: &MapPos) -> WorldPos {
-    WorldPos{v: geom::map_pos_to_world_pos(i).extend(0.0)}
+pub fn map_pos_to_world_pos(p: &MapPos) -> WorldPos {
+    let v = geom::map_pos_to_world_pos(&p).extend(0.0);
+    WorldPos{v: v}
+}
+
+pub fn exact_pos_to_world_pos(p: &ExactPos) -> WorldPos {
+    let v = geom::map_pos_to_world_pos(&p.map_pos).extend(0.0);
+    match p.slot_id {
+        SlotId::WholeTile => {
+            WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v.mul_s(0.2)}
+        }
+        SlotId::Id(n) => {
+            WorldPos{v: v + index_to_circle_vertex_rnd(3, n as ZInt, &p.map_pos).v.mul_s(0.5)}
+        }
+    }
 }
 
 pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
     let mut v = v;
     v.z += MIN_LIFT_HEIGHT;
     v
+}
+
+pub fn index_to_circle_vertex_rnd(count: ZInt, i: ZInt, pos: &MapPos) -> VertexCoord {
+    let n = 2.0 * PI * (i as ZFloat) / (count as ZFloat);
+    let n = n + ((pos.v.x as ZFloat + pos.v.y as ZFloat) * 7.0) % 4.0; // TODO: remove magic numbers
+    VertexCoord {
+        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0}.mul_s(HEX_EX_RADIUS)
+    }
 }
 
 pub fn index_to_circle_vertex(count: ZInt, i: ZInt) -> VertexCoord {

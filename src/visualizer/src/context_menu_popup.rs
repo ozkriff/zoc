@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::sync::mpsc::{Sender};
+use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use common::types::{ZInt, ZFloat};
@@ -8,44 +9,45 @@ use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
-use tactical_screen::{PickResult};
-use core::{UnitId, MapPos};
+use core::{UnitId, ExactPos};
 
 #[derive(Clone)]
 pub enum Command {
     Select{id: UnitId},
-    Move{pos: MapPos},
-    Hunt{pos: MapPos},
+    Move{pos: ExactPos},
+    Hunt{pos: ExactPos},
     Attack{id: UnitId},
     LoadUnit{passenger_id: UnitId},
-    UnloadUnit{pos: MapPos},
+    UnloadUnit{pos: ExactPos},
     EnableReactionFire{id: UnitId},
     DisableReactionFire{id: UnitId},
 }
 
-#[derive(PartialEq)]
+// TODO: Derive `Debug` trait
+#[derive(PartialEq, Clone)]
 pub struct Options {
-    pub show_select_button: bool,
-    pub show_move_button: bool,
-    pub show_hunt_button: bool,
-    pub show_attack_button: bool,
-    pub show_load_button: bool,
-    pub show_unload_button: bool,
-    pub show_enable_reaction_fire: bool,
-    pub show_disable_reaction_fire: bool,
+    // TODO: display unit name and/or type, not just IDs
+    pub selects: Vec<UnitId>,
+    pub attacks: Vec<UnitId>,
+    pub loads: Vec<UnitId>,
+    pub move_pos: Option<ExactPos>,
+    pub hunt_pos: Option<ExactPos>,
+    pub unload_pos: Option<ExactPos>,
+    pub enable_reaction_fire: Option<UnitId>,
+    pub disable_reaction_fire: Option<UnitId>,
 }
 
 impl Options {
     pub fn new() -> Options {
         Options {
-            show_select_button: false,
-            show_move_button: false,
-            show_hunt_button: false,
-            show_attack_button: false,
-            show_load_button: false,
-            show_unload_button: false,
-            show_enable_reaction_fire: false,
-            show_disable_reaction_fire: false,
+            selects: Vec::new(),
+            attacks: Vec::new(),
+            loads: Vec::new(),
+            move_pos: None,
+            hunt_pos: None,
+            unload_pos: None,
+            enable_reaction_fire: None,
+            disable_reaction_fire: None,
         }
     }
 }
@@ -53,15 +55,15 @@ impl Options {
 pub struct ContextMenuPopup {
     game_screen_tx: Sender<Command>,
     button_manager: ButtonManager,
-    select_button_id: Option<ButtonId>,
+    options: Options,
+    select_button_ids: HashMap<ButtonId, UnitId>,
+    attack_button_ids: HashMap<ButtonId, UnitId>,
+    load_button_ids: HashMap<ButtonId, UnitId>,
     move_button_id: Option<ButtonId>,
     hunt_button_id: Option<ButtonId>,
-    attack_button_id: Option<ButtonId>,
-    load_unit_button_id: Option<ButtonId>,
     unload_unit_button_id: Option<ButtonId>,
     enable_reaction_fire_button_id: Option<ButtonId>,
     disable_reaction_fire_button_id: Option<ButtonId>,
-    pick_result: PickResult,
 }
 
 impl ContextMenuPopup {
@@ -69,15 +71,14 @@ impl ContextMenuPopup {
         context: &mut Context,
         pos: &ScreenPos,
         options: Options,
-        pick_result: &PickResult,
         tx: Sender<Command>,
     ) -> ContextMenuPopup {
         let mut button_manager = ButtonManager::new();
-        let mut select_button_id = None;
+        let mut select_button_ids = HashMap::new();
+        let mut attack_button_ids = HashMap::new();
+        let mut load_button_ids = HashMap::new();
         let mut move_button_id = None;
         let mut hunt_button_id = None;
-        let mut attack_button_id = None;
-        let mut load_unit_button_id = None;
         let mut unload_unit_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
@@ -89,59 +90,63 @@ impl ContextMenuPopup {
         pos.v.y -= test_text_size.h * baisc_text_size as ZInt / 2;
         pos.v.x -= test_text_size.w * baisc_text_size as ZInt / 2;
         let vstep = (test_text_size.h as ZFloat * baisc_text_size * 1.2) as ZInt;
-        if options.show_select_button {
-            select_button_id = Some(button_manager.add_button(
-                Button::new(context, "select", &pos)));
+        for unit_id in &options.selects {
+            let button_id = button_manager.add_button(
+                Button::new(context, &format!("select <{}>", unit_id.id), &pos));
+            select_button_ids.insert(button_id, unit_id.clone());
             pos.v.y -= vstep;
         }
-        if options.show_move_button {
+        for unit_id in &options.attacks {
+            let button_id = button_manager.add_button(
+                Button::new(context, &format!("attack <{}>", unit_id.id), &pos));
+            attack_button_ids.insert(button_id, unit_id.clone());
+            pos.v.y -= vstep;
+        }
+        for unit_id in &options.loads {
+            let button_id = button_manager.add_button(
+                Button::new(context, &format!("load <{}>", unit_id.id), &pos));
+            load_button_ids.insert(button_id, unit_id.clone());
+            pos.v.y -= vstep;
+        }
+        if options.move_pos.is_some() {
             move_button_id = Some(button_manager.add_button(
                 Button::new(context, "move", &pos)));
             pos.v.y -= vstep;
         }
-        if options.show_hunt_button {
+        if options.hunt_pos.is_some() {
             hunt_button_id = Some(button_manager.add_button(
                 Button::new(context, "hunt", &pos)));
             pos.v.y -= vstep;
         }
-        if options.show_attack_button {
-            attack_button_id = Some(button_manager.add_button(
-                Button::new(context, "attack", &pos)));
-            pos.v.y -= vstep;
-        }
-        if options.show_load_button {
-            load_unit_button_id = Some(button_manager.add_button(
-                Button::new(context, "load", &pos)));
-            pos.v.y -= vstep;
-        }
-        if options.show_enable_reaction_fire {
+        if options.enable_reaction_fire.is_some() {
             enable_reaction_fire_button_id = Some(button_manager.add_button(
                 Button::new(context, "enable reaction fire", &pos)));
             pos.v.y -= vstep;
         }
-        if options.show_disable_reaction_fire {
+        if options.disable_reaction_fire.is_some() {
             disable_reaction_fire_button_id = Some(button_manager.add_button(
                 Button::new(context, "disable reaction fire", &pos)));
             pos.v.y -= vstep;
         }
-        if options.show_unload_button {
+        if options.unload_pos.is_some() {
             unload_unit_button_id = Some(button_manager.add_button(
                 Button::new(context, "unload", &pos)));
             pos.v.y -= vstep;
         }
-        ContextMenuPopup {
+        let popup = ContextMenuPopup {
             game_screen_tx: tx,
             button_manager: button_manager,
-            select_button_id: select_button_id,
+            select_button_ids: select_button_ids,
+            attack_button_ids: attack_button_ids,
+            load_button_ids: load_button_ids,
             move_button_id: move_button_id,
             hunt_button_id: hunt_button_id,
-            attack_button_id: attack_button_id,
-            load_unit_button_id: load_unit_button_id,
             unload_unit_button_id: unload_unit_button_id,
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
-            pick_result: pick_result.clone(),
-        }
+            options: options,
+        };
+        popup
     }
 
     fn handle_event_lmb_release(&mut self, context: &mut Context) {
@@ -165,31 +170,45 @@ impl ContextMenuPopup {
         context: &mut Context,
         button_id: &ButtonId
     ) {
+        if let Some(unit_id) = self.select_button_ids.get(button_id) {
+            self.return_command(context, Command::Select {
+                id: unit_id.clone(),
+            });
+            return;
+        }
+        if let Some(unit_id) = self.attack_button_ids.get(button_id) {
+            self.return_command(context, Command::Attack {
+                id: unit_id.clone(),
+            });
+            return;
+        }
+        if let Some(unit_id) = self.load_button_ids.get(button_id) {
+            self.return_command(context, Command::LoadUnit {
+                passenger_id: unit_id.clone(),
+            });
+            return;
+        }
         let id = Some(button_id.clone());
-        if id == self.attack_button_id {
-            let id = self.pick_result.unit_id();
-            self.return_command(context, Command::Attack{id: id});
-        } else if id == self.select_button_id {
-            let id = self.pick_result.unit_id();
-            self.return_command(context, Command::Select{id: id});
-        } else if id == self.move_button_id {
-            let pos = self.pick_result.pos();
-            self.return_command(context, Command::Move{pos: pos});
+        if id == self.move_button_id {
+            self.return_command(context, Command::Move {
+                pos: self.options.move_pos.clone().unwrap(),
+            });
         } else if id == self.hunt_button_id {
-            let pos = self.pick_result.pos();
-            self.return_command(context, Command::Hunt{pos: pos});
-        } else if id == self.load_unit_button_id {
-            let id = self.pick_result.unit_id();
-            self.return_command(context, Command::LoadUnit{passenger_id: id});
+            self.return_command(context, Command::Hunt {
+                pos: self.options.move_pos.clone().unwrap(),
+            });
         } else if id == self.unload_unit_button_id {
-            let pos = self.pick_result.pos();
-            self.return_command(context, Command::UnloadUnit{pos: pos});
+            self.return_command(context, Command::UnloadUnit {
+                pos: self.options.unload_pos.clone().unwrap(),
+            });
         } else if id == self.enable_reaction_fire_button_id {
-            let id = self.pick_result.unit_id();
-            self.return_command(context, Command::EnableReactionFire{id: id});
+            self.return_command(context, Command::EnableReactionFire {
+                id: self.options.enable_reaction_fire.clone().unwrap(),
+            });
         } else if id == self.disable_reaction_fire_button_id {
-            let id = self.pick_result.unit_id();
-            self.return_command(context, Command::DisableReactionFire{id: id});
+            self.return_command(context, Command::DisableReactionFire {
+                id: self.options.disable_reaction_fire.clone().unwrap(),
+            });
         } else {
             panic!("Bad button id: {}", button_id.id);
         }

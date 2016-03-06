@@ -40,10 +40,6 @@ impl GameState for PartialState {
     fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         self.state.units_at(pos)
     }
-
-    fn is_tile_occupied(&self, pos: &MapPos) -> bool {
-        self.state.is_tile_occupied(pos)
-    }
 }
 
 impl GameStateMut for PartialState {

@@ -109,15 +109,11 @@ impl GameState for InternalState {
     fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         let mut units = Vec::new();
         for (_, unit) in &self.units {
-            if unit.pos == *pos {
+            if unit.pos.map_pos == *pos {
                 units.push(unit);
             }
         }
         units
-    }
-
-    fn is_tile_occupied(&self, pos: &MapPos) -> bool {
-        self.units_at(pos).len() > 0
     }
 }
 
@@ -186,7 +182,7 @@ impl GameStateMut for InternalState {
                 assert!(self.units.get(unit_id).is_some());
                 self.units.remove(unit_id);
             },
-            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id} => {
+            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ..} => {
                 // TODO: hide info abiut passenger from enemy player
                 self.units.get_mut(transporter_id)
                     .expect("Bad transporter_id")

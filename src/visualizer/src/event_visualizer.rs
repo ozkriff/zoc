@@ -6,7 +6,7 @@ use cgmath::{Vector3, Vector, rad};
 use common::types::{ZFloat, ZInt};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
-use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, MapPos};
+use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
 use zgl::mesh::{MeshId};
@@ -49,13 +49,13 @@ impl EventMoveVisualizer {
         scene: &mut Scene,
         unit_id: &UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
-        destination: &MapPos,
+        destination: &ExactPos,
     ) -> Box<EventVisualizer> {
         let speed = unit_type_visual_info.move_speed;
         let node_id = scene.unit_id_to_node_id(unit_id);
         let node = scene.node_mut(&node_id);
         let from = node.pos.clone();
-        let to = geom::map_pos_to_world_pos(destination);
+        let to = geom::exact_pos_to_world_pos(destination);
         node.rot = geom::get_rot_angle(&from, &to);
         let move_helper = MoveHelper::new(&from, &to, speed);
         Box::new(EventMoveVisualizer {
@@ -90,7 +90,7 @@ fn show_unit_at(
     mesh_id: &MeshId,
     marker_mesh_id: &MeshId,
 ) {
-    let world_pos = geom::map_pos_to_world_pos(&unit_info.pos);
+    let world_pos = geom::exact_pos_to_world_pos(&unit_info.pos);
     let to = world_pos;
     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
     let mut children = get_unit_scene_nodes(db, &unit_info.type_id, mesh_id);
@@ -149,7 +149,7 @@ impl EventCreateUnitVisualizer {
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
     ) -> Box<EventVisualizer> {
-        let to = geom::map_pos_to_world_pos(&unit_info.pos);
+        let to = geom::exact_pos_to_world_pos(&unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 2.0);
@@ -339,8 +339,7 @@ impl EventHideUnitVisualizer {
     ) -> Box<EventVisualizer> {
         let pos = state.unit(unit_id).pos.clone();
         map_text.add_text(&pos, "lost");
-        let unit_node_id = scene.unit_id_to_node_id(&unit_id);
-        scene.remove_node(&unit_node_id);
+        scene.remove_unit(unit_id);
         Box::new(EventHideUnitVisualizer)
     }
 }
@@ -367,13 +366,13 @@ impl EventUnloadUnitVisualizer {
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
-        transporter_pos: &MapPos,
+        transporter_pos: &ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(&unit_info.pos, "unloaded");
-        let to = geom::map_pos_to_world_pos(&unit_info.pos);
-        let from = geom::map_pos_to_world_pos(transporter_pos);
+        let to = geom::exact_pos_to_world_pos(&unit_info.pos);
+        let from = geom::exact_pos_to_world_pos(transporter_pos);
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let node_id = scene.unit_id_to_node_id(&unit_info.unit_id);
         let unit_node = scene.node_mut(&node_id);
@@ -400,8 +399,9 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+// TODO: Fix unit (un)loading
 pub struct EventLoadUnitVisualizer {
-    passenger_node_id: NodeId,
+    passenger_id: UnitId,
     move_helper: MoveHelper,
 }
 
@@ -410,20 +410,20 @@ impl EventLoadUnitVisualizer {
         scene: &mut Scene,
         state: &PartialState,
         unit_id: &UnitId,
-        transporter_pos: &MapPos,
+        transporter_pos: &ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         let unit_pos = &state.unit(unit_id).pos;
         map_text.add_text(unit_pos, "loaded");
-        let from = geom::map_pos_to_world_pos(unit_pos);
-        let to = geom::map_pos_to_world_pos(transporter_pos);
+        let from = geom::exact_pos_to_world_pos(unit_pos);
+        let to = geom::exact_pos_to_world_pos(transporter_pos);
         let passenger_node_id = scene.unit_id_to_node_id(unit_id);
         let unit_node = scene.node_mut(&passenger_node_id);
         unit_node.rot = geom::get_rot_angle(&from, &to);
         let move_speed = unit_type_visual_info.move_speed;
         Box::new(EventLoadUnitVisualizer {
-            passenger_node_id: passenger_node_id,
+            passenger_id: unit_id.clone(),
             move_helper: MoveHelper::new(&from, &to, move_speed),
         })
     }
@@ -435,12 +435,13 @@ impl EventVisualizer for EventLoadUnitVisualizer {
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
-        let node = scene.node_mut(&self.passenger_node_id);
+        let node_id = scene.unit_id_to_node_id(&self.passenger_id);
+        let node = scene.node_mut(&node_id);
         node.pos = self.move_helper.step(dtime);
     }
 
     fn end(&mut self, scene: &mut Scene, _: &PartialState) {
-        scene.remove_node(&self.passenger_node_id);
+        scene.remove_unit(&self.passenger_id);
     }
 }
 

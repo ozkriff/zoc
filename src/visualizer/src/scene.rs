@@ -48,6 +48,13 @@ impl Scene {
         node_id
     }
 
+    pub fn remove_unit(&mut self, unit_id: &UnitId) {
+        assert!(self.unit_id_to_node_id_map.contains_key(unit_id));
+        let node_id = self.unit_id_to_node_id(unit_id);
+        self.remove_node(&node_id);
+        self.unit_id_to_node_id_map.remove(unit_id).unwrap();
+    }
+
     pub fn add_unit(&mut self, unit_id: &UnitId, node: SceneNode) -> NodeId {
         let node_id = self.add_node(node);
         assert!(!self.unit_id_to_node_id_map.contains_key(unit_id));

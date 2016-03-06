@@ -8,7 +8,15 @@ use pathfinder::{self, Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, check_command};
+use ::{
+    CoreEvent,
+    Command,
+    MoveMode,
+    PlayerId,
+    ExactPos,
+    check_command,
+    get_free_exact_pos,
+};
 
 pub struct Ai {
     id: PlayerId,
@@ -30,7 +38,7 @@ impl Ai {
     }
 
     // TODO: move fill_map here
-    fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<MapPos> {
+    fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
         let mut best_cost = pathfinder::MAX_COST.clone();
         for (_, enemy) in self.state.units() {
@@ -39,21 +47,24 @@ impl Ai {
             }
             for i in 0 .. 6 {
                 let dir = Dir::from_int(i);
-                let destination = Dir::get_neighbour_pos(&enemy.pos, &dir);
+                let destination = Dir::get_neighbour_pos(&enemy.pos.map_pos, &dir);
                 if !self.state.map().is_inboard(&destination) {
                     continue;
                 }
-                if self.state.is_tile_occupied(&destination) {
-                    continue;
-                }
-                let path = match self.pathfinder.get_path(&destination) {
+                let exact_destination = match get_free_exact_pos(
+                    db, &self.state, &unit.type_id, &destination
+                ) {
+                    Some(pos) => pos,
+                    None => continue,
+                };
+                let path = match self.pathfinder.get_path(&exact_destination) {
                     Some(path) => path,
                     None => continue,
                 };
                 let cost = path_cost(db, &self.state, unit, &path);
                 if best_cost.n > cost.n {
                     best_cost.n = cost.n;
-                    best_pos = Some(destination.clone());
+                    best_pos = Some(exact_destination);
                 }
             }
         }
@@ -67,7 +78,7 @@ impl Ai {
             }
             let attacker_type = db.unit_type(&unit.type_id);
             let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-            if distance(&unit.pos, &target.pos) <= weapon_type.max_distance {
+            if distance(&unit.pos.map_pos, &target.pos.map_pos) <= weapon_type.max_distance {
                 return true;
             }
         }

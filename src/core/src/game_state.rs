@@ -9,7 +9,6 @@ use ::{CoreEvent, UnitId, MapPos};
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;
     fn units_at(&self, pos: &MapPos) -> Vec<&Unit>;
-    fn is_tile_occupied(&self, pos: &MapPos) -> bool;
     fn units(&self) -> &HashMap<UnitId, Unit>;
 
     fn unit(&self, id: &UnitId) -> &Unit {
