@@ -53,7 +53,7 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[MapPos])
     cost
 }
 
-const MAX_COST: MovePoints = MovePoints{n: 30000};
+pub const MAX_COST: MovePoints = MovePoints{n: 30000};
 
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &MapPos)
     -> MovePoints

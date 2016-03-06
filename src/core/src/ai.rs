@@ -4,11 +4,11 @@ use common::types::{Size2};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
-use pathfinder::{Pathfinder, path_cost, truncate_path};
+use pathfinder::{self, Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
 use unit::{Unit};
 use db::{Db};
-use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, MovePoints, check_command};
+use ::{CoreEvent, Command, MoveMode, PlayerId, MapPos, check_command};
 
 pub struct Ai {
     id: PlayerId,
@@ -32,7 +32,7 @@ impl Ai {
     // TODO: move fill_map here
     fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<MapPos> {
         let mut best_pos = None;
-        let mut best_cost = MovePoints{n: 0};
+        let mut best_cost = pathfinder::MAX_COST.clone();
         for (_, enemy) in self.state.units() {
             if enemy.player_id == self.id {
                 continue;
