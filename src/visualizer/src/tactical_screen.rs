@@ -940,7 +940,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ..} => {
+            &CoreEvent::LoadUnit{ref passenger_id, ref to, ..} => {
                 let type_id = state.unit(passenger_id).type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
@@ -948,15 +948,14 @@ impl TacticalScreen {
                     scene,
                     state,
                     passenger_id,
-                    &state.unit(transporter_id).pos,
+                    to,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
-                let type_id = state.unit(&unit_info.unit_id).type_id.clone();
+            &CoreEvent::UnloadUnit{ref unit_info, ref from, ..} => {
                 let unit_type_visual_info
-                    = self.unit_type_visual_info.get(&type_id);
+                    = self.unit_type_visual_info.get(&unit_info.type_id);
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
@@ -967,7 +966,7 @@ impl TacticalScreen {
                     unit_info,
                     mesh_id,
                     marker_mesh_id,
-                    &state.unit(transporter_id).pos,
+                    from,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
                 )

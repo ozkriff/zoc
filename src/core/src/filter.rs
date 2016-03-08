@@ -130,28 +130,65 @@ pub fn filter_events(
         },
         &CoreEvent::ShowUnit{..} => panic!(),
         &CoreEvent::HideUnit{..} => panic!(),
-        &CoreEvent::LoadUnit{ref passenger_id, ..} => {
+        &CoreEvent::LoadUnit{ref passenger_id, ref from, ref to, ref transporter_id} => {
             let passenger = state.unit(passenger_id);
+            let transporter = state.unit(transporter_id.as_ref().unwrap());
+            let is_transporter_vis = fow.is_visible(
+                db, state, transporter, &transporter.pos);
+            let is_passenger_vis = fow.is_visible(
+                db, state, passenger, from);
             if passenger.player_id == *player_id {
                 events.push(event.clone());
-            } else if fow.is_visible(db, state, passenger, &passenger.pos) {
-                events.push(event.clone());
+            } else if is_passenger_vis || is_transporter_vis {
+                if !fow.is_visible(db, state, passenger, from) {
+                    events.push(CoreEvent::ShowUnit {
+                        unit_info: UnitInfo {
+                            pos: from.clone(),
+                            .. unit_to_info(passenger)
+                        },
+                    });
+                }
+                let filtered_transporter_id = if is_transporter_vis {
+                    transporter_id.clone()
+                } else {
+                    None
+                };
+                events.push(CoreEvent::LoadUnit {
+                    transporter_id: filtered_transporter_id,
+                    passenger_id: passenger_id.clone(),
+                    from: from.clone(),
+                    to: to.clone(),
+                });
+                active_unit_ids.insert(passenger_id.clone());
             }
         },
-        &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id} => {
+        &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id, ref from, ref to} => {
             active_unit_ids.insert(unit_info.unit_id.clone());
             let passenger = state.unit(&unit_info.unit_id);
+            let transporter = state.unit(transporter_id.as_ref().unwrap());
+            let is_transporter_vis = fow.is_visible(
+                db, state, transporter, from);
+            let is_passenger_vis = fow.is_visible(
+                db, state, passenger, to);
             if passenger.player_id == *player_id {
                 events.push(event.clone());
-            } else if fow.is_visible(db, state, passenger, &unit_info.pos) {
-                let transporter = state.unit(transporter_id);
-                if !fow.is_visible(db, state, transporter, &transporter.pos) {
-                    events.push(CoreEvent::ShowUnit {
-                        unit_info: unit_to_info(transporter),
+            } else if is_passenger_vis || is_transporter_vis {
+                let filtered_transporter_id = if is_transporter_vis {
+                    transporter_id.clone()
+                } else {
+                    None
+                };
+                events.push(CoreEvent::UnloadUnit {
+                    transporter_id: filtered_transporter_id,
+                    unit_info: unit_info.clone(),
+                    from: from.clone(),
+                    to: to.clone(),
+                });
+                if !is_passenger_vis {
+                    events.push(CoreEvent::HideUnit {
+                        unit_id: passenger.id.clone(),
                     });
-                    active_unit_ids.insert(transporter_id.clone());
                 }
-                events.push(event.clone());
             }
         },
         &CoreEvent::SetReactionFireMode{ref unit_id, ..} => {

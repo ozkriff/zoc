@@ -401,7 +401,6 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
-// TODO: Fix unit (un)loading
 pub struct EventLoadUnitVisualizer {
     passenger_id: UnitId,
     move_helper: MoveHelper,

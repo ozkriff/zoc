@@ -163,12 +163,16 @@ pub enum CoreEvent {
         unit_id: UnitId,
     },
     LoadUnit {
-        transporter_id: UnitId,
+        transporter_id: Option<UnitId>,
         passenger_id: UnitId,
+        from: ExactPos,
+        to: ExactPos,
     },
     UnloadUnit {
         unit_info: UnitInfo,
-        transporter_id: UnitId,
+        transporter_id: Option<UnitId>,
+        from: ExactPos,
+        to: ExactPos,
     },
     SetReactionFireMode {
         unit_id: UnitId,
@@ -964,20 +968,27 @@ impl Core {
                 }
             },
             Command::LoadUnit{transporter_id, passenger_id} => {
+                let from = self.state.unit(&passenger_id).pos.clone();
+                let to = self.state.unit(&transporter_id).pos.clone();
                 self.do_core_event(&CoreEvent::LoadUnit {
-                    transporter_id: transporter_id,
+                    transporter_id: Some(transporter_id),
                     passenger_id: passenger_id,
+                    from: from,
+                    to: to,
                 });
             },
             Command::UnloadUnit{transporter_id, passenger_id, pos} => {
                 let event = {
                     let passenger = self.state.unit(&passenger_id);
+                    let from = self.state.unit(&transporter_id).pos.clone();
                     CoreEvent::UnloadUnit {
-                        transporter_id: transporter_id,
+                        transporter_id: Some(transporter_id),
                         unit_info: UnitInfo {
                             pos: pos.clone(),
                             .. unit_to_info(passenger)
                         },
+                        from: from,
+                        to: pos.clone(),
                     }
                 };
                 self.do_core_event(&event);

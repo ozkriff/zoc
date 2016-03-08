@@ -121,15 +121,17 @@ impl GameStateMut for InternalState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match event {
             &CoreEvent::Move{ref unit_id, ref to, ref cost, ..} => {
-                let unit = self.units.get_mut(unit_id)
-                    .expect("Bad move unit id");
-                unit.pos = to.clone();
-                assert!(unit.move_points.n > 0);
-                if db.unit_type(&unit.type_id).is_transporter {
-                    // TODO: get passenger and update its pos
+                {
+                    let unit = self.units.get_mut(unit_id).unwrap();
+                    unit.pos = to.clone();
+                    assert!(unit.move_points.n > 0);
+                    unit.move_points.n -= cost.n;
+                    assert!(unit.move_points.n >= 0);
                 }
-                unit.move_points.n -= cost.n;
-                assert!(unit.move_points.n >= 0);
+                if let Some(passenger_id) = self.units[unit_id].passenger_id.clone() {
+                    // TODO: get passenger and update its pos
+                    self.units.get_mut(&passenger_id).unwrap().pos = to.clone();
+                }
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
@@ -182,21 +184,24 @@ impl GameStateMut for InternalState {
                 assert!(self.units.get(unit_id).is_some());
                 self.units.remove(unit_id);
             },
-            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ..} => {
-                // TODO: hide info abiut passenger from enemy player
-                self.units.get_mut(transporter_id)
-                    .expect("Bad transporter_id")
-                    .passenger_id = Some(passenger_id.clone());
-                let transporter_pos = self.units[transporter_id].pos.clone();
+            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ref to, ..} => {
+                // TODO: hide info about passenger from enemy player
+                if let &Some(ref transporter_id) = transporter_id {
+                    self.units.get_mut(transporter_id)
+                        .expect("Bad transporter_id")
+                        .passenger_id = Some(passenger_id.clone());
+                }
                 let passenger = self.units.get_mut(passenger_id)
                     .expect("Bad passenger_id");
-                passenger.pos = transporter_pos;
+                passenger.pos = to.clone();
                 passenger.move_points.n = 0;
             },
-            &CoreEvent::UnloadUnit{ref transporter_id, ref unit_info} => {
-                self.units.get_mut(transporter_id)
-                    .expect("Bad transporter_id")
-                    .passenger_id = None;
+            &CoreEvent::UnloadUnit{ref transporter_id, ref unit_info, ..} => {
+                if let &Some(ref transporter_id) = transporter_id {
+                    self.units.get_mut(transporter_id)
+                        .expect("Bad transporter_id")
+                        .passenger_id = None;
+                }
                 if let Some(unit) = self.units.get_mut(&unit_info.unit_id) {
                     unit.pos = unit_info.pos.clone();
                     return;
