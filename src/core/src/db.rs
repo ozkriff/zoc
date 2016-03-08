@@ -32,7 +32,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             ap: 1,
             accuracy: 5,
             max_distance: 3,
-            min_distance: 1,
+            min_distance: 0,
         },
     ]
 }
