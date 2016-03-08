@@ -297,7 +297,9 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         if self.is_target_destroyed {
             scene.remove_node(&self.defender_node_id);
         }
-        scene.remove_node(self.shell_node_id.as_ref().unwrap());
+        if let Some(ref shell_node_id) = self.shell_node_id {
+            scene.remove_node(shell_node_id);
+        }
     }
 }
 
