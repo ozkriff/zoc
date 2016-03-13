@@ -32,6 +32,7 @@ pub use types::{
     ProgramId,
 };
 
+use std::os::raw::c_char;
 use std::mem;
 use common::types::{Size2, ZInt, ZFloat};
 use cgmath::{Matrix, Matrix4, Matrix3, SquareMatrix, Vector3, Rad, ortho};
@@ -123,7 +124,7 @@ impl Zgl {
 
     pub fn get_info(&self, name: GLuint) -> String {
         unsafe {
-            let version = self.gl.GetString(name) as *const i8;
+            let version = self.gl.GetString(name) as *const c_char;
             String::from_utf8_lossy(CStr::from_ptr(version).to_bytes()).into_owned()
         }
     }
