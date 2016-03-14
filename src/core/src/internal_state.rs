@@ -105,16 +105,6 @@ impl GameState for InternalState {
     fn map(&self) -> &Map<Terrain> {
         &self.map
     }
-
-    fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
-        let mut units = Vec::new();
-        for (_, unit) in &self.units {
-            if unit.pos.map_pos == *pos {
-                units.push(unit);
-            }
-        }
-        units
-    }
 }
 
 impl GameStateMut for InternalState {

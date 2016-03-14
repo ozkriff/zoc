@@ -8,11 +8,20 @@ use ::{CoreEvent, UnitId, MapPos};
 
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;
-    fn units_at(&self, pos: &MapPos) -> Vec<&Unit>;
     fn units(&self) -> &HashMap<UnitId, Unit>;
 
     fn unit(&self, id: &UnitId) -> &Unit {
         &self.units()[id]
+    }
+
+    fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
+        let mut units = Vec::new();
+        for (_, unit) in self.units() {
+            if unit.pos.map_pos == *pos {
+                units.push(unit);
+            }
+        }
+        units
     }
 }
 

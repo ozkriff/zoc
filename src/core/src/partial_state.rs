@@ -36,10 +36,6 @@ impl GameState for PartialState {
     fn map(&self) -> &Map<Terrain> {
         &self.state.map()
     }
-
-    fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
-        self.state.units_at(pos)
-    }
 }
 
 impl GameStateMut for PartialState {
