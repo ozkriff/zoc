@@ -24,7 +24,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             ap: 9,
             accuracy: 5,
             max_distance: 5,
-            min_distance: 2,
+            min_distance: 0,
         },
         WeaponType {
             name: "rifle".to_owned(),
