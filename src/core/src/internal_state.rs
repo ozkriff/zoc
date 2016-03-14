@@ -119,8 +119,8 @@ impl GameStateMut for InternalState {
                     assert!(unit.move_points.n >= 0);
                 }
                 if let Some(passenger_id) = self.units[unit_id].passenger_id.clone() {
-                    // TODO: get passenger and update its pos
-                    self.units.get_mut(&passenger_id).unwrap().pos = to.clone();
+                    let passenger = self.units.get_mut(&passenger_id).unwrap();
+                    passenger.pos = to.clone();
                 }
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
