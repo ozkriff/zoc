@@ -190,8 +190,8 @@ pub fn move_cost_modifier(mode: &MoveMode) -> ZInt {
 }
 
 // TODO: simplify/optimize
-pub fn find_next_player_unit_id(
-    state: &GameState,
+pub fn find_next_player_unit_id<S: GameState>(
+    state: &S,
     player_id: &PlayerId,
     unit_id: &UnitId,
 ) -> UnitId {
@@ -207,8 +207,8 @@ pub fn find_next_player_unit_id(
 }
 
 // TODO: simplify/optimize
-pub fn find_prev_player_unit_id(
-    state: &GameState,
+pub fn find_prev_player_unit_id<S: GameState>(
+    state: &S,
     player_id: &PlayerId,
     unit_id: &UnitId,
 ) -> UnitId {
@@ -581,9 +581,9 @@ pub fn los(
     v
 }
 
-pub fn get_free_exact_pos(
+pub fn get_free_exact_pos<S: GameState>(
     db: &Db,
-    state: &GameState,
+    state: &S,
     type_id: &UnitTypeId,
     pos: &MapPos,
 ) -> Option<ExactPos> {
@@ -594,9 +594,9 @@ pub fn get_free_exact_pos(
     Some(ExactPos{map_pos: pos.clone(), slot_id: slot_id})
 }
 
-pub fn get_free_slot_id(
+pub fn get_free_slot_id<S: GameState>(
     db: &Db,
-    state: &GameState,
+    state: &S,
     type_id: &UnitTypeId,
     pos: &MapPos,
 ) -> Option<SlotId> {
@@ -624,9 +624,9 @@ pub fn get_free_slot_id(
 }
 
 // TODO: join logic with get_free_slot_id
-pub fn is_exact_pos_free(
+pub fn is_exact_pos_free<S: GameState>(
     db: &Db,
-    state: &GameState,
+    state: &S,
     type_id: &UnitTypeId,
     pos: &ExactPos,
 ) -> bool {
