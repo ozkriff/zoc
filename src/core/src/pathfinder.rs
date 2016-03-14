@@ -7,7 +7,7 @@ use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
-use dir::{Dir};
+use dir::{Dir, dirs};
 use ::{MovePoints, ExactPos, SlotId, get_free_exact_pos, MAX_GROUND_SLOTS_COUNT};
 
 #[derive(Clone)]
@@ -133,8 +133,7 @@ impl Pathfinder {
         pos: ExactPos,
     ) {
         assert!(self.map.is_inboard(&pos));
-        for i in 0 .. 6 { // TODO: remove magic numer
-            let dir = Dir::from_int(i as ZInt);
+        for dir in dirs() {
             let neighbour_pos = Dir::get_neighbour_pos(&pos.map_pos, &dir);
             if self.map.is_inboard(&neighbour_pos) {
                 let exact_neighbour_pos = match get_free_exact_pos(

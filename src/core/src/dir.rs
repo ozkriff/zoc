@@ -61,9 +61,11 @@ impl Dir {
     pub fn get_dir_from_to(from: &MapPos, to: &MapPos) -> Dir {
         // assert!(from.distance(to) == 1);
         let diff = to.v - from.v;
-        for i in 0 .. 6 {
-            if diff == DIR_TO_POS_DIFF[(from.v.y % 2) as usize][i] {
-                return Dir::from_int(i as ZInt);
+        let is_odd_row = from.v.y % 2 != 0;
+        let subtable_index = if is_odd_row { 1 } else { 0 };
+        for dir in dirs() {
+            if diff == DIR_TO_POS_DIFF[subtable_index][dir.to_int() as usize] {
+                return dir;
             }
         }
         panic!("impossible positions: {}, {}", from, to);

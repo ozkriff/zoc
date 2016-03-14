@@ -4,6 +4,7 @@ use cgmath::{Vector2, rad};
 use core::{UnitId};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
+use core::dir::{dirs};
 use zgl::misc::{add_quad_to_vec};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::texture::Texture;
@@ -70,11 +71,11 @@ pub fn get_selection_mesh(zgl: &Zgl) -> Mesh {
     let mut tex_data = Vec::new();
     let scale_1 = 0.6;
     let scale_2 = scale_1 + 0.05;
-    for num in 0 .. 6 {
-        let vertex_1_1 = geom::index_to_hex_vertex_s(scale_1, num);
-        let vertex_1_2 = geom::index_to_hex_vertex_s(scale_2, num);
-        let vertex_2_1 = geom::index_to_hex_vertex_s(scale_1, num + 1);
-        let vertex_2_2 = geom::index_to_hex_vertex_s(scale_2, num + 1);
+    for dir in dirs() {
+        let vertex_1_1 = geom::index_to_hex_vertex_s(scale_1, dir.to_int());
+        let vertex_1_2 = geom::index_to_hex_vertex_s(scale_2, dir.to_int());
+        let vertex_2_1 = geom::index_to_hex_vertex_s(scale_1, dir.to_int() + 1);
+        let vertex_2_2 = geom::index_to_hex_vertex_s(scale_2, dir.to_int() + 1);
         add_quad_to_vec(
             &mut vertex_data,
             vertex_2_1,
