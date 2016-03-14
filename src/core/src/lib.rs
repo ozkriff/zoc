@@ -83,9 +83,15 @@ impl AsRef<MapPos> for MapPos {
     }
 }
 
+#[derive(PartialEq, Clone, Debug)]
+pub enum PlayerClass {
+    Human,
+    Ai,
+}
+
 pub struct Player {
     pub id: PlayerId,
-    pub is_ai: bool, // TODO: use enum
+    pub class: PlayerClass,
 }
 
 #[derive(Clone)]
@@ -548,8 +554,17 @@ pub struct Core {
 
 fn get_players_list(game_type: &GameType) -> Vec<Player> {
     vec!(
-        Player{id: PlayerId{id: 0}, is_ai: false},
-        Player{id: PlayerId{id: 1}, is_ai: GameType::SingleVsAi == *game_type},
+        Player {
+            id: PlayerId{id: 0},
+            class: PlayerClass::Human,
+        },
+        Player {
+            id: PlayerId{id: 1},
+            class: match *game_type {
+                GameType::SingleVsAi => PlayerClass::Ai,
+                GameType::Hotseat => PlayerClass::Human,
+            },
+        },
     )
 }
 
@@ -1029,7 +1044,9 @@ impl Core {
                 break;
             }
         }
-        if self.player().is_ai && *new_id == *self.player_id() {
+        if self.player().class == PlayerClass::Ai
+            && *new_id == *self.player_id()
+        {
             self.do_ai();
         }
     }
