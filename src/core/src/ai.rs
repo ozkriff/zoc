@@ -40,7 +40,7 @@ impl Ai {
     // TODO: move fill_map here
     fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
-        let mut best_cost = pathfinder::MAX_COST.clone();
+        let mut best_cost = pathfinder::max_cost();
         for (_, enemy) in self.state.units() {
             if enemy.player_id == self.id {
                 continue;

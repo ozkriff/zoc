@@ -56,7 +56,10 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos
     cost
 }
 
-pub const MAX_COST: MovePoints = MovePoints{n: 30000};
+// TODO: const (see https://github.com/rust-lang/rust/issues/24111 )
+pub fn max_cost() -> MovePoints {
+    MovePoints{n: ZInt::max_value()}
+}
 
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
     -> MovePoints
@@ -118,7 +121,7 @@ impl Pathfinder {
     fn clean_map(&mut self) {
         for pos in self.map.get_iter() {
             let tile = self.map.tile_mut(&pos);
-            tile.cost = MAX_COST;
+            tile.cost = max_cost();
             tile.parent = None;
             tile.slot_id = SlotId::WholeTile;
         }
@@ -167,14 +170,14 @@ impl Pathfinder {
 
     /*
     pub fn is_reachable(&self, pos: &ExactPos) -> bool {
-        self.map.tile(pos).cost.n != MAX_COST.n
+        self.map.tile(pos).cost.n != max_cost().n
     }
     */
 
     pub fn get_path(&self, destination: &ExactPos) -> Option<Vec<ExactPos>> {
         let mut path = Vec::new();
         let mut pos = destination.clone();
-        if self.map.tile(&pos).cost.n == MAX_COST.n {
+        if self.map.tile(&pos).cost.n == max_cost().n {
             return None;
         }
         while self.map.tile(&pos).cost.n != 0 {
