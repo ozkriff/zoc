@@ -8,7 +8,7 @@ use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir, dirs};
-use ::{MovePoints, ExactPos, SlotId, get_free_exact_pos, MAX_GROUND_SLOTS_COUNT};
+use ::{MovePoints, ExactPos, SlotId, get_free_exact_pos};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -106,8 +106,7 @@ impl Pathfinder {
         let tile_cost = tile_cost(db, state, unit, neighbour_pos);
         let tile = self.map.tile_mut(&neighbour_pos);
         let new_cost = MovePoints{n: old_cost.n + tile_cost.n};
-        let units_count = state.units_at(&neighbour_pos.map_pos).len();
-        if tile.cost.n > new_cost.n && units_count < MAX_GROUND_SLOTS_COUNT {
+        if tile.cost.n > new_cost.n {
             tile.cost = new_cost;
             tile.parent = Some(Dir::get_dir_from_to(
                 &neighbour_pos.map_pos, &original_pos.map_pos));
