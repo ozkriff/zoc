@@ -754,7 +754,15 @@ impl Core {
         let attacker_type = self.db.unit_type(&attacker.type_id);
         let defender_type = self.db.unit_type(&defender.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        let hit_test_v = -15 + defender_type.size
+        let cover_bonus = if let UnitClass::Infantry = defender_type.class {
+            match self.state.map().tile(&defender.pos) {
+                &Terrain::Plain => 0,
+                &Terrain::Trees => 2,
+            }
+        } else {
+            0
+        };
+        let hit_test_v = -13 - cover_bonus + defender_type.size
             + weapon_type.accuracy + attacker_type.weapon_skill;
         let pierce_test_v = 5 + -defender_type.armor + weapon_type.ap;
         let wound_test_v = -defender_type.toughness + weapon_type.damage;
