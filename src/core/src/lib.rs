@@ -749,39 +749,16 @@ impl Core {
 
     fn hit_test(&self, attacker: &Unit, defender: &Unit) -> bool {
         fn test(needed: ZInt) -> bool {
-            let real = thread_rng().gen_range(-5, 5);
-            let result = real < needed;
-            // println!("real:{} < needed:{} = {}", real, needed, result);
-            result
+            thread_rng().gen_range(-5, 5) < needed
         }
-        // println!("");
         let attacker_type = self.db.unit_type(&attacker.type_id);
         let defender_type = self.db.unit_type(&defender.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        if distance(&attacker.pos, &defender.pos) > weapon_type.max_distance {
-            return false;
-        }
         let hit_test_v = -15 + defender_type.size
             + weapon_type.accuracy + attacker_type.weapon_skill;
         let pierce_test_v = 5 + -defender_type.armor + weapon_type.ap;
         let wound_test_v = -defender_type.toughness + weapon_type.damage;
-        // println!("hit_test = {}, pierce_test = {}, wound_test_v = {}",
-        //     hit_test_v, pierce_test_v, wound_test_v);
-        // print!("hit test: ");
-        if !test(hit_test_v) {
-            return false;
-        }
-        // print!("pierce test: ");
-        if !test(pierce_test_v) {
-            return false;
-        }
-        // print!("wound test: ");
-        if !test(wound_test_v) {
-            return false;
-        }
-        // println!("HIT!");
-        true
-        // false
+        test(hit_test_v) && test(pierce_test_v) && test(wound_test_v)
     }
 
     pub fn player(&self) -> &Player {
