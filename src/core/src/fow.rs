@@ -61,6 +61,7 @@ fn calc_visibility(terrain: &Terrain, unit_type: &UnitType, distance: &ZInt)
         TileVisibility::Excellent
     } else if *distance <= unit_type.los_range {
         match terrain {
+            &Terrain::City => TileVisibility::Normal,
             &Terrain::Trees => TileVisibility::Normal,
             &Terrain::Plain => TileVisibility::Excellent,
         }

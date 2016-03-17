@@ -8,7 +8,7 @@ use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir, dirs};
-use ::{MovePoints, ExactPos, SlotId, get_free_exact_pos};
+use ::{MovePoints, MapPos, ExactPos, SlotId, get_free_exact_pos};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -61,23 +61,42 @@ pub fn max_cost() -> MovePoints {
     MovePoints{n: ZInt::max_value()}
 }
 
+pub fn obstacles_count<S: GameState>(
+    state: &S,
+    pos: &MapPos,
+) -> ZInt {
+    let units = state.units_at(pos);
+    let objects = state.objects_at(pos);
+    let mut count = units.len() + objects.len();
+    for unit in &units {
+        for obj in &objects {
+            if unit.pos == obj.pos {
+                count -= 1;
+            }
+        }
+    }
+    count as ZInt
+}
+
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
     -> MovePoints
 {
-    let units_count = state.units_at(&pos.map_pos).len() as ZInt;
+    let obstacles_count = obstacles_count(state, &pos.map_pos);
     let unit_type = db.unit_type(&unit.type_id);
     let tile = state.map().tile(&pos);
     let n = match unit_type.class {
         UnitClass::Infantry => match tile {
             &Terrain::Plain => 1,
             &Terrain::Trees => 2,
+            &Terrain::City => 0,
         },
         UnitClass::Vehicle => match tile {
             &Terrain::Plain => 1,
             &Terrain::Trees => 5,
+            &Terrain::City => 0,
         },
     };
-    MovePoints{n: n + units_count}
+    MovePoints{n: n + obstacles_count}
 }
 
 pub struct Pathfinder {

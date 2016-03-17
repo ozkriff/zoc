@@ -12,6 +12,7 @@ use ::{MapPos};
 pub enum Terrain {
     Plain,
     Trees,
+    City,
 }
 
 impl Default for Terrain {

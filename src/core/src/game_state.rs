@@ -4,11 +4,12 @@ use std::collections::{HashMap};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use ::{CoreEvent, UnitId, MapPos};
+use ::{CoreEvent, UnitId, ObjectId, Object, MapPos};
 
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;
     fn units(&self) -> &HashMap<UnitId, Unit>;
+    fn objects(&self) -> &HashMap<ObjectId, Object>;
 
     fn unit(&self, id: &UnitId) -> &Unit {
         &self.units()[id]
@@ -22,6 +23,16 @@ pub trait GameState {
             }
         }
         units
+    }
+
+    fn objects_at(&self, pos: &MapPos) -> Vec<&Object> {
+        let mut objects = Vec::new();
+        for (_, object) in self.objects() {
+            if object.pos.map_pos == *pos {
+                objects.push(object);
+            }
+        }
+        objects
     }
 }
 

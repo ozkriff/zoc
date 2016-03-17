@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use common::types::{Size2};
+use common::types::{ZInt, Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
@@ -15,6 +15,12 @@ use ::{
     PlayerId,
     UnitId,
     MapPos,
+    ExactPos,
+    SlotId,
+    Object,
+    ObjectId,
+    ObjectClass,
+    get_free_slot_for_building,
 };
 
 pub enum InfoLevel {
@@ -24,6 +30,7 @@ pub enum InfoLevel {
 
 pub struct InternalState {
     units: HashMap<UnitId, Unit>,
+    objects: HashMap<ObjectId, Object>,
     map: Map<Terrain>,
 }
 
@@ -34,11 +41,47 @@ impl InternalState {
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Terrain::Trees;
-        InternalState {
+        let mut state = InternalState {
             units: HashMap::new(),
+            objects: HashMap::new(),
             map: map,
+        };
+        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 4}}, 2);
+        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 5}}, 2);
+        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 6}}, 1);
+        state.add_big_building(&MapPos{v: Vector2{x: 6, y: 4}});
+        state.add_buildings(&MapPos{v: Vector2{x: 6, y: 5}}, 3);
+        state.add_buildings(&MapPos{v: Vector2{x: 6, y: 6}}, 1);
+        state
+    }
+
+    fn add_object(&mut self, object: Object) {
+        let id = ObjectId{id: self.objects.len() as ZInt + 1};
+        self.objects.insert(id, object);
+    }
+
+    fn add_big_building(&mut self, pos: &MapPos) {
+        *self.map.tile_mut(pos) = Terrain::City;
+        let object = Object {
+            class: ObjectClass::Building,
+            pos: ExactPos {
+                map_pos: pos.clone(),
+                slot_id: SlotId::WholeTile,
+            },
+        };
+        self.add_object(object);
+    }
+
+    fn add_buildings(&mut self, pos: &MapPos, count: ZInt) {
+        *self.map.tile_mut(pos) = Terrain::City;
+        for _ in 0 .. count {
+            let slot_id = get_free_slot_for_building(self, pos).unwrap();
+            let obj_pos = ExactPos{map_pos: pos.clone(), slot_id: slot_id};
+            let object = Object {
+                class: ObjectClass::Building,
+                pos: obj_pos,
+            };
+            self.add_object(object);
         }
     }
 
@@ -100,6 +143,10 @@ impl InternalState {
 impl GameState for InternalState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
         &self.units
+    }
+
+    fn objects(&self) -> &HashMap<ObjectId, Object> {
+        &self.objects
     }
 
     fn map(&self) -> &Map<Terrain> {

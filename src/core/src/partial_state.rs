@@ -8,7 +8,7 @@ use map::{Map, Terrain};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use fow::{Fow};
-use ::{CoreEvent, PlayerId, UnitId, MapPos};
+use ::{CoreEvent, PlayerId, UnitId, ObjectId, Object, MapPos};
 
 pub struct PartialState {
     state: InternalState,
@@ -31,6 +31,10 @@ impl PartialState {
 impl GameState for PartialState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
         &self.state.units()
+    }
+
+    fn objects(&self) -> &HashMap<ObjectId, Object> {
+        &self.state.objects()
     }
 
     fn map(&self) -> &Map<Terrain> {

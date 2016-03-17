@@ -83,6 +83,22 @@ impl AsRef<MapPos> for MapPos {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum ObjectClass {
+    Building,
+}
+
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+pub struct ObjectId {
+    pub id: ZInt,
+}
+
+#[derive(Debug)]
+pub struct Object {
+    pub pos: ExactPos,
+    pub class: ObjectClass,
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum PlayerClass {
     Human,
@@ -304,6 +320,7 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
 
 pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
     match state.map().tile(pos) {
+        &Terrain::City => println!("City"),
         &Terrain::Trees => println!("Trees"),
         &Terrain::Plain => println!("Plain"),
     }
@@ -596,6 +613,27 @@ pub fn los(
     v
 }
 
+pub fn get_free_slot_for_building<S: GameState>(
+    state: &S,
+    pos: &MapPos,
+) -> Option<SlotId> {
+    let objects_at = state.objects_at(pos);
+    let mut slots = [false, false, false];
+    for object in &objects_at {
+        if let SlotId::Id(slot_id) = object.pos.slot_id {
+            slots[slot_id as usize] = true;
+        } else {
+            return None;
+        }
+    }
+    for i in 0..MAX_GROUND_SLOTS_COUNT {
+        if !slots[i] {
+            return Some(SlotId::Id(i as u8));
+        }
+    }
+    None
+}
+
 pub fn get_free_exact_pos<S: GameState>(
     db: &Db,
     state: &S,
@@ -615,9 +653,11 @@ pub fn get_free_slot_id<S: GameState>(
     type_id: &UnitTypeId,
     pos: &MapPos,
 ) -> Option<SlotId> {
+    let objects_at = state.objects_at(pos);
     let units_at = state.units_at(pos);
-    if db.unit_type(type_id).is_big {
-        if units_at.is_empty() {
+    let unit_type = db.unit_type(type_id);
+    if unit_type.is_big {
+        if units_at.is_empty() && objects_at.is_empty() {
             return Some(SlotId::WholeTile);
         } else {
             return None;
@@ -628,6 +668,16 @@ pub fn get_free_slot_id<S: GameState>(
         match unit.pos.slot_id {
             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
             SlotId::WholeTile => return None,
+        }
+    }
+    if unit_type.class == UnitClass::Vehicle {
+        for object in &objects_at {
+            match object.pos.slot_id {
+                SlotId::Id(slot_id) => {
+                    slots[slot_id as usize] = true;
+                },
+                SlotId::WholeTile => return None,
+            }
         }
     }
     for i in 0..MAX_GROUND_SLOTS_COUNT {
@@ -758,6 +808,7 @@ impl Core {
             match self.state.map().tile(&defender.pos) {
                 &Terrain::Plain => 0,
                 &Terrain::Trees => 2,
+                &Terrain::City => 3,
             }
         } else {
             0

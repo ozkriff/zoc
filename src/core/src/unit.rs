@@ -6,7 +6,7 @@ use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 #[derive(Clone)]
 pub struct UnitTypeId{pub id: ZInt}
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum UnitClass {
     Infantry,
     Vehicle,

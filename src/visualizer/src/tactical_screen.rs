@@ -44,6 +44,7 @@ use core::{
     PlayerId,
     MapPos,
     ExactPos,
+    SlotId,
     check_command,
     get_unit_ids_at,
     find_next_player_unit_id,
@@ -224,6 +225,8 @@ fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) -> 
 }
 
 struct MeshIdManager {
+    big_building_mesh_w_id: MeshId,
+    building_mesh_w_id: MeshId,
     trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
@@ -352,6 +355,10 @@ impl TacticalScreen {
             &context.zgl, &player_info.get(core.player_id()).game_state, &floor_tex);
         let fow_map_mesh = generate_fogged_tiles_mesh(
             &context.zgl, &player_info.get(core.player_id()).game_state, &floor_tex);
+        let big_building_mesh_w_id = add_mesh(
+            &mut meshes, load_object_mesh(&context.zgl, "big_building_wire"));
+        let building_mesh_w_id = add_mesh(
+            &mut meshes, load_object_mesh(&context.zgl, "building_wire"));
         let trees_mesh_id = add_mesh(
             &mut meshes, load_object_mesh(&context.zgl, "trees"));
         let selection_marker_mesh_id = add_mesh(
@@ -384,6 +391,8 @@ impl TacticalScreen {
         let button_next_unit_id = button_manager.add_button(
             Button::new(context, "[>]", &pos));
         let mesh_ids = MeshIdManager {
+            big_building_mesh_w_id: big_building_mesh_w_id,
+            building_mesh_w_id: building_mesh_w_id,
             trees_mesh_id: trees_mesh_id,
             shell_mesh_id: shell_mesh_id,
             marker_1_mesh_id: marker_1_mesh_id,
@@ -453,7 +462,8 @@ impl TacticalScreen {
 
     fn add_map_objects(&mut self) {
         for (_, player_info) in self.player_info.info.iter_mut() {
-            let map = &player_info.game_state.map();
+            let state = &player_info.game_state;
+            let map = state.map();
             for tile_pos in map.get_iter() {
                 if let &Terrain::Trees = map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
@@ -464,6 +474,22 @@ impl TacticalScreen {
                         mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
                         children: Vec::new(),
                     });
+                }
+                if let &Terrain::City = map.tile(&tile_pos) {
+                    let objects = state.objects_at(&tile_pos);
+                    for object in objects {
+                        let pos = geom::exact_pos_to_world_pos(&object.pos);
+                        let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+                        player_info.scene.add_node(SceneNode {
+                            pos: pos.clone(),
+                            rot: rot,
+                            mesh_id: Some(match object.pos.slot_id {
+                                SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
+                                SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
+                            }),
+                            children: Vec::new(),
+                        });
+                    }
                 }
             }
         }

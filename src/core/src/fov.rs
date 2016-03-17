@@ -27,6 +27,7 @@ fn is_tile_visible(angle: ZFloat, shadows: &[Shadow]) -> bool {
 fn is_obstacle(terrain: &Terrain) -> bool {
     match terrain {
         &Terrain::Trees => true,
+        &Terrain::City => true,
         &Terrain::Plain => false,
     }
 }
