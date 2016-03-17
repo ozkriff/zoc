@@ -9,6 +9,10 @@ use common::types::{ZInt, ZFloat};
 use common::fs;
 use types::{VertexCoord, TextureCoord, Normal};
 
+struct Line {
+    vertex: [ZInt; 2],
+}
+
 struct Face {
     vertex: [ZInt; 3],
     texture: [ZInt; 3],
@@ -20,6 +24,7 @@ pub struct Model {
     normals: Vec<Normal>,
     texture_coords: Vec<TextureCoord>,
     faces: Vec<Face>,
+    lines: Vec<Line>,
 }
 
 fn parse_word<T: FromStr>(words: &mut SplitWhitespace) -> T
@@ -43,6 +48,7 @@ impl Model {
             normals: Vec::new(),
             texture_coords: Vec::new(),
             faces: Vec::new(),
+            lines: Vec::new(),
         };
         obj.read(path);
         obj
@@ -89,6 +95,15 @@ impl Model {
         face
     }
 
+    fn read_l(words: &mut SplitWhitespace) -> Line {
+        Line {
+            vertex: [
+                parse_word(words),
+                parse_word(words),
+            ],
+        }
+    }
+
     fn read_line(&mut self, line: &str) {
         let mut words = line.split_whitespace();
         fn is_correct_tag(tag: &str) -> bool {
@@ -102,6 +117,7 @@ impl Model {
                     "vn" => self.normals.push(Model::read_vn(w)),
                     "vt" => self.texture_coords.push(Model::read_vt(w)),
                     "f" => self.faces.push(Model::read_f(w)),
+                    "l" => self.lines.push(Model::read_l(w)),
                     _ => {},
                 }
             }
@@ -126,6 +142,12 @@ impl Model {
                 mesh.push(self.coords[vertex_id].clone());
             }
         }
+        for line in &self.lines {
+            for i in 0 .. line.vertex.len() {
+                let vertex_id = line.vertex[i] as usize - 1;
+                mesh.push(self.coords[vertex_id].clone());
+            }
+        }
         mesh
     }
 
@@ -138,6 +160,10 @@ impl Model {
             }
         }
         tex_coords
+    }
+
+    pub fn is_wire(&self) -> bool {
+        !self.lines.is_empty()
     }
 }
 

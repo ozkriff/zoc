@@ -201,11 +201,18 @@ fn get_marker<P: AsRef<Path>>(zgl: &Zgl, tex_path: P) -> Mesh {
     mesh
 }
 
+// TODO: rename load_object_mesh
 fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
-    let tex = Texture::new(zgl, &format!("{}.png", name));
     let obj = obj::Model::new(&format!("{}.obj", name));
     let mut mesh = Mesh::new(zgl, &obj.build());
-    mesh.add_texture(zgl, tex, &obj.build_tex_coord());
+    if obj.is_wire() {
+        mesh.set_mode(MeshRenderMode::Lines);
+        // TODO: fix ugly color hack
+        mesh.add_texture(zgl, Texture::new(zgl, "black.png"), &[]);
+    } else {
+        let tex = Texture::new(zgl, &format!("{}.png", name));
+        mesh.add_texture(zgl, tex, &obj.build_tex_coord());
+    }
     mesh
 }
 

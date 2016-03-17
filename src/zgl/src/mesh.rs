@@ -37,8 +37,12 @@ impl Mesh {
     }
 
     pub fn add_texture(&mut self, zgl: &Zgl, texture: Texture, data: &[TextureCoord]) {
-        assert_eq!(self.length, data.len() as ZInt);
-        self.texture_coords_vbo = Some(Vbo::from_data(zgl, data));
+        if self.length == data.len() as ZInt {
+            self.texture_coords_vbo = Some(Vbo::from_data(zgl, data));
+        } else {
+            println!("WARNING: Mesh::add_texture: wrong TextureCoord: {} (expected {})",
+                data.len(), self.length);
+        }
         self.texture = Some(texture);
     }
 
