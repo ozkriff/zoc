@@ -201,8 +201,7 @@ fn get_marker<P: AsRef<Path>>(zgl: &Zgl, tex_path: P) -> Mesh {
     mesh
 }
 
-// TODO: rename load_object_mesh
-fn load_unit_mesh(zgl: &Zgl, name: &str) -> Mesh {
+fn load_object_mesh(zgl: &Zgl, name: &str) -> Mesh {
     let obj = obj::Model::new(&format!("{}.obj", name));
     let mut mesh = Mesh::new(zgl, &obj.build());
     if obj.is_wire() {
@@ -244,25 +243,25 @@ fn get_unit_type_visual_info(
     let unit_types_count = db.unit_types_count();
     let mut manager = UnitTypeVisualInfoManager::new(unit_types_count);
     let mammoth_tank_id = db.unit_type_id("mammoth tank");
-    let mammoth_tank_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "mammoth"));
+    let mammoth_tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mammoth"));
     manager.add_info(&mammoth_tank_id, UnitTypeVisualInfo {
         mesh_id: mammoth_tank_mesh_id,
         move_speed: 2.0,
     });
     let tank_id = db.unit_type_id("tank");
-    let tank_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "tank"));
+    let tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "tank"));
     manager.add_info(&tank_id, UnitTypeVisualInfo {
         mesh_id: tank_mesh_id,
         move_speed: 3.8,
     });
     let truck_id = db.unit_type_id("truck");
-    let truck_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "truck"));
+    let truck_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "truck"));
     manager.add_info(&truck_id, UnitTypeVisualInfo {
         mesh_id: truck_mesh_id,
         move_speed: 4.8,
     });
     let soldier_id = db.unit_type_id("soldier");
-    let soldier_mesh_id = add_mesh(meshes, load_unit_mesh(zgl, "soldier"));
+    let soldier_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
         mesh_id: soldier_mesh_id.clone(),
         move_speed: 2.0,
@@ -354,7 +353,7 @@ impl TacticalScreen {
         let fow_map_mesh = generate_fogged_tiles_mesh(
             &context.zgl, &player_info.get(core.player_id()).game_state, &floor_tex);
         let trees_mesh_id = add_mesh(
-            &mut meshes, load_unit_mesh(&context.zgl, "trees"));
+            &mut meshes, load_object_mesh(&context.zgl, "trees"));
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&context.zgl));
         let shell_mesh_id = add_mesh(
