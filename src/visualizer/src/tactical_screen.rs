@@ -243,8 +243,7 @@ fn get_unit_type_visual_info(
     zgl: &Zgl,
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
-    let unit_types_count = db.unit_types_count();
-    let mut manager = UnitTypeVisualInfoManager::new(unit_types_count);
+    let mut manager = UnitTypeVisualInfoManager::new();
     let mammoth_tank_id = db.unit_type_id("mammoth tank");
     let mammoth_tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mammoth"));
     manager.add_info(&mammoth_tank_id, UnitTypeVisualInfo {

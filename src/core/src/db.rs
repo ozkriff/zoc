@@ -145,10 +145,6 @@ impl Db {
         }
     }
 
-    pub fn unit_types_count(&self) -> ZInt {
-        self.unit_types.len() as ZInt
-    }
-
     fn unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
         for (id, unit_type) in self.unit_types.iter().enumerate() {
             if unit_type.name == name {

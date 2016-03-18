@@ -3,7 +3,7 @@
 use common::types::{ZInt};
 use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 
-#[derive(Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct UnitTypeId{pub id: ZInt}
 
 #[derive(Clone, PartialEq, Debug)]

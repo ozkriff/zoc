@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
-use common::types::{ZInt, ZFloat};
+use std::collections::{HashMap};
+use common::types::{ZFloat};
 use core::unit::{UnitTypeId};
 use zgl::mesh::{MeshId};
 
@@ -10,23 +11,22 @@ pub struct UnitTypeVisualInfo {
 }
 
 pub struct UnitTypeVisualInfoManager {
-    list: Vec<UnitTypeVisualInfo>,
+    map: HashMap<UnitTypeId, UnitTypeVisualInfo>,
 }
 
 impl UnitTypeVisualInfoManager {
-    pub fn new(unit_types_count: ZInt) -> UnitTypeVisualInfoManager {
+    pub fn new() -> UnitTypeVisualInfoManager {
         UnitTypeVisualInfoManager {
-            list: Vec::with_capacity(unit_types_count as usize),
+            map: HashMap::new(),
         }
     }
 
     pub fn add_info(&mut self, unit_type_id: &UnitTypeId, info: UnitTypeVisualInfo) {
-        let index = unit_type_id.id as usize;
-        self.list.insert(index, info);
+        self.map.insert(unit_type_id.clone(), info);
     }
 
     pub fn get(&self, type_id: &UnitTypeId) -> &UnitTypeVisualInfo {
-        &self.list[type_id.id as usize]
+        &self.map[type_id]
     }
 }
 
