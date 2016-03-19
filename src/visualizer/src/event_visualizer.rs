@@ -275,6 +275,13 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         } else {
             true
         };
+        if is_shell_ok && self.shell_move.is_some() {
+            if let Some(ref shell_node_id) = self.shell_node_id {
+                scene.remove_node(shell_node_id);
+            }
+            self.shell_move = None;
+            self.shell_node_id = None;
+        }
         if is_shell_ok && self.killed > 0 {
             let step = self.move_helper.step_diff(dtime);
             let children = &mut scene.node_mut(&self.defender_node_id).children;
@@ -296,9 +303,6 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         }
         if self.is_target_destroyed {
             scene.remove_node(&self.defender_node_id);
-        }
-        if let Some(ref shell_node_id) = self.shell_node_id {
-            scene.remove_node(shell_node_id);
         }
     }
 }
