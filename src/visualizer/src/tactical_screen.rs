@@ -265,12 +265,13 @@ fn get_unit_type_visual_info(
     let soldier_id = db.unit_type_id("soldier");
     let soldier_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "soldier"));
     manager.add_info(&soldier_id, UnitTypeVisualInfo {
-        mesh_id: soldier_mesh_id.clone(),
+        mesh_id: soldier_mesh_id,
         move_speed: 2.0,
     });
     let scout_id = db.unit_type_id("scout");
+    let scout_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "scout"));
     manager.add_info(&scout_id, UnitTypeVisualInfo {
-        mesh_id: soldier_mesh_id.clone(),
+        mesh_id: scout_mesh_id,
         move_speed: 3.0,
     });
     manager
