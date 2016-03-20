@@ -157,6 +157,7 @@ pub struct AttackInfo {
     pub suppression: ZInt,
     pub remove_move_points: bool,
     pub is_ambush: bool,
+    pub is_inderect: bool,
 }
 
 #[derive(Clone)]
@@ -422,8 +423,10 @@ fn check_attack<S: GameState>(
     if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos) {
-        return Err(CommandError::NoLos);
+    if !weapon_type.is_inderect {
+        if !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos) {
+            return Err(CommandError::NoLos);
+        }
     }
     Ok(())
 }
@@ -739,6 +742,7 @@ impl Core {
         let soldier_id = self.db.unit_type_id("soldier");
         let scout_id = self.db.unit_type_id("scout");
         let mammoth_tank_id = self.db.unit_type_id("mammoth tank");
+        let mortar_id = self.db.unit_type_id("mortar");
         let p_id_0 = PlayerId{id: 0};
         let p_id_1 = PlayerId{id: 1};
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
@@ -749,6 +753,7 @@ impl Core {
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 1, y: 4}}, &mammoth_tank_id, &p_id_0);
+        self.add_unit(&MapPos{v: Vector2{x: 3, y: 4}}, &mortar_id, &p_id_0);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
         self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
@@ -852,6 +857,8 @@ impl Core {
         if let Err(..) = check_attack_result {
             return None;
         }
+        let attacker_type = self.db.unit_type(&attacker.type_id);
+        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
@@ -870,6 +877,7 @@ impl Core {
             suppression: base_suppression + per_death_suppression * killed,
             remove_move_points: false,
             is_ambush: is_ambush,
+            is_inderect: weapon_type.is_inderect.clone(),
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }

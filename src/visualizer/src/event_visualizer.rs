@@ -187,6 +187,7 @@ pub struct EventAttackUnitVisualizer {
     move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
+    is_inderect: bool,
 }
 
 impl EventAttackUnitVisualizer {
@@ -244,6 +245,7 @@ impl EventAttackUnitVisualizer {
         Box::new(EventAttackUnitVisualizer {
             defender_node_id: defender_node_id,
             killed: attack_info.killed.clone(),
+            is_inderect: attack_info.is_inderect.clone(),
             is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
@@ -268,7 +270,11 @@ impl EventVisualizer for EventAttackUnitVisualizer {
     fn draw(&mut self, scene: &mut Scene, dtime: &Time) {
         if let Some(ref mut shell_move) = self.shell_move {
             let shell_node_id = self.shell_node_id.as_ref().unwrap();
-            scene.node_mut(shell_node_id).pos = shell_move.step(dtime);
+            let mut pos = shell_move.step(dtime);
+            if self.is_inderect {
+                pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
+            }
+            scene.node_mut(shell_node_id).pos = pos;
         }
         let is_shell_ok = if let Some(ref shell_move) = self.shell_move {
             shell_move.is_finished()

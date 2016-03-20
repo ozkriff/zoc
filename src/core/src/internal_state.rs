@@ -86,16 +86,19 @@ impl InternalState {
     }
 
     /// Converts active ap (attack points) to reactive
-    fn convert_ap(&mut self, player_id: &PlayerId) {
+    fn convert_ap(&mut self, db: &Db, player_id: &PlayerId) {
         for (_, unit) in self.units.iter_mut() {
-            if unit.player_id == *player_id {
-                if let Some(ref mut reactive_attack_points)
-                    = unit.reactive_attack_points
-                {
-                    reactive_attack_points.n += unit.attack_points.n;
-                }
-                unit.attack_points.n = 0;
+            let unit_type = db.unit_type(&unit.type_id);
+            let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
+            if unit.player_id != *player_id || !weapon_type.reaction_fire {
+                continue;
             }
+            if let Some(ref mut reactive_attack_points)
+                = unit.reactive_attack_points
+            {
+                reactive_attack_points.n += unit.attack_points.n;
+            }
+            unit.attack_points.n = 0;
         }
     }
 
@@ -172,7 +175,7 @@ impl GameStateMut for InternalState {
             },
             &CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
-                self.convert_ap(old_id);
+                self.convert_ap(db, old_id);
             },
             &CoreEvent::CreateUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Full);

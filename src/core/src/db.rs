@@ -19,12 +19,24 @@ fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
 fn get_weapon_types() -> Vec<WeaponType> {
     vec![
         WeaponType {
+            name: "mortar".to_owned(),
+            damage: 6,
+            ap: 2,
+            accuracy: 5,
+            max_distance: 5,
+            min_distance: 1,
+            is_inderect: true,
+            reaction_fire: false,
+        },
+        WeaponType {
             name: "cannon".to_owned(),
             damage: 9,
             ap: 9,
             accuracy: 5,
             max_distance: 5,
             min_distance: 0,
+            is_inderect: false,
+            reaction_fire: true,
         },
         WeaponType {
             name: "rifle".to_owned(),
@@ -33,6 +45,8 @@ fn get_weapon_types() -> Vec<WeaponType> {
             accuracy: 5,
             max_distance: 3,
             min_distance: 0,
+            is_inderect: false,
+            reaction_fire: true,
         },
     ]
 }
@@ -41,6 +55,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
 fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
     let cannon_id = weapon_type_id(weapon_types, "cannon");
     let rifle_id = weapon_type_id(weapon_types, "rifle");
+    let mortar_id = weapon_type_id(weapon_types, "mortar");
     vec![
         UnitType {
             name: "mammoth tank".to_owned(),
@@ -124,6 +139,23 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             reactive_attack_points: AttackPoints{n: 1},
             los_range: 8,
             cover_los_range: 2,
+            is_transporter: false,
+            is_big: false,
+        },
+        UnitType {
+            name: "mortar".to_owned(),
+            class: UnitClass::Infantry,
+            size: 4,
+            count: 1,
+            armor: 1,
+            toughness: 2,
+            weapon_skill: 5,
+            weapon_type_id: mortar_id.clone(),
+            move_points: MovePoints{n: 3},
+            attack_points: AttackPoints{n: 2},
+            reactive_attack_points: AttackPoints{n: 0},
+            los_range: 6,
+            cover_los_range: 1,
             is_transporter: false,
             is_big: false,
         },

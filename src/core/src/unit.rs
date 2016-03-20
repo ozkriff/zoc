@@ -33,6 +33,8 @@ pub struct WeaponType {
     pub accuracy: ZInt,
     pub max_distance: ZInt,
     pub min_distance: ZInt,
+    pub is_inderect: bool,
+    pub reaction_fire: bool,
 }
 
 #[derive(Clone)]

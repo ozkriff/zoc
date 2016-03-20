@@ -244,6 +244,12 @@ fn get_unit_type_visual_info(
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
     let mut manager = UnitTypeVisualInfoManager::new();
+    let mortar_id = db.unit_type_id("mortar");
+    let mortar_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mortar"));
+    manager.add_info(&mortar_id, UnitTypeVisualInfo {
+        mesh_id: mortar_mesh_id,
+        move_speed: 1.5,
+    });
     let mammoth_tank_id = db.unit_type_id("mammoth tank");
     let mammoth_tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mammoth"));
     manager.add_info(&mammoth_tank_id, UnitTypeVisualInfo {
