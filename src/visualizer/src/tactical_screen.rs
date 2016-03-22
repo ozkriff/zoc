@@ -244,42 +244,25 @@ fn get_unit_type_visual_info(
     meshes: &mut Vec<Mesh>,
 ) -> UnitTypeVisualInfoManager {
     let mut manager = UnitTypeVisualInfoManager::new();
-    let mortar_id = db.unit_type_id("mortar");
-    let mortar_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mortar"));
-    manager.add_info(&mortar_id, UnitTypeVisualInfo {
-        mesh_id: mortar_mesh_id,
-        move_speed: 1.5,
-    });
-    let mammoth_tank_id = db.unit_type_id("mammoth tank");
-    let mammoth_tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "mammoth"));
-    manager.add_info(&mammoth_tank_id, UnitTypeVisualInfo {
-        mesh_id: mammoth_tank_mesh_id,
-        move_speed: 2.0,
-    });
-    let tank_id = db.unit_type_id("tank");
-    let tank_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "tank"));
-    manager.add_info(&tank_id, UnitTypeVisualInfo {
-        mesh_id: tank_mesh_id,
-        move_speed: 3.8,
-    });
-    let truck_id = db.unit_type_id("truck");
-    let truck_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "truck"));
-    manager.add_info(&truck_id, UnitTypeVisualInfo {
-        mesh_id: truck_mesh_id,
-        move_speed: 4.8,
-    });
-    let soldier_id = db.unit_type_id("soldier");
-    let soldier_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "soldier"));
-    manager.add_info(&soldier_id, UnitTypeVisualInfo {
-        mesh_id: soldier_mesh_id,
-        move_speed: 2.0,
-    });
-    let scout_id = db.unit_type_id("scout");
-    let scout_mesh_id = add_mesh(meshes, load_object_mesh(zgl, "scout"));
-    manager.add_info(&scout_id, UnitTypeVisualInfo {
-        mesh_id: scout_mesh_id,
-        move_speed: 3.0,
-    });
+    for &(unit_name, model_name, move_speed) in &[
+        ("soldier", "soldier", 2.0),
+        ("smg", "submachine", 2.0),
+        ("scout", "scout", 2.5),
+        ("mortar", "mortar", 1.5),
+        ("field_gun", "field_gun", 1.5),
+        ("light_spg", "light_spg", 3.0),
+        ("light_tank", "light_tank", 3.0),
+        ("medium_tank", "medium_tank", 2.5),
+        ("heavy_tank", "tank", 2.0),
+        ("mammoth_tank", "mammoth", 1.5),
+        ("truck", "truck", 3.0),
+        ("jeep", "jeep", 3.5),
+    ] {
+        manager.add_info(&db.unit_type_id(unit_name), UnitTypeVisualInfo {
+            mesh_id: add_mesh(meshes, load_object_mesh(zgl, model_name)),
+            move_speed: move_speed,
+        });
+    }
     manager
 }
 

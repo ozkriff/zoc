@@ -737,30 +737,32 @@ impl Core {
 
     // TODO: Move to scenario.json
     fn get_units(&mut self) {
-        let tank_id = self.db.unit_type_id("tank");
-        let truck_id = self.db.unit_type_id("truck");
-        let soldier_id = self.db.unit_type_id("soldier");
-        let scout_id = self.db.unit_type_id("scout");
-        let mammoth_tank_id = self.db.unit_type_id("mammoth tank");
-        let mortar_id = self.db.unit_type_id("mortar");
-        let p_id_0 = PlayerId{id: 0};
-        let p_id_1 = PlayerId{id: 1};
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 1, y: 3}}, &truck_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 1, y: 4}}, &mammoth_tank_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 3, y: 4}}, &mortar_id, &p_id_0);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 8, y: 4}}, &truck_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
+        for &(player_id, (x, y), type_name) in &[
+            (0, (0, 1), "medium_tank"),
+            (0, (0, 4), "mammoth_tank"),
+            (0, (0, 5), "heavy_tank"),
+            (0, (0, 5), "medium_tank"),
+            (0, (1, 3), "truck"),
+            (0, (1, 3), "mortar"),
+            (0, (1, 4), "jeep"),
+            (0, (2, 2), "soldier"),
+            (0, (2, 2), "scout"),
+            (0, (2, 4), "smg"),
+            (0, (2, 4), "smg"),
+            (1, (9, 1), "medium_tank"),
+            (1, (9, 2), "soldier"),
+            (1, (9, 2), "soldier"),
+            (1, (9, 4), "soldier"),
+            (1, (9, 5), "light_tank"),
+            (1, (9, 5), "light_tank"),
+            (1, (9, 6), "light_spg"),
+            (1, (8, 2), "field_gun"),
+            (1, (8, 4), "field_gun"),
+        ] {
+            let pos = MapPos{v: Vector2{x: x, y: y}};
+            let unit_type_id = self.db.unit_type_id(type_name);
+            self.add_unit(&pos, &unit_type_id, &PlayerId{id: player_id});
+        }
     }
 
     fn get_new_unit_id(&mut self) -> UnitId {
