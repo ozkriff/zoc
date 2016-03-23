@@ -215,7 +215,7 @@ impl EventAttackUnitVisualizer {
             }
             shell_node_id = Some(scene.add_node(SceneNode {
                 pos: from.clone(),
-                rot: rad(0.0),
+                rot: geom::get_rot_angle(&attacker_pos, &defender_pos),
                 mesh_id: Some(shell_mesh_id.clone()),
                 children: Vec::new(),
             }));

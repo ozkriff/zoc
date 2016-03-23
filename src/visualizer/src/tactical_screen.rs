@@ -24,6 +24,7 @@ use glutin::{self, VirtualKeyCode, Event, MouseButton};
 use glutin::ElementState::{Released};
 use common::types::{Size2, ZInt, ZFloat};
 use zgl::types::{ScreenPos, VertexCoord, TextureCoord, Time, WorldPos};
+use zgl::misc::{add_quad_to_vec};
 use zgl::{self, Zgl, MeshRenderMode};
 use zgl::mesh::{Mesh, MeshId};
 use zgl::camera::Camera;
@@ -181,6 +182,31 @@ fn build_targets_mesh(db: &Db, zgl: &Zgl, state: &PartialState, unit_id: &UnitId
     }
     let mut mesh = Mesh::new(zgl, &vertex_data);
     mesh.set_mode(MeshRenderMode::Lines);
+    mesh
+}
+
+fn get_shell_mesh(zgl: &Zgl) -> Mesh {
+    let w = 0.05;
+    let l = w * 3.0;
+    let mut vertex_data = Vec::new();
+    let mut tex_data = Vec::new();
+    add_quad_to_vec(
+        &mut vertex_data,
+        VertexCoord{v: Vector3{x: -w, y: -l, z: 0.1}},
+        VertexCoord{v: Vector3{x: -w, y: l, z: 0.1}},
+        VertexCoord{v: Vector3{x: w, y:  l, z: 0.1}},
+        VertexCoord{v: Vector3{x: w, y: -l, z: 0.1}},
+    );
+    add_quad_to_vec(
+        &mut tex_data,
+        TextureCoord{v: Vector2{x: 0.0, y: 0.0}},
+        TextureCoord{v: Vector2{x: 0.0, y: 1.0}},
+        TextureCoord{v: Vector2{x: 1.0, y: 1.0}},
+        TextureCoord{v: Vector2{x: 1.0, y: 0.0}},
+    );
+    let mut mesh = Mesh::new(zgl, &vertex_data);
+    let tex = Texture::new(zgl, "shell.png");
+    mesh.add_texture(zgl, tex, &tex_data);
     mesh
 }
 
@@ -353,7 +379,7 @@ impl TacticalScreen {
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(&context.zgl));
         let shell_mesh_id = add_mesh(
-            &mut meshes, get_marker(&context.zgl, "shell.png"));
+            &mut meshes, get_shell_mesh(&context.zgl));
         let marker_1_mesh_id = add_mesh(
             &mut meshes, get_marker(&context.zgl, "flag1.png"));
         let marker_2_mesh_id = add_mesh(
