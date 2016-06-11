@@ -5,7 +5,7 @@ use std::iter::{repeat};
 use std::cmp;
 use std::collections::HashMap;
 use stb_tt::{Font};
-use cgmath::{Vector3, Vector2, Vector};
+use cgmath::{Vector3, Vector2};
 use common::types::{Size2, ZInt, ZFloat};
 use common::fs;
 use misc::{add_quad_to_vec};
@@ -109,10 +109,10 @@ impl FontStash {
             let yoff = -glyph.yoff as ZFloat;
             add_quad_to_vec(
                 &mut vertex_data,
-                VertexCoord{v: Vector3{x: i, y: yoff, z: 0.0}.mul_s(size)},
-                VertexCoord{v: Vector3{x: i, y: yoff - h, z: 0.0}.mul_s(size)},
-                VertexCoord{v: Vector3{x: w + i, y: yoff - h, z: 0.0}.mul_s(size)},
-                VertexCoord{v: Vector3{x: w + i, y: yoff, z: 0.0}.mul_s(size)},
+                VertexCoord{v: Vector3{x: i, y: yoff, z: 0.0} * size},
+                VertexCoord{v: Vector3{x: i, y: yoff - h, z: 0.0} * size},
+                VertexCoord{v: Vector3{x: w + i, y: yoff - h, z: 0.0} * size},
+                VertexCoord{v: Vector3{x: w + i, y: yoff, z: 0.0} * size},
             );
             i += w + glyph.xoff as ZFloat;
         }

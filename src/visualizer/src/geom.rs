@@ -2,7 +2,7 @@
 
 use std::f32::consts::{PI};
 use num::{Float};
-use cgmath::{Vector3, Vector, Rad, Angle, rad};
+use cgmath::{Vector3, Rad, Angle, rad};
 use common::types::{ZInt, ZFloat};
 use zgl::types::{VertexCoord, WorldPos};
 use core::{ExactPos, MapPos, SlotId, geom};
@@ -20,10 +20,10 @@ pub fn exact_pos_to_world_pos(p: &ExactPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(&p.map_pos).extend(0.0);
     match p.slot_id {
         SlotId::WholeTile => {
-            WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v.mul_s(0.2)}
+            WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v * 0.2}
         }
         SlotId::Id(n) => {
-            WorldPos{v: v + index_to_circle_vertex_rnd(3, n as ZInt, &p.map_pos).v.mul_s(0.5)}
+            WorldPos{v: v + index_to_circle_vertex_rnd(3, n as ZInt, &p.map_pos).v * 0.5}
         }
     }
 }
@@ -38,14 +38,14 @@ pub fn index_to_circle_vertex_rnd(count: ZInt, i: ZInt, pos: &MapPos) -> VertexC
     let n = 2.0 * PI * (i as ZFloat) / (count as ZFloat);
     let n = n + ((pos.v.x as ZFloat + pos.v.y as ZFloat) * 7.0) % 4.0; // TODO: remove magic numbers
     VertexCoord {
-        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0}.mul_s(HEX_EX_RADIUS)
+        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0} * HEX_EX_RADIUS
     }
 }
 
 pub fn index_to_circle_vertex(count: ZInt, i: ZInt) -> VertexCoord {
     let n = PI / 2.0 + 2.0 * PI * (i as ZFloat) / (count as ZFloat);
     VertexCoord {
-        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0}.mul_s(HEX_EX_RADIUS)
+        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0} * HEX_EX_RADIUS
     }
 }
 
@@ -54,7 +54,7 @@ pub fn index_to_hex_vertex(i: ZInt) -> VertexCoord {
 }
 
 pub fn index_to_hex_vertex_s(scale: ZFloat, i: ZInt) -> VertexCoord {
-    let v = index_to_hex_vertex(i).v.mul_s(scale);
+    let v = index_to_hex_vertex(i).v * scale;
     VertexCoord{v: v}
 }
 

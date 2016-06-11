@@ -1,8 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI};
-use num::{Float};
-use cgmath::{perspective, rad, Matrix4, Vector, Vector3, Rad};
+use cgmath::{perspective, rad, Matrix4, Vector3, Rad, Array};
 use common::types::{Size2, ZFloat};
 use common::misc::{clamp};
 use types::{WorldPos};
@@ -31,8 +30,8 @@ impl Camera {
         Camera {
             x_angle: rad(PI / 4.0),
             z_angle: rad(0.0),
-            pos: WorldPos{v: Vector::from_value(0.0)},
-            max_pos: WorldPos{v: Vector::from_value(0.0)},
+            pos: WorldPos{v: Vector3::from_value(0.0)},
+            max_pos: WorldPos{v: Vector3::from_value(0.0)},
             zoom: 20.0,
             projection_mat: get_projection_mat(win_size),
         }

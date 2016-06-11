@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use cgmath::{Vector3, Vector, EuclideanVector};
+use cgmath::{Vector3, EuclideanVector};
 use common::types::{ZFloat};
 use zgl::types::{Time, WorldPos};
 use geom;
@@ -23,7 +23,7 @@ impl MoveHelper {
             current: from.clone(),
             dist: dist,
             current_dist: 0.0,
-            dir: dir.mul_s(speed),
+            dir: dir * speed,
         }
     }
 
@@ -46,9 +46,9 @@ impl MoveHelper {
 
     pub fn step_diff(&mut self, dtime: &Time) -> Vector3<ZFloat> {
         let dt = dtime.n as ZFloat / 1000000000.0;
-        let step = self.dir.mul_s(dt);
-        self.current_dist += step.length();
-        self.current.v.add_self_v(step);
+        let step = self.dir * dt;
+        self.current_dist += step.magnitude();
+        self.current.v = self.current.v + step; // TODO: update cgmath-rs version and replace to `+=`
         if self.is_finished() {
             self.current = self.to.clone();
         }

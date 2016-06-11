@@ -1,19 +1,16 @@
 // See LICENSE file for copyright and license details.
 
-use std::error::{Error};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::path::{Path};
 use std::collections::{HashMap};
 use cgmath::{
-    Vector,
     Vector2,
     Vector3,
     Vector4,
     EuclideanVector,
     rad,
-    Matrix,
     Matrix4,
     SquareMatrix,
     Point,
@@ -453,10 +450,10 @@ impl TacticalScreen {
         let y = context.mouse().pos.v.y as ZFloat;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
-        let p0_raw = im.mul_v(Vector4{x: x, y: y, z: 0.0, w: 1.0});
-        let p0 = (p0_raw.div_s(p0_raw.w)).truncate();
-        let p1_raw = im.mul_v(Vector4{x: x, y: y, z: 1.0, w: 1.0});
-        let p1 = (p1_raw.div_s(p1_raw.w)).truncate();
+        let p0_raw = im * Vector4{x: x, y: y, z: 0.0, w: 1.0};
+        let p0 = (p0_raw / p0_raw.w).truncate();
+        let p1_raw = im * Vector4{x: x, y: y, z: 1.0, w: 1.0};
+        let p1 = (p1_raw / p1_raw.w).truncate();
         let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
         let ray = Ray::new(Point3::from_vec(p0), p1 - p0);
         let p = (plane, ray).intersection()
@@ -913,10 +910,10 @@ impl TacticalScreen {
         }};
         let origin_world_pos = geom::map_pos_to_world_pos(&origin);
         let mut closest_map_pos = origin.clone();
-        let mut min_dist = (origin_world_pos.v - p.v).length();
+        let mut min_dist = (origin_world_pos.v - p.v).magnitude();
         for map_pos in spiral_iter(&origin, 1) {
             let pos = geom::map_pos_to_world_pos(&map_pos);
-            let d = (pos.v - p.v).length();
+            let d = (pos.v - p.v).magnitude();
             if d < min_dist {
                 min_dist = d;
                 closest_map_pos = map_pos;
@@ -1180,7 +1177,7 @@ impl Screen for TacticalScreen {
             Event::Resized(..) => {
                 self.camera.regenerate_projection_mat(&context.win_size);
             },
-            Event::MouseMoved((x, y)) => {
+            Event::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 self.handle_event_mouse_move(context, &pos);
             },

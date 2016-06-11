@@ -3,7 +3,7 @@
 use std::default::{Default};
 use std::iter::{repeat};
 use num::{Float};
-use cgmath::{Vector};
+use cgmath::{Vector2, Array, Vector};
 use common::types::{Size2, ZInt};
 use dir::{Dir, DirIter, dirs};
 use ::{MapPos};
@@ -72,7 +72,7 @@ pub struct MapPosIter {
 impl MapPosIter {
     fn new(map_size: &Size2) -> MapPosIter {
         MapPosIter {
-            cursor: MapPos{v: Vector::from_value(0)},
+            cursor: MapPos{v: Vector2::from_value(0)},
             map_size: map_size.clone(),
         }
     }

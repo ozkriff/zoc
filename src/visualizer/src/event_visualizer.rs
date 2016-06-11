@@ -2,7 +2,7 @@
 
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
-use cgmath::{Vector3, Vector, rad};
+use cgmath::{Vector3, rad};
 use common::types::{ZFloat, ZInt};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
@@ -129,7 +129,7 @@ fn get_unit_scene_nodes(
         }]
     } else {
         for i in 0 .. count {
-            let pos = geom::index_to_circle_vertex(count, i).v.mul_s(0.15);
+            let pos = geom::index_to_circle_vertex(count, i).v * 0.15;
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
                 rot: rad(0.0),
@@ -294,7 +294,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             for i in 0 .. self.killed as usize {
                 let child = children.get_mut(i)
                     .expect("draw: no child");
-                child.pos.v.add_self_v(step);
+                child.pos.v = child.pos.v + step;
             }
         }
     }

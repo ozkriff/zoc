@@ -2,8 +2,7 @@
 
 use std::sync::mpsc::{Sender};
 use std::path::{Path};
-use cgmath::{Vector};
-use cgmath::{Vector2};
+use cgmath::{Vector2, Array};
 use glutin::{self, Event, MouseButton};
 use glutin::ElementState::{Pressed, Released};
 use zgl::{Zgl, ColorId, Color4, ScreenPos};
@@ -84,8 +83,8 @@ impl Context {
             mouse: MouseState {
                 is_left_button_pressed: false,
                 is_right_button_pressed: false,
-                last_press_pos: ScreenPos{v: Vector::from_value(0)},
-                pos: ScreenPos{v: Vector::from_value(0)},
+                last_press_pos: ScreenPos{v: Vector2::from_value(0)},
+                pos: ScreenPos{v: Vector2::from_value(0)},
             },
         }
     }
@@ -135,7 +134,7 @@ impl Context {
 
     pub fn handle_event_post(&mut self, event: &glutin::Event) {
         match *event {
-            Event::MouseMoved((x, y)) => {
+            Event::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 self.mouse.pos = pos;
             },

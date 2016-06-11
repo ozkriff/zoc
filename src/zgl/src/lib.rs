@@ -35,7 +35,7 @@ pub use types::{
 use std::os::raw::c_char;
 use std::mem;
 use common::types::{Size2, ZInt, ZFloat};
-use cgmath::{Matrix, Matrix4, Matrix3, SquareMatrix, Vector3, Rad, ortho};
+use cgmath::{Matrix4, Matrix3, SquareMatrix, Vector3, Rad, ortho};
 use gl::Gl;
 use gl::types::{GLuint, GLsizeiptr};
 use std::ffi::{CStr};
@@ -143,29 +143,29 @@ impl Zgl {
     // Rotations go through the Basis types, which are guaranteed to be
     // orthogonal matrices."
     pub fn tr(&self, m: Matrix4<ZFloat>, v: &Vector3<ZFloat>) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::one();
+        let mut t = Matrix4::identity();
         t[3][0] = v.x;
         t[3][1] = v.y;
         t[3][2] = v.z;
-        m.mul_m(&t)
+        m * t
     }
 
     pub fn scale(&self, m: Matrix4<ZFloat>, scale: ZFloat) -> Matrix4<ZFloat> {
-        let mut t = Matrix4::one();
+        let mut t = Matrix4::identity();
         t[0][0] = scale;
         t[1][1] = scale;
         t[2][2] = scale;
-        m.mul_m(&t)
+        m * t
     }
 
     pub fn rot_x(&self, m: Matrix4<ZFloat>, angle: &Rad<ZFloat>) -> Matrix4<ZFloat> {
-        let r = Matrix3::from_angle_x(*angle).into();
-        m.mul_m(&r)
+        let r: Matrix4<ZFloat> = Matrix3::from_angle_x(*angle).into();
+        m * r
     }
 
     pub fn rot_z(&self, m: Matrix4<ZFloat>, angle: &Rad<ZFloat>) -> Matrix4<ZFloat> {
-        let r = Matrix3::from_angle_z(*angle).into();
-        m.mul_m(&r)
+        let r: Matrix4<ZFloat> = Matrix3::from_angle_z(*angle).into();
+        m * r
     }
 
     pub fn check(&self) {
