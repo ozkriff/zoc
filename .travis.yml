@@ -9,6 +9,10 @@ rust:
     - beta
     - stable
 
+os:
+    - linux
+    - osx
+
 sudo: false
 
 addons:
