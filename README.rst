@@ -74,22 +74,28 @@ NOTE: You must apologize my English level. I'm trying to do my best :) .
 Please open an issue if anything in docs or comments is strange/unclear/can
 be improved.
 
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license,
+shall be dual licensed as above, without any additional terms or conditions.
+
 
 License
 -------
 
-MIT_
+ZoC is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
+
+See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 
 
-.. |license| image:: http://img.shields.io/badge/license-MIT-blue.svg
+.. |license| image:: https://img.shields.io/badge/license-MIT_or_Apache_2.0-blue.svg
 .. |travis-ci| image:: https://travis-ci.org/ozkriff/zoc.svg?branch=master
 .. |appveyor-ci| image:: https://ci.appveyor.com/api/projects/status/49kqaol7dlt2xrec/branch/master?svg=true
 .. |dependency-ci| image:: https://dependencyci.com/github/ozkriff/zoc/badge
 .. |gitter| image:: https://badges.gitter.im/....svg
 .. |backhub| image:: https://img.shields.io/badge/BackHub-Backed%20up-brightgreen.svg
 .. _Rust: https://rust-lang.org
-.. _MIT: https://github.com/ozkriff/zoc/blob/master/LICENSE
-.. _license: https://github.com/ozkriff/zoc/blob/master/LICENSE
+.. _LICENSE-MIT: LICENSE-MIT
+.. _LICENSE-APACHE: LICENSE-APACHE
 .. _travis-ci: https://travis-ci.org/ozkriff/zoc
 .. _appveyor-ci: https://ci.appveyor.com/project/ozkriff/zoc
 .. _dependency-ci: https://dependencyci.com/github/ozkriff/zoc

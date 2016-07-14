@@ -5,7 +5,7 @@ version = "0.0.1"
 authors = ["ozkriff <ozkriffgmail.com>"]
 description = "ZoC is turn-based hexagonal strategy game written in Rust"
 readme = "README.md"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 keywords = ["opengl", "3D", "game"]
 repository = "https://github.com/ozkriff/zoc"
 
