@@ -4,18 +4,24 @@ platform:
     - i686
     - x86_64
 
+environment:
+    matrix:
+        - rust_version: 1.10.0
+        - rust_version: beta
+        - rust_version: nightly
+
 install:
-    - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-$Env:PLATFORM-pc-windows-gnu.exe" -FileName rust.exe
+    - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-$env:rust_version-$env:platform-pc-windows-gnu.exe" -FileName rust.exe
     - cmd: rust.exe /VERYSILENT /NORESTART /DIR=C:\Rust
     - ps: >-
-        if ($Env:PLATFORM -eq "i686") {
-            $Env:MINGW = "C:\mingw"
+        if ($env:platform -eq "i686") {
+            $env:mingw = "C:\mingw"
         } else {
             Start-FileDownload "http://libgd.blob.core.windows.net/mingw/mingw-w64-dgn-x86_64-20141001.7z" -FileName mingw-w64.7z;
             7z x -oC:\ mingw-w64.7z | Out-Null;
-            $Env:MINGW = "C:\mingw64"
+            $env:mingw = "C:\mingw64"
         }
-    - cmd: SET PATH=%MINGW%\bin;C:\Rust\bin;%PATH%
+    - cmd: SET PATH=%mingw%\bin;C:\Rust\bin;%PATH%
     - rustc -V
     - cargo -V
 
