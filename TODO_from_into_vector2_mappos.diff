@@ -1,0 +1,120 @@
+diff --git a/src/core/src/dir.rs b/src/core/src/dir.rs
+index b7fd957..20bf168 100644
+--- a/src/core/src/dir.rs
++++ b/src/core/src/dir.rs
+@@ -77,7 +77,7 @@ impl Dir {
+         let direction_index = dir.to_int();
+         assert!(direction_index >= 0 && direction_index < 6);
+         let difference = DIR_TO_POS_DIFF[subtable_index][direction_index as usize];
+-        MapPos{v: pos.v + difference}
++        (pos.v + difference).into()
+     }
+ }
+ 
+diff --git a/src/core/src/internal_state.rs b/src/core/src/internal_state.rs
+index a65023b..90e768d 100644
+--- a/src/core/src/internal_state.rs
++++ b/src/core/src/internal_state.rs
+@@ -31,11 +31,12 @@ impl InternalState {
+     pub fn new(map_size: &Size2) -> InternalState {
+         let mut map = Map::new(map_size);
+         // TODO: read from scenario.json?
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Terrain::Trees;
++        let p: MapPos = Vector2{x: 4, y: 3}.into();
++        *map.tile_mut(&p) = Terrain::Trees;
++        *map.tile_mut(&Vector2{x: 4, y: 4}.into()) = Terrain::Trees;
++        *map.tile_mut(&Vector2{x: 4, y: 5}.into()) = Terrain::Trees;
++        *map.tile_mut(&Vector2{x: 5, y: 5}.into()) = Terrain::Trees;
++        *map.tile_mut(&Vector2{x: 6, y: 4}.into()) = Terrain::Trees;
+         InternalState {
+             units: HashMap::new(),
+             map: map,
+diff --git a/src/core/src/lib.rs b/src/core/src/lib.rs
+index 0d9d89f..3603faf 100644
+--- a/src/core/src/lib.rs
++++ b/src/core/src/lib.rs
+@@ -52,6 +52,12 @@ pub struct UnitId{pub id: ZInt}
+ #[derive(PartialEq, Clone, Debug)]
+ pub struct MapPos{pub v: Vector2<ZInt>}
+ 
++impl From<Vector2<ZInt>> for MapPos {
++    fn from(v: Vector2<ZInt>) -> MapPos {
++        MapPos{v: v}
++    }
++}
++
+ impl fmt::Display for MapPos {
+     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+         write!(f, "MapPos({}, {})", self.v.x, self.v.y)
+@@ -691,21 +697,21 @@ impl Core {
+         let mammoth_tank_id = self.db.unit_type_id("mammoth tank");
+         let p_id_0 = PlayerId{id: 0};
+         let p_id_1 = PlayerId{id: 1};
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 1, y: 3}}, &truck_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 1, y: 4}}, &mammoth_tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 8, y: 4}}, &truck_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
++        self.add_unit(&Vector2{x: 0, y: 1}.into(), &tank_id, &p_id_0);
++        self.add_unit(&Vector2{x: 0, y: 2}.into(), &soldier_id, &p_id_0);
++        self.add_unit(&Vector2{x: 0, y: 3}.into(), &scout_id, &p_id_0);
++        self.add_unit(&Vector2{x: 1, y: 3}.into(), &truck_id, &p_id_0);
++        self.add_unit(&Vector2{x: 0, y: 4}.into(), &soldier_id, &p_id_0);
++        self.add_unit(&Vector2{x: 0, y: 5}.into(), &tank_id, &p_id_0);
++        self.add_unit(&Vector2{x: 0, y: 6}.into(), &tank_id, &p_id_0);
++        self.add_unit(&Vector2{x: 1, y: 4}.into(), &mammoth_tank_id, &p_id_0);
++        self.add_unit(&Vector2{x: 9, y: 1}.into(), &tank_id, &p_id_1);
++        self.add_unit(&Vector2{x: 9, y: 2}.into(), &soldier_id, &p_id_1);
++        self.add_unit(&Vector2{x: 9, y: 3}.into(), &scout_id, &p_id_1);
++        self.add_unit(&Vector2{x: 9, y: 4}.into(), &soldier_id, &p_id_1);
++        self.add_unit(&Vector2{x: 8, y: 4}.into(), &truck_id, &p_id_1);
++        self.add_unit(&Vector2{x: 9, y: 5}.into(), &tank_id, &p_id_1);
++        self.add_unit(&Vector2{x: 9, y: 6}.into(), &tank_id, &p_id_1);
+     }
+ 
+     fn get_new_unit_id(&mut self) -> UnitId {
+diff --git a/src/core/src/map.rs b/src/core/src/map.rs
+index 0b65094..f3af223 100644
+--- a/src/core/src/map.rs
++++ b/src/core/src/map.rs
+@@ -210,7 +210,7 @@ mod tests {
+     #[test]
+     fn test_ring_1() {
+         let radius = 1;
+-        let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
++        let start_pos = Vector2{x: 0, y: 0}.into();
+         let expected = [
+             (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 0) ];
+         let mut expected = expected.iter();
+@@ -225,7 +225,7 @@ mod tests {
+     #[test]
+     fn test_ring_2() {
+         let radius = 2;
+-        let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
++        let start_pos = Vector2{x: 0, y: 0}.into();
+         let expected = [
+             (-1, -1),
+             (-1, -2),
+@@ -252,7 +252,7 @@ mod tests {
+     #[test]
+     fn test_spiral_1() {
+         let radius = 2;
+-        let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
++        let start_pos = Vector2{x: 0, y: 0}.into();
+         let expected = [
+             // ring 1
+             (0, -1),

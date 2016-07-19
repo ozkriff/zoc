@@ -1,0 +1,101 @@
+diff --git a/src/core/src/fov.rs b/src/core/src/fov.rs
+index 0e8e68c..b169775 100644
+--- a/src/core/src/fov.rs
++++ b/src/core/src/fov.rs
+@@ -53,7 +53,7 @@ pub fn fov(
+             callback(&pos);
+         }
+         if is_obstacle(map.tile(&pos)) {
+-            let obstacle_radius = geom::HEX_IN_RADIUS * 1.1;
++            let obstacle_radius = geom::HEX_IN_RADIUS * 0.99;
+             let a = (obstacle_radius / distance).asin();
+             let shadow = Shadow{left: angle - a, right: angle + a};
+             if shadow.right > PI {
+diff --git a/src/core/src/internal_state.rs b/src/core/src/internal_state.rs
+index b45eca7..f28275c 100644
+--- a/src/core/src/internal_state.rs
++++ b/src/core/src/internal_state.rs
+@@ -31,11 +31,11 @@ impl InternalState {
+     pub fn new(map_size: &Size2) -> InternalState {
+         let mut map = Map::new(map_size);
+         // TODO: read from scenario.json?
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 5}}) = Terrain::Trees;
+-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 4}}) = Terrain::Trees;
++        // *map.tile_mut(&MapPos{v: Vector2{x: 14, y: 13}}) = Terrain::Trees;
++        *map.tile_mut(&MapPos{v: Vector2{x: 14, y: 14}}) = Terrain::Trees;
++        *map.tile_mut(&MapPos{v: Vector2{x: 14, y: 15}}) = Terrain::Trees;
++        *map.tile_mut(&MapPos{v: Vector2{x: 15, y: 15}}) = Terrain::Trees;
++        // *map.tile_mut(&MapPos{v: Vector2{x: 16, y: 14}}) = Terrain::Trees;
+         InternalState {
+             units: HashMap::new(),
+             map: map,
+diff --git a/src/core/src/lib.rs b/src/core/src/lib.rs
+index aa70b11..b65cdb8 100644
+--- a/src/core/src/lib.rs
++++ b/src/core/src/lib.rs
+@@ -412,6 +412,8 @@ pub fn check_command<S: GameState>(
+                 return Err(CommandError::BadUnitId);
+             }
+             for pos in path {
++                // открыть позицию врага и вычесть движение-с
++                // т.е. тут может быть неизвестный враг, да
+                 if state.is_tile_occupied(pos) {
+                     return Err(CommandError::BadPath);
+                 }
+@@ -570,7 +572,7 @@ pub fn los(
+ 
+ impl Core {
+     pub fn new(options: &Options) -> Core {
+-        let map_size = Size2{w: 10, h: 8}; // TODO: read from config file
++        let map_size = Size2{w: 40, h: 48}; // TODO: read from config file
+         let mut core = Core {
+             state: InternalState::new(&map_size),
+             players: get_players_list(&options.game_type),
+@@ -596,20 +598,20 @@ impl Core {
+         let scout_id = self.db.unit_type_id("scout");
+         let p_id_0 = PlayerId{id: 0};
+         let p_id_1 = PlayerId{id: 1};
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 1, y: 3}}, &truck_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 8, y: 4}}, &truck_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
+-        self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 1}}, &tank_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 2}}, &soldier_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 3}}, &scout_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 1, y: 3}}, &truck_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 4}}, &soldier_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 5}}, &tank_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 0, y: 6}}, &tank_id, &p_id_0);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 1}}, &tank_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 2}}, &soldier_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 3}}, &scout_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 4}}, &soldier_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 8, y: 4}}, &truck_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 5}}, &tank_id, &p_id_1);
++        // self.add_unit(&MapPos{v: Vector2{x: 9, y: 6}}, &tank_id, &p_id_1);
+     }
+ 
+     fn get_new_unit_id(&mut self) -> UnitId {
+@@ -844,6 +846,9 @@ impl Core {
+                 };
+                 self.do_core_event(&event);
+             },
++            // и где-то тут надо проверять, что мы не пытаемся въехать на одну клетку с врагом
++            // если таки пытаемся, то генерировать "открытие" врага
++            // и как-то вычитать очки движения =\
+             Command::Move{unit_id, path, mode} => {
+                 let player_id = self.state.unit(&unit_id).player_id.clone();
+                 let is_careful_move = mode == MoveMode::Hunt;

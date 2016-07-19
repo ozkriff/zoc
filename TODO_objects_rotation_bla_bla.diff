@@ -1,0 +1,220 @@
+diff --git a/src/core/src/lib.rs b/src/core/src/lib.rs
+index f44969d..5ef4f8b 100644
+--- a/src/core/src/lib.rs
++++ b/src/core/src/lib.rs
+@@ -71,6 +71,15 @@ pub struct ExactPos {
+     pub slot_id: SlotId,
+ }
+ 
++#[derive(PartialEq, Clone, Debug)]
++pub enum ExactPos {
++    Slot{map_pos: MapPos, slot_id: u8},
++    WholeTile{map_pos: MapPos},
++    TwoTiles{map_pos: MapPos, dir: Dir},
++    // ThreeTiles{map_pos: MapPos, dir: Dir}, // TODO
++    // Air, // TODO
++}
++
+ impl AsRef<MapPos> for ExactPos {
+     fn as_ref(&self) -> &MapPos {
+         &self.map_pos
+diff --git a/src/visualizer/src/event_visualizer.rs b/src/visualizer/src/event_visualizer.rs
+index ef74387..3edc2ec 100644
+--- a/src/visualizer/src/event_visualizer.rs
++++ b/src/visualizer/src/event_visualizer.rs
+@@ -1,7 +1,7 @@
+ // See LICENSE file for copyright and license details.
+ 
+ use std::f32::consts::{PI};
+-use rand::{thread_rng, Rng};
++// use rand::{thread_rng, Rng};
+ use cgmath::{Vector3, Vector, rad};
+ use common::types::{ZFloat, ZInt};
+ use core::partial_state::{PartialState};
+@@ -92,7 +92,7 @@ fn show_unit_at(
+ ) {
+     let world_pos = geom::exact_pos_to_world_pos(&unit_info.pos);
+     let to = world_pos;
+-    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++    // let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+     let mut children = get_unit_scene_nodes(db, &unit_info.type_id, mesh_id);
+     children.push(SceneNode {
+         pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
+@@ -102,7 +102,8 @@ fn show_unit_at(
+     });
+     scene.add_unit(&unit_info.unit_id, SceneNode {
+         pos: to.clone(),
+-        rot: rot,
++        // rot: rot,
++        rot: rad(0.0),
+         mesh_id: None,
+         children: children,
+     });
+diff --git a/src/visualizer/src/geom.rs b/src/visualizer/src/geom.rs
+index aba790d..0e6cc44 100644
+--- a/src/visualizer/src/geom.rs
++++ b/src/visualizer/src/geom.rs
+@@ -34,6 +34,17 @@ pub fn lift(v: Vector3<ZFloat>) -> Vector3<ZFloat> {
+     v
+ }
+ 
++pub fn rand_pos_rot(p: &ExactPos) -> Rad<ZFloat> {
++    match p.slot_id {
++        SlotId::WholeTile => {
++            rad(p.map_pos.v.x as ZFloat + p.map_pos.v.y as ZFloat).normalize()
++        }
++        SlotId::Id(n) => {
++            rad(p.map_pos.v.x as ZFloat + p.map_pos.v.y as ZFloat + n as ZFloat).normalize()
++        }
++    }
++}
++
+ pub fn index_to_circle_vertex_rnd(count: ZInt, i: ZInt, pos: &MapPos) -> VertexCoord {
+     let n = 2.0 * PI * (i as ZFloat) / (count as ZFloat);
+     let n = n + ((pos.v.x as ZFloat + pos.v.y as ZFloat) * 7.0) % 4.0; // TODO: remove magic numbers
+diff --git a/src/visualizer/src/tactical_screen.rs b/src/visualizer/src/tactical_screen.rs
+index d74ad43..7cb7fdc 100644
+--- a/src/visualizer/src/tactical_screen.rs
++++ b/src/visualizer/src/tactical_screen.rs
+@@ -3,7 +3,7 @@
+ use std::error::{Error};
+ use std::sync::mpsc::{channel, Sender, Receiver};
+ use std::f32::consts::{PI};
+-use rand::{thread_rng, Rng};
++// use rand::{thread_rng, Rng};
+ use std::path::{Path};
+ use std::collections::{HashMap};
+ use cgmath::{
+@@ -185,6 +185,30 @@ fn build_targets_mesh(db: &Db, zgl: &Zgl, state: &PartialState, unit_id: &UnitId
+     mesh
+ }
+ 
++fn get_shadow_mesh(zgl: &Zgl) -> Mesh {
++    let n = 0.3;
++    let mut vertex_data = Vec::new();
++    let mut tex_data = Vec::new();
++    add_quad_to_vec(
++        &mut vertex_data,
++        VertexCoord{v: Vector3{x: -n, y: -n, z: 0.1}},
++        VertexCoord{v: Vector3{x: -n, y: n, z: 0.1}},
++        VertexCoord{v: Vector3{x: n, y:  n, z: 0.1}},
++        VertexCoord{v: Vector3{x: n, y: -n, z: 0.1}},
++    );
++    add_quad_to_vec(
++        &mut tex_data,
++        TextureCoord{v: Vector2{x: 0.0, y: 0.0}},
++        TextureCoord{v: Vector2{x: 0.0, y: 1.0}},
++        TextureCoord{v: Vector2{x: 1.0, y: 1.0}},
++        TextureCoord{v: Vector2{x: 1.0, y: 0.0}},
++    );
++    let mut mesh = Mesh::new(zgl, &vertex_data);
++    let tex = Texture::new(zgl, "shadow.png");
++    mesh.add_texture(zgl, tex, &tex_data);
++    mesh
++}
++
+ fn get_shell_mesh(zgl: &Zgl) -> Mesh {
+     let w = 0.05;
+     let l = w * 3.0;
+@@ -340,6 +364,8 @@ pub struct TacticalScreen {
+     button_deselect_unit_id: ButtonId,
+     button_next_unit_id: ButtonId,
+     button_prev_unit_id: ButtonId,
++    button_zoom_in_id: ButtonId,
++    button_zoom_out_id: ButtonId,
+     player_info: PlayerInfoManager,
+     core: Core,
+     event: Option<CoreEvent>,
+@@ -389,7 +415,13 @@ impl TacticalScreen {
+         let mut camera = Camera::new(&context.win_size);
+         camera.set_max_pos(get_max_camera_pos(&map_size));
+         camera.set_pos(get_initial_camera_pos(&map_size));
+-        let font_size = 40.0;
++
++        // плясать от платформы
++        // придется вынести во внешнюю функцию, которая будет под cfg
++        // для андроида чуть увеличить, для пека уменьшить
++        // стой, или это не то? соотношение с экраном же нужно!
++        let font_size = 40.0;// ничего не понимаю. нафиг эта штука? меняет размер текста на карте :(
++
+         let mut font_stash = FontStash::new(
+             &context.zgl, "DroidSerif-Regular.ttf", font_size);
+         let mut button_manager = ButtonManager::new();
+@@ -405,6 +437,14 @@ impl TacticalScreen {
+         pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
+         let button_next_unit_id = button_manager.add_button(
+             Button::new(context, "[>]", &pos));
++        pos.v.y = context.win_size.h - 10
++            - button_manager.buttons()[&button_end_turn_id].size().h; // TODO
++        pos.v.x = 10;
++        let button_zoom_in_id = button_manager.add_button(
++            Button::new(context, "[+]", &pos));
++        pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
++        let button_zoom_out_id = button_manager.add_button(
++            Button::new(context, "[-]", &pos));
+         let mesh_ids = MeshIdManager {
+             big_building_mesh_w_id: big_building_mesh_w_id,
+             building_mesh_w_id: building_mesh_w_id,
+@@ -422,6 +462,8 @@ impl TacticalScreen {
+             button_deselect_unit_id: button_deselect_unit_id,
+             button_prev_unit_id: button_prev_unit_id,
+             button_next_unit_id: button_next_unit_id,
++            button_zoom_in_id: button_zoom_in_id,
++            button_zoom_out_id: button_zoom_out_id,
+             player_info: player_info,
+             core: core,
+             event: None,
+@@ -481,8 +523,14 @@ impl TacticalScreen {
+             let map = state.map();
+             for tile_pos in map.get_iter() {
+                 if let &Terrain::Trees = map.tile(&tile_pos) {
++                    // цикл и раскидать в нем нцать деревьев
++                    // основываться на координатах клетки
+                     let pos = geom::map_pos_to_world_pos(&tile_pos);
+-                    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++                    // let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++                    // let rot = geom::rand_pos_rot(&tile_pos);
++                    let rot = rad(0.0);
++                    // TODO: нужен get_angle_from_pos(p: &ExactPos) -> Rad ...
++                    // и пускай оно по x, y и индексу слота считает поворот само.
+                     player_info.scene.add_node(SceneNode {
+                         pos: pos.clone(),
+                         rot: rot,
+@@ -494,7 +542,9 @@ impl TacticalScreen {
+                     let objects = state.objects_at(&tile_pos);
+                     for object in objects {
+                         let pos = geom::exact_pos_to_world_pos(&object.pos);
+-                        let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++                        // let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++                        let rot = geom::rand_pos_rot(&object.pos);
++                        // let rot = rad(0.0);
+                         player_info.scene.add_node(SceneNode {
+                             pos: pos.clone(),
+                             rot: rot,
+@@ -833,6 +883,13 @@ impl TacticalScreen {
+                     self.current_state(), self.core.player_id(), &id);
+                 self.select_unit(context, &next_id);
+             }
++
++        // это надо вызывать даже если у нас играется событие
++        } else if *button_id == self.button_zoom_in_id {
++            self.camera.change_zoom(0.7);
++        } else if *button_id == self.button_zoom_out_id {
++            self.camera.change_zoom(1.3);
++
+         } else {
+             panic!("BUTTON ID ERROR");
+         }
+diff --git a/src/zgl/src/camera.rs b/src/zgl/src/camera.rs
+index b76913e..d8926bc 100644
+--- a/src/zgl/src/camera.rs
++++ b/src/zgl/src/camera.rs
+@@ -33,7 +33,7 @@ impl Camera {
+             z_angle: rad(0.0),
+             pos: WorldPos{v: Vector::from_value(0.0)},
+             max_pos: WorldPos{v: Vector::from_value(0.0)},
+-            zoom: 20.0,
++            zoom: 15.0,
+             projection_mat: get_projection_mat(win_size),
+         }
+     }

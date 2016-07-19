@@ -1,0 +1,878 @@
+diff --git a/src/core/src/db.rs b/src/core/src/db.rs
+index 4bff13b..04c3fb1 100644
+--- a/src/core/src/db.rs
++++ b/src/core/src/db.rs
+@@ -113,7 +113,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 9,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "super_heavy_tank_gun"),
+-            move_points: MovePoints{n: 2},
++            move_points: MovePoints{n: 6},
+             attack_points: AttackPoints{n: 1},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -130,7 +130,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 9,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "heavy_tank_gun"),
+-            move_points: MovePoints{n: 3},
++            move_points: MovePoints{n: 9},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -147,7 +147,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 9,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "medium_tank_gun"),
+-            move_points: MovePoints{n: 3},
++            move_points: MovePoints{n: 10},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -164,7 +164,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 9,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "light_tank_gun"),
+-            move_points: MovePoints{n: 4},
++            move_points: MovePoints{n: 12},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -181,7 +181,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 9,
+             weapon_skill: 7,
+             weapon_type_id: weapon_type_id(weapon_types, "medium_tank_gun"),
+-            move_points: MovePoints{n: 4},
++            move_points: MovePoints{n: 12},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -199,7 +199,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             weapon_skill: 7,
+             // TODO: "tank_gun" on field gun??
+             weapon_type_id: weapon_type_id(weapon_types, "medium_tank_gun"),
+-            move_points: MovePoints{n: 2},
++            move_points: MovePoints{n: 5},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 7,
+@@ -216,7 +216,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 3,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "machine_gun"),
+-            move_points: MovePoints{n: 5},
++            move_points: MovePoints{n: 14},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 8,
+@@ -233,7 +233,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 3,
+             weapon_skill: 0,
+             weapon_type_id: weapon_type_id(weapon_types, "machine_gun"), // TODO: remove hack
+-            move_points: MovePoints{n: 5},
++            move_points: MovePoints{n: 13},
+             attack_points: AttackPoints{n: 0},
+             reactive_attack_points: AttackPoints{n: 0},
+             los_range: 6,
+@@ -250,7 +250,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 2,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "rifle"),
+-            move_points: MovePoints{n: 3},
++            move_points: MovePoints{n: 9},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 6,
+@@ -267,7 +267,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 2,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "submachine_gun"),
+-            move_points: MovePoints{n: 3},
++            move_points: MovePoints{n: 9},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 6,
+@@ -284,7 +284,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 2,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "rifle"),
+-            move_points: MovePoints{n: 5},
++            move_points: MovePoints{n: 11},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 1},
+             los_range: 8,
+@@ -301,7 +301,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
+             toughness: 2,
+             weapon_skill: 5,
+             weapon_type_id: weapon_type_id(weapon_types, "mortar"),
+-            move_points: MovePoints{n: 3},
++            move_points: MovePoints{n: 6},
+             attack_points: AttackPoints{n: 2},
+             reactive_attack_points: AttackPoints{n: 0},
+             los_range: 6,
+diff --git a/src/core/src/game_state.rs b/src/core/src/game_state.rs
+index 63ad548..04cbc20 100644
+--- a/src/core/src/game_state.rs
++++ b/src/core/src/game_state.rs
+@@ -15,11 +15,14 @@ pub trait GameState {
+         &self.units()[id]
+     }
+ 
++    // TODO: Return iterator not vector
+     fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
+         let mut units = Vec::new();
+         for (_, unit) in self.units() {
+-            if unit.pos.map_pos == *pos {
+-                units.push(unit);
++            for map_pos in unit.pos.map_pos_iter() {
++                if map_pos == *pos {
++                    units.push(unit);
++                }
+             }
+         }
+         units
+@@ -28,8 +31,10 @@ pub trait GameState {
+     fn objects_at(&self, pos: &MapPos) -> Vec<&Object> {
+         let mut objects = Vec::new();
+         for (_, object) in self.objects() {
+-            if object.pos.map_pos == *pos {
+-                objects.push(object);
++            for map_pos in object.pos.map_pos_iter() {
++                if map_pos == *pos {
++                    objects.push(object);
++                }
+             }
+         }
+         objects
+diff --git a/src/core/src/internal_state.rs b/src/core/src/internal_state.rs
+index c6cde49..1303a0f 100644
+--- a/src/core/src/internal_state.rs
++++ b/src/core/src/internal_state.rs
+@@ -7,6 +7,7 @@ use unit::{Unit};
+ use db::{Db};
+ use map::{Map, Terrain};
+ use game_state::{GameState, GameStateMut};
++use dir::{Dir};
+ use ::{
+     CoreEvent,
+     FireMode,
+@@ -52,9 +53,36 @@ impl InternalState {
+         state.add_big_building(&MapPos{v: Vector2{x: 6, y: 4}});
+         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 5}}, 3);
+         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 6}}, 1);
++        state.add_road(&[
++            MapPos{v: Vector2{x: 1, y: 1}},
++            MapPos{v: Vector2{x: 2, y: 1}},
++            MapPos{v: Vector2{x: 2, y: 2}},
++            MapPos{v: Vector2{x: 3, y: 2}},
++            MapPos{v: Vector2{x: 4, y: 2}},
++            MapPos{v: Vector2{x: 5, y: 2}},
++            MapPos{v: Vector2{x: 5, y: 3}},
++            MapPos{v: Vector2{x: 6, y: 3}},
++            MapPos{v: Vector2{x: 7, y: 3}},
++        ]);
+         state
+     }
+ 
++    fn add_road(&mut self, path: &[MapPos]) {
++        for window in path.windows(2) {
++            let from = &window[0];
++            let to = &window[1];
++            let dir = Dir::get_dir_from_to(from, to);
++            let object = Object {
++                class: ObjectClass::Road,
++                pos: ExactPos {
++                    map_pos: from.clone(),
++                    slot_id: SlotId::TwoTiles(dir),
++                },
++            };
++            self.add_object(object);
++        }
++    }
++
+     fn add_object(&mut self, object: Object) {
+         let id = ObjectId{id: self.objects.len() as ZInt + 1};
+         self.objects.insert(id, object);
+diff --git a/src/core/src/lib.rs b/src/core/src/lib.rs
+index f44969d..352bb13 100644
+--- a/src/core/src/lib.rs
++++ b/src/core/src/lib.rs
+@@ -36,6 +36,7 @@ use db::{Db};
+ use ai::{Ai};
+ use fow::{Fow};
+ use fov::{fov};
++use dir::{Dir};
+ 
+ #[derive(Clone)]
+ pub struct MovePoints{pub n: ZInt}
+@@ -62,15 +63,58 @@ impl fmt::Display for MapPos {
+ pub enum SlotId {
+     Id(u8),
+     WholeTile,
++    TwoTiles(Dir),
+     // Air, // TODO: implement air units
+ }
+ 
+ #[derive(PartialEq, Clone, Debug)]
+ pub struct ExactPos {
+-    pub map_pos: MapPos,
++    pub map_pos: MapPos, // TODO: есть мысль сделать это поле приватным
+     pub slot_id: SlotId,
+ }
+ 
++pub struct ExactPosIter<'a> {
++    p: &'a ExactPos,
++    i: u8,
++}
++
++impl ExactPos {
++    pub fn map_pos_iter(&self) -> ExactPosIter {
++        ExactPosIter {
++            p: self,
++            i: 0,
++        }
++    }
++}
++
++impl<'a> Iterator for ExactPosIter<'a> {
++    type Item = MapPos;
++        
++    fn next(&mut self) -> Option<Self::Item> {
++        let next_pos = match self.p.slot_id {
++            SlotId::Id(_) | SlotId::WholeTile => {
++                if self.i == 0 {
++                    Some(self.p.map_pos.clone())
++                } else {
++                    None
++                }
++            }
++            SlotId::TwoTiles(ref dir) => {
++                if self.i == 0 {
++                    Some(self.p.map_pos.clone())
++                } else if self.i == 1 {
++                    Some(Dir::get_neighbour_pos(&self.p.map_pos, dir))
++                } else {
++                    None
++                }
++            }
++        };
++        self.i += 1;
++        next_pos
++    }
++}
++
++// TODO: гм гм, а тут лучше бы все равно итератор возвращать!
+ impl AsRef<MapPos> for ExactPos {
+     fn as_ref(&self) -> &MapPos {
+         &self.map_pos
+@@ -86,6 +130,7 @@ impl AsRef<MapPos> for MapPos {
+ #[derive(Debug, PartialEq, Clone)]
+ pub enum ObjectClass {
+     Building,
++    Road,
+ }
+ 
+ #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+@@ -417,10 +462,10 @@ fn check_attack<S: GameState>(
+     }
+     let attacker_type = db.unit_type(&attacker.type_id);
+     let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
+-    if distance(&attacker.pos, &defender.pos) > weapon_type.max_distance {
++    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) > weapon_type.max_distance {
+         return Err(CommandError::OutOfRange);
+     }
+-    if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
++    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) < weapon_type.min_distance {
+         return Err(CommandError::TooClose);
+     }
+     if !weapon_type.is_inderect {
+@@ -450,7 +495,8 @@ pub fn check_command<S: GameState>(
+                 return Err(CommandError::BadUnitId);
+             }
+             let unit = state.unit(&unit_id);
+-            for pos in path {
++            for window in path.windows(2) {
++                let pos = &window[1];
+                 if !is_exact_pos_free(db, state, &unit.type_id, pos) {
+                     return Err(CommandError::BadPath);
+                 }
+@@ -481,7 +527,6 @@ pub fn check_command<S: GameState>(
+                 return Err(CommandError::BadPassengerId);
+             }
+             let passenger = state.unit(&passenger_id);
+-            let pos = passenger.pos.clone();
+             let transporter = state.unit(&transporter_id);
+             if !db.unit_type(&transporter.type_id).is_transporter {
+                 return Err(CommandError::BadTransporterClass);
+@@ -495,7 +540,7 @@ pub fn check_command<S: GameState>(
+             if transporter.passenger_id.is_some() {
+                 return Err(CommandError::TransporterIsNotEmpty);
+             }
+-            if distance(&transporter.pos, &pos) > 1 {
++            if distance(&transporter.pos.map_pos, &passenger.pos.map_pos) > 1 {
+                 return Err(CommandError::TransporterIsTooFarAway);
+             }
+             // TODO: 0 -> real move cost of transport tile for passenger
+@@ -516,7 +561,7 @@ pub fn check_command<S: GameState>(
+             if !db.unit_type(&transporter.type_id).is_transporter {
+                 return Err(CommandError::BadTransporterClass);
+             }
+-            if distance(&transporter.pos, &pos) > 1 {
++            if distance(&transporter.pos.map_pos, &pos.map_pos) > 1 {
+                 return Err(CommandError::UnloadDistanceIsTooBig);
+             }
+             if let None = transporter.passenger_id {
+@@ -660,7 +705,13 @@ pub fn get_free_slot_id<S: GameState>(
+     let units_at = state.units_at(pos);
+     let unit_type = db.unit_type(type_id);
+     if unit_type.is_big {
+-        if units_at.is_empty() && objects_at.is_empty() {
++        for object in &objects_at {
++            match object.class {
++                ObjectClass::Building => return None,
++                ObjectClass::Road => {},
++            }
++        }
++        if units_at.is_empty() {
+             return Some(SlotId::WholeTile);
+         } else {
+             return None;
+@@ -671,6 +722,7 @@ pub fn get_free_slot_id<S: GameState>(
+         match unit.pos.slot_id {
+             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
+             SlotId::WholeTile => return None,
++            SlotId::TwoTiles(_) => return None,
+         }
+     }
+     if unit_type.class == UnitClass::Vehicle {
+@@ -680,6 +732,7 @@ pub fn get_free_slot_id<S: GameState>(
+                     slots[slot_id as usize] = true;
+                 },
+                 SlotId::WholeTile => return None,
++                SlotId::TwoTiles(_) => {},
+             }
+         }
+     }
+@@ -710,6 +763,7 @@ pub fn is_exact_pos_free<S: GameState>(
+                 }
+             }
+             &SlotId::WholeTile => return false,
++            &SlotId::TwoTiles(_) => return false,
+         }
+     }
+     true
+@@ -987,17 +1041,19 @@ impl Core {
+             Command::Move{unit_id, path, mode} => {
+                 let player_id = self.state.unit(&unit_id).player_id.clone();
+                 let is_careful_move = mode == MoveMode::Hunt;
+-                for pos in path {
++                for window in path.windows(2) {
++                    let from = &window[0];
++                    let to = &window[1];
+                     let event = {
+                         let unit = self.state.unit(&unit_id);
+                         let cost = MovePoints {
+-                            n: tile_cost(&self.db, &self.state, unit, &pos).n
++                            n: tile_cost(&self.db, &self.state, unit, from, to).n
+                                 * move_cost_modifier(&mode)
+                         };
+                         CoreEvent::Move {
+                             unit_id: unit_id.clone(),
+-                            from: unit.pos.clone(),
+-                            to: pos.clone(),
++                            from: from.clone(),
++                            to: to.clone(),
+                             mode: mode.clone(),
+                             cost: cost,
+                         }
+diff --git a/src/core/src/map.rs b/src/core/src/map.rs
+index ccd6d23..7ef3345 100644
+--- a/src/core/src/map.rs
++++ b/src/core/src/map.rs
+@@ -194,9 +194,9 @@ impl Iterator for SpiralIter {
+     }
+ }
+ 
+-pub fn distance<P: AsRef<MapPos>>(from: &P, to: &P) -> ZInt {
+-    let to = to.as_ref().v;
+-    let from = from.as_ref().v;
++pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
++    let to = to.v;
++    let from = from.v;
+     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);
+     let dy = to.y - from.y;
+     (dx.abs() + dy.abs() + (dx - dy).abs()) / 2
+diff --git a/src/core/src/pathfinder.rs b/src/core/src/pathfinder.rs
+index d76025a..72087e5 100644
+--- a/src/core/src/pathfinder.rs
++++ b/src/core/src/pathfinder.rs
+@@ -8,7 +8,7 @@ use map::{Map, Terrain};
+ use partial_state::{PartialState};
+ use game_state::{GameState};
+ use dir::{Dir, dirs};
+-use ::{MovePoints, MapPos, ExactPos, SlotId, get_free_exact_pos};
++use ::{MovePoints, /*MapPos,*/ ExactPos, SlotId, ObjectClass, get_free_exact_pos};
+ 
+ #[derive(Clone)]
+ pub struct Tile {
+@@ -36,12 +36,15 @@ impl Default for Tile {
+ pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Vec<ExactPos> {
+     let mut new_path = Vec::new();
+     let mut cost = MovePoints{n: 0};
+-    for pos in path {
+-        cost.n += tile_cost(db, state, unit, &pos).n;
++    new_path.push(path[0].clone());
++    for window in path.windows(2) {
++        let from = &window[0];
++        let to = &window[1];
++        cost.n += tile_cost(db, state, unit, &from, &to).n;
+         if cost.n > unit.move_points.n {
+             break;
+         }
+-        new_path.push(pos.clone());
++        new_path.push(to.clone());
+     }
+     new_path
+ }
+@@ -50,10 +53,14 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos
+     -> MovePoints
+ {
+     let mut cost = MovePoints{n: 0};
+-    for node in path {
+-        cost.n += tile_cost(db, state, unit, node).n;
++    // for node in path {
++    for window in path.windows(2) {
++        let from = &window[0];
++        let to = &window[1];
++        cost.n += tile_cost(db, state, unit, from, to).n;
+     }
+     cost
++
+ }
+ 
+ // TODO: const (see https://github.com/rust-lang/rust/issues/24111 )
+@@ -61,42 +68,76 @@ pub fn max_cost() -> MovePoints {
+     MovePoints{n: ZInt::max_value()}
+ }
+ 
+-pub fn obstacles_count<S: GameState>(
+-    state: &S,
+-    pos: &MapPos,
+-) -> ZInt {
+-    let units = state.units_at(pos);
+-    let objects = state.objects_at(pos);
+-    let mut count = units.len() + objects.len();
+-    for unit in &units {
+-        for obj in &objects {
+-            if unit.pos == obj.pos {
+-                count -= 1;
++pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos, pos: &ExactPos)
++    -> MovePoints
++{
++    let unit_type = db.unit_type(&unit.type_id);
++    let map_pos = &pos.map_pos;
++    let objects = state.objects_at(map_pos);
++    let units = state.units_at(map_pos);
++    let mut unit_cost = 0;
++    let mut object_cost = 0;
++
++    'unit_loop: for unit in &units {
++        // TODO: для пехоты только
++        for object in &objects {
++            match object.pos.slot_id {
++                SlotId::Id(_) => {
++                    if unit.pos == object.pos {
++                        break 'unit_loop;
++                    }
++                }
++                SlotId::TwoTiles(_) | SlotId::WholeTile => {
++                    break 'unit_loop;
++                }
+             }
+         }
++        unit_cost += 1;
+     }
+-    count as ZInt
+-}
+ 
+-pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
+-    -> MovePoints
+-{
+-    let obstacles_count = obstacles_count(state, &pos.map_pos);
+-    let unit_type = db.unit_type(&unit.type_id);
+     let tile = state.map().tile(&pos);
+-    let n = match unit_type.class {
++    let mut terrain_cost = match unit_type.class {
+         UnitClass::Infantry => match tile {
+-            &Terrain::Plain => 1,
+-            &Terrain::Trees => 2,
+-            &Terrain::City => 0,
++            &Terrain::Plain => 4,
++            &Terrain::Trees => 5,
++            &Terrain::City => 4,
+         },
+         UnitClass::Vehicle => match tile {
+-            &Terrain::Plain => 1,
+-            &Terrain::Trees => 5,
+-            &Terrain::City => 0,
++            &Terrain::Plain => 4,
++            &Terrain::Trees => 8,
++            &Terrain::City => 4,
+         },
+     };
+-    MovePoints{n: n + obstacles_count}
++    for object in &objects {
++        if unit_type.class == UnitClass::Vehicle
++            && object.class == ObjectClass::Road
++        {
++            let mut i = object.pos.map_pos_iter();
++            let road_from = i.next().unwrap();
++            let road_to = i.next().unwrap();
++            assert!(road_from != road_to);
++            let is_road_pos_ok = road_from == from.map_pos
++                && road_to == pos.map_pos;
++            if is_road_pos_ok && !unit_type.is_big {
++                terrain_cost = 2;
++            }
++        }
++    }
++
++    for object in &objects {
++        let cost = match unit_type.class {
++            UnitClass::Infantry => match object.class {
++                ObjectClass::Building => 1,
++                ObjectClass::Road => 0,
++            },
++            UnitClass::Vehicle => match object.class {
++                ObjectClass::Building => 2,
++                ObjectClass::Road => 0,
++            },
++        };
++        object_cost += cost;
++    }
++    MovePoints{n: terrain_cost + object_cost + unit_cost}
+ }
+ 
+ pub struct Pathfinder {
+@@ -124,8 +165,9 @@ impl Pathfinder {
+         original_pos: &ExactPos,
+         neighbour_pos: &ExactPos
+     ) {
++        // TODO: где-то тут надо еще учесть дороги
+         let old_cost = self.map.tile(&original_pos).cost.clone();
+-        let tile_cost = tile_cost(db, state, unit, neighbour_pos);
++        let tile_cost = tile_cost(db, state, unit, original_pos, neighbour_pos);
+         let tile = self.map.tile_mut(&neighbour_pos);
+         let new_cost = MovePoints{n: old_cost.n + tile_cost.n};
+         if tile.cost.n > new_cost.n {
+@@ -194,14 +236,13 @@ impl Pathfinder {
+     */
+ 
+     pub fn get_path(&self, destination: &ExactPos) -> Option<Vec<ExactPos>> {
+-        let mut path = Vec::new();
++        let mut path = vec![destination.clone()];
+         let mut pos = destination.clone();
+         if self.map.tile(&pos).cost.n == max_cost().n {
+             return None;
+         }
+         while self.map.tile(&pos).cost.n != 0 {
+             assert!(self.map.is_inboard(&pos));
+-            path.push(pos.clone());
+             let parent_dir = match self.map.tile(&pos).parent() {
+                 &Some(ref dir) => dir,
+                 &None => return None,
+@@ -211,6 +252,7 @@ impl Pathfinder {
+                 map_pos: neighbour_map_pos.clone(),
+                 slot_id: self.map.tile(&neighbour_map_pos).slot_id.clone(),
+             };
++            path.push(pos.clone());
+         }
+         path.reverse();
+         if path.is_empty() {
+diff --git a/src/visualizer/src/event_visualizer.rs b/src/visualizer/src/event_visualizer.rs
+index 699e2ed..280eb50 100644
+--- a/src/visualizer/src/event_visualizer.rs
++++ b/src/visualizer/src/event_visualizer.rs
+@@ -209,7 +209,7 @@ impl EventAttackUnitVisualizer {
+         if let Some(ref attacker_id) = attack_info.attacker_id {
+             let attacker_node_id = scene.unit_id_to_node_id(&attacker_id);
+             let attacker_pos = scene.node(&attacker_node_id).pos.clone();
+-            let attacker_map_pos = state.unit(&attacker_id).pos.clone();
++            let attacker_map_pos = state.unit(&attacker_id).pos.map_pos.clone();
+             if let core::FireMode::Reactive = attack_info.mode {
+                 map_text.add_text(&attacker_map_pos, "reaction fire");
+             }
+@@ -223,23 +223,26 @@ impl EventAttackUnitVisualizer {
+                 &attacker_pos, &defender_pos, 10.0)); // TODO: remove magic number
+         }
+         if attack_info.is_ambush {
+-            map_text.add_text(&defender.pos, "Ambushed");
++            map_text.add_text(&defender.pos.map_pos, "Ambushed");
+         };
+         let is_target_destroyed = defender.count - attack_info.killed <= 0;
+         if attack_info.killed > 0 {
+-            map_text.add_text(&defender.pos, &format!("-{}", attack_info.killed));
++            map_text.add_text(
++                &defender.pos.map_pos,
++                &format!("-{}", attack_info.killed),
++            );
+         } else {
+-            map_text.add_text(&defender.pos, "miss");
++            map_text.add_text(&defender.pos.map_pos, "miss");
+         }
+         let is_target_suppressed = defender.morale < 50
+             && defender.morale + attack_info.suppression >= 50;
+         if !is_target_destroyed {
+             map_text.add_text(
+-                &defender.pos,
++                &defender.pos.map_pos,
+                 &format!("morale: -{}", attack_info.suppression),
+             );
+             if is_target_suppressed {
+-                map_text.add_text(&defender.pos, "suppressed");
++                map_text.add_text(&defender.pos.map_pos, "suppressed");
+             }
+         }
+         Box::new(EventAttackUnitVisualizer {
+@@ -324,7 +327,7 @@ impl EventShowUnitVisualizer {
+         marker_mesh_id: &MeshId,
+         map_text: &mut MapTextManager,
+     ) -> Box<EventVisualizer> {
+-        map_text.add_text(&unit_info.pos, "spotted");
++        map_text.add_text(&unit_info.pos.map_pos, "spotted");
+         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+         Box::new(EventShowUnitVisualizer)
+     }
+@@ -349,8 +352,8 @@ impl EventHideUnitVisualizer {
+         unit_id: &UnitId,
+         map_text: &mut MapTextManager,
+     ) -> Box<EventVisualizer> {
+-        let pos = state.unit(unit_id).pos.clone();
+-        map_text.add_text(&pos, "lost");
++        let pos = &state.unit(unit_id).pos.map_pos;
++        map_text.add_text(pos, "lost");
+         scene.remove_unit(unit_id);
+         Box::new(EventHideUnitVisualizer)
+     }
+@@ -382,7 +385,7 @@ impl EventUnloadUnitVisualizer {
+         unit_type_visual_info: &UnitTypeVisualInfo,
+         map_text: &mut MapTextManager,
+     ) -> Box<EventVisualizer> {
+-        map_text.add_text(&unit_info.pos, "unloaded");
++        map_text.add_text(&unit_info.pos.map_pos, "unloaded");
+         let to = geom::exact_pos_to_world_pos(&unit_info.pos);
+         let from = geom::exact_pos_to_world_pos(transporter_pos);
+         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+@@ -426,7 +429,7 @@ impl EventLoadUnitVisualizer {
+         map_text: &mut MapTextManager,
+     ) -> Box<EventVisualizer> {
+         let unit_pos = &state.unit(unit_id).pos;
+-        map_text.add_text(unit_pos, "loaded");
++        map_text.add_text(&unit_pos.map_pos, "loaded");
+         let from = geom::exact_pos_to_world_pos(unit_pos);
+         let to = geom::exact_pos_to_world_pos(transporter_pos);
+         let passenger_node_id = scene.unit_id_to_node_id(unit_id);
+@@ -465,7 +468,7 @@ impl EventSetReactionFireModeVisualizer {
+         mode: &ReactionFireMode,
+         map_text: &mut MapTextManager,
+     ) -> Box<EventVisualizer> {
+-        let unit_pos = &state.unit(unit_id).pos;
++        let unit_pos = &state.unit(unit_id).pos.map_pos;
+         match *mode {
+             ReactionFireMode::Normal => {
+                 map_text.add_text(unit_pos, "Normal fire mode");
+diff --git a/src/visualizer/src/geom.rs b/src/visualizer/src/geom.rs
+index f5d83b0..57fb34a 100644
+--- a/src/visualizer/src/geom.rs
++++ b/src/visualizer/src/geom.rs
+@@ -6,6 +6,7 @@ use cgmath::{Vector3, Rad, Angle, rad};
+ use common::types::{ZInt, ZFloat};
+ use zgl::types::{VertexCoord, WorldPos};
+ use core::{ExactPos, MapPos, SlotId, geom};
++use core::dir::{Dir};
+ 
+ pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
+ 
+@@ -19,6 +20,12 @@ pub fn map_pos_to_world_pos(p: &MapPos) -> WorldPos {
+ pub fn exact_pos_to_world_pos(p: &ExactPos) -> WorldPos {
+     let v = geom::map_pos_to_world_pos(&p.map_pos).extend(0.0);
+     match p.slot_id {
++        SlotId::TwoTiles(ref dir) => {
++            // TODO: employ index_to_circle_vertex_rnd
++            let p2 = Dir::get_neighbour_pos(&p.map_pos, dir);
++            let v2 = geom::map_pos_to_world_pos(&p2).extend(0.0);
++            WorldPos{v: (v + v2) / 2.0}
++        }
+         SlotId::WholeTile => {
+             WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v * 0.2}
+         }
+diff --git a/src/visualizer/src/lib.rs b/src/visualizer/src/lib.rs
+index 0a5fefa..4874725 100644
+--- a/src/visualizer/src/lib.rs
++++ b/src/visualizer/src/lib.rs
+@@ -40,6 +40,7 @@ fn make_window() -> glutin::Window {
+     let window_builder = WindowBuilder::new()
+         .with_title("Zone of Control".to_owned())
+         .with_pixel_format(24, 8)
++        .with_dimensions(1400, 900)
+         .with_gl(gl_version);
+     let window = window_builder.build()
+         .expect("Can`t create window");
+diff --git a/src/visualizer/src/map_text.rs b/src/visualizer/src/map_text.rs
+index 26bebf2..0142f25 100644
+--- a/src/visualizer/src/map_text.rs
++++ b/src/visualizer/src/map_text.rs
+@@ -40,18 +40,18 @@ impl MapTextManager {
+         }
+     }
+ 
+-    pub fn add_text<P: AsRef<MapPos>>(&mut self, pos: &P, text: &str) {
++    pub fn add_text(&mut self, pos: &MapPos, text: &str) {
+         self.commands.push_back(ShowTextCommand {
+-            pos: pos.as_ref().clone(),
++            pos: pos.clone(),
+             text: text.to_owned(),
+         });
+     }
+ 
+-    fn can_show_text_here<P: AsRef<MapPos>>(&self, pos: &P) -> bool {
++    fn can_show_text_here(&self, pos: &MapPos) -> bool {
+         let min_progress = 0.3;
+         for (_, map_text) in &self.visible_labels_list {
+             let progress = map_text.move_helper.progress();
+-            if map_text.pos == *pos.as_ref() && progress < min_progress {
++            if map_text.pos == *pos && progress < min_progress {
+                 return false;
+             }
+         }
+diff --git a/src/visualizer/src/tactical_screen.rs b/src/visualizer/src/tactical_screen.rs
+index a16469a..4112e68 100644
+--- a/src/visualizer/src/tactical_screen.rs
++++ b/src/visualizer/src/tactical_screen.rs
+@@ -43,6 +43,7 @@ use core::{
+     MapPos,
+     ExactPos,
+     SlotId,
++    ObjectClass,
+     check_command,
+     get_unit_ids_at,
+     find_next_player_unit_id,
+@@ -207,6 +208,32 @@ fn get_shell_mesh(zgl: &Zgl) -> Mesh {
+     mesh
+ }
+ 
++fn get_road_mesh(zgl: &Zgl) -> Mesh {
++    let w = geom::HEX_EX_RADIUS * 0.3;
++    let l = geom::HEX_EX_RADIUS;
++    let h = 0.005;
++    let mut vertex_data = Vec::new();
++    let mut tex_data = Vec::new();
++    add_quad_to_vec(
++        &mut vertex_data,
++        VertexCoord{v: Vector3{x: -w, y: -l, z: h}},
++        VertexCoord{v: Vector3{x: -w, y: l, z: h}},
++        VertexCoord{v: Vector3{x: w, y:  l, z: h}},
++        VertexCoord{v: Vector3{x: w, y: -l, z: h}},
++    );
++    add_quad_to_vec(
++        &mut tex_data,
++        TextureCoord{v: Vector2{x: 0.0, y: 0.0}},
++        TextureCoord{v: Vector2{x: 0.0, y: 1.0}},
++        TextureCoord{v: Vector2{x: 1.0, y: 1.0}},
++        TextureCoord{v: Vector2{x: 1.0, y: 0.0}},
++    );
++    let mut mesh = Mesh::new(zgl, &vertex_data);
++    let tex = Texture::new(zgl, "road.png");
++    mesh.add_texture(zgl, tex, &tex_data);
++    mesh
++}
++
+ fn get_marker<P: AsRef<Path>>(zgl: &Zgl, tex_path: P) -> Mesh {
+     let n = 0.2;
+     let vertex_data = vec!(
+@@ -250,6 +277,7 @@ fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) ->
+ struct MeshIdManager {
+     big_building_mesh_w_id: MeshId,
+     building_mesh_w_id: MeshId,
++    road_mesh_id: MeshId,
+     trees_mesh_id: MeshId,
+     shell_mesh_id: MeshId,
+     marker_1_mesh_id: MeshId,
+@@ -377,6 +405,8 @@ impl TacticalScreen {
+             &mut meshes, get_selection_mesh(&context.zgl));
+         let shell_mesh_id = add_mesh(
+             &mut meshes, get_shell_mesh(&context.zgl));
++        let road_mesh_id = add_mesh(
++            &mut meshes, get_road_mesh(&context.zgl));
+         let marker_1_mesh_id = add_mesh(
+             &mut meshes, get_marker(&context.zgl, "flag1.png"));
+         let marker_2_mesh_id = add_mesh(
+@@ -406,6 +436,7 @@ impl TacticalScreen {
+             big_building_mesh_w_id: big_building_mesh_w_id,
+             building_mesh_w_id: building_mesh_w_id,
+             trees_mesh_id: trees_mesh_id,
++            road_mesh_id: road_mesh_id,
+             shell_mesh_id: shell_mesh_id,
+             marker_1_mesh_id: marker_1_mesh_id,
+             marker_2_mesh_id: marker_2_mesh_id,
+@@ -477,6 +508,7 @@ impl TacticalScreen {
+             let state = &player_info.game_state;
+             let map = state.map();
+             for tile_pos in map.get_iter() {
++                let objects = state.objects_at(&tile_pos);
+                 if let &Terrain::Trees = map.tile(&tile_pos) {
+                     let pos = geom::map_pos_to_world_pos(&tile_pos);
+                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+@@ -487,20 +519,38 @@ impl TacticalScreen {
+                         children: Vec::new(),
+                     });
+                 }
+-                if let &Terrain::City = map.tile(&tile_pos) {
+-                    let objects = state.objects_at(&tile_pos);
+-                    for object in objects {
+-                        let pos = geom::exact_pos_to_world_pos(&object.pos);
+-                        let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+-                        player_info.scene.add_node(SceneNode {
+-                            pos: pos.clone(),
+-                            rot: rot,
+-                            mesh_id: Some(match object.pos.slot_id {
+-                                SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
+-                                SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
+-                            }),
+-                            children: Vec::new(),
+-                        });
++                for object in objects {
++                    match object.class {
++                        ObjectClass::Building => {
++                            let pos = geom::exact_pos_to_world_pos(&object.pos);
++                            let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
++                            player_info.scene.add_node(SceneNode {
++                                pos: pos.clone(),
++                                rot: rot,
++                                mesh_id: Some(match object.pos.slot_id {
++                                    SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
++                                    SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
++                                    SlotId::TwoTiles(_) => panic!(), // TODO: ?!
++                                }),
++                                children: Vec::new(),
++                            });
++                        }
++                        ObjectClass::Road => {
++                            let pos = geom::exact_pos_to_world_pos(&object.pos);
++                            // TODO: повернуть нормально
++                            let rot = if let SlotId::TwoTiles(ref dir) = object.pos.slot_id {
++                                // надо бы вынести
++                                rad(dir.to_int() as ZFloat * PI / 3.0 + PI / 6.0)
++                            } else {
++                                panic!(); // TODO
++                            };
++                            player_info.scene.add_node(SceneNode {
++                                pos: pos.clone(),
++                                rot: rot,
++                                mesh_id: Some(self.mesh_ids.road_mesh_id.clone()),
++                                children: Vec::new(),
++                            });
++                        }
+                     }
+                 }
+             }

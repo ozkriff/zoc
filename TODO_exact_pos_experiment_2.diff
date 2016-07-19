@@ -1,0 +1,71 @@
+diff --git a/src/core/src/lib.rs b/src/core/src/lib.rs
+index f44969d..6d066df 100644
+--- a/src/core/src/lib.rs
++++ b/src/core/src/lib.rs
+@@ -36,6 +36,7 @@ use db::{Db};
+ use ai::{Ai};
+ use fow::{Fow};
+ use fov::{fov};
++use dir::{Dir};
+ 
+ #[derive(Clone)]
+ pub struct MovePoints{pub n: ZInt}
+@@ -62,6 +63,7 @@ impl fmt::Display for MapPos {
+ pub enum SlotId {
+     Id(u8),
+     WholeTile,
++    TwoTiles(Dir),
+     // Air, // TODO: implement air units
+ }
+ 
+@@ -671,6 +673,7 @@ pub fn get_free_slot_id<S: GameState>(
+         match unit.pos.slot_id {
+             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
+             SlotId::WholeTile => return None,
++            SlotId::TwoTiles(_) => return None,
+         }
+     }
+     if unit_type.class == UnitClass::Vehicle {
+@@ -680,6 +683,7 @@ pub fn get_free_slot_id<S: GameState>(
+                     slots[slot_id as usize] = true;
+                 },
+                 SlotId::WholeTile => return None,
++                SlotId::TwoTiles(_) => return None,
+             }
+         }
+     }
+@@ -710,6 +714,7 @@ pub fn is_exact_pos_free<S: GameState>(
+                 }
+             }
+             &SlotId::WholeTile => return false,
++            &SlotId::TwoTiles(_) => return false,
+         }
+     }
+     true
+diff --git a/src/visualizer/src/geom.rs b/src/visualizer/src/geom.rs
+index aba790d..f8b2e0b 100644
+--- a/src/visualizer/src/geom.rs
++++ b/src/visualizer/src/geom.rs
+@@ -19,6 +19,10 @@ pub fn map_pos_to_world_pos(p: &MapPos) -> WorldPos {
+ pub fn exact_pos_to_world_pos(p: &ExactPos) -> WorldPos {
+     let v = geom::map_pos_to_world_pos(&p.map_pos).extend(0.0);
+     match p.slot_id {
++        SlotId::TwoTiles(_) => {
++            // TODO найти центр между
++            WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v.mul_s(0.2)}
++        },
+         SlotId::WholeTile => {
+             WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v.mul_s(0.2)}
+         }
+diff --git a/src/visualizer/src/tactical_screen.rs b/src/visualizer/src/tactical_screen.rs
+index d74ad43..6c6c742 100644
+--- a/src/visualizer/src/tactical_screen.rs
++++ b/src/visualizer/src/tactical_screen.rs
+@@ -501,6 +501,7 @@ impl TacticalScreen {
+                             mesh_id: Some(match object.pos.slot_id {
+                                 SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
+                                 SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
++                                SlotId::TwoTiles(_) => panic!(), // TODO: ?!
+                             }),
+                             children: Vec::new(),
+                         });

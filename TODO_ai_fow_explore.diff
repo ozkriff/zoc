@@ -1,0 +1,36 @@
+diff --git a/src/core/src/ai.rs b/src/core/src/ai.rs
+index 691a2fb..791e585 100644
+--- a/src/core/src/ai.rs
++++ b/src/core/src/ai.rs
+@@ -1,5 +1,7 @@
+ // See LICENSE file for copyright and license details.
+ 
++use rand::{thread_rng, Rng};
++use cgmath::{Vector2};
+ use common::types::{Size2, ZInt, PlayerId, MapPos};
+ use game_state::{GameState};
+ use partial_state::{PartialState};
+@@ -148,10 +150,23 @@ impl Ai {
+                 mode: MoveMode::Fast,
+             });
+         }
++        for _ in 0 .. 200 {
++            let size = self.state.map().size().clone();
++            let x = thread_rng().gen_range(0, size.w);
++            let y = thread_rng().gen_range(0, size.h);
++            let p = MapPos{v: Vector2{x: x, y: y}};
++            if !self.state.is_tile_visible(&p) {
++                continue;
++            }
++        }
++        // найти невидимую рандомную невидимую клетку и поехать к ней
++        // рандомно тыркаться во все клетки, допустим, 1000 раз (на всякий),
++        // пока не попадешь в невидимую, до которой есть путь
+         None
+     }
+ 
+     pub fn get_command(&mut self, db: &Db) -> Command {
++        // повторить несколько раз?
+         if let Some(cmd) = self.try_get_attack_command(db) {
+             cmd
+         } else if let Some(cmd) = self.try_get_move_command(db) {
