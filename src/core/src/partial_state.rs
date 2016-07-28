@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use common::types::{Size2};
+use types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};

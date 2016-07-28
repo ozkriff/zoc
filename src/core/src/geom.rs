@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2};
-use common::types::{ZFloat};
+use types::{ZFloat};
 use ::{MapPos};
 
 pub const HEX_EX_RADIUS: ZFloat = 1.4;

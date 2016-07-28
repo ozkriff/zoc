@@ -1,9 +1,9 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use common::types::{ZFloat};
 use core::unit::{UnitTypeId};
-use zgl::mesh::{MeshId};
+use types::{ZFloat};
+use mesh::{MeshId};
 
 pub struct UnitTypeVisualInfo {
     pub mesh_id: MeshId,

@@ -2,9 +2,8 @@
 
 use std::default::{Default};
 use std::iter::{repeat};
-use num::{Float};
-use cgmath::{Vector2, Array, Vector};
-use common::types::{Size2, ZInt};
+use cgmath::{Vector2, Array};
+use types::{Size2, ZInt};
 use dir::{Dir, DirIter, dirs};
 use ::{MapPos};
 

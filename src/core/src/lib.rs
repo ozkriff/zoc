@@ -1,9 +1,7 @@
 // See LICENSE file for copyright and license details.
 
-extern crate num;
 extern crate cgmath;
 extern crate rand;
-extern crate common;
 
 pub mod geom;
 pub mod map;
@@ -13,6 +11,8 @@ pub mod dir;
 pub mod partial_state;
 pub mod game_state;
 pub mod pathfinder;
+pub mod misc;
+pub mod types;
 
 mod ai;
 mod fov;
@@ -24,8 +24,8 @@ use rand::{thread_rng, Rng};
 use std::{cmp, fmt};
 use std::collections::{HashMap, HashSet, LinkedList};
 use cgmath::{Vector2};
-use common::types::{Size2, ZInt};
-use common::misc::{clamp};
+use types::{Size2, ZInt};
+use misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};

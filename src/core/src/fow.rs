@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use common::types::{Size2, ZInt};
+use types::{Size2, ZInt};
 use internal_state::{InternalState};
 use game_state::{GameState};
 use map::{Map, Terrain, distance};

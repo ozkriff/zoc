@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use common::types::{ZInt, Size2};
+use types::{ZInt, Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};

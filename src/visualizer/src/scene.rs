@@ -2,10 +2,9 @@
 
 use std::collections::{HashMap};
 use cgmath::{Rad};
-use common::types::{ZInt, ZFloat};
 use core::{UnitId};
-use zgl::mesh::{MeshId};
-use zgl::types::{WorldPos};
+use types::{ZInt, ZFloat, WorldPos};
+use mesh::{MeshId};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct NodeId{pub id: ZInt}

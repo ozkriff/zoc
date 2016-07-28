@@ -1,16 +1,17 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap, VecDeque};
-use common::types::{ZInt, ZFloat};
+use cgmath::{Matrix4, Matrix3};
 use core::{MapPos};
-use zgl::{Zgl};
-use zgl::mesh::{Mesh};
-use zgl::camera::Camera;
-use zgl::font_stash::{FontStash};
-use zgl::types::{Time};
+use types::{ZInt, Time};
+use camera::Camera;
 use geom;
 use move_helper::{MoveHelper};
 use context::{Context};
+use texture::{load_texture_raw};
+use mesh::{Mesh};
+use text;
+use pipeline::{Vertex};
 
 struct ShowTextCommand {
     pos: MapPos,
@@ -26,16 +27,14 @@ struct MapText {
 pub struct MapTextManager {
     commands: VecDeque<ShowTextCommand>,
     visible_labels_list: HashMap<ZInt, MapText>,
-    scale: ZFloat,
     last_label_id: ZInt, // TODO: think about better way of deleting old labels
 }
 
 impl MapTextManager {
-    pub fn new(font_stash: &mut FontStash) -> Self {
+    pub fn new() -> Self {
         MapTextManager {
             commands: VecDeque::new(),
             visible_labels_list: HashMap::new(),
-            scale: 0.5 / font_stash.get_size(),
             last_label_id: 0,
         }
     }
@@ -58,7 +57,7 @@ impl MapTextManager {
         true
     }
 
-    pub fn do_commands(&mut self, zgl: &Zgl, font_stash: &mut FontStash) {
+    pub fn do_commands(&mut self, context: &mut Context) {
         let mut postponed_commands = Vec::new();
         while !self.commands.is_empty() {
             let command = self.commands.pop_front()
@@ -70,7 +69,22 @@ impl MapTextManager {
             let from = geom::map_pos_to_world_pos(&command.pos);
             let mut to = from.clone();
             to.v.z += 2.0;
-            let mesh = font_stash.get_mesh(zgl, &command.text, 1.0, true);
+            let mesh = {
+                let (w, h, texture_data) = text::text_to_texture(&context.font, 80.0, &command.text);
+                let texture = load_texture_raw(&mut context.factory, w, h, &texture_data);
+                let scale_factor = 200.0; // TODO: take camera zoom into account
+                let h_2 = (h as f32 / scale_factor) / 2.0;
+                let w_2 = (w as f32 / scale_factor) / 2.0;
+                let vertices = &[
+                    Vertex{pos: [-w_2, -h_2, 0.0], uv: [0.0, 1.0]},
+                    Vertex{pos: [-w_2, h_2, 0.0], uv: [0.0, 0.0]},
+                    Vertex{pos: [w_2, -h_2, 0.0], uv: [1.0, 1.0]},
+                    Vertex{pos: [w_2, h_2, 0.0], uv: [1.0, 0.0]},
+                ];
+                let indices: &[u16] = &[0,  1,  2,  1,  2,  3];
+                let mesh = Mesh::new(context, vertices, indices, texture);
+                mesh
+            };
             self.visible_labels_list.insert(self.last_label_id, MapText {
                 pos: command.pos.clone(),
                 mesh: mesh,
@@ -99,21 +113,17 @@ impl MapTextManager {
         camera: &Camera,
         dtime: &Time,
     ) {
-        self.do_commands(&context.zgl, &mut context.font_stash);
-        // TODO: I'm not sure that disabling depth test is correct solution
-        context.zgl.set_depth_test(false);
-        for (_, map_text) in self.visible_labels_list.iter_mut() {
+        self.do_commands(context);
+        let rot_z_mat = Matrix4::from(Matrix3::from_angle_z(camera.get_z_angle()));
+        let rot_x_mat = Matrix4::from(Matrix3::from_angle_x(camera.get_x_angle()));
+        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
+        for (_, map_text) in &mut self.visible_labels_list {
             let pos = map_text.move_helper.step(dtime);
-            let m = camera.mat(&context.zgl);
-            let m = context.zgl.tr(m, &pos.v);
-            let m = context.zgl.scale(m, self.scale);
-            let m = context.zgl.rot_z(m, camera.get_z_angle());
-            let m = context.zgl.rot_x(m, camera.get_x_angle());
-            context.shader.set_uniform_mat4f(
-                &context.zgl, context.shader.get_mvp_mat(), &m);
-            map_text.mesh.draw(&context.zgl, &context.shader);
+            let tr_mat = Matrix4::from_translation(pos.v);
+            let mvp = camera.mat() * tr_mat * rot_z_mat * rot_x_mat;
+            context.data.mvp = mvp.into();
+            context.draw_mesh(&map_text.mesh);
         }
-        context.zgl.set_depth_test(true);
         self.delete_old();
     }
 }

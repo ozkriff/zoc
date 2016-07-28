@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use common::types::{ZInt, Size2};
+use types::{ZInt, Size2};
 use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};

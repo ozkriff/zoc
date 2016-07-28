@@ -3,9 +3,8 @@
 /// Fielf of View
 
 use std::f32::consts::{PI};
-use num::{Float};
 use cgmath::{EuclideanVector};
-use common::types::{ZInt, ZFloat};
+use types::{ZInt, ZFloat};
 use map::{Map, Terrain, distance, spiral_iter};
 use geom;
 use ::{MapPos};
@@ -49,7 +48,7 @@ pub fn fov(
         let pos3d = geom::map_pos_to_world_pos(&pos);
         let diff = pos3d - origin3d;
         let distance = diff.magnitude();
-        let angle = Float::atan2(diff.x, diff.y); // TODO: optimize
+        let angle = diff.x.atan2(diff.y); // TODO: optimize
         if is_tile_visible(angle, &shadows) {
             callback(&pos);
         }

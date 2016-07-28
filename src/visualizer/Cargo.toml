@@ -11,16 +11,22 @@ doctest = false
 [dependencies.core]
 path = "../core/"
 
-[dependencies.common]
-path = "../common/"
-
-[dependencies.zgl]
-path = "../zgl/"
-
 [dependencies]
+gfx_core = "*"
+gfx_device_gl = "*"
+gfx_window_glutin = "*"
+gfx = "*"
 glutin = "*"
 collision = "*"
 cgmath = "*"
 time = "*"
 rand = "*"
-num = "*"
+rusttype = "*"
+
+[dependencies.image]
+version = "*"
+default-features = false
+features = ["png_codec"]
+
+[target.arm-linux-androideabi.dependencies]
+android_glue = "0.2.0"

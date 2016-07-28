@@ -4,12 +4,12 @@ use std::default::{Default};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use tactical_screen::{TacticalScreen};
 use core;
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
+use types::{ScreenPos, Time};
 
 pub struct MainMenuScreen {
     button_start_hotseat_id: ButtonId,
@@ -87,7 +87,9 @@ impl MainMenuScreen {
 
 impl Screen for MainMenuScreen {
     fn tick(&mut self, context: &mut Context, _: &Time) {
-        context.set_basic_color(&zgl::BLACK);
+        context.clear_color = [0.7, 0.7, 0.7, 1.0];
+        context.encoder.clear(&context.data.out, context.clear_color);
+        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.button_manager.draw(context);
     }
 

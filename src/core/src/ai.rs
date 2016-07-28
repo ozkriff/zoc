@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use common::types::{Size2};
+use types::{Size2};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};

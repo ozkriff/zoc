@@ -1,8 +1,8 @@
 // See LICENSE file for copyright and license details.
 
 use glutin::{Event};
-use zgl::{Time};
 use context::{Context};
+use types::{Time};
 
 pub enum ScreenCommand {
     PopScreen,

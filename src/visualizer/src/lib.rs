@@ -1,54 +1,52 @@
 // See LICENSE file for copyright and license details.
 
-extern crate num;
+#[cfg(target_os = "android")]
+#[macro_use]
+extern crate android_glue;
+
+#[macro_use]
+extern crate gfx;
+
+extern crate gfx_window_glutin as gfx_glutin;
+extern crate gfx_device_gl as gfx_gl;
 extern crate rand;
 extern crate time;
 extern crate cgmath;
 extern crate collision;
 extern crate glutin;
-extern crate common;
 extern crate core;
-extern crate zgl;
+extern crate image;
+extern crate rusttype;
 
 mod gui;
+mod obj;
 mod scene;
 mod event_visualizer;
 mod unit_type_visual_info;
 mod selection;
+mod types;
+mod pipeline;
 mod map_text;
 mod move_helper;
+mod camera;
 mod geom;
 mod screen;
+mod texture;
 mod tactical_screen;
 mod context_menu_popup;
 mod main_menu_screen;
 mod end_turn_screen;
 mod context;
+mod text;
+mod mesh;
+mod fs;
 
 use std::sync::mpsc::{channel, Receiver};
-use glutin::{WindowBuilder};
-use zgl::{Zgl, Time, Color3};
+use gfx::traits::{Device};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
-
-fn make_window() -> glutin::Window {
-    let gl_version = glutin::GlRequest::GlThenGles {
-        opengles_version: (2, 0),
-        opengl_version: (2, 0)
-    };
-    let window_builder = WindowBuilder::new()
-        .with_title("Zone of Control".to_owned())
-        .with_pixel_format(24, 8)
-        .with_gl(gl_version);
-    let window = window_builder.build()
-        .expect("Can`t create window");
-    unsafe {
-        window.make_current()
-            .expect("Can`t make window current");
-    };
-    window
-}
+use types::{Time};
 
 pub struct Visualizer {
     screens: Vec<Box<Screen>>,
@@ -61,10 +59,8 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
-        let window = make_window();
-        let zgl = Zgl::new(|s| window.get_proc_address(s) as *const _);
         let (tx, rx) = channel();
-        let mut context = Context::new(zgl, window, tx);
+        let mut context = Context::new(tx);
         let screens = vec![
             Box::new(MainMenuScreen::new(&mut context)) as Box<Screen>,
         ];
@@ -86,9 +82,9 @@ impl Visualizer {
 
     fn draw(&mut self) {
         let dtime = self.update_time();
-        let bg_color = Color3{r: 0.8, g: 0.8, b: 0.8};
-        self.context.zgl.set_clear_color(&bg_color);
-        self.context.zgl.clear_screen();
+        self.context.clear_color = [0.8, 0.8, 0.8, 1.0];
+        self.context.encoder.clear(&self.context.data.out, self.context.clear_color);
+        self.context.encoder.clear_depth(&self.context.data.out_depth, 1.0);
         {
             let screen = self.screens.last_mut().unwrap();
             screen.tick(&mut self.context, &dtime);
@@ -96,8 +92,10 @@ impl Visualizer {
         for popup in &mut self.popups {
             popup.tick(&mut self.context, &dtime);
         }
+        self.context.encoder.flush(&mut self.context.device);
         self.context.window.swap_buffers()
             .expect("Can`t swap buffers");
+        self.context.device.cleanup();
     }
 
     fn handle_events(&mut self) {
@@ -130,7 +128,7 @@ impl Visualizer {
                     self.popups.push(popup);
                 },
                 ScreenCommand::PopScreen => {
-                    let _ = self.screens.pop();
+                    self.screens.pop().unwrap();
                     if self.screens.is_empty() {
                         self.should_close = true;
                     }
@@ -149,9 +147,9 @@ impl Visualizer {
     }
 
     fn update_time(&mut self) -> Time {
-        let time = time::precise_time_ns();
-        let dtime = Time{n: time - self.last_time.n};
-        self.last_time = Time{n: time};
+        let time = Time{n: time::precise_time_ns()};
+        let dtime = Time{n: time.n - self.last_time.n};
+        self.last_time = time;
         dtime
     }
 }

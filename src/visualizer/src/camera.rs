@@ -1,11 +1,9 @@
 // See LICENSE file for copyright and license details.
 
 use std::f32::consts::{PI};
-use cgmath::{perspective, rad, Matrix4, Vector3, Rad, Array};
-use common::types::{Size2, ZFloat};
-use common::misc::{clamp};
-use types::{WorldPos};
-use ::{Zgl};
+use cgmath::{perspective, rad, Matrix4, Matrix3, Vector3, Rad, Array};
+use core::misc::{clamp};
+use types::{ZFloat, WorldPos, Size2};
 
 pub struct Camera {
     x_angle: Rad<ZFloat>,
@@ -21,29 +19,27 @@ fn get_projection_mat(win_size: &Size2) -> Matrix4<ZFloat> {
     let ratio = win_size.w as ZFloat / win_size.h as ZFloat;
     let display_range_min = 0.1;
     let display_range_max = 100.0;
-    perspective(
-        fov, ratio, display_range_min, display_range_max)
+    perspective(fov, ratio, display_range_min, display_range_max)
 }
 
 impl Camera {
     pub fn new(win_size: &Size2) -> Camera {
         Camera {
             x_angle: rad(PI / 4.0),
-            z_angle: rad(0.0),
+            z_angle: rad(PI / 4.0),
             pos: WorldPos{v: Vector3::from_value(0.0)},
             max_pos: WorldPos{v: Vector3::from_value(0.0)},
-            zoom: 20.0,
+            zoom: 15.0,
             projection_mat: get_projection_mat(win_size),
         }
     }
 
-    pub fn mat(&self, zgl: &Zgl) -> Matrix4<ZFloat> {
-        let m = self.projection_mat;
-        let m = zgl.tr(m, &Vector3{x: 0.0, y: 0.0, z: -self.zoom});
-        let m = zgl.rot_x(m, &-self.x_angle);
-        let m = zgl.rot_z(m, &-self.z_angle);
-        let m = zgl.tr(m, &self.pos.v);
-        m
+    pub fn mat(&self) -> Matrix4<ZFloat> {
+        let zoom_m = Matrix4::from_translation(Vector3{x: 0.0, y: 0.0, z: -self.zoom});
+        let x_angle_m = Matrix4::from(Matrix3::from_angle_x(-self.x_angle));
+        let z_angle_m = Matrix4::from(Matrix3::from_angle_z(-self.z_angle));
+        let tr_m = Matrix4::from_translation(self.pos.v);
+        self.projection_mat * zoom_m * x_angle_m * z_angle_m * tr_m
     }
 
     pub fn add_horizontal_angle(&mut self, angle: Rad<ZFloat>) {
@@ -82,12 +78,12 @@ impl Camera {
         self.zoom = clamp(self.zoom, 10.0, 40.0);
     }
 
-    pub fn get_z_angle(&self) -> &Rad<ZFloat> {
-        &self.z_angle
+    pub fn get_z_angle(&self) -> Rad<ZFloat> {
+        self.z_angle
     }
 
-    pub fn get_x_angle(&self) -> &Rad<ZFloat> {
-        &self.x_angle
+    pub fn get_x_angle(&self) -> Rad<ZFloat> {
+        self.x_angle
     }
 
     // TODO: rename to 'move'

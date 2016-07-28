@@ -1,40 +1,47 @@
 // See LICENSE file for copyright and license details.
 
 use std::sync::mpsc::{Sender};
-use std::path::{Path};
-use cgmath::{Vector2, Array};
-use glutin::{self, Event, MouseButton};
+use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
+use glutin::{self, Api, Event, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
-use zgl::{Zgl, ColorId, Color4, ScreenPos};
-use zgl::font_stash::{FontStash};
-use zgl::shader::{Shader};
-use common::types::{Size2, ZInt};
+use rusttype;
+use gfx::traits::{FactoryExt};
+use gfx::handle::{Program};
+use gfx;
+use gfx_gl;
+use gfx_glutin;
 use screen::{ScreenCommand};
+use types::{Size2, ZInt, ScreenPos};
+use texture::{load_texture_raw};
+use pipeline::{pipe};
+use fs;
+use mesh::{Mesh};
 
-static VS_SRC: &'static str = "\
-    #version 100\n\
-    uniform mat4 mvp_mat;\n\
-    attribute vec3 position;\n\
-    attribute vec2 in_texture_coordinates;\n\
-    varying vec2 texture_coordinates;\n\
-    void main() {\n\
-        gl_Position = mvp_mat * vec4(position, 1.0);\n\
-        gl_PointSize = 2.0;\n\
-        texture_coordinates = in_texture_coordinates;\n\
-    }\n\
-";
+fn new_shader(
+    window: &glutin::Window,
+    factory: &mut gfx_gl::Factory,
+) -> Program<gfx_gl::Resources> {
+    let shader_header = match window.get_api() {
+        Api::OpenGl => fs::load("shader/pre_gl.glsl").into_inner(),
+        Api::OpenGlEs | Api::WebGl => fs::load("shader/pre_gles.glsl").into_inner(),
+    };
+    let mut vertex_shader = shader_header.clone();
+    vertex_shader.extend(fs::load("shader/v.glsl").into_inner());
+    let mut fragment_shader = shader_header;
+    fragment_shader.extend(fs::load("shader/f.glsl").into_inner());
+    factory.link_program(&vertex_shader, &fragment_shader).unwrap()
+}
 
-static FS_SRC: &'static str = "\
-    #version 100\n\
-    precision mediump float;\n\
-    uniform sampler2D basic_texture;\n\
-    uniform vec4 basic_color;
-    varying vec2 texture_coordinates;\n\
-    void main() {\n\
-        gl_FragColor = basic_color\n\
-            * texture2D(basic_texture, texture_coordinates);\n\
-    }\n\
-";
+fn new_pso(
+    factory: &mut gfx_gl::Factory,
+    program: &Program<gfx_gl::Resources>,
+    primitive: gfx::Primitive,
+) -> gfx::PipelineState<gfx_gl::Resources, pipe::Meta> {
+    let rasterizer = gfx::state::Rasterizer::new_fill();
+    let pso = factory.create_pipeline_from_program(
+        program, primitive, rasterizer, pipe::new());
+    pso.unwrap()
+}
 
 fn get_win_size(window: &glutin::Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
@@ -49,37 +56,69 @@ pub struct MouseState {
 }
 
 // TODO: make more fields private?
+// TODO: use gfx-rs generics, not gfx_gl types
 pub struct Context {
-    pub window: glutin::Window,
     pub win_size: Size2,
-    pub zgl: Zgl,
-    pub font_stash: FontStash,
-    pub shader: Shader,
-    pub basic_color_id: ColorId,
     mouse: MouseState,
     should_close: bool,
     commands_tx: Sender<ScreenCommand>,
+    pub window: glutin::Window,
+    pub clear_color: [f32; 4],
+    pub device: gfx_gl::Device,
+    pub encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
+    pso: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
+    pso_wire: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
+    pub factory: gfx_gl::Factory,
+    pub font: rusttype::Font<'static>,
+    pub data: pipe::Data<gfx_gl::Resources>,
 }
 
 impl Context {
-    pub fn new(zgl: Zgl, window: glutin::Window, tx: Sender<ScreenCommand>) -> Context {
-        let shader = Shader::new(&zgl, VS_SRC, FS_SRC);
-        shader.activate(&zgl);
-        let basic_color_id = shader.get_uniform_color(&zgl, "basic_color");
-        let win_size = get_win_size(&window);
-        let font_size = 40.0;
+    pub fn new(tx: Sender<ScreenCommand>) -> Context {
         // TODO: read font name from config
-        let font_stash = FontStash::new(
-            &zgl, &Path::new("DroidSerif-Regular.ttf"), font_size);
+        let font_data = fs::load("DroidSerif-Regular.ttf").into_inner();
+        let font = rusttype::FontCollection::from_bytes(font_data)
+            .into_font().unwrap();
+        let gl_version = GlRequest::GlThenGles {
+            opengles_version: (2, 0),
+            opengl_version: (2, 1),
+        };
+        let builder = glutin::WindowBuilder::new()
+            .with_title("Zone of Control".to_string())
+            .with_pixel_format(24, 8)
+            .with_gl(gl_version);
+        let (window, device, mut factory, main_color, main_depth)
+            = gfx_glutin::init(builder);
+        let encoder = factory.create_command_buffer().into();
+        let program = new_shader(&window, &mut factory);
+        let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
+        let pso_wire = new_pso(&mut factory, &program, gfx::Primitive::LineList);
+        let sampler = factory.create_sampler_linear();
+        let win_size = get_win_size(&window);
+        // fake mesh for pipeline initialization
+        let vb = factory.create_vertex_buffer(&[]);
+        let fake_texture = load_texture_raw(&mut factory, 2, 2, &[0; 4]);
+        let data = pipe::Data {
+            basic_color: [1.0, 1.0, 1.0, 1.0],
+            vbuf: vb,
+            texture: (fake_texture, sampler),
+            out: main_color,
+            out_depth: main_depth,
+            mvp: Matrix4::identity().into(),
+        };
         Context {
-            shader: shader,
-            zgl: zgl,
-            window: window,
+            data: data,
             win_size: win_size,
-            font_stash: font_stash,
-            basic_color_id: basic_color_id,
+            clear_color: [0.0, 0.0, 1.0, 1.0],
+            window: window,
+            device: device,
+            factory: factory,
+            encoder: encoder,
+            pso: pso,
+            pso_wire: pso_wire,
             should_close: false,
             commands_tx: tx,
+            font: font,
             mouse: MouseState {
                 is_left_button_pressed: false,
                 is_right_button_pressed: false,
@@ -97,8 +136,21 @@ impl Context {
         &self.mouse
     }
 
-    pub fn set_basic_color(&self, color: &Color4) {
-        self.shader.set_uniform_color(&self.zgl, &self.basic_color_id, color);
+    pub fn draw_mesh_with_color(&mut self, color: [f32; 4], mesh: &Mesh) {
+        let old_color = self.data.basic_color;
+        self.data.basic_color = color;
+        self.draw_mesh(mesh);
+        self.data.basic_color = old_color;
+    }
+
+    pub fn draw_mesh(&mut self, mesh: &Mesh) {
+        self.data.texture.0 = mesh.texture.clone();
+        self.data.vbuf = mesh.vertex_buffer.clone();
+        if mesh.is_wire() {
+            self.encoder.draw(&mesh.slice, &self.pso_wire, &self.data);
+        } else {
+            self.encoder.draw(&mesh.slice, &self.pso, &self.data);
+        }
     }
 
     pub fn add_command(&mut self, command: ScreenCommand) {
@@ -126,7 +178,11 @@ impl Context {
             },
             Event::Resized(w, h) => {
                 self.win_size = Size2{w: w as ZInt, h: h as ZInt};
-                self.zgl.set_viewport(&self.win_size);
+                gfx_glutin::update_views(
+                    &self.window,
+                    &mut self.data.out,
+                    &mut self.data.out_depth,
+                );
             },
             _ => {},
         }

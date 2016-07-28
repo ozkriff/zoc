@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use common::types::{ZInt};
+use types::{ZInt};
 use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 use ::{MovePoints, AttackPoints};
 

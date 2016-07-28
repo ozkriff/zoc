@@ -14,16 +14,15 @@ run: assets
 assets:
 	git clone --depth=1 https://github.com/ozkriff/zoc_assets assets
 
-ANDROID_APP_NAME = com.example.native_activity/android.app.NativeActivity
+APK = ./target/android-artifacts/build/bin/zoc-debug.apk
 
 android: assets
-	cargo build --target arm-linux-androideabi --release
+	cargo apk
 
 android_run: android
-	cp target/arm-linux-androideabi/release/zoc target/arm-linux-androideabi/release/zoc.apk
-	adb install -r target/arm-linux-androideabi/release/zoc.apk
+	adb install -r $(APK)
 	adb logcat -c
-	adb shell am start -n $(ANDROID_APP_NAME)
-	adb logcat -v time | grep 'RustAndroidGlue\|native-activity'
+	adb shell am start -n rust.zoc/rust.zoc.MainActivity
+	adb logcat -v time | grep 'Rust\|DEBUG'
 
 .PHONY: zoc run android android_run test

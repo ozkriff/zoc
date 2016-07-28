@@ -52,15 +52,7 @@ Android
 For instructions on setting up your environment see
 https://github.com/tomaka/android-rs-glue#setting-up-your-environment.
 
-Build apk-builder with ``assets_hack`` feature:
-
-``cargo build --features assets_hack``
-
-Make sure that path in `.cargo/config` is correct.
-
-Then just: ``make android_run`` (rust-nightly is required).
-
-(Tested on nexus7/android6)
+Then just: ``make android_run`` - this will build .apk, install and run it.
 
 
 Contribute

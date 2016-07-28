@@ -3,11 +3,11 @@
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use zgl::{self, Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, is_tap};
 use core::{PlayerId};
+use types::{ScreenPos, Time};
 
 pub struct EndTurnScreen {
     button_manager: ButtonManager,
@@ -46,7 +46,7 @@ impl EndTurnScreen {
 
 impl Screen for EndTurnScreen {
     fn tick(&mut self, context: &mut Context, _: &Time) {
-        context.set_basic_color(&zgl::BLACK);
+        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.button_manager.draw(context);
     }
 

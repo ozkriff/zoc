@@ -8,10 +8,6 @@ authors = ["ozkriff <ozkriffgmail.com>"]
 name = "core"
 doctest = false
 
-[dependencies.common]
-path = "../common"
-
 [dependencies]
 cgmath = "*"
 rand = "*"
-num = "*"
