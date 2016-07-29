@@ -9,12 +9,12 @@ use cgmath::{
     Vector2,
     Vector3,
     Vector4,
-    EuclideanVector,
+    InnerSpace,
     rad,
     Matrix3,
     Matrix4,
     SquareMatrix,
-    Point,
+    EuclideanSpace,
     Point3,
 };
 use collision::{Plane, Ray, Intersect};

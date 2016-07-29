@@ -1,6 +1,6 @@
 // See LICENSE file for copyright and license details.
 
-use cgmath::{Vector3, EuclideanVector};
+use cgmath::{Vector3, InnerSpace};
 use geom;
 use types::{ZFloat, WorldPos, Time};
 

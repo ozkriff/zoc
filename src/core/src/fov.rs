@@ -3,7 +3,7 @@
 /// Fielf of View
 
 use std::f32::consts::{PI};
-use cgmath::{EuclideanVector};
+use cgmath::{InnerSpace};
 use types::{ZInt, ZFloat};
 use map::{Map, Terrain, distance, spiral_iter};
 use geom;
