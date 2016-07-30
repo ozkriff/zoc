@@ -5,6 +5,7 @@ use cgmath::{perspective, rad, Matrix4, Matrix3, Vector3, Rad, Array};
 use core::misc::{clamp};
 use types::{ZFloat, WorldPos, Size2};
 
+#[derive(Clone)]
 pub struct Camera {
     x_angle: Rad<ZFloat>,
     z_angle: Rad<ZFloat>,
