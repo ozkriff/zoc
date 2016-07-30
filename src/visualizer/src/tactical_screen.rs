@@ -299,6 +299,7 @@ struct PlayerInfo {
     game_state: PartialState,
     pathfinder: Pathfinder,
     scene: Scene,
+    camera: Camera,
 }
 
 struct PlayerInfoManager {
@@ -306,18 +307,23 @@ struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    fn new(map_size: &Size2, options: &core::Options) -> PlayerInfoManager {
+    fn new(context: &Context, map_size: &Size2, options: &core::Options) -> PlayerInfoManager {
         let mut m = HashMap::new();
+        let mut camera = Camera::new(&context.win_size);
+        camera.set_max_pos(get_max_camera_pos(&map_size));
+        camera.set_pos(get_initial_camera_pos(&map_size));
         m.insert(PlayerId{id: 0}, PlayerInfo {
             game_state: PartialState::new(map_size, &PlayerId{id: 0}),
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
+            camera: camera.clone(),
         });
         if options.game_type == core::GameType::Hotseat {
             m.insert(PlayerId{id: 1}, PlayerInfo {
                 game_state: PartialState::new(map_size, &PlayerId{id: 1}),
                 pathfinder: Pathfinder::new(map_size),
                 scene: Scene::new(),
+                camera: camera,
             });
         }
         PlayerInfoManager{info: m}
@@ -336,7 +342,6 @@ impl PlayerInfoManager {
 }
 
 pub struct TacticalScreen {
-    camera: Camera,
     map_text_manager: MapTextManager,
     // TODO: Move buttons to 'Gui'/'Ui' struct
     button_manager: ButtonManager,
@@ -367,7 +372,7 @@ impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = Core::new(core_options);
         let map_size = core.map_size().clone();
-        let player_info = PlayerInfoManager::new(&map_size, core_options);
+        let player_info = PlayerInfoManager::new(context, &map_size, core_options);
         let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
         let mut meshes = Vec::new();
         let visible_map_mesh = generate_visible_tiles_mesh(
@@ -390,9 +395,6 @@ impl TacticalScreen {
             &mut meshes, get_marker(context, "flag2.png"));
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), context, &mut meshes);
-        let mut camera = Camera::new(&context.win_size);
-        camera.set_max_pos(get_max_camera_pos(&map_size));
-        camera.set_pos(get_initial_camera_pos(&map_size));
         let mut button_manager = ButtonManager::new();
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
@@ -417,7 +419,6 @@ impl TacticalScreen {
         let map_text_manager = MapTextManager::new();
         let (tx, rx) = channel();
         let mut screen = TacticalScreen {
-            camera: camera,
             button_manager: button_manager,
             button_end_turn_id: button_end_turn_id,
             button_deselect_unit_id: button_deselect_unit_id,
@@ -446,7 +447,8 @@ impl TacticalScreen {
     }
 
     fn pick_world_pos(&self, context: &Context) -> WorldPos {
-        let im = self.camera.mat().invert()
+        let camera = &self.current_player_info().camera;
+        let im = camera.mat().invert()
             .expect("Can`t invert camera matrix");
         let w = context.win_size.w as ZFloat;
         let h = context.win_size.h as ZFloat;
@@ -523,14 +525,22 @@ impl TacticalScreen {
 
     fn deselect_unit(&mut self) {
         self.selected_unit_id = None;
-        let i = self.player_info.get_mut(self.core.player_id());
-        self.selection_manager.deselect(&mut i.scene);
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        self.selection_manager.deselect(&mut player_info.scene);
         self.walkable_mesh = None;
         self.targets_mesh = None;
     }
 
     fn current_state(&self) -> &PartialState {
         &self.player_info.get(self.core.player_id()).game_state
+    }
+
+    fn current_player_info(&self) -> &PlayerInfo {
+        self.player_info.get(self.core.player_id())
+    }
+
+    fn current_player_info_mut(&mut self) -> &mut PlayerInfo {
+        self.player_info.get_mut(self.core.player_id())
     }
 
     fn can_unload_unit(&self, transporter_id: &UnitId, pos: &MapPos) -> Option<ExactPos> {
@@ -578,11 +588,11 @@ impl TacticalScreen {
     }
 
     fn get_context_menu_popup_options(
-        &mut self,
+        &self,
         pos: &MapPos,
     ) -> context_menu_popup::Options {
-        let i = self.player_info.get(self.core.player_id());
-        let state = &i.game_state;
+        let player_info = self.current_player_info();
+        let state = &player_info.game_state;
         let db = self.core.db();
         let mut options = context_menu_popup::Options::new();
         let unit_ids = get_unit_ids_at(db, state, pos);
@@ -623,7 +633,7 @@ impl TacticalScreen {
             if let Some(destination) = get_free_exact_pos(
                 db, state, &state.unit(&selected_unit_id).type_id, pos,
             ) {
-                if let Some(path) = i.pathfinder.get_path(&destination) {
+                if let Some(path) = player_info.pathfinder.get_path(&destination) {
                     if check_command(db, state, &Command::Move {
                         unit_id: selected_unit_id.clone(),
                         path: path.clone(),
@@ -669,24 +679,24 @@ impl TacticalScreen {
     // TODO: add ability to select enemy units
     fn select_unit(&mut self, context: &mut Context, unit_id: &UnitId) {
         self.selected_unit_id = Some(unit_id.clone());
-        let mut i = self.player_info.get_mut(self.core.player_id());
-        let state = &i.game_state;
-        let pf = &mut i.pathfinder;
+        let mut player_info = self.player_info.get_mut(self.core.player_id());
+        let state = &player_info.game_state;
+        let pf = &mut player_info.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
         self.walkable_mesh = Some(build_walkable_mesh(
             context, pf, state.map(), &state.unit(unit_id).move_points));
         self.targets_mesh = Some(build_targets_mesh(
             self.core.db(), context, state, unit_id));
-        let scene = &mut i.scene;
+        let scene = &mut player_info.scene;
         self.selection_manager.create_selection_marker(
             state, scene, unit_id);
     }
 
     fn move_unit(&mut self, pos: &ExactPos, move_mode: &MoveMode) {
         let unit_id = self.selected_unit_id.as_ref().unwrap();
-        let i = self.player_info.get_mut(self.core.player_id());
+        let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
-        let path = i.pathfinder.get_path(pos).unwrap();
+        let path = player_info.pathfinder.get_path(pos).unwrap();
         self.core.do_command(Command::Move {
             unit_id: unit_id.clone(),
             path: path,
@@ -699,10 +709,9 @@ impl TacticalScreen {
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
         let per_x_pixel = camera_move_speed / (context.win_size.w as ZFloat);
         let per_y_pixel = camera_move_speed / (context.win_size.h as ZFloat);
-        self.camera.move_camera(
-            rad(PI), diff.x as ZFloat * per_x_pixel);
-        self.camera.move_camera(
-            rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
+        let camera = &mut self.current_player_info_mut().camera;
+        camera.move_camera(rad(PI), diff.x as ZFloat * per_x_pixel);
+        camera.move_camera(rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
     }
 
     fn handle_camera_rotate(&mut self, context: &Context, pos: &ScreenPos) {
@@ -710,10 +719,9 @@ impl TacticalScreen {
         let per_x_pixel = PI / (context.win_size.w as ZFloat);
         // TODO: get max angles from camera
         let per_y_pixel = (PI / 4.0) / (context.win_size.h as ZFloat);
-        self.camera.add_horizontal_angle(
-            rad(diff.x as ZFloat * per_x_pixel));
-        self.camera.add_vertical_angle(
-            rad(diff.y as ZFloat * per_y_pixel));
+        let camera = &mut self.current_player_info_mut().camera;
+        camera.add_horizontal_angle(rad(diff.x as ZFloat * per_x_pixel));
+        camera.add_vertical_angle(rad(diff.y as ZFloat * per_y_pixel));
     }
 
     fn handle_event_mouse_move(&mut self, context: &Context, pos: &ScreenPos) {
@@ -771,16 +779,16 @@ impl TacticalScreen {
                 context.add_command(ScreenCommand::PopScreen);
             },
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                self.camera.move_camera(rad(PI * 1.5), s);
+                self.current_player_info_mut().camera.move_camera(rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.camera.move_camera(rad(PI * 0.5), s);
+                self.current_player_info_mut().camera.move_camera(rad(PI * 0.5), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.camera.move_camera(rad(PI * 0.0), s);
+                self.current_player_info_mut().camera.move_camera(rad(PI * 0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.camera.move_camera(rad(PI * 1.0), s);
+                self.current_player_info_mut().camera.move_camera(rad(PI * 1.0), s);
             },
             VirtualKeyCode::I => {
                 self.print_info(context);
@@ -793,10 +801,10 @@ impl TacticalScreen {
                 self.add_marker(&p);
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
-                self.camera.change_zoom(1.3);
+                self.current_player_info_mut().camera.change_zoom(1.3);
             },
             VirtualKeyCode::Equals | VirtualKeyCode::Key2 => {
-                self.camera.change_zoom(0.7);
+                self.current_player_info_mut().camera.change_zoom(0.7);
             },
             _ => println!("Unknown key pressed"),
         }
@@ -869,13 +877,13 @@ impl TacticalScreen {
 
     fn draw_scene_nodes(&self, context: &mut Context) {
         for (_, node) in self.scene().nodes() {
-            let m = self.camera.mat();
+            let m = self.current_player_info().camera.mat();
             self.draw_scene_node(context, node, m);
         }
     }
 
     fn draw_map(&mut self, context: &mut Context) {
-        context.data.mvp = self.camera.mat().into();
+        context.data.mvp = self.current_player_info().camera.mat().into();
         context.data.basic_color = [0.85, 0.85, 0.85, 1.0];
         context.draw_mesh(&self.visible_map_mesh);
         context.data.basic_color = [0.5, 0.5, 0.5, 1.0];
@@ -895,8 +903,8 @@ impl TacticalScreen {
             context.draw_mesh(targets_mesh);
         }
         if let Some(ref mut event_visualizer) = self.event_visualizer {
-            let i = self.player_info.get_mut(self.core.player_id());
-            event_visualizer.draw(&mut i.scene, dtime);
+            let player_info = self.player_info.get_mut(self.core.player_id());
+            event_visualizer.draw(&mut player_info.scene, dtime);
         }
     }
 
@@ -905,7 +913,8 @@ impl TacticalScreen {
         context.encoder.clear(&context.data.out, context.clear_color);
         self.draw_scene(context, dtime);
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
-        self.map_text_manager.draw(context, &self.camera, dtime);
+        let player_info = self.player_info.get(self.core.player_id());
+        self.map_text_manager.draw(context, &player_info.camera, dtime);
         self.button_manager.draw(context);
     }
 
@@ -940,9 +949,9 @@ impl TacticalScreen {
         event: &CoreEvent,
     ) -> Box<EventVisualizer> {
         let current_player_id = self.core.player_id();
-        let mut i = self.player_info.get_mut(current_player_id);
-        let scene = &mut i.scene;
-        let state = &i.game_state;
+        let mut player_info = self.player_info.get_mut(current_player_id);
+        let scene = &mut player_info.scene;
+        let state = &player_info.game_state;
         match event {
             &CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let type_id = state.unit(unit_id).type_id.clone();
@@ -1046,8 +1055,8 @@ impl TacticalScreen {
         if self.is_event_visualization_finished() {
             self.end_event_visualization(context);
         } else {
-            let i = &mut self.player_info.get_mut(self.core.player_id());
-            self.selection_manager.deselect(&mut i.scene);
+            let player_info = &mut self.player_info.get_mut(self.core.player_id());
+            self.selection_manager.deselect(&mut player_info.scene);
             self.walkable_mesh = None;
             self.targets_mesh = None;
         }
@@ -1059,8 +1068,8 @@ impl TacticalScreen {
         if let Some(CoreEvent::AttackUnit{ref attack_info})
             = self.event
         {
-            let mut i = self.player_info.get_mut(self.core.player_id());
-            let state = &mut i.game_state;
+            let mut player_info = self.player_info.get_mut(self.core.player_id());
+            let state = &mut player_info.game_state;
             let selected_unit_id = match self.selected_unit_id {
                 Some(ref id) => id.clone(),
                 None => return,
@@ -1077,9 +1086,9 @@ impl TacticalScreen {
     fn end_event_visualization(&mut self, context: &mut Context) {
         self.attacker_died_from_reaction_fire();
         {
-            let i = self.player_info.get_mut(self.core.player_id());
-            let scene = &mut i.scene;
-            let state = &mut i.game_state;
+            let player_info = self.player_info.get_mut(self.core.player_id());
+            let scene = &mut player_info.scene;
+            let state = &mut player_info.game_state;
             self.event_visualizer.as_mut().unwrap().end(scene, state);
             state.apply_event(self.core.db(), self.event.as_ref().unwrap());
             self.visible_map_mesh = generate_visible_tiles_mesh(context, state, self.floor_tex.clone());
@@ -1180,7 +1189,9 @@ impl Screen for TacticalScreen {
     fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
         match *event {
             Event::Resized(..) => {
-                self.camera.regenerate_projection_mat(&context.win_size);
+                for (_, player_info) in &mut self.player_info.info {
+                    player_info.camera.regenerate_projection_mat(&context.win_size);
+                }
             },
             Event::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
