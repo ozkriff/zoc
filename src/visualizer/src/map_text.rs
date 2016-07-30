@@ -81,7 +81,7 @@ impl MapTextManager {
                     Vertex{pos: [w_2, -h_2, 0.0], uv: [1.0, 1.0]},
                     Vertex{pos: [w_2, h_2, 0.0], uv: [1.0, 0.0]},
                 ];
-                let indices: &[u16] = &[0,  1,  2,  1,  2,  3];
+                let indices = &[0,  1,  2,  1,  2,  3];
                 Mesh::new(context, vertices, indices, texture)
             };
             self.visible_labels_list.insert(self.last_label_id, MapText {
