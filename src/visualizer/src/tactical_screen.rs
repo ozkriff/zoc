@@ -952,8 +952,8 @@ impl TacticalScreen {
         let mut player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
-        match event {
-            &CoreEvent::Move{ref unit_id, ref to, ..} => {
+        match *event {
+            CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let type_id = state.unit(unit_id).type_id.clone();
                 let visual_info = self.unit_type_visual_info.get(&type_id);
                 EventMoveVisualizer::new(scene, unit_id, visual_info, to)
