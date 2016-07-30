@@ -30,15 +30,15 @@ impl PartialState {
 
 impl GameState for PartialState {
     fn units(&self) -> &HashMap<UnitId, Unit> {
-        &self.state.units()
+        self.state.units()
     }
 
     fn objects(&self) -> &HashMap<ObjectId, Object> {
-        &self.state.objects()
+        self.state.objects()
     }
 
     fn map(&self) -> &Map<Terrain> {
-        &self.state.map()
+        self.state.map()
     }
 }
 

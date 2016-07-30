@@ -1,6 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
+use std::collections::hash_map::Entry;
 use std::fmt::{Debug};
 use std::io::{BufRead};
 use std::path::{Path};
@@ -89,18 +90,18 @@ impl Model {
     fn read_line(&mut self, line: &str) {
         let mut words = line.split_whitespace();
         fn is_correct_tag(tag: &str) -> bool {
-            tag.len() != 0 && !tag.starts_with("#")
+            !tag.is_empty() && !tag.starts_with('#')
         }
         match words.next() {
             Some(tag) if is_correct_tag(tag) => {
                 let w = &mut words;
                 match tag {
                     "v" => self.positions.push(Model::read_v(w)),
-                    "vn" => {},
                     "vt" => self.uvs.push(Model::read_vt(w)),
                     "f" => self.faces.push(Model::read_f(w)),
                     "l" => self.lines.push(Model::read_l(w)),
-                    "s" => {},
+                    "vn" |
+                    "s" |
                     "#" => {},
                     unexpected_tag => {
                         println!("obj: unexpected tag: {}", unexpected_tag);
@@ -134,16 +135,17 @@ pub fn build(model: &Model) -> (Vec<Vertex>, Vec<u16>) {
             let pos_id = face_vertex[0] - 1;
             let uv_id = face_vertex[1] - 1;
             let key = (pos_id, uv_id);
-            let id = if components_map.contains_key(&key) {
-                *components_map.get(&key).unwrap()
-            } else {
-                let id = vertices.len() as u16;
-                vertices.push(Vertex {
-                    pos: model.positions[pos_id as usize],
-                    uv: model.uvs[uv_id as usize],
-                });
-                components_map.insert(key, id);
-                id
+            let id = match components_map.entry(key) {
+                Entry::Vacant(vacant) => {
+                    let id = vertices.len() as u16;
+                    vertices.push(Vertex {
+                        pos: model.positions[pos_id as usize],
+                        uv: model.uvs[uv_id as usize],
+                    });
+                    vacant.insert(id);
+                    id
+                }
+                Entry::Occupied(occ) => *occ.get()
             };
             indices.push(id);
         }

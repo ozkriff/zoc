@@ -165,7 +165,7 @@ impl Context {
             },
             Event::MouseInput(Pressed, MouseButton::Left) => {
                 self.mouse.is_left_button_pressed = true;
-                self.mouse.last_press_pos = self.mouse.pos.clone();
+                self.mouse.last_press_pos = self.mouse.pos;
             },
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.mouse.is_left_button_pressed = false;
@@ -201,7 +201,7 @@ impl Context {
                         self.mouse.pos = pos;
                     },
                     glutin::TouchPhase::Started => {
-                        self.mouse.pos = pos.clone();
+                        self.mouse.pos = pos;
                         self.mouse.last_press_pos = pos;
                         self.mouse.is_left_button_pressed = true;
                     },

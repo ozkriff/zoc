@@ -159,8 +159,8 @@ impl GameState for InternalState {
 
 impl GameStateMut for InternalState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
-        match event {
-            &CoreEvent::Move{ref unit_id, ref to, ref cost, ..} => {
+        match *event {
+            CoreEvent::Move{ref unit_id, ref to, ref cost, ..} => {
                 {
                     let unit = self.units.get_mut(unit_id).unwrap();
                     unit.pos = to.clone();
@@ -173,14 +173,14 @@ impl GameStateMut for InternalState {
                     passenger.pos = to.clone();
                 }
             },
-            &CoreEvent::EndTurn{ref new_id, ref old_id} => {
+            CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
                 self.convert_ap(db, old_id);
             },
-            &CoreEvent::CreateUnit{ref unit_info} => {
+            CoreEvent::CreateUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Full);
             },
-            &CoreEvent::AttackUnit{ref attack_info} => {
+            CoreEvent::AttackUnit{ref attack_info} => {
                 {
                     let unit = self.units.get_mut(&attack_info.defender_id)
                         .expect("Can`t find defender");
@@ -190,7 +190,7 @@ impl GameStateMut for InternalState {
                         unit.move_points.n = 0;
                     }
                 }
-                let count = self.units[&attack_info.defender_id].count.clone();
+                let count = self.units[&attack_info.defender_id].count;
                 if count <= 0 {
                     // TODO: kill\unload passengers
                     assert!(self.units.get(&attack_info.defender_id).is_some());
@@ -217,16 +217,16 @@ impl GameStateMut for InternalState {
                     }
                 }
             },
-            &CoreEvent::ShowUnit{ref unit_info} => {
+            CoreEvent::ShowUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Partial);
             },
-            &CoreEvent::HideUnit{ref unit_id} => {
+            CoreEvent::HideUnit{ref unit_id} => {
                 assert!(self.units.get(unit_id).is_some());
                 self.units.remove(unit_id);
             },
-            &CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ref to, ..} => {
+            CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ref to, ..} => {
                 // TODO: hide info about passenger from enemy player
-                if let &Some(ref transporter_id) = transporter_id {
+                if let Some(ref transporter_id) = *transporter_id {
                     self.units.get_mut(transporter_id)
                         .expect("Bad transporter_id")
                         .passenger_id = Some(passenger_id.clone());
@@ -236,8 +236,8 @@ impl GameStateMut for InternalState {
                 passenger.pos = to.clone();
                 passenger.move_points.n = 0;
             },
-            &CoreEvent::UnloadUnit{ref transporter_id, ref unit_info, ..} => {
-                if let &Some(ref transporter_id) = transporter_id {
+            CoreEvent::UnloadUnit{ref transporter_id, ref unit_info, ..} => {
+                if let Some(ref transporter_id) = *transporter_id {
                     self.units.get_mut(transporter_id)
                         .expect("Bad transporter_id")
                         .passenger_id = None;
@@ -248,7 +248,7 @@ impl GameStateMut for InternalState {
                 }
                 self.add_unit(db, unit_info, InfoLevel::Partial);
             },
-            &CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
+            CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
                 self.units.get_mut(unit_id)
                     .expect("Bad unit id")
                     .reaction_fire_mode = mode.clone();

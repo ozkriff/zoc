@@ -39,7 +39,7 @@ impl EventVisualizer for EventMoveVisualizer {
 
     fn end(&mut self, scene: &mut Scene, _: &PartialState) {
         let node = scene.node_mut(&self.node_id);
-        node.pos = self.move_helper.destination().clone();
+        node.pos = *self.move_helper.destination();
     }
 }
 
@@ -53,7 +53,7 @@ impl EventMoveVisualizer {
         let speed = unit_type_visual_info.move_speed;
         let node_id = scene.unit_id_to_node_id(unit_id);
         let node = scene.node_mut(&node_id);
-        let from = node.pos.clone();
+        let from = node.pos;
         let to = geom::exact_pos_to_world_pos(destination);
         node.rot = geom::get_rot_angle(&from, &to);
         let move_helper = MoveHelper::new(&from, &to, speed);
@@ -100,7 +100,7 @@ fn show_unit_at(
         children: Vec::new(),
     });
     scene.add_unit(&unit_info.unit_id, SceneNode {
-        pos: to.clone(),
+        pos: to,
         rot: rot,
         mesh_id: None,
         children: children,
@@ -154,7 +154,7 @@ impl EventCreateUnitVisualizer {
         let move_helper = MoveHelper::new(&from, &to, 2.0);
         let node_id = scene.unit_id_to_node_id(&unit_info.unit_id);
         let new_node = scene.node_mut(&node_id);
-        new_node.pos = from.clone();
+        new_node.pos = from;
         Box::new(EventCreateUnitVisualizer {
             node_id: node_id,
             move_helper: move_helper,
@@ -199,21 +199,21 @@ impl EventAttackUnitVisualizer {
     ) -> Box<EventVisualizer> {
         let defender = state.unit(&attack_info.defender_id);
         let defender_node_id = scene.unit_id_to_node_id(&attack_info.defender_id);
-        let defender_pos = scene.node(&defender_node_id).pos.clone();
-        let from = defender_pos.clone();
+        let defender_pos = scene.node(&defender_node_id).pos;
+        let from = defender_pos;
         let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         let move_helper = MoveHelper::new(&from, &to, 1.0);
         let mut shell_move = None;
         let mut shell_node_id = None;
         if let Some(ref attacker_id) = attack_info.attacker_id {
-            let attacker_node_id = scene.unit_id_to_node_id(&attacker_id);
-            let attacker_pos = scene.node(&attacker_node_id).pos.clone();
-            let attacker_map_pos = state.unit(&attacker_id).pos.clone();
+            let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
+            let attacker_pos = scene.node(&attacker_node_id).pos;
+            let attacker_map_pos = state.unit(attacker_id).pos.clone();
             if let core::FireMode::Reactive = attack_info.mode {
                 map_text.add_text(&attacker_map_pos, "reaction fire");
             }
             shell_node_id = Some(scene.add_node(SceneNode {
-                pos: from.clone(),
+                pos: from,
                 rot: geom::get_rot_angle(&attacker_pos, &defender_pos),
                 mesh_id: Some(shell_mesh_id.clone()),
                 children: Vec::new(),
@@ -244,8 +244,8 @@ impl EventAttackUnitVisualizer {
         }
         Box::new(EventAttackUnitVisualizer {
             defender_node_id: defender_node_id,
-            killed: attack_info.killed.clone(),
-            is_inderect: attack_info.is_inderect.clone(),
+            killed: attack_info.killed,
+            is_inderect: attack_info.is_inderect,
             is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
@@ -258,12 +258,10 @@ impl EventVisualizer for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
         if self.killed > 0 {
             self.move_helper.is_finished()
+        } else if let Some(ref shell_move) = self.shell_move {
+            shell_move.is_finished()
         } else {
-            if let Some(ref shell_move) = self.shell_move {
-                shell_move.is_finished()
-            } else {
-                true
-            }
+            true
         }
     }
 
@@ -388,7 +386,7 @@ impl EventUnloadUnitVisualizer {
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         let node_id = scene.unit_id_to_node_id(&unit_info.unit_id);
         let unit_node = scene.node_mut(&node_id);
-        unit_node.pos = from.clone();
+        unit_node.pos = from;
         unit_node.rot = geom::get_rot_angle(&from, &to);
         let move_speed = unit_type_visual_info.move_speed;
         Box::new(EventUnloadUnitVisualizer {
