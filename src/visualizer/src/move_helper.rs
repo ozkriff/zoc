@@ -18,8 +18,8 @@ impl MoveHelper {
         let dir = (to.v - from.v).normalize();
         let dist = geom::dist(from, to);
         MoveHelper {
-            to: to.clone(),
-            current: from.clone(),
+            to: *to,
+            current: *from,
             dist: dist,
             current_dist: 0.0,
             dir: dir * speed,
@@ -36,7 +36,7 @@ impl MoveHelper {
 
     pub fn step(&mut self, dtime: &Time) -> WorldPos {
         let _ = self.step_diff(dtime);
-        self.current.clone()
+        self.current
     }
 
     pub fn destination(&self) -> &WorldPos {
@@ -49,7 +49,7 @@ impl MoveHelper {
         self.current_dist += step.magnitude();
         self.current.v = self.current.v + step; // TODO: update cgmath-rs version and replace to `+=`
         if self.is_finished() {
-            self.current = self.to.clone();
+            self.current = self.to;
         }
         step
     }

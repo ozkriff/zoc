@@ -238,7 +238,7 @@ pub fn find_prev_player_unit_id<S: GameState>(
     let mut i = state.units().iter().cycle().filter(
         |&(_, unit)| unit.player_id == *player_id).peekable();
     while let Some((id, _)) = i.next() {
-        let &(next_id, _) = i.peek().clone().unwrap();
+        let &(next_id, _) = i.peek().unwrap();
         if *next_id == *unit_id {
             return id.clone();
         }
@@ -320,10 +320,10 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
 }
 
 pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
-    match state.map().tile(pos) {
-        &Terrain::City => println!("City"),
-        &Terrain::Trees => println!("Trees"),
-        &Terrain::Plain => println!("Plain"),
+    match *state.map().tile(pos) {
+        Terrain::City => println!("City"),
+        Terrain::Trees => println!("Trees"),
+        Terrain::Plain => println!("Plain"),
     }
 }
 
@@ -423,10 +423,9 @@ fn check_attack<S: GameState>(
     if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !weapon_type.is_inderect {
-        if !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos) {
-            return Err(CommandError::NoLos);
-        }
+    if !weapon_type.is_inderect && !los(state.map(), attacker_type, 
+                                        &attacker.pos.map_pos, &defender.pos.map_pos) {
+        return Err(CommandError::NoLos);
     }
     Ok(())
 }
@@ -436,33 +435,33 @@ pub fn check_command<S: GameState>(
     state: &S,
     command: &Command,
 ) -> Result<(), CommandError> {
-    match command {
-        &Command::EndTurn => Ok(()),
-        &Command::CreateUnit{ref pos, ref type_id} => {
+    match *command {
+        Command::EndTurn => Ok(()),
+        Command::CreateUnit{ref pos, ref type_id} => {
             if is_exact_pos_free(db, state, type_id, pos) {
                 Ok(())
             } else {
                 Err(CommandError::TileIsOccupied)
             }
         },
-        &Command::Move{ref unit_id, ref path, ref mode} => {
+        Command::Move{ref unit_id, ref path, ref mode} => {
             if state.units().get(unit_id).is_none() {
                 return Err(CommandError::BadUnitId);
             }
-            let unit = state.unit(&unit_id);
+            let unit = state.unit(unit_id);
             for pos in path {
                 if !is_exact_pos_free(db, state, &unit.type_id, pos) {
                     return Err(CommandError::BadPath);
                 }
             }
-            let cost = path_cost(db, state, unit, &path).n
+            let cost = path_cost(db, state, unit, path).n
                 * move_cost_modifier(mode);
             if cost > unit.move_points.n {
                 return Err(CommandError::NotEnoughMovePoints);
             }
             Ok(())
         },
-        &Command::AttackUnit{ref attacker_id, ref defender_id} => {
+        Command::AttackUnit{ref attacker_id, ref defender_id} => {
             if state.units().get(attacker_id).is_none() {
                 return Err(CommandError::BadAttackerId);
             }
@@ -473,16 +472,16 @@ pub fn check_command<S: GameState>(
             let defender = state.unit(defender_id);
             check_attack(db, state, attacker, defender, &FireMode::Active)
         },
-        &Command::LoadUnit{ref transporter_id, ref passenger_id} => {
+        Command::LoadUnit{ref transporter_id, ref passenger_id} => {
             if state.units().get(transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
             if state.units().get(passenger_id).is_none() {
                 return Err(CommandError::BadPassengerId);
             }
-            let passenger = state.unit(&passenger_id);
+            let passenger = state.unit(passenger_id);
             let pos = passenger.pos.clone();
-            let transporter = state.unit(&transporter_id);
+            let transporter = state.unit(transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
@@ -504,7 +503,7 @@ pub fn check_command<S: GameState>(
             }
             Ok(())
         },
-        &Command::UnloadUnit{ref transporter_id, ref passenger_id, ref pos} => {
+        Command::UnloadUnit{ref transporter_id, ref passenger_id, ref pos} => {
             if state.units().get(transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
@@ -512,11 +511,11 @@ pub fn check_command<S: GameState>(
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
             };
-            let transporter = state.unit(&transporter_id);
+            let transporter = state.unit(transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
-            if distance(&transporter.pos, &pos) > 1 {
+            if distance(&transporter.pos, pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
             if let None = transporter.passenger_id {
@@ -528,7 +527,7 @@ pub fn check_command<S: GameState>(
             // TODO: check that tile is walkable for passenger
             Ok(())
         },
-        &Command::SetReactionFireMode{ref unit_id, ..} => {
+        Command::SetReactionFireMode{ref unit_id, ..} => {
             if state.units().get(unit_id).is_none() {
                 Err(CommandError::BadUnitId)
             } else {
@@ -812,10 +811,10 @@ impl Core {
         let defender_type = self.db.unit_type(&defender.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
         let cover_bonus = if let UnitClass::Infantry = defender_type.class {
-            match self.state.map().tile(&defender.pos) {
-                &Terrain::Plain => 0,
-                &Terrain::Trees => 2,
-                &Terrain::City => 3,
+            match *self.state.map().tile(&defender.pos) {
+                Terrain::Plain => 0,
+                Terrain::Trees => 2,
+                Terrain::City => 3,
             }
         } else {
             0
@@ -847,8 +846,8 @@ impl Core {
         defender_id: &UnitId,
         fire_mode: &FireMode,
     ) -> Option<CoreEvent> {
-        let attacker = self.state.unit(&attacker_id);
-        let defender = self.state.unit(&defender_id);
+        let attacker = self.state.unit(attacker_id);
+        let defender = self.state.unit(defender_id);
         let check_attack_result = check_attack(
             &self.db,
             &self.state,
@@ -879,7 +878,7 @@ impl Core {
             suppression: base_suppression + per_death_suppression * killed,
             remove_move_points: false,
             is_ambush: is_ambush,
-            is_inderect: weapon_type.is_inderect.clone(),
+            is_inderect: weapon_type.is_inderect,
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }
@@ -912,8 +911,7 @@ impl Core {
     fn reaction_fire_internal<F>(&mut self, unit_id: &UnitId, f: F) -> ReactionFireResult
         where F: Fn(&mut AttackInfo)
     {
-        let unit_ids: Vec<_> = self.state.units().keys()
-            .map(|id| id.clone()).collect();
+        let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
             let event = {
@@ -926,7 +924,7 @@ impl Core {
                     continue;
                 }
                 let event = self.command_attack_unit_to_event(
-                    &enemy_unit.id, &unit_id, &FireMode::Reactive);
+                    &enemy_unit.id, unit_id, &FireMode::Reactive);
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
                     f(&mut attack_info);
                     CoreEvent::AttackUnit{attack_info: attack_info}
@@ -1025,7 +1023,7 @@ impl Core {
                     attacker_id, defender_id, &FireMode::Active)
                 {
                     self.do_core_event(event);
-                    self.reaction_fire(&attacker_id);
+                    self.reaction_fire(attacker_id);
                 }
             },
             Command::LoadUnit{transporter_id, passenger_id} => {
@@ -1098,14 +1096,14 @@ impl Core {
     }
 
     fn do_core_event(&mut self, event: &CoreEvent) {
-        self.state.apply_event(&self.db, &event);
+        self.state.apply_event(&self.db, event);
         for player in &self.players {
             let (filtered_events, active_unit_ids) = filter::filter_events(
                 &self.db,
                 &self.state,
                 &player.id,
                 &self.players_info[&player.id].fow,
-                &event,
+                event,
             );
             let mut i = self.players_info.get_mut(&player.id)
                 .expect("core: Can`t get player`s info");

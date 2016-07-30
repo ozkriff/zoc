@@ -28,7 +28,7 @@ pub fn text_to_texture(font: &Font, height: f32, text: &str) -> (u16, u16, Vec<u
             // There's still a possibility that the glyph clips the boundaries of the bitmap
             if v > 0 && x >= 0 && x < width as i32 && y >= 0 && y < pixel_height as i32 {
                 let i = (x as usize + y as usize * width) * 4;
-                pixel_data[i + 0] = 255;
+                pixel_data[i    ] = 255;
                 pixel_data[i + 1] = 255;
                 pixel_data[i + 2] = 255;
                 pixel_data[i + 3] = v;

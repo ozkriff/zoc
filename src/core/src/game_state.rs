@@ -17,7 +17,7 @@ pub trait GameState {
 
     fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         let mut units = Vec::new();
-        for (_, unit) in self.units() {
+        for unit in self.units().values() {
             if unit.pos.map_pos == *pos {
                 units.push(unit);
             }
@@ -27,7 +27,7 @@ pub trait GameState {
 
     fn objects_at(&self, pos: &MapPos) -> Vec<&Object> {
         let mut objects = Vec::new();
-        for (_, object) in self.objects() {
+        for object in self.objects().values() {
             if object.pos.map_pos == *pos {
                 objects.push(object);
             }

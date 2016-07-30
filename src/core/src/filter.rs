@@ -37,7 +37,7 @@ pub fn show_or_hide_passive_enemies(
         if active_unit_ids.contains(id) {
             continue;
         }
-        let unit = units.get(&id).expect("Can`t find unit");
+        let unit = units.get(id).expect("Can`t find unit");
         events.push(CoreEvent::ShowUnit {
             unit_info: unit_to_info(unit),
         });
@@ -62,8 +62,8 @@ pub fn filter_events(
 ) -> (Vec<CoreEvent>, HashSet<UnitId>) {
     let mut active_unit_ids = HashSet::new();
     let mut events = vec![];
-    match event {
-        &CoreEvent::Move{ref unit_id, ref from, ref to, ..} => {
+    match *event {
+        CoreEvent::Move{ref unit_id, ref from, ref to, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == *player_id {
                 events.push(event.clone())
@@ -89,10 +89,10 @@ pub fn filter_events(
                 active_unit_ids.insert(unit_id.clone());
             }
         },
-        &CoreEvent::EndTurn{..} => {
+        CoreEvent::EndTurn{..} => {
             events.push(event.clone());
         },
-        &CoreEvent::CreateUnit{ref unit_info} => {
+        CoreEvent::CreateUnit{ref unit_info} => {
             let unit = state.unit(&unit_info.unit_id);
             if *player_id == unit_info.player_id
                 || fow.is_visible(db, state, unit, &unit_info.pos)
@@ -101,7 +101,7 @@ pub fn filter_events(
                 active_unit_ids.insert(unit_info.unit_id.clone());
             }
         },
-        &CoreEvent::AttackUnit{ref attack_info} => {
+        CoreEvent::AttackUnit{ref attack_info} => {
             let attacker_id = attack_info.attacker_id.clone()
                 .expect("Core must know about everything");
             let attacker = state.unit(&attacker_id);
@@ -110,7 +110,7 @@ pub fn filter_events(
                 let attacker = state.unit(&attacker_id);
                 if !fow.is_visible(db, state, attacker, &attacker.pos) {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: unit_to_info(&attacker),
+                        unit_info: unit_to_info(attacker),
                     });
                 }
                 active_unit_ids.insert(attacker_id.clone());
@@ -128,9 +128,9 @@ pub fn filter_events(
             };
             events.push(CoreEvent::AttackUnit{attack_info: attack_info});
         },
-        &CoreEvent::ShowUnit{..} => panic!(),
-        &CoreEvent::HideUnit{..} => panic!(),
-        &CoreEvent::LoadUnit{ref passenger_id, ref from, ref to, ref transporter_id} => {
+        CoreEvent::ShowUnit{..} => panic!(),
+        CoreEvent::HideUnit{..} => panic!(),
+        CoreEvent::LoadUnit{ref passenger_id, ref from, ref to, ref transporter_id} => {
             let passenger = state.unit(passenger_id);
             let transporter = state.unit(transporter_id.as_ref().unwrap());
             let is_transporter_vis = fow.is_visible(
@@ -162,7 +162,7 @@ pub fn filter_events(
                 active_unit_ids.insert(passenger_id.clone());
             }
         },
-        &CoreEvent::UnloadUnit{ref unit_info, ref transporter_id, ref from, ref to} => {
+        CoreEvent::UnloadUnit{ref unit_info, ref transporter_id, ref from, ref to} => {
             active_unit_ids.insert(unit_info.unit_id.clone());
             let passenger = state.unit(&unit_info.unit_id);
             let transporter = state.unit(transporter_id.as_ref().unwrap());
@@ -191,7 +191,7 @@ pub fn filter_events(
                 }
             }
         },
-        &CoreEvent::SetReactionFireMode{ref unit_id, ..} => {
+        CoreEvent::SetReactionFireMode{ref unit_id, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == *player_id {
                 events.push(event.clone());

@@ -142,13 +142,11 @@ impl Iterator for RingIter {
         if self.segment_index >= self.radius - 1 {
             if let Some(dir) = self.dir_iter.next() {
                 self.rotate(dir)
+            } else if self.segment_index == self.radius {
+                None
             } else {
-                if self.segment_index == self.radius {
-                    None
-                } else {
-                    // last pos
-                    self.simple_step()
-                }
+                // last pos
+                self.simple_step()
             }
         } else {
             self.simple_step()

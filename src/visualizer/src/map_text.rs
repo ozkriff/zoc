@@ -48,7 +48,7 @@ impl MapTextManager {
 
     fn can_show_text_here<P: AsRef<MapPos>>(&self, pos: &P) -> bool {
         let min_progress = 0.3;
-        for (_, map_text) in &self.visible_labels_list {
+        for map_text in self.visible_labels_list.values() {
             let progress = map_text.move_helper.progress();
             if map_text.pos == *pos.as_ref() && progress < min_progress {
                 return false;
@@ -67,7 +67,7 @@ impl MapTextManager {
                 continue;
             }
             let from = geom::map_pos_to_world_pos(&command.pos);
-            let mut to = from.clone();
+            let mut to = from;
             to.v.z += 2.0;
             let mesh = {
                 let (w, h, texture_data) = text::text_to_texture(&context.font, 80.0, &command.text);
@@ -82,8 +82,7 @@ impl MapTextManager {
                     Vertex{pos: [w_2, h_2, 0.0], uv: [1.0, 0.0]},
                 ];
                 let indices: &[u16] = &[0,  1,  2,  1,  2,  3];
-                let mesh = Mesh::new(context, vertices, indices, texture);
-                mesh
+                Mesh::new(context, vertices, indices, texture)
             };
             self.visible_labels_list.insert(self.last_label_id, MapText {
                 pos: command.pos.clone(),

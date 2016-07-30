@@ -60,10 +60,10 @@ fn calc_visibility(terrain: &Terrain, unit_type: &UnitType, distance: &ZInt)
     if *distance <= unit_type.cover_los_range {
         TileVisibility::Excellent
     } else if *distance <= unit_type.los_range {
-        match terrain {
-            &Terrain::City => TileVisibility::Normal,
-            &Terrain::Trees => TileVisibility::Normal,
-            &Terrain::Plain => TileVisibility::Excellent,
+        match *terrain {
+            Terrain::City |
+            Terrain::Trees => TileVisibility::Normal,
+            Terrain::Plain => TileVisibility::Excellent,
         }
     } else {
         TileVisibility::No
@@ -86,7 +86,7 @@ impl Fow {
 
     pub fn is_tile_visible(&self, pos: &MapPos) -> bool {
         match *self.map.tile(pos) {
-            TileVisibility::Excellent => true,
+            TileVisibility::Excellent |
             TileVisibility::Normal => true,
             TileVisibility::No => false,
         }
@@ -110,7 +110,7 @@ impl Fow {
         unit: &Unit,
         pos: &ExactPos,
     ) -> bool {
-        for (_, other_unit) in state.units() {
+        for other_unit in state.units().values() {
             if let Some(ref passenger_id) = other_unit.passenger_id {
                 if *passenger_id == unit.id && other_unit.pos == *pos {
                     return false;
@@ -129,9 +129,9 @@ impl Fow {
 
     fn reset(&mut self, db: &Db, state: &InternalState) {
         self.clear();
-        for (_, unit) in state.units() {
+        for unit in state.units().values() {
             if unit.player_id == self.player_id {
-                fov_unit(db, state.map(), &mut self.map, &unit);
+                fov_unit(db, state.map(), &mut self.map, unit);
             }
         }
     }
@@ -142,26 +142,26 @@ impl Fow {
         state: &InternalState,
         event: &CoreEvent,
     ) {
-        match event {
-            &CoreEvent::Move{ref unit_id, ref to, ..} => {
+        match *event {
+            CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     fov_unit_in_pos(
                         db, state.map(), &mut self.map, unit, &to.map_pos);
                 }
             },
-            &CoreEvent::EndTurn{ref new_id, ..} => {
+            CoreEvent::EndTurn{ref new_id, ..} => {
                 if self.player_id == *new_id {
                     self.reset(db, state);
                 }
             },
-            &CoreEvent::CreateUnit{ref unit_info} => {
+            CoreEvent::CreateUnit{ref unit_info} => {
                 let unit = state.unit(&unit_info.unit_id);
                 if self.player_id == unit_info.player_id {
                     fov_unit(db, state.map(), &mut self.map, unit);
                 }
             },
-            &CoreEvent::AttackUnit{ref attack_info} => {
+            CoreEvent::AttackUnit{ref attack_info} => {
                 if let Some(ref attacker_id) = attack_info.attacker_id {
                     if !attack_info.is_ambush {
                         let pos = &state.unit(attacker_id).pos;
@@ -170,17 +170,17 @@ impl Fow {
                     }
                 }
             },
-            &CoreEvent::ShowUnit{..} => {},
-            &CoreEvent::HideUnit{..} => {},
-            &CoreEvent::LoadUnit{..} => {},
-            &CoreEvent::UnloadUnit{ref unit_info, ..} => {
+            CoreEvent::ShowUnit{..} |
+            CoreEvent::HideUnit{..} |
+            CoreEvent::LoadUnit{..} |
+            CoreEvent::SetReactionFireMode{..} => {},
+            CoreEvent::UnloadUnit{ref unit_info, ..} => {
                 if self.player_id == unit_info.player_id {
                     let unit = state.unit(&unit_info.unit_id);
                     let pos = &unit_info.pos.map_pos;
                     fov_unit_in_pos(db, state.map(), &mut self.map, unit, pos);
                 }
             },
-            &CoreEvent::SetReactionFireMode{..} => {},
         }
     }
 }

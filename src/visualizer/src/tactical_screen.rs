@@ -114,10 +114,10 @@ fn gen_tiles<F: Fn(bool) -> bool>(
                 uv: uv.into(),
             });
         }
-        indices.extend(&[
-            i + 0, i + 1, i + 2,
-            i + 0, i + 2, i + 3,
-            i + 0, i + 3, i + 5,
+        indices.extend_from_slice(&[
+            i    , i + 1, i + 2,
+            i    , i + 2, i + 3,
+            i    , i + 3, i + 5,
             i + 3, i + 4, i + 5,
         ]);
         i += 6;
@@ -146,7 +146,7 @@ fn build_walkable_mesh(
         if pf.get_map().tile(&tile_pos).cost().n > move_points.n {
             continue;
         }
-        if let &Some(ref parent_dir) = pf.get_map().tile(&tile_pos).parent() {
+        if let Some(ref parent_dir) = *pf.get_map().tile(&tile_pos).parent() {
             let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
             let exact_pos = ExactPos {
                 map_pos: tile_pos.clone(),
@@ -166,7 +166,7 @@ fn build_walkable_mesh(
                 pos: geom::lift(world_pos_to.v).into(),
                 uv: [0.5, 0.5],
             });
-            indices.extend(&[i, i + 1]);
+            indices.extend_from_slice(&[i, i + 1]);
             i += 2;
         }
     }
@@ -199,7 +199,7 @@ fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit
             pos: geom::lift(world_pos_to.v).into(),
             uv: [0.5, 0.5],
         });
-        indices.extend(&[i, i + 1]);
+        indices.extend_from_slice(&[i, i + 1]);
         i += 2;
     }
     Mesh::new_wireframe(context, &vertices, &indices)
@@ -466,9 +466,9 @@ impl TacticalScreen {
     }
 
     fn add_marker(&mut self, pos: &WorldPos) {
-        for (_, player_info) in self.player_info.info.iter_mut() {
+        for (_, player_info) in &mut self.player_info.info {
             player_info.scene.add_node(SceneNode {
-                pos: pos.clone(),
+                pos: *pos,
                 rot: rad(0.0),
                 mesh_id: Some(self.mesh_ids.shell_mesh_id.clone()),
                 children: Vec::new(),
@@ -477,27 +477,27 @@ impl TacticalScreen {
     }
 
     fn add_map_objects(&mut self) {
-        for (_, player_info) in self.player_info.info.iter_mut() {
+        for (_, player_info) in &mut self.player_info.info {
             let state = &player_info.game_state;
             let map = state.map();
             for tile_pos in map.get_iter() {
-                if let &Terrain::Trees = map.tile(&tile_pos) {
+                if let Terrain::Trees = *map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                     player_info.scene.add_node(SceneNode {
-                        pos: pos.clone(),
+                        pos: pos,
                         rot: rot,
                         mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
                         children: Vec::new(),
                     });
                 }
-                if let &Terrain::City = map.tile(&tile_pos) {
+                if let Terrain::City = *map.tile(&tile_pos) {
                     let objects = state.objects_at(&tile_pos);
                     for object in objects {
                         let pos = geom::exact_pos_to_world_pos(&object.pos);
                         let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                         player_info.scene.add_node(SceneNode {
-                            pos: pos.clone(),
+                            pos: pos,
                             rot: rot,
                             mesh_id: Some(match object.pos.slot_id {
                                 SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
@@ -535,7 +535,7 @@ impl TacticalScreen {
 
     fn can_unload_unit(&self, transporter_id: &UnitId, pos: &MapPos) -> Option<ExactPos> {
         let state = self.current_state();
-        let transporter = state.unit(&transporter_id);
+        let transporter = state.unit(transporter_id);
         let passenger_id = match transporter.passenger_id {
             Some(ref id) => id.clone(),
             None => return None,
@@ -570,7 +570,7 @@ impl TacticalScreen {
         if options == context_menu_popup::Options::new() {
             return;
         }
-        let mut menu_pos = context.mouse().pos.clone();
+        let mut menu_pos = context.mouse().pos;
         menu_pos.v.y = context.win_size.h - menu_pos.v.y;
         let screen = ContextMenuPopup::new(
             context, &menu_pos, options, self.tx.clone());
@@ -588,7 +588,7 @@ impl TacticalScreen {
         let unit_ids = get_unit_ids_at(db, state, pos);
         if let Some(selected_unit_id) = self.selected_unit_id.clone() {
             for unit_id in &unit_ids {
-                let unit = state.unit(&unit_id);
+                let unit = state.unit(unit_id);
                 if unit.player_id == *self.core.player_id() {
                     if *unit_id == selected_unit_id {
                         // TODO: do not show both options if unit has no weapons
@@ -642,7 +642,7 @@ impl TacticalScreen {
             }
         } else {
             for unit_id in &unit_ids {
-                let unit = state.unit(&unit_id);
+                let unit = state.unit(unit_id);
                 if unit.player_id == *self.core.player_id() {
                     options.selects.push(unit_id.clone());
                 }
@@ -857,9 +857,9 @@ impl TacticalScreen {
             let mesh = &self.meshes[id];
             context.data.mvp = m.into(); // TODO: use separate model matrix
             if mesh.is_wire() {
-                context.draw_mesh_with_color([0.0, 0.0, 0.0, 1.0], &mesh);
+                context.draw_mesh_with_color([0.0, 0.0, 0.0, 1.0], mesh);
             } else {
-                context.draw_mesh(&mesh);
+                context.draw_mesh(mesh);
             }
         }
         for node in &node.children {
@@ -868,7 +868,7 @@ impl TacticalScreen {
     }
 
     fn draw_scene_nodes(&self, context: &mut Context) {
-        for (_, node) in self.scene().nodes() {
+        for node in self.scene().nodes().values() {
             let m = self.camera.mat();
             self.draw_scene_node(context, node, m);
         }
@@ -943,16 +943,16 @@ impl TacticalScreen {
         let mut i = self.player_info.get_mut(current_player_id);
         let scene = &mut i.scene;
         let state = &i.game_state;
-        match event {
-            &CoreEvent::Move{ref unit_id, ref to, ..} => {
+        match *event {
+            CoreEvent::Move{ref unit_id, ref to, ..} => {
                 let type_id = state.unit(unit_id).type_id.clone();
                 let visual_info = self.unit_type_visual_info.get(&type_id);
                 EventMoveVisualizer::new(scene, unit_id, visual_info, to)
             },
-            &CoreEvent::EndTurn{..} => {
+            CoreEvent::EndTurn{..} => {
                 EventEndTurnVisualizer::new()
             },
-            &CoreEvent::CreateUnit{ref unit_info} => {
+            CoreEvent::CreateUnit{ref unit_info} => {
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
@@ -960,7 +960,7 @@ impl TacticalScreen {
                 EventCreateUnitVisualizer::new(
                     self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
             },
-            &CoreEvent::AttackUnit{ref attack_info} => {
+            CoreEvent::AttackUnit{ref attack_info} => {
                 EventAttackUnitVisualizer::new(
                     state,
                     scene,
@@ -969,7 +969,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::ShowUnit{ref unit_info, ..} => {
+            CoreEvent::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
@@ -983,7 +983,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::HideUnit{ref unit_id} => {
+            CoreEvent::HideUnit{ref unit_id} => {
                 EventHideUnitVisualizer::new(
                     scene,
                     state,
@@ -991,7 +991,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::LoadUnit{ref passenger_id, ref to, ..} => {
+            CoreEvent::LoadUnit{ref passenger_id, ref to, ..} => {
                 let type_id = state.unit(passenger_id).type_id.clone();
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&type_id);
@@ -1004,7 +1004,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::UnloadUnit{ref unit_info, ref from, ..} => {
+            CoreEvent::UnloadUnit{ref unit_info, ref from, ..} => {
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(&unit_info.type_id);
                 let mesh_id = &self.unit_type_visual_info
@@ -1022,7 +1022,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            &CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
+            CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
                 EventSetReactionFireModeVisualizer::new(
                     state,
                     unit_id,
@@ -1195,9 +1195,7 @@ impl Screen for TacticalScreen {
             Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 match phase {
-                    glutin::TouchPhase::Moved => {
-                        self.handle_event_mouse_move(context, &pos);
-                    },
+                    glutin::TouchPhase::Moved |
                     glutin::TouchPhase::Started => {
                         self.handle_event_mouse_move(context, &pos);
                     },

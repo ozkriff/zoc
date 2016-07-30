@@ -41,7 +41,7 @@ impl Ai {
     fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
         let mut best_cost = pathfinder::max_cost();
-        for (_, enemy) in self.state.units() {
+        for enemy in self.state.units().values() {
             if enemy.player_id == self.id {
                 continue;
             }
@@ -72,7 +72,7 @@ impl Ai {
     }
 
     fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
-        for (_, target) in self.state.units() {
+        for target in self.state.units().values() {
             if target.player_id == self.id {
                 continue;
             }
@@ -86,14 +86,14 @@ impl Ai {
     }
 
     pub fn try_get_attack_command(&self, db: &Db) -> Option<Command> {
-        for (_, unit) in self.state.units() {
+        for unit in self.state.units().values() {
             if unit.player_id != self.id {
                 continue;
             }
             if unit.attack_points.n <= 0 {
                 continue;
             }
-            for (_, target) in self.state.units() {
+            for target in self.state.units().values() {
                 if target.player_id == self.id {
                     continue;
                 }
@@ -110,7 +110,7 @@ impl Ai {
     }
 
     pub fn try_get_move_command(&mut self, db: &Db) -> Option<Command> {
-        for (_, unit) in self.state.units() {
+        for unit in self.state.units().values() {
             if unit.player_id != self.id {
                 continue;
             }

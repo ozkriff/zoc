@@ -37,7 +37,7 @@ pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Un
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
     for pos in path {
-        cost.n += tile_cost(db, state, unit, &pos).n;
+        cost.n += tile_cost(db, state, unit, pos).n;
         if cost.n > unit.move_points.n {
             break;
         }
@@ -85,15 +85,15 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
     let unit_type = db.unit_type(&unit.type_id);
     let tile = state.map().tile(&pos);
     let n = match unit_type.class {
-        UnitClass::Infantry => match tile {
-            &Terrain::Plain => 1,
-            &Terrain::Trees => 2,
-            &Terrain::City => 0,
+        UnitClass::Infantry => match *tile {
+            Terrain::Plain => 1,
+            Terrain::Trees => 2,
+            Terrain::City => 0,
         },
-        UnitClass::Vehicle => match tile {
-            &Terrain::Plain => 1,
-            &Terrain::Trees => 5,
-            &Terrain::City => 0,
+        UnitClass::Vehicle => match *tile {
+            Terrain::Plain => 1,
+            Terrain::Trees => 5,
+            Terrain::City => 0,
         },
     };
     MovePoints{n: n + obstacles_count}
@@ -181,7 +181,7 @@ impl Pathfinder {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos.clone());
-        while self.queue.len() != 0 {
+        while !self.queue.is_empty() {
             let pos = self.queue.remove(0);
             self.try_to_push_neighbours(db, state, unit, pos);
         }
@@ -202,9 +202,9 @@ impl Pathfinder {
         while self.map.tile(&pos).cost.n != 0 {
             assert!(self.map.is_inboard(&pos));
             path.push(pos.clone());
-            let parent_dir = match self.map.tile(&pos).parent() {
-                &Some(ref dir) => dir,
-                &None => return None,
+            let parent_dir = match *self.map.tile(&pos).parent() {
+                Some(ref dir) => dir,
+                None => return None,
             };
             let neighbour_map_pos = Dir::get_neighbour_pos(&pos.map_pos, parent_dir);
             pos = ExactPos {

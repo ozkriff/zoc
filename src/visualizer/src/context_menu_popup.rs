@@ -81,7 +81,7 @@ impl ContextMenuPopup {
         let mut unload_unit_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
-        let mut pos = pos.clone();
+        let mut pos = *pos;
         let text_size = basic_text_size(context);
         pos.v.y -= text_size as ZInt / 2;
         pos.v.x -= text_size as ZInt / 2;
@@ -129,7 +129,7 @@ impl ContextMenuPopup {
                 Button::new(context, "unload", &pos)));
             pos.v.y -= vstep;
         }
-        let popup = ContextMenuPopup {
+        ContextMenuPopup {
             game_screen_tx: tx,
             button_manager: button_manager,
             select_button_ids: select_button_ids,
@@ -141,8 +141,7 @@ impl ContextMenuPopup {
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
             options: options,
-        };
-        popup
+        }
     }
 
     fn handle_event_lmb_release(&mut self, context: &mut Context) {

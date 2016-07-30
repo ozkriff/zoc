@@ -10,7 +10,7 @@ pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 pub const MIN_LIFT_HEIGHT: ZFloat = 0.01;
 
 pub fn map_pos_to_world_pos(p: &MapPos) -> WorldPos {
-    let v = geom::map_pos_to_world_pos(&p).extend(0.0);
+    let v = geom::map_pos_to_world_pos(p).extend(0.0);
     WorldPos{v: v}
 }
 

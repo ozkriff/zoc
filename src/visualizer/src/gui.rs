@@ -61,7 +61,7 @@ impl Button {
         let indices = &[0,  1,  2,  1,  2,  3];
         let mesh = Mesh::new(context, vertices, indices, texture);
         Button {
-            pos: pos.clone(),
+            pos: *pos,
             size: Size2{w: w as ZInt, h: h as ZInt},
             mesh: mesh,
         }
@@ -121,7 +121,7 @@ impl ButtonManager {
 
     pub fn draw(&self, context: &mut Context) {
         let proj_mat = get_2d_screen_matrix(&context.win_size);
-        for (_, button) in self.buttons() {
+        for button in self.buttons().values() {
             let tr_mat = Matrix4::from_translation(Vector3 {
                 x: button.pos().v.x as ZFloat,
                 y: button.pos().v.y as ZFloat,
