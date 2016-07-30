@@ -877,7 +877,7 @@ impl TacticalScreen {
 
     fn draw_scene_nodes(&self, context: &mut Context) {
         for node in self.scene().nodes().values() {
-            let m = self.camera.mat();
+            let m = self.current_player_info().camera.mat();
             self.draw_scene_node(context, node, m);
         }
     }
