@@ -468,7 +468,7 @@ impl TacticalScreen {
     }
 
     fn add_marker(&mut self, pos: &WorldPos) {
-        for (_, player_info) in self.player_info.info.iter_mut() {
+        for (_, player_info) in &mut self.player_info.info {
             player_info.scene.add_node(SceneNode {
                 pos: pos.clone(),
                 rot: rad(0.0),
@@ -479,7 +479,7 @@ impl TacticalScreen {
     }
 
     fn add_map_objects(&mut self) {
-        for (_, player_info) in self.player_info.info.iter_mut() {
+        for (_, player_info) in &mut self.player_info.info {
             let state = &player_info.game_state;
             let map = state.map();
             for tile_pos in map.get_iter() {

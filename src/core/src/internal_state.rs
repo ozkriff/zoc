@@ -87,7 +87,7 @@ impl InternalState {
 
     /// Converts active ap (attack points) to reactive
     fn convert_ap(&mut self, db: &Db, player_id: &PlayerId) {
-        for (_, unit) in self.units.iter_mut() {
+        for (_, unit) in &mut self.units {
             let unit_type = db.unit_type(&unit.type_id);
             let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
             if unit.player_id != *player_id || !weapon_type.reaction_fire {
@@ -103,7 +103,7 @@ impl InternalState {
     }
 
     fn refresh_units(&mut self, db: &Db, player_id: &PlayerId) {
-        for (_, unit) in self.units.iter_mut() {
+        for (_, unit) in &mut self.units {
             if unit.player_id == *player_id {
                 let unit_type = db.unit_type(&unit.type_id);
                 unit.move_points = unit_type.move_points.clone();
