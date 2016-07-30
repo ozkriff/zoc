@@ -85,7 +85,7 @@ pub fn get_selection_mesh(context: &mut Context) -> Mesh {
         vertices.push(Vertex{pos: vertex_1_2.v.into(), uv: [0.0, 1.0]});
         vertices.push(Vertex{pos: vertex_2_1.v.into(), uv: [1.0, 0.0]});
         vertices.push(Vertex{pos: vertex_2_2.v.into(), uv: [1.0, 1.0]});
-        indices.extend_from_slice(&[i    , i + 1, i + 2, i + 1, i + 2, i + 3]);
+        indices.extend_from_slice(&[i, i + 1, i + 2, i + 1, i + 2, i + 3]);
         i += 4;
     }
     Mesh::new(context, &vertices, &indices, texture)

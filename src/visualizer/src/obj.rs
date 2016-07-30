@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::collections::{HashMap};
-use std::collections::hash_map::Entry;
+use std::collections::hash_map::{Entry};
 use std::fmt::{Debug};
 use std::io::{BufRead};
 use std::path::{Path};

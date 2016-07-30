@@ -423,8 +423,9 @@ fn check_attack<S: GameState>(
     if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !weapon_type.is_inderect && !los(state.map(), attacker_type, 
-                                        &attacker.pos.map_pos, &defender.pos.map_pos) {
+    if !weapon_type.is_inderect
+        && !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos)
+    {
         return Err(CommandError::NoLos);
     }
     Ok(())

@@ -115,9 +115,9 @@ fn gen_tiles<F: Fn(bool) -> bool>(
             });
         }
         indices.extend_from_slice(&[
-            i    , i + 1, i + 2,
-            i    , i + 2, i + 3,
-            i    , i + 3, i + 5,
+            i, i + 1, i + 2,
+            i, i + 2, i + 3,
+            i, i + 3, i + 5,
             i + 3, i + 4, i + 5,
         ]);
         i += 6;
