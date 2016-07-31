@@ -214,7 +214,7 @@ fn get_shell_mesh(context: &mut Context) -> Mesh {
         Vertex{pos: [w, l, 0.1], uv: [1.0, 0.0]},
         Vertex{pos: [w, -l, 0.1], uv: [1.0, 0.0]},
     ];
-    let indices = [0, 1, 2, 2, 3 ,4];
+    let indices = [0, 1, 2, 2, 3, 0];
     let texture_data = fs::load("shell.png").into_inner();
     let texture = load_texture(&mut context.factory, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
