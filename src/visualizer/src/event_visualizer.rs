@@ -88,6 +88,7 @@ fn show_unit_at(
     unit_info: &UnitInfo,
     mesh_id: &MeshId,
     marker_mesh_id: &MeshId,
+    shadow_mesh_id: &MeshId,
 ) {
     let world_pos = geom::exact_pos_to_world_pos(&unit_info.pos);
     let to = world_pos;
@@ -97,6 +98,12 @@ fn show_unit_at(
         pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
         rot: rad(0.0),
         mesh_id: Some(marker_mesh_id.clone()),
+        children: Vec::new(),
+    });
+    children.push(SceneNode {
+        pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 800.0)}, // TODO
+        rot: rad(0.0),
+        mesh_id: Some(shadow_mesh_id.clone()),
         children: Vec::new(),
     });
     scene.add_unit(&unit_info.unit_id, SceneNode {
@@ -147,10 +154,11 @@ impl EventCreateUnitVisualizer {
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
+        shadow_mesh_id: &MeshId,
     ) -> Box<EventVisualizer> {
         let to = geom::exact_pos_to_world_pos(&unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id, shadow_mesh_id);
         let move_helper = MoveHelper::new(&from, &to, 2.0);
         let node_id = scene.unit_id_to_node_id(&unit_info.unit_id);
         let new_node = scene.node_mut(&node_id);
@@ -320,10 +328,11 @@ impl EventShowUnitVisualizer {
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
+        shadow_mesh_id: &MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(&unit_info.pos, "spotted");
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id, shadow_mesh_id);
         Box::new(EventShowUnitVisualizer)
     }
 }
@@ -376,6 +385,7 @@ impl EventUnloadUnitVisualizer {
         unit_info: &UnitInfo,
         mesh_id: &MeshId,
         marker_mesh_id: &MeshId,
+        shadow_mesh_id: &MeshId,
         transporter_pos: &ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
@@ -383,7 +393,7 @@ impl EventUnloadUnitVisualizer {
         map_text.add_text(&unit_info.pos, "unloaded");
         let to = geom::exact_pos_to_world_pos(&unit_info.pos);
         let from = geom::exact_pos_to_world_pos(transporter_pos);
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id, shadow_mesh_id);
         let node_id = scene.unit_id_to_node_id(&unit_info.unit_id);
         let unit_node = scene.node_mut(&node_id);
         unit_node.pos = from;

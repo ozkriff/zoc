@@ -214,8 +214,22 @@ fn get_shell_mesh(context: &mut Context) -> Mesh {
         Vertex{pos: [w, l, 0.1], uv: [1.0, 0.0]},
         Vertex{pos: [w, -l, 0.1], uv: [1.0, 0.0]},
     ];
-    let indices = [0, 1, 2, 2, 3 ,4];
+    let indices = [0, 1, 2, 2, 3, 4];
     let texture_data = fs::load("shell.png").into_inner();
+    let texture = load_texture(&mut context.factory, &texture_data);
+    Mesh::new(context, &vertices, &indices, texture)
+}
+
+fn get_shadow_mesh(context: &mut Context) -> Mesh {
+    let n = 0.7; // TODO: HEX_EX_RADIUS
+    let vertices = [
+        Vertex{pos: [-n, -n, 0.1], uv: [0.0, 1.0]},
+        Vertex{pos: [-n, n, 0.1], uv: [0.0, 0.0]},
+        Vertex{pos: [n, -n, 0.1], uv: [1.0, 1.0]},
+        Vertex{pos: [n, n, 0.1], uv: [1.0, 0.0]},
+    ];
+    let indices = [0, 1, 2, 1, 2, 3];
+    let texture_data = fs::load("blob_shadow.png").into_inner();
     let texture = load_texture(&mut context.factory, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
 }
@@ -258,6 +272,7 @@ struct MeshIdManager {
     building_mesh_w_id: MeshId,
     trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
+    shadow_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
     marker_2_mesh_id: MeshId,
 }
@@ -387,8 +402,8 @@ impl TacticalScreen {
             &mut meshes, load_object_mesh(context, "building_wire"));
         let trees_mesh_id = add_mesh(
             &mut meshes, load_object_mesh(context, "trees"));
-        let shell_mesh_id = add_mesh(
-            &mut meshes, get_shell_mesh(context));
+        let shell_mesh_id = add_mesh(&mut meshes, get_shell_mesh(context));
+        let shadow_mesh_id = add_mesh(&mut meshes, get_shadow_mesh(context));
         let marker_1_mesh_id = add_mesh(
             &mut meshes, get_marker(context, "flag1.png"));
         let marker_2_mesh_id = add_mesh(
@@ -413,6 +428,7 @@ impl TacticalScreen {
             building_mesh_w_id: building_mesh_w_id,
             trees_mesh_id: trees_mesh_id,
             shell_mesh_id: shell_mesh_id,
+            shadow_mesh_id: shadow_mesh_id,
             marker_1_mesh_id: marker_1_mesh_id,
             marker_2_mesh_id: marker_2_mesh_id,
         };
@@ -883,7 +899,6 @@ impl TacticalScreen {
     }
 
     fn draw_map(&mut self, context: &mut Context) {
-        context.data.mvp = self.current_player_info().camera.mat().into();
         context.data.basic_color = [0.85, 0.85, 0.85, 1.0];
         context.draw_mesh(&self.visible_map_mesh);
         context.data.basic_color = [0.5, 0.5, 0.5, 1.0];
@@ -891,9 +906,9 @@ impl TacticalScreen {
     }
 
     fn draw_scene(&mut self, context: &mut Context, dtime: &Time) {
-        context.data.basic_color = [1.0, 1.0, 1.0, 1.0];
-        self.draw_scene_nodes(context);
+        context.data.mvp = self.current_player_info().camera.mat().into();
         self.draw_map(context);
+        // context.data.mvp = self.current_player_info().camera.mat().into();
         if let Some(ref walkable_mesh) = self.walkable_mesh {
             context.data.basic_color = [0.0, 0.0, 1.0, 1.0];
             context.draw_mesh(walkable_mesh);
@@ -902,6 +917,8 @@ impl TacticalScreen {
             context.data.basic_color = [1.0, 0.0, 0.0, 1.0];
             context.draw_mesh(targets_mesh);
         }
+        context.data.basic_color = [1.0, 1.0, 1.0, 1.0];
+        self.draw_scene_nodes(context);
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let player_info = self.player_info.get_mut(self.core.player_id());
             event_visualizer.draw(&mut player_info.scene, dtime);
@@ -967,7 +984,13 @@ impl TacticalScreen {
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, &unit_info.player_id);
                 EventCreateUnitVisualizer::new(
-                    self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
+                    self.core.db(),
+                    scene,
+                    unit_info,
+                    mesh_id,
+                    marker_mesh_id,
+                    &self.mesh_ids.shadow_mesh_id,
+                )
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 EventAttackUnitVisualizer::new(
@@ -989,6 +1012,7 @@ impl TacticalScreen {
                     unit_info,
                     mesh_id,
                     marker_mesh_id,
+                    &self.mesh_ids.shadow_mesh_id,
                     &mut self.map_text_manager,
                 )
             },
@@ -1026,6 +1050,7 @@ impl TacticalScreen {
                     unit_info,
                     mesh_id,
                     marker_mesh_id,
+                    &self.mesh_ids.shadow_mesh_id,
                     from,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
