@@ -64,7 +64,6 @@ impl MainMenuScreen {
         } else if *button_id == self.button_start_vs_ai_id {
             let core_options = core::Options {
                 game_type: core::GameType::SingleVsAi,
-                .. Default::default()
             };
             let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));

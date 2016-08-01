@@ -310,8 +310,8 @@ impl PlayerInfoManager {
     fn new(context: &Context, map_size: &Size2, options: &core::Options) -> PlayerInfoManager {
         let mut m = HashMap::new();
         let mut camera = Camera::new(&context.win_size);
-        camera.set_max_pos(get_max_camera_pos(&map_size));
-        camera.set_pos(get_initial_camera_pos(&map_size));
+        camera.set_max_pos(get_max_camera_pos(map_size));
+        camera.set_pos(get_initial_camera_pos(map_size));
         m.insert(PlayerId{id: 0}, PlayerInfo {
             game_state: PartialState::new(map_size, &PlayerId{id: 0}),
             pathfinder: Pathfinder::new(map_size),
@@ -598,7 +598,7 @@ impl TacticalScreen {
         let unit_ids = get_unit_ids_at(db, state, pos);
         if let Some(selected_unit_id) = self.selected_unit_id.clone() {
             for unit_id in &unit_ids {
-                let unit = state.unit(&unit_id);
+                let unit = state.unit(unit_id);
                 if unit.player_id == *self.core.player_id() {
                     if *unit_id == selected_unit_id {
                         // TODO: do not show both options if unit has no weapons
