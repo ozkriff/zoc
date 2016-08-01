@@ -18,7 +18,7 @@ use cgmath::{
     Point3,
 };
 use collision::{Plane, Ray, Intersect};
-use glutin::{self, VirtualKeyCode, Event, MouseButton};
+use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use types::{Size2, ZInt, ZFloat, Time};
 use core::map::{Map, Terrain, spiral_iter};
@@ -1206,17 +1206,14 @@ impl Screen for TacticalScreen {
             Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
                 let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
                 match phase {
-                    glutin::TouchPhase::Moved => {
+                    TouchPhase::Started | TouchPhase::Moved => {
                         self.handle_event_mouse_move(context, &pos);
                     },
-                    glutin::TouchPhase::Started => {
-                        self.handle_event_mouse_move(context, &pos);
-                    },
-                    glutin::TouchPhase::Ended => {
+                    TouchPhase::Ended => {
                         self.handle_event_mouse_move(context, &pos);
                         self.handle_event_lmb_release(context);
                     },
-                    glutin::TouchPhase::Cancelled => {
+                    TouchPhase::Cancelled => {
                         unimplemented!();
                     },
                 }
