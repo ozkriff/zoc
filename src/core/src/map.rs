@@ -191,9 +191,9 @@ impl Iterator for SpiralIter {
     }
 }
 
-pub fn distance<P: AsRef<MapPos>>(from: &P, to: &P) -> ZInt {
-    let to = to.as_ref().v;
-    let from = from.as_ref().v;
+pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
+    let to = to.v;
+    let from = from.v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);
     let dy = to.y - from.y;
     (dx.abs() + dy.abs() + (dx - dy).abs()) / 2

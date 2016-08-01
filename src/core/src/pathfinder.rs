@@ -8,7 +8,7 @@ use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
 use dir::{Dir, dirs};
-use ::{MovePoints, MapPos, ExactPos, SlotId, get_free_exact_pos};
+use ::{MovePoints, ExactPos, SlotId, ObjectClass, get_free_exact_pos};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -36,12 +36,15 @@ impl Default for Tile {
 pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Vec<ExactPos> {
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
-    for pos in path {
-        cost.n += tile_cost(db, state, unit, pos).n;
+    new_path.push(path[0].clone());
+    for window in path.windows(2) {
+        let from = &window[0];
+        let to = &window[1];
+        cost.n += tile_cost(db, state, unit, from, to).n;
         if cost.n > unit.move_points.n {
             break;
         }
-        new_path.push(pos.clone());
+        new_path.push(to.clone());
     }
     new_path
 }
@@ -50,10 +53,13 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos
     -> MovePoints
 {
     let mut cost = MovePoints{n: 0};
-    for node in path {
-        cost.n += tile_cost(db, state, unit, node).n;
+    for window in path.windows(2) {
+        let from = &window[0];
+        let to = &window[1];
+        cost.n += tile_cost(db, state, unit, from, to).n;
     }
     cost
+
 }
 
 // TODO: const (see https://github.com/rust-lang/rust/issues/24111 )
@@ -61,42 +67,69 @@ pub fn max_cost() -> MovePoints {
     MovePoints{n: ZInt::max_value()}
 }
 
-pub fn obstacles_count<S: GameState>(
-    state: &S,
-    pos: &MapPos,
-) -> ZInt {
-    let units = state.units_at(pos);
-    let objects = state.objects_at(pos);
-    let mut count = units.len() + objects.len();
-    for unit in &units {
-        for obj in &objects {
-            if unit.pos == obj.pos {
-                count -= 1;
+pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos, pos: &ExactPos)
+    -> MovePoints
+{
+    let unit_type = db.unit_type(&unit.type_id);
+    let map_pos = &pos.map_pos;
+    let objects = state.objects_at(map_pos);
+    let units = state.units_at(map_pos);
+    let mut unit_cost = 0;
+    let mut object_cost = 0;
+    'unit_loop: for unit in &units {
+        for object in &objects {
+            match object.pos.slot_id {
+                SlotId::Id(_) => if unit.pos == object.pos {
+                    assert_eq!(unit_type.class, UnitClass::Infantry);
+                    break 'unit_loop;
+                },
+                SlotId::TwoTiles(_) | SlotId::WholeTile => {
+                    break 'unit_loop;
+                },
+            }
+        }
+        unit_cost += 1;
+    }
+    let tile = state.map().tile(&pos);
+    let mut terrain_cost = match unit_type.class {
+        UnitClass::Infantry => match *tile {
+            Terrain::Plain | Terrain::City => 4,
+            Terrain::Trees => 5,
+        },
+        UnitClass::Vehicle => match *tile {
+            Terrain::Plain | Terrain::City => 4,
+            Terrain::Trees => 8,
+        },
+    };
+    for object in &objects {
+        if unit_type.class == UnitClass::Vehicle
+            && object.class == ObjectClass::Road
+        {
+            let mut i = object.pos.map_pos_iter();
+            let road_from = i.next().unwrap();
+            let road_to = i.next().unwrap();
+            assert!(road_from != road_to);
+            let is_road_pos_ok = road_from == from.map_pos
+                && road_to == pos.map_pos;
+            if is_road_pos_ok && !unit_type.is_big {
+                terrain_cost = 2; // TODO: ultrahardcoded value :(
             }
         }
     }
-    count as ZInt
-}
-
-pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, pos: &ExactPos)
-    -> MovePoints
-{
-    let obstacles_count = obstacles_count(state, &pos.map_pos);
-    let unit_type = db.unit_type(&unit.type_id);
-    let tile = state.map().tile(&pos);
-    let n = match unit_type.class {
-        UnitClass::Infantry => match *tile {
-            Terrain::Plain => 1,
-            Terrain::Trees => 2,
-            Terrain::City => 0,
-        },
-        UnitClass::Vehicle => match *tile {
-            Terrain::Plain => 1,
-            Terrain::Trees => 5,
-            Terrain::City => 0,
-        },
-    };
-    MovePoints{n: n + obstacles_count}
+    for object in &objects {
+        let cost = match unit_type.class {
+            UnitClass::Infantry => match object.class {
+                ObjectClass::Building => 1,
+                ObjectClass::Road => 0,
+            },
+            UnitClass::Vehicle => match object.class {
+                ObjectClass::Building => 2,
+                ObjectClass::Road => 0,
+            },
+        };
+        object_cost += cost;
+    }
+    MovePoints{n: terrain_cost + object_cost + unit_cost}
 }
 
 pub struct Pathfinder {
@@ -125,7 +158,7 @@ impl Pathfinder {
         neighbour_pos: &ExactPos
     ) {
         let old_cost = self.map.tile(&original_pos).cost.clone();
-        let tile_cost = tile_cost(db, state, unit, neighbour_pos);
+        let tile_cost = tile_cost(db, state, unit, original_pos, neighbour_pos);
         let tile = self.map.tile_mut(&neighbour_pos);
         let new_cost = MovePoints{n: old_cost.n + tile_cost.n};
         if tile.cost.n > new_cost.n {
@@ -194,14 +227,13 @@ impl Pathfinder {
     */
 
     pub fn get_path(&self, destination: &ExactPos) -> Option<Vec<ExactPos>> {
-        let mut path = Vec::new();
+        let mut path = vec![destination.clone()];
         let mut pos = destination.clone();
         if self.map.tile(&pos).cost.n == max_cost().n {
             return None;
         }
         while self.map.tile(&pos).cost.n != 0 {
             assert!(self.map.is_inboard(&pos));
-            path.push(pos.clone());
             let parent_dir = match *self.map.tile(&pos).parent() {
                 Some(ref dir) => dir,
                 None => return None,
@@ -211,6 +243,7 @@ impl Pathfinder {
                 map_pos: neighbour_map_pos.clone(),
                 slot_id: self.map.tile(&neighbour_map_pos).slot_id.clone(),
             };
+            path.push(pos.clone());
         }
         path.reverse();
         if path.is_empty() {

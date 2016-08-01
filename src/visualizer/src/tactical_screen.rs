@@ -39,6 +39,7 @@ use core::{
     MapPos,
     ExactPos,
     SlotId,
+    ObjectClass,
     check_command,
     get_unit_ids_at,
     find_next_player_unit_id,
@@ -221,6 +222,22 @@ fn get_shell_mesh(context: &mut Context) -> Mesh {
     Mesh::new(context, &vertices, &indices, texture)
 }
 
+fn get_road_mesh(context: &mut Context) -> Mesh {
+    let w = geom::HEX_EX_RADIUS * 0.3;
+    let l = geom::HEX_EX_RADIUS;
+    let h = geom::MIN_LIFT_HEIGHT / 2.0;
+    let vertices = [
+        Vertex{pos: [-w, -l, h], uv: [0.0, 0.0]},
+        Vertex{pos: [-w, l, h], uv: [0.0, 1.0]},
+        Vertex{pos: [w, l, h], uv: [1.0, 1.0]},
+        Vertex{pos: [w, -l, h], uv: [1.0, 0.0]},
+    ];
+    let indices = [0, 1, 2, 2, 3, 0];
+    let texture_data = fs::load("road.png").into_inner();
+    let texture = load_texture(&mut context.factory, &texture_data);
+    Mesh::new(context, &vertices, &indices, texture)
+}
+
 fn get_marker<P: AsRef<Path>>(context: &mut Context, tex_path: P) -> Mesh {
     let n = 0.2;
     let vertices = [
@@ -257,6 +274,7 @@ fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) -> 
 struct MeshIdManager {
     big_building_mesh_w_id: MeshId,
     building_mesh_w_id: MeshId,
+    road_mesh_id: MeshId,
     trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
     marker_1_mesh_id: MeshId,
@@ -390,6 +408,7 @@ impl TacticalScreen {
             &mut meshes, load_object_mesh(context, "trees"));
         let shell_mesh_id = add_mesh(
             &mut meshes, get_shell_mesh(context));
+        let road_mesh_id = add_mesh(&mut meshes, get_road_mesh(context));
         let marker_1_mesh_id = add_mesh(
             &mut meshes, get_marker(context, "flag1.png"));
         let marker_2_mesh_id = add_mesh(
@@ -413,6 +432,7 @@ impl TacticalScreen {
             big_building_mesh_w_id: big_building_mesh_w_id,
             building_mesh_w_id: building_mesh_w_id,
             trees_mesh_id: trees_mesh_id,
+            road_mesh_id: road_mesh_id,
             shell_mesh_id: shell_mesh_id,
             marker_1_mesh_id: marker_1_mesh_id,
             marker_2_mesh_id: marker_2_mesh_id,
@@ -484,6 +504,7 @@ impl TacticalScreen {
             let state = &player_info.game_state;
             let map = state.map();
             for tile_pos in map.get_iter() {
+                let objects = state.objects_at(&tile_pos);
                 if let Terrain::Trees = *map.tile(&tile_pos) {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
@@ -494,20 +515,37 @@ impl TacticalScreen {
                         children: Vec::new(),
                     });
                 }
-                if let Terrain::City = *map.tile(&tile_pos) {
-                    let objects = state.objects_at(&tile_pos);
-                    for object in objects {
-                        let pos = geom::exact_pos_to_world_pos(&object.pos);
-                        let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                        player_info.scene.add_node(SceneNode {
-                            pos: pos,
-                            rot: rot,
-                            mesh_id: Some(match object.pos.slot_id {
-                                SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
-                                SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
-                            }),
-                            children: Vec::new(),
-                        });
+                for object in objects {
+                    match object.class {
+                        ObjectClass::Building => {
+                            let pos = geom::exact_pos_to_world_pos(&object.pos);
+                            let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+                            player_info.scene.add_node(SceneNode {
+                                pos: pos,
+                                rot: rot,
+                                mesh_id: Some(match object.pos.slot_id {
+                                    SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
+                                    SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
+                                    SlotId::TwoTiles(_) => unimplemented!(),
+                                }),
+                                children: Vec::new(),
+                            });
+                        }
+                        ObjectClass::Road => {
+                            let pos = geom::exact_pos_to_world_pos(&object.pos);
+                            let rot = match object.pos.slot_id {
+                                SlotId::TwoTiles(ref dir) => {
+                                    rad(dir.to_int() as ZFloat * PI / 3.0 + PI / 6.0)
+                                },
+                                _ => panic!(),
+                            };
+                            player_info.scene.add_node(SceneNode {
+                                pos: pos,
+                                rot: rot,
+                                mesh_id: Some(self.mesh_ids.road_mesh_id.clone()),
+                                children: Vec::new(),
+                            });
+                        }
                     }
                 }
             }

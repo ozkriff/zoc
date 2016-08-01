@@ -7,6 +7,7 @@ use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use game_state::{GameState, GameStateMut};
+use dir::{Dir};
 use ::{
     CoreEvent,
     FireMode,
@@ -38,9 +39,16 @@ impl InternalState {
     pub fn new(map_size: &Size2) -> InternalState {
         let mut map = Map::new(map_size);
         // TODO: read from scenario.json?
+        *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 2}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 6}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 2, y: 6}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 1}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
         let mut state = InternalState {
             units: HashMap::new(),
             objects: HashMap::new(),
@@ -52,7 +60,45 @@ impl InternalState {
         state.add_big_building(&MapPos{v: Vector2{x: 6, y: 4}});
         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 5}}, 3);
         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 6}}, 1);
+        state.add_road(&[
+            MapPos{v: Vector2{x: 0, y: 1}},
+            MapPos{v: Vector2{x: 1, y: 1}},
+            MapPos{v: Vector2{x: 2, y: 1}},
+            MapPos{v: Vector2{x: 2, y: 2}},
+            MapPos{v: Vector2{x: 3, y: 2}},
+            MapPos{v: Vector2{x: 4, y: 2}},
+            MapPos{v: Vector2{x: 5, y: 2}},
+            MapPos{v: Vector2{x: 6, y: 3}},
+            MapPos{v: Vector2{x: 7, y: 3}},
+            MapPos{v: Vector2{x: 8, y: 3}},
+            MapPos{v: Vector2{x: 9, y: 3}},
+        ]);
+        state.add_road(&[
+            MapPos{v: Vector2{x: 2, y: 2}},
+            MapPos{v: Vector2{x: 3, y: 3}},
+            MapPos{v: Vector2{x: 3, y: 4}},
+            MapPos{v: Vector2{x: 3, y: 5}},
+            MapPos{v: Vector2{x: 3, y: 6}},
+            MapPos{v: Vector2{x: 4, y: 6}},
+            MapPos{v: Vector2{x: 5, y: 7}},
+        ]);
         state
+    }
+
+    fn add_road(&mut self, path: &[MapPos]) {
+        for window in path.windows(2) {
+            let from = &window[0];
+            let to = &window[1];
+            let dir = Dir::get_dir_from_to(from, to);
+            let object = Object {
+                class: ObjectClass::Road,
+                pos: ExactPos {
+                    map_pos: from.clone(),
+                    slot_id: SlotId::TwoTiles(dir),
+                },
+            };
+            self.add_object(object);
+        }
     }
 
     fn add_object(&mut self, object: Object) {

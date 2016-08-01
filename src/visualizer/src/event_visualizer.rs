@@ -208,7 +208,7 @@ impl EventAttackUnitVisualizer {
         if let Some(ref attacker_id) = attack_info.attacker_id {
             let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
             let attacker_pos = scene.node(&attacker_node_id).pos;
-            let attacker_map_pos = state.unit(attacker_id).pos.clone();
+            let attacker_map_pos = state.unit(attacker_id).pos.map_pos.clone();
             if let core::FireMode::Reactive = attack_info.mode {
                 map_text.add_text(&attacker_map_pos, "reaction fire");
             }
@@ -223,23 +223,26 @@ impl EventAttackUnitVisualizer {
                 &attacker_pos, &defender_pos, shell_speed));
         }
         if attack_info.is_ambush {
-            map_text.add_text(&defender.pos, "Ambushed");
+            map_text.add_text(&defender.pos.map_pos, "Ambushed");
         };
         let is_target_destroyed = defender.count - attack_info.killed <= 0;
         if attack_info.killed > 0 {
-            map_text.add_text(&defender.pos, &format!("-{}", attack_info.killed));
+            map_text.add_text(
+                &defender.pos.map_pos,
+                &format!("-{}", attack_info.killed),
+            );
         } else {
-            map_text.add_text(&defender.pos, "miss");
+            map_text.add_text(&defender.pos.map_pos, "miss");
         }
         let is_target_suppressed = defender.morale < 50
             && defender.morale + attack_info.suppression >= 50;
         if !is_target_destroyed {
             map_text.add_text(
-                &defender.pos,
+                &defender.pos.map_pos,
                 &format!("morale: -{}", attack_info.suppression),
             );
             if is_target_suppressed {
-                map_text.add_text(&defender.pos, "suppressed");
+                map_text.add_text(&defender.pos.map_pos, "suppressed");
             }
         }
         Box::new(EventAttackUnitVisualizer {
@@ -322,7 +325,7 @@ impl EventShowUnitVisualizer {
         marker_mesh_id: &MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        map_text.add_text(&unit_info.pos, "spotted");
+        map_text.add_text(&unit_info.pos.map_pos, "spotted");
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
         Box::new(EventShowUnitVisualizer)
     }
@@ -347,8 +350,8 @@ impl EventHideUnitVisualizer {
         unit_id: &UnitId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        let pos = state.unit(unit_id).pos.clone();
-        map_text.add_text(&pos, "lost");
+        let pos = &state.unit(unit_id).pos.map_pos;
+        map_text.add_text(pos, "lost");
         scene.remove_unit(unit_id);
         Box::new(EventHideUnitVisualizer)
     }
@@ -380,7 +383,7 @@ impl EventUnloadUnitVisualizer {
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        map_text.add_text(&unit_info.pos, "unloaded");
+        map_text.add_text(&unit_info.pos.map_pos, "unloaded");
         let to = geom::exact_pos_to_world_pos(&unit_info.pos);
         let from = geom::exact_pos_to_world_pos(transporter_pos);
         show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
@@ -424,7 +427,7 @@ impl EventLoadUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         let unit_pos = &state.unit(unit_id).pos;
-        map_text.add_text(unit_pos, "loaded");
+        map_text.add_text(&unit_pos.map_pos, "loaded");
         let from = geom::exact_pos_to_world_pos(unit_pos);
         let to = geom::exact_pos_to_world_pos(transporter_pos);
         let passenger_node_id = scene.unit_id_to_node_id(unit_id);
@@ -463,7 +466,7 @@ impl EventSetReactionFireModeVisualizer {
         mode: &ReactionFireMode,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
-        let unit_pos = &state.unit(unit_id).pos;
+        let unit_pos = &state.unit(unit_id).pos.map_pos;
         match *mode {
             ReactionFireMode::Normal => {
                 map_text.add_text(unit_pos, "Normal fire mode");

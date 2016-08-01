@@ -15,11 +15,14 @@ pub trait GameState {
         &self.units()[id]
     }
 
+    // TODO: Return iterator not vector
     fn units_at(&self, pos: &MapPos) -> Vec<&Unit> {
         let mut units = Vec::new();
         for unit in self.units().values() {
-            if unit.pos.map_pos == *pos {
-                units.push(unit);
+            for map_pos in unit.pos.map_pos_iter() {
+                if map_pos == *pos {
+                    units.push(unit);
+                }
             }
         }
         units
@@ -28,8 +31,10 @@ pub trait GameState {
     fn objects_at(&self, pos: &MapPos) -> Vec<&Object> {
         let mut objects = Vec::new();
         for object in self.objects().values() {
-            if object.pos.map_pos == *pos {
-                objects.push(object);
+            for map_pos in object.pos.map_pos_iter() {
+                if map_pos == *pos {
+                    objects.push(object);
+                }
             }
         }
         objects

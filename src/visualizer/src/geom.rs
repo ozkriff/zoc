@@ -3,6 +3,7 @@
 use std::f32::consts::{PI};
 use cgmath::{Vector3, Rad, Angle, rad};
 use core::{ExactPos, MapPos, SlotId, geom};
+use core::dir::{Dir};
 use types::{ZInt, ZFloat, VertexCoord, WorldPos};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
@@ -17,6 +18,12 @@ pub fn map_pos_to_world_pos(p: &MapPos) -> WorldPos {
 pub fn exact_pos_to_world_pos(p: &ExactPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(&p.map_pos).extend(0.0);
     match p.slot_id {
+        SlotId::TwoTiles(ref dir) => {
+            // TODO: employ index_to_circle_vertex_rnd
+            let p2 = Dir::get_neighbour_pos(&p.map_pos, dir);
+            let v2 = geom::map_pos_to_world_pos(&p2).extend(0.0);
+            WorldPos{v: (v + v2) / 2.0}
+        }
         SlotId::WholeTile => {
             WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, &p.map_pos).v * 0.2}
         }

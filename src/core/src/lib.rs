@@ -36,6 +36,7 @@ use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
 use fov::{fov};
+use dir::{Dir};
 
 #[derive(Clone)]
 pub struct MovePoints{pub n: ZInt}
@@ -62,6 +63,7 @@ impl fmt::Display for MapPos {
 pub enum SlotId {
     Id(u8),
     WholeTile,
+    TwoTiles(Dir),
     // Air, // TODO: implement air units
 }
 
@@ -71,6 +73,48 @@ pub struct ExactPos {
     pub slot_id: SlotId,
 }
 
+pub struct ExactPosIter<'a> {
+    p: &'a ExactPos,
+    i: u8,
+}
+
+impl ExactPos {
+    pub fn map_pos_iter(&self) -> ExactPosIter {
+        ExactPosIter {
+            p: self,
+            i: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for ExactPosIter<'a> {
+    type Item = MapPos;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_pos = match self.p.slot_id {
+            SlotId::Id(_) | SlotId::WholeTile => {
+                if self.i == 0 {
+                    Some(self.p.map_pos.clone())
+                } else {
+                    None
+                }
+            }
+            SlotId::TwoTiles(ref dir) => {
+                if self.i == 0 {
+                    Some(self.p.map_pos.clone())
+                } else if self.i == 1 {
+                    Some(Dir::get_neighbour_pos(&self.p.map_pos, dir))
+                } else {
+                    None
+                }
+            }
+        };
+        self.i += 1;
+        next_pos
+    }
+}
+
+// TODO: return iterator?
 impl AsRef<MapPos> for ExactPos {
     fn as_ref(&self) -> &MapPos {
         &self.map_pos
@@ -86,6 +130,7 @@ impl AsRef<MapPos> for MapPos {
 #[derive(Debug, PartialEq, Clone)]
 pub enum ObjectClass {
     Building,
+    Road,
 }
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
@@ -417,10 +462,10 @@ fn check_attack<S: GameState>(
     }
     let attacker_type = db.unit_type(&attacker.type_id);
     let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-    if distance(&attacker.pos, &defender.pos) > weapon_type.max_distance {
+    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) > weapon_type.max_distance {
         return Err(CommandError::OutOfRange);
     }
-    if distance(&attacker.pos, &defender.pos) < weapon_type.min_distance {
+    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
     if !weapon_type.is_inderect
@@ -450,7 +495,8 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::BadUnitId);
             }
             let unit = state.unit(unit_id);
-            for pos in path {
+            for window in path.windows(2) {
+                let pos = &window[1];
                 if !is_exact_pos_free(db, state, &unit.type_id, pos) {
                     return Err(CommandError::BadPath);
                 }
@@ -481,7 +527,6 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::BadPassengerId);
             }
             let passenger = state.unit(passenger_id);
-            let pos = passenger.pos.clone();
             let transporter = state.unit(transporter_id);
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
@@ -495,7 +540,7 @@ pub fn check_command<S: GameState>(
             if transporter.passenger_id.is_some() {
                 return Err(CommandError::TransporterIsNotEmpty);
             }
-            if distance(&transporter.pos, &pos) > 1 {
+            if distance(&transporter.pos.map_pos, &passenger.pos.map_pos) > 1 {
                 return Err(CommandError::TransporterIsTooFarAway);
             }
             // TODO: 0 -> real move cost of transport tile for passenger
@@ -516,7 +561,7 @@ pub fn check_command<S: GameState>(
             if !db.unit_type(&transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
-            if distance(&transporter.pos, pos) > 1 {
+            if distance(&transporter.pos.map_pos, &pos.map_pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
             if let None = transporter.passenger_id {
@@ -660,7 +705,13 @@ pub fn get_free_slot_id<S: GameState>(
     let units_at = state.units_at(pos);
     let unit_type = db.unit_type(type_id);
     if unit_type.is_big {
-        if units_at.is_empty() && objects_at.is_empty() {
+        for object in &objects_at {
+            match object.class {
+                ObjectClass::Building => return None,
+                ObjectClass::Road => {},
+            }
+        }
+        if units_at.is_empty() {
             return Some(SlotId::WholeTile);
         } else {
             return None;
@@ -670,7 +721,7 @@ pub fn get_free_slot_id<S: GameState>(
     for unit in &units_at {
         match unit.pos.slot_id {
             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
-            SlotId::WholeTile => return None,
+            SlotId::WholeTile | SlotId::TwoTiles(_) => return None,
         }
     }
     if unit_type.class == UnitClass::Vehicle {
@@ -680,6 +731,7 @@ pub fn get_free_slot_id<S: GameState>(
                     slots[slot_id as usize] = true;
                 },
                 SlotId::WholeTile => return None,
+                SlotId::TwoTiles(_) => {},
             }
         }
     }
@@ -709,7 +761,7 @@ pub fn is_exact_pos_free<S: GameState>(
                     return false;
                 }
             }
-            &SlotId::WholeTile => return false,
+            &SlotId::WholeTile | &SlotId::TwoTiles(_) => return false,
         }
     }
     true
@@ -986,17 +1038,19 @@ impl Core {
             Command::Move{unit_id, path, mode} => {
                 let player_id = self.state.unit(&unit_id).player_id.clone();
                 let is_careful_move = mode == MoveMode::Hunt;
-                for pos in path {
+                for window in path.windows(2) {
+                    let from = &window[0];
+                    let to = &window[1];
                     let event = {
                         let unit = self.state.unit(&unit_id);
                         let cost = MovePoints {
-                            n: tile_cost(&self.db, &self.state, unit, &pos).n
+                            n: tile_cost(&self.db, &self.state, unit, from, to).n
                                 * move_cost_modifier(&mode)
                         };
                         CoreEvent::Move {
                             unit_id: unit_id.clone(),
-                            from: unit.pos.clone(),
-                            to: pos.clone(),
+                            from: from.clone(),
+                            to: to.clone(),
                             mode: mode.clone(),
                             cost: cost,
                         }
