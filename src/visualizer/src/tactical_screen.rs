@@ -208,11 +208,12 @@ fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit
 fn get_shell_mesh(context: &mut Context) -> Mesh {
     let w = 0.05;
     let l = w * 3.0;
+    let h = 0.1;
     let vertices = [
-        Vertex{pos: [-w, -l, 0.1], uv: [0.0, 0.0]},
-        Vertex{pos: [-w, l, 0.1], uv: [0.0, 1.0]},
-        Vertex{pos: [w, l, 0.1], uv: [1.0, 0.0]},
-        Vertex{pos: [w, -l, 0.1], uv: [1.0, 0.0]},
+        Vertex{pos: [-w, -l, h], uv: [0.0, 0.0]},
+        Vertex{pos: [-w, l, h], uv: [0.0, 1.0]},
+        Vertex{pos: [w, l, h], uv: [1.0, 0.0]},
+        Vertex{pos: [w, -l, h], uv: [1.0, 0.0]},
     ];
     let indices = [0, 1, 2, 2, 3, 0];
     let texture_data = fs::load("shell.png").into_inner();
