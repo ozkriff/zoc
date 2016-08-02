@@ -24,7 +24,7 @@ use rand::{thread_rng, Rng};
 use std::{cmp, fmt};
 use std::collections::{HashMap, HashSet, VecDeque};
 use cgmath::{Vector2};
-use types::{Size2, ZInt};
+use types::{Size2};
 use misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
@@ -39,19 +39,19 @@ use fov::{fov};
 use dir::{Dir};
 
 #[derive(Clone)]
-pub struct MovePoints{pub n: ZInt}
+pub struct MovePoints{pub n: i32}
 
 #[derive(Clone)]
-pub struct AttackPoints{pub n: ZInt}
+pub struct AttackPoints{pub n: i32}
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
-pub struct PlayerId{pub id: ZInt}
+pub struct PlayerId{pub id: i32}
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct UnitId{pub id: ZInt}
+pub struct UnitId{pub id: i32}
 
 #[derive(PartialEq, Clone, Debug)]
-pub struct MapPos{pub v: Vector2<ZInt>}
+pub struct MapPos{pub v: Vector2<i32>}
 
 impl fmt::Display for MapPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -135,7 +135,7 @@ pub enum ObjectClass {
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub struct ObjectId {
-    pub id: ZInt,
+    pub id: i32,
 }
 
 #[derive(Debug)]
@@ -198,8 +198,8 @@ pub struct AttackInfo {
     pub attacker_id: Option<UnitId>,
     pub defender_id: UnitId,
     pub mode: FireMode,
-    pub killed: ZInt,
-    pub suppression: ZInt,
+    pub killed: i32,
+    pub suppression: i32,
     pub remove_move_points: bool,
     pub is_ambush: bool,
     pub is_inderect: bool,
@@ -250,7 +250,7 @@ pub enum CoreEvent {
 
 pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
 
-pub fn move_cost_modifier(mode: &MoveMode) -> ZInt {
+pub fn move_cost_modifier(mode: &MoveMode) -> i32 {
     match *mode {
         MoveMode::Fast => 1,
         MoveMode::Hunt => 2,
@@ -842,7 +842,7 @@ impl Core {
         self.state.map().size()
     }
 
-    fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> ZInt {
+    fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> i32 {
         let hit = self.hit_test(attacker, defender);
         if !hit {
             return 0;
@@ -857,7 +857,7 @@ impl Core {
     }
 
     fn hit_test(&self, attacker: &Unit, defender: &Unit) -> bool {
-        fn test(needed: ZInt) -> bool {
+        fn test(needed: i32) -> bool {
             thread_rng().gen_range(-5, 5) < needed
         }
         let attacker_type = self.db.unit_type(&attacker.type_id);
@@ -1000,7 +1000,7 @@ impl Core {
 
     pub fn next_player_id(&self, id: &PlayerId) -> PlayerId {
         let old_id = id.id;
-        let max_id = self.players.len() as ZInt;
+        let max_id = self.players.len() as i32;
         PlayerId{id: if old_id + 1 == max_id {
             0
         } else {

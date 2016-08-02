@@ -3,15 +3,15 @@
 use std::collections::{HashMap};
 use cgmath::{Rad};
 use core::{UnitId};
-use types::{ZInt, ZFloat, WorldPos};
+use types::{WorldPos};
 use mesh::{MeshId};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct NodeId{pub id: ZInt}
+pub struct NodeId{pub id: i32}
 
 pub struct SceneNode {
     pub pos: WorldPos,
-    pub rot: Rad<ZFloat>,
+    pub rot: Rad<f32>,
     pub mesh_id: Option<MeshId>,
     pub children: Vec<SceneNode>,
 }

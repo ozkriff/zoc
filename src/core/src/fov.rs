@@ -4,17 +4,16 @@
 
 use std::f32::consts::{PI};
 use cgmath::{InnerSpace};
-use types::{ZInt, ZFloat};
 use map::{Map, Terrain, distance, spiral_iter};
 use geom;
 use ::{MapPos};
 
 struct Shadow {
-    left: ZFloat,
-    right: ZFloat,
+    left: f32,
+    right: f32,
 }
 
-fn is_tile_visible(angle: ZFloat, shadows: &[Shadow]) -> bool {
+fn is_tile_visible(angle: f32, shadows: &[Shadow]) -> bool {
     for shadow in shadows {
         if shadow.left < angle && shadow.right > angle {
             return false;
@@ -35,7 +34,7 @@ fn is_obstacle(terrain: &Terrain) -> bool {
 pub fn fov(
     map: &Map<Terrain>,
     origin: &MapPos,
-    range: ZInt,
+    range: i32,
     callback: &mut FnMut(&MapPos),
 ) {
     callback(origin);

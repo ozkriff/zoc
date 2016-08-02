@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use types::{Size2, ZInt};
+use types::{Size2};
 use internal_state::{InternalState};
 use game_state::{GameState};
 use map::{Map, Terrain, distance};
@@ -54,7 +54,7 @@ pub fn fov_unit_in_pos(
     );
 }
 
-fn calc_visibility(terrain: &Terrain, unit_type: &UnitType, distance: &ZInt)
+fn calc_visibility(terrain: &Terrain, unit_type: &UnitType, distance: &i32)
     -> TileVisibility
 {
     if *distance <= unit_type.cover_los_range {

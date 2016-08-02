@@ -11,7 +11,7 @@ use gfx;
 use gfx_gl;
 use gfx_glutin;
 use screen::{ScreenCommand};
-use types::{Size2, ZInt, ScreenPos};
+use types::{Size2, ScreenPos};
 use texture::{load_texture_raw};
 use pipeline::{pipe};
 use fs;
@@ -45,7 +45,7 @@ fn new_pso(
 
 fn get_win_size(window: &glutin::Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
-    Size2{w: w as ZInt, h: h as ZInt}
+    Size2{w: w as i32, h: h as i32}
 }
 
 pub struct MouseState {
@@ -177,7 +177,7 @@ impl Context {
                 self.mouse.is_right_button_pressed = false;
             },
             Event::Resized(w, h) => {
-                self.win_size = Size2{w: w as ZInt, h: h as ZInt};
+                self.win_size = Size2{w: w as i32, h: h as i32};
                 gfx_glutin::update_views(
                     &self.window,
                     &mut self.data.out,
@@ -191,11 +191,11 @@ impl Context {
     pub fn handle_event_post(&mut self, event: &glutin::Event) {
         match *event {
             Event::MouseMoved(x, y) => {
-                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.mouse.pos = pos;
             },
             Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
-                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 match phase {
                     glutin::TouchPhase::Moved => {
                         self.mouse.pos = pos;

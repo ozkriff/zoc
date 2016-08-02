@@ -1,6 +1,5 @@
 // See LICENSE file for copyright and license details.
 
-use types::{ZInt};
 use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 use ::{MovePoints, AttackPoints};
 
@@ -9,7 +8,7 @@ fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
 {
     for (id, weapon_type) in weapon_types.iter().enumerate() {
         if weapon_type.name == name {
-            return WeaponTypeId{id: id as ZInt};
+            return WeaponTypeId{id: id as i32};
         }
     }
     panic!("No weapon type with name \"{}\"", name);
@@ -330,7 +329,7 @@ impl Db {
     fn unit_type_id_opt(&self, name: &str) -> Option<UnitTypeId> {
         for (id, unit_type) in self.unit_types.iter().enumerate() {
             if unit_type.name == name {
-                return Some(UnitTypeId{id: id as ZInt});
+                return Some(UnitTypeId{id: id as i32});
             }
         }
         None

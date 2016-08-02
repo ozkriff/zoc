@@ -1,7 +1,6 @@
 // See LICENSE file for copyright and license details.
 
 use cgmath::{Vector2};
-use types::{ZInt};
 use ::{MapPos};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -14,7 +13,7 @@ pub enum Dir {
     SouthWest,
 }
 
-const DIR_TO_POS_DIFF: [[Vector2<ZInt>; 6]; 2] = [
+const DIR_TO_POS_DIFF: [[Vector2<i32>; 6]; 2] = [
     [
         Vector2{x: 1, y: -1},
         Vector2{x: 1, y: 0},
@@ -34,7 +33,7 @@ const DIR_TO_POS_DIFF: [[Vector2<ZInt>; 6]; 2] = [
 ];
 
 impl Dir {
-    pub fn from_int(n: ZInt) -> Dir {
+    pub fn from_int(n: i32) -> Dir {
         assert!(n >= 0 && n < 6);
         let dirs = [
             Dir::SouthEast,
@@ -47,7 +46,7 @@ impl Dir {
         dirs[n as usize].clone()
     }
 
-    pub fn to_int(&self) -> ZInt {
+    pub fn to_int(&self) -> i32 {
         match *self {
             Dir::SouthEast => 0,
             Dir::East => 1,
@@ -82,7 +81,7 @@ impl Dir {
 }
 
 pub struct DirIter {
-    index: ZInt,
+    index: i32,
 }
 
 pub fn dirs() -> DirIter {

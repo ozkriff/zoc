@@ -3,7 +3,7 @@
 use std::collections::{HashMap, VecDeque};
 use cgmath::{Matrix4, Matrix3};
 use core::{MapPos};
-use types::{ZInt, Time};
+use types::{Time};
 use camera::Camera;
 use geom;
 use move_helper::{MoveHelper};
@@ -26,8 +26,8 @@ struct MapText {
 
 pub struct MapTextManager {
     commands: VecDeque<ShowTextCommand>,
-    visible_labels_list: HashMap<ZInt, MapText>,
-    last_label_id: ZInt, // TODO: think about better way of deleting old labels
+    visible_labels_list: HashMap<i32, MapText>,
+    last_label_id: i32, // TODO: think about better way of deleting old labels
 }
 
 impl MapTextManager {

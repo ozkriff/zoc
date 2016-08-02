@@ -1,10 +1,9 @@
 // See LICENSE file for copyright and license details.
 
-use types::{ZInt};
 use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct UnitTypeId{pub id: ZInt}
+pub struct UnitTypeId{pub id: i32}
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum UnitClass {
@@ -21,40 +20,40 @@ pub struct Unit {
     pub attack_points: AttackPoints,
     pub reactive_attack_points: Option<AttackPoints>,
     pub reaction_fire_mode: ReactionFireMode,
-    pub count: ZInt,
-    pub morale: ZInt,
+    pub count: i32,
+    pub morale: i32,
     pub passenger_id: Option<UnitId>,
 }
 
 pub struct WeaponType {
     pub name: String,
-    pub damage: ZInt,
-    pub ap: ZInt,
-    pub accuracy: ZInt,
-    pub max_distance: ZInt,
-    pub min_distance: ZInt,
+    pub damage: i32,
+    pub ap: i32,
+    pub accuracy: i32,
+    pub max_distance: i32,
+    pub min_distance: i32,
     pub is_inderect: bool,
     pub reaction_fire: bool,
 }
 
 #[derive(Clone)]
-pub struct WeaponTypeId{pub id: ZInt}
+pub struct WeaponTypeId{pub id: i32}
 
 #[derive(Clone)]
 pub struct UnitType {
     pub name: String,
     pub class: UnitClass,
-    pub count: ZInt,
-    pub size: ZInt,
-    pub armor: ZInt,
-    pub toughness: ZInt,
-    pub weapon_skill: ZInt,
+    pub count: i32,
+    pub size: i32,
+    pub armor: i32,
+    pub toughness: i32,
+    pub weapon_skill: i32,
     pub weapon_type_id: WeaponTypeId,
     pub move_points: MovePoints,
     pub attack_points: AttackPoints,
     pub reactive_attack_points: AttackPoints,
-    pub los_range: ZInt,
-    pub cover_los_range: ZInt,
+    pub los_range: i32,
+    pub cover_los_range: i32,
     pub is_transporter: bool,
     pub is_big: bool,
 }

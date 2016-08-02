@@ -20,7 +20,7 @@ use cgmath::{
 use collision::{Plane, Ray, Intersect};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
-use types::{Size2, ZInt, ZFloat, Time};
+use types::{Size2, Time};
 use core::map::{Map, Terrain, spiral_iter};
 use core::dir::{Dir, dirs};
 use core::partial_state::{PartialState};
@@ -283,7 +283,7 @@ struct MeshIdManager {
 
 fn add_mesh(meshes: &mut Vec<Mesh>, mesh: Mesh) -> MeshId {
     meshes.push(mesh);
-    MeshId{id: (meshes.len() as ZInt) - 1}
+    MeshId{id: (meshes.len() as i32) - 1}
 }
 
 fn get_unit_type_visual_info(
@@ -419,7 +419,7 @@ impl TacticalScreen {
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
             Button::new(context, "end turn", &pos));
-        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as ZFloat * 1.2) as ZInt; // TODO
+        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
         let button_deselect_unit_id = button_manager.add_button(
             Button::new(context, "[X]", &pos));
         pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
@@ -471,10 +471,10 @@ impl TacticalScreen {
         let camera = &self.current_player_info().camera;
         let im = camera.mat().invert()
             .expect("Can`t invert camera matrix");
-        let w = context.win_size.w as ZFloat;
-        let h = context.win_size.h as ZFloat;
-        let x = context.mouse().pos.v.x as ZFloat;
-        let y = context.mouse().pos.v.y as ZFloat;
+        let w = context.win_size.w as f32;
+        let h = context.win_size.h as f32;
+        let x = context.mouse().pos.v.x as f32;
+        let y = context.mouse().pos.v.y as f32;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
         let p0_raw = im * Vector4{x: x, y: y, z: 0.0, w: 1.0};
@@ -535,7 +535,7 @@ impl TacticalScreen {
                             let pos = geom::exact_pos_to_world_pos(&object.pos);
                             let rot = match object.pos.slot_id {
                                 SlotId::TwoTiles(ref dir) => {
-                                    rad(dir.to_int() as ZFloat * PI / 3.0 + PI / 6.0)
+                                    rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
                                 },
                                 _ => panic!(),
                             };
@@ -746,21 +746,21 @@ impl TacticalScreen {
     fn handle_camera_move(&mut self, context: &Context, pos: &ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
-        let per_x_pixel = camera_move_speed / (context.win_size.w as ZFloat);
-        let per_y_pixel = camera_move_speed / (context.win_size.h as ZFloat);
+        let per_x_pixel = camera_move_speed / (context.win_size.w as f32);
+        let per_y_pixel = camera_move_speed / (context.win_size.h as f32);
         let camera = &mut self.current_player_info_mut().camera;
-        camera.move_camera(rad(PI), diff.x as ZFloat * per_x_pixel);
-        camera.move_camera(rad(PI * 1.5), diff.y as ZFloat * per_y_pixel);
+        camera.move_camera(rad(PI), diff.x as f32 * per_x_pixel);
+        camera.move_camera(rad(PI * 1.5), diff.y as f32 * per_y_pixel);
     }
 
     fn handle_camera_rotate(&mut self, context: &Context, pos: &ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
-        let per_x_pixel = PI / (context.win_size.w as ZFloat);
+        let per_x_pixel = PI / (context.win_size.w as f32);
         // TODO: get max angles from camera
-        let per_y_pixel = (PI / 4.0) / (context.win_size.h as ZFloat);
+        let per_y_pixel = (PI / 4.0) / (context.win_size.h as f32);
         let camera = &mut self.current_player_info_mut().camera;
-        camera.add_horizontal_angle(rad(diff.x as ZFloat * per_x_pixel));
-        camera.add_vertical_angle(rad(diff.y as ZFloat * per_y_pixel));
+        camera.add_horizontal_angle(rad(diff.x as f32 * per_x_pixel));
+        camera.add_vertical_angle(rad(diff.y as f32 * per_y_pixel));
     }
 
     fn handle_event_mouse_move(&mut self, context: &Context, pos: &ScreenPos) {
@@ -894,7 +894,7 @@ impl TacticalScreen {
         &self,
         context: &mut Context,
         node: &SceneNode,
-        m: Matrix4<ZFloat>,
+        m: Matrix4<f32>,
     ) {
         let tr_mat = Matrix4::from_translation(node.pos.v);
         let rot_mat = Matrix4::from(Matrix3::from_angle_z(node.rot));
@@ -960,8 +960,8 @@ impl TacticalScreen {
     fn pick_tile(&mut self, context: &Context) -> Option<MapPos> {
         let p = self.pick_world_pos(context);
         let origin = MapPos{v: Vector2 {
-            x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as ZInt,
-            y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as ZInt,
+            x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as i32,
+            y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as i32,
         }};
         let origin_world_pos = geom::map_pos_to_world_pos(&origin);
         let mut closest_map_pos = origin.clone();
@@ -1233,7 +1233,7 @@ impl Screen for TacticalScreen {
                 }
             },
             Event::MouseMoved(x, y) => {
-                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.handle_event_mouse_move(context, &pos);
             },
             Event::MouseInput(Released, MouseButton::Left) => {
@@ -1243,7 +1243,7 @@ impl Screen for TacticalScreen {
                 self.handle_event_key_press(context, key);
             },
             Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
-                let pos = ScreenPos{v: Vector2{x: x as ZInt, y: y as ZInt}};
+                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 match phase {
                     TouchPhase::Started | TouchPhase::Moved => {
                         self.handle_event_mouse_move(context, &pos);

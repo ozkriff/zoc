@@ -8,7 +8,7 @@ use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
-use types::{ZFloat, ZInt, WorldPos, Time};
+use types::{WorldPos, Time};
 use mesh::{MeshId};
 use geom;
 use scene::{Scene, SceneNode, NodeId};
@@ -175,13 +175,13 @@ impl EventVisualizer for EventCreateUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
-fn vec3_z(z: ZFloat) -> Vector3<ZFloat> {
+fn vec3_z(z: f32) -> Vector3<f32> {
     Vector3{x: 0.0, y: 0.0, z: z}
 }
 
 pub struct EventAttackUnitVisualizer {
     defender_node_id: NodeId,
-    killed: ZInt,
+    killed: i32,
     is_target_destroyed: bool,
     move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,

@@ -1,7 +1,7 @@
 // See LICENSE file for copyright and license details.
 
 use std::default::{Default};
-use types::{ZInt, Size2};
+use types::{Size2};
 use db::{Db};
 use unit::{Unit, UnitClass};
 use map::{Map, Terrain};
@@ -64,7 +64,7 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos
 
 // TODO: const (see https://github.com/rust-lang/rust/issues/24111 )
 pub fn max_cost() -> MovePoints {
-    MovePoints{n: ZInt::max_value()}
+    MovePoints{n: i32::max_value()}
 }
 
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos, pos: &ExactPos)

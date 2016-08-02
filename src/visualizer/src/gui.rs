@@ -4,7 +4,7 @@ use std::collections::{HashMap};
 use cgmath::{Vector3, Matrix4, ortho};
 use context::{Context};
 use texture::{load_texture_raw};
-use types::{ZInt, Size2, ZFloat, ScreenPos};
+use types::{Size2, ScreenPos};
 use text;
 use mesh::{Mesh};
 use pipeline::{Vertex};
@@ -20,24 +20,24 @@ pub fn is_tap(context: &Context) -> bool {
     x.abs() < tolerance && y.abs() < tolerance
 }
 
-pub fn basic_text_size(context: &Context) -> ZFloat {
+pub fn basic_text_size(context: &Context) -> f32 {
     // TODO: use different value for android
     let lines_per_screen_h = 12.0;
-    (context.win_size.h as ZFloat) / lines_per_screen_h
+    (context.win_size.h as f32) / lines_per_screen_h
 }
 
-pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<ZFloat> {
+pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<f32> {
     let left = 0.0;
-    let right = win_size.w as ZFloat;
+    let right = win_size.w as f32;
     let bottom = 0.0;
-    let top = win_size.h as ZFloat;
+    let top = win_size.h as f32;
     let near = -1.0;
     let far = 1.0;
     ortho(left, right, bottom, top, near, far)
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub struct ButtonId {pub id: ZInt}
+pub struct ButtonId {pub id: i32}
 
 pub struct Button {
     pos: ScreenPos,
@@ -62,7 +62,7 @@ impl Button {
         let mesh = Mesh::new(context, vertices, indices, texture);
         Button {
             pos: *pos,
-            size: Size2{w: w as ZInt, h: h as ZInt},
+            size: Size2{w: w as i32, h: h as i32},
             mesh: mesh,
         }
     }
@@ -123,8 +123,8 @@ impl ButtonManager {
         let proj_mat = get_2d_screen_matrix(&context.win_size);
         for button in self.buttons().values() {
             let tr_mat = Matrix4::from_translation(Vector3 {
-                x: button.pos().v.x as ZFloat,
-                y: button.pos().v.y as ZFloat,
+                x: button.pos().v.x as f32,
+                y: button.pos().v.y as f32,
                 z: 0.0,
             });
             context.data.mvp = (proj_mat * tr_mat).into();

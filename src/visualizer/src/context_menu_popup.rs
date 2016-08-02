@@ -5,7 +5,7 @@ use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{UnitId, ExactPos};
-use types::{ZInt, Time, ScreenPos};
+use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
@@ -83,9 +83,9 @@ impl ContextMenuPopup {
         let mut disable_reaction_fire_button_id = None;
         let mut pos = *pos;
         let text_size = basic_text_size(context);
-        pos.v.y -= text_size as ZInt / 2;
-        pos.v.x -= text_size as ZInt / 2;
-        let vstep = (text_size * 0.9) as ZInt;
+        pos.v.y -= text_size as i32 / 2;
+        pos.v.x -= text_size as i32 / 2;
+        let vstep = (text_size * 0.9) as i32;
         for unit_id in &options.selects {
             let button_id = button_manager.add_button(
                 Button::new(context, &format!("select <{}>", unit_id.id), &pos));

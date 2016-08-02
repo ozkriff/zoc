@@ -3,7 +3,7 @@
 use std::default::{Default};
 use std::iter::{repeat};
 use cgmath::{Vector2, Array};
-use types::{Size2, ZInt};
+use types::{Size2};
 use dir::{Dir, DirIter, dirs};
 use ::{MapPos};
 
@@ -97,13 +97,13 @@ impl Iterator for MapPosIter {
 
 pub struct RingIter {
     cursor: MapPos,
-    segment_index: ZInt,
+    segment_index: i32,
     dir_iter: DirIter,
-    radius: ZInt,
+    radius: i32,
     dir: Dir,
 }
 
-pub fn ring_iter(pos: &MapPos, radius: ZInt) -> RingIter {
+pub fn ring_iter(pos: &MapPos, radius: i32) -> RingIter {
     let mut pos = pos.clone();
     pos.v.x -= radius;
     let mut dir_iter = dirs();
@@ -156,12 +156,12 @@ impl Iterator for RingIter {
 
 pub struct SpiralIter {
     ring_iter: RingIter,
-    radius: ZInt,
-    last_radius: ZInt,
+    radius: i32,
+    last_radius: i32,
     origin: MapPos,
 }
 
-pub fn spiral_iter(pos: &MapPos, radius: ZInt) -> SpiralIter {
+pub fn spiral_iter(pos: &MapPos, radius: i32) -> SpiralIter {
     assert!(radius >= 1);
     SpiralIter {
         ring_iter: ring_iter(pos, 1),
@@ -191,7 +191,7 @@ impl Iterator for SpiralIter {
     }
 }
 
-pub fn distance(from: &MapPos, to: &MapPos) -> ZInt {
+pub fn distance(from: &MapPos, to: &MapPos) -> i32 {
     let to = to.v;
     let from = from.v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);

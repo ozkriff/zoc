@@ -3,14 +3,13 @@
 use gfx;
 use gfx::traits::{FactoryExt};
 use gfx_gl;
-use types::{ZInt};
 use fs;
 use context::{Context};
 use texture::{Texture, load_texture};
 use pipeline::{Vertex};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct MeshId{pub id: ZInt}
+pub struct MeshId{pub id: i32}
 
 // TODO: TODO: make fields private
 pub struct Mesh {

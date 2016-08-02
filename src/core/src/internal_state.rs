@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap};
 use cgmath::{Vector2};
-use types::{ZInt, Size2};
+use types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
@@ -102,7 +102,7 @@ impl InternalState {
     }
 
     fn add_object(&mut self, object: Object) {
-        let id = ObjectId{id: self.objects.len() as ZInt + 1};
+        let id = ObjectId{id: self.objects.len() as i32 + 1};
         self.objects.insert(id, object);
     }
 
@@ -118,7 +118,7 @@ impl InternalState {
         self.add_object(object);
     }
 
-    fn add_buildings(&mut self, pos: &MapPos, count: ZInt) {
+    fn add_buildings(&mut self, pos: &MapPos, count: i32) {
         *self.map.tile_mut(pos) = Terrain::City;
         for _ in 0 .. count {
             let slot_id = get_free_slot_for_building(self, pos).unwrap();

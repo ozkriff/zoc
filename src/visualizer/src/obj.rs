@@ -6,7 +6,6 @@ use std::fmt::{Debug};
 use std::io::{BufRead};
 use std::path::{Path};
 use std::str::{SplitWhitespace, Split, FromStr};
-use types::{ZFloat};
 use fs;
 use pipeline::{Vertex};
 
@@ -55,13 +54,13 @@ impl Model {
 
     fn read_v(words: &mut SplitWhitespace) -> Pos {
         // TODO: flip models
-        [parse_word(words), -parse_word::<ZFloat>(words), parse_word(words)]
+        [parse_word(words), -parse_word::<f32>(words), parse_word(words)]
     }
 
     fn read_vt(words: &mut SplitWhitespace) -> Uv {
         [
             parse_word(words),
-            1.0 - parse_word::<ZFloat>(words), // flip
+            1.0 - parse_word::<f32>(words), // flip
         ]
     }
 
