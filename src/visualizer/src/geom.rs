@@ -81,7 +81,6 @@ pub fn get_rot_angle(a: &WorldPos, b: &WorldPos) -> Rad<f32> {
 mod tests {
     use std::f32::consts::{PI};
     use cgmath::{Vector3};
-    use core::types::{f32};
     use ::types::{WorldPos};
     use super::{get_rot_angle, index_to_circle_vertex};
 
