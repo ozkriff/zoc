@@ -22,7 +22,7 @@ mod filter;
 
 use rand::{thread_rng, Rng};
 use std::{cmp, fmt};
-use std::collections::{HashMap, HashSet, LinkedList};
+use std::collections::{HashMap, HashSet, VecDeque};
 use cgmath::{Vector2};
 use types::{Size2, ZInt};
 use misc::{clamp};
@@ -321,7 +321,7 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
 }
 
 struct PlayerInfo {
-    events: LinkedList<CoreEvent>,
+    events: VecDeque<CoreEvent>,
     fow: Fow,
     visible_enemies: HashSet<UnitId>,
 }
@@ -637,12 +637,12 @@ fn get_player_info_lists(map_size: &Size2) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 0}),
-        events: LinkedList::new(),
+        events: VecDeque::new(),
         visible_enemies: HashSet::new(),
     });
     map.insert(PlayerId{id: 1}, PlayerInfo {
         fow: Fow::new(map_size, &PlayerId{id: 1}),
-        events: LinkedList::new(),
+        events: VecDeque::new(),
         visible_enemies: HashSet::new(),
     });
     map
@@ -674,8 +674,8 @@ pub fn get_free_slot_for_building<S: GameState>(
             return None;
         }
     }
-    for i in 0..MAX_GROUND_SLOTS_COUNT {
-        if !slots[i] {
+    for (i, slot) in slots.iter().enumerate().take(MAX_GROUND_SLOTS_COUNT) {
+        if !slot {
             return Some(SlotId::Id(i as u8));
         }
     }
@@ -735,8 +735,8 @@ pub fn get_free_slot_id<S: GameState>(
             }
         }
     }
-    for i in 0..MAX_GROUND_SLOTS_COUNT {
-        if !slots[i] {
+    for (i, slot) in slots.iter().enumerate().take(MAX_GROUND_SLOTS_COUNT) {
+        if !slot {
             return Some(SlotId::Id(i as u8));
         }
     }
