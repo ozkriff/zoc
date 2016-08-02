@@ -15,12 +15,6 @@ os:
 
 sudo: false
 
-addons:
-    apt:
-        packages:
-            - libxxf86vm-dev
-            - libxcursor-dev
-
 script:
     - make && make test
 
