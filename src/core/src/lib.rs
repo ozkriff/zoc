@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 extern crate cgmath;
 extern crate rand;
 
@@ -1186,5 +1184,3 @@ impl Core {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

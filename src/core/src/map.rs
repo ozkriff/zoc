@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::default::{Default};
 use std::iter::{repeat};
 use cgmath::{Vector2, Array};
@@ -282,5 +280,3 @@ mod tests {
         assert!(expected.next().is_none());
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

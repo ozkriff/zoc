@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use gfx;
 use gfx::traits::{FactoryExt};
 use gfx_gl;
@@ -46,5 +44,3 @@ impl Mesh {
         self.is_wire
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

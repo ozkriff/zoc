@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use gfx;
 
 pub type ColorFormat = gfx::format::Srgba8;
@@ -22,5 +20,3 @@ gfx_defines! {
         out_depth: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::sync::mpsc::{Sender};
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
 use glutin::{self, Api, Event, MouseButton, GlRequest};
@@ -218,5 +216,3 @@ impl Context {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

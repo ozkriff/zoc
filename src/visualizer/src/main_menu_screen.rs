@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::default::{Default};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
@@ -110,5 +108,3 @@ impl Screen for MainMenuScreen {
         EventStatus::Handled
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

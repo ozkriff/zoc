@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap, HashSet};
 use internal_state::{InternalState};
 use game_state::{GameState};
@@ -200,5 +198,3 @@ pub fn filter_events(
     }
     (events, active_unit_ids)
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

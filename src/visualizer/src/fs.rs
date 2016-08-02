@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::path::{Path};
 use std::io::{Cursor};
 
@@ -36,5 +34,3 @@ pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
         Err(_) => panic!("Can`t load asset '{}'", filename),
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

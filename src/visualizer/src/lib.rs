@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
@@ -153,5 +151,3 @@ impl Visualizer {
         dtime
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
@@ -251,5 +249,3 @@ impl Screen for ContextMenuPopup {
         event_status
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

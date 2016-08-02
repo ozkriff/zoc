@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use cgmath::{rad};
 use core::{UnitId};
 use core::partial_state::{PartialState};
@@ -90,5 +88,3 @@ pub fn get_selection_mesh(context: &mut Context) -> Mesh {
     }
     Mesh::new(context, &vertices, &indices, texture)
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

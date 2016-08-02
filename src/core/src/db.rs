@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use unit::{UnitType, WeaponType, UnitClass, UnitTypeId, WeaponTypeId};
 use ::{MovePoints, AttackPoints};
 
@@ -354,5 +352,3 @@ impl Db {
         weapon_type_id(&self.weapon_types, name)
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::default::{Default};
 use types::{Size2};
 use db::{Db};
@@ -253,5 +251,3 @@ impl Pathfinder {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use std::collections::hash_map::{Entry};
 use std::fmt::{Debug};
@@ -161,5 +159,3 @@ pub fn build(model: &Model) -> (Vec<Vertex>, Vec<u16>) {
     }
     (vertices, indices)
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

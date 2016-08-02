@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use cgmath::{Vector2};
 use ::{MapPos};
 
@@ -19,5 +17,3 @@ pub fn map_pos_to_world_pos(i: &MapPos) -> Vector2<f32> {
         v
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

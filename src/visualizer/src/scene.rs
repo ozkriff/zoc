@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use cgmath::{Rad};
 use core::{UnitId};
@@ -74,5 +72,3 @@ impl Scene {
             .expect("Bad node id")
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

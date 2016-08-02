@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use unit::{Unit};
 use db::{Db};
@@ -44,5 +42,3 @@ pub trait GameState {
 pub trait GameStateMut: GameState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent);
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

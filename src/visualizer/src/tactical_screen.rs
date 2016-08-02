@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
@@ -1262,5 +1260,3 @@ impl Screen for TacticalScreen {
         EventStatus::Handled
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

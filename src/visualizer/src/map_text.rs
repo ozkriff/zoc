@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap, VecDeque};
 use cgmath::{Matrix4, Matrix3};
 use core::{MapPos};
@@ -126,5 +124,3 @@ impl MapTextManager {
         self.delete_old();
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

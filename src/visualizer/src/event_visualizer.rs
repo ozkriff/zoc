@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, rad};
@@ -488,5 +486,3 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
 
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

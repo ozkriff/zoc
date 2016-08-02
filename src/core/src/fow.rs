@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::default::{Default};
 use types::{Size2};
 use internal_state::{InternalState};
@@ -184,5 +182,3 @@ impl Fow {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::io::{Cursor};
 use image;
 use gfx::handle::{ShaderResourceView};
@@ -28,5 +26,3 @@ pub fn load_texture_raw<R, F>(factory: &mut F, w: u16, h: u16, data: &[u8]) -> S
     let (_, view) = factory.create_texture_const_u8::<ColorFormat>(kind, &[data]).unwrap();
     view
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

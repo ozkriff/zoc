@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use types::{Size2};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
@@ -150,5 +148,3 @@ impl Ai {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::f32::consts::{PI};
 use cgmath::{perspective, rad, Matrix4, Matrix3, Vector3, Rad, Array};
 use core::misc::{clamp};
@@ -104,5 +102,3 @@ impl Camera {
         self.projection_mat = get_projection_mat(win_size);
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

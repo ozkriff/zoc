@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
@@ -68,5 +66,3 @@ impl Screen for EndTurnScreen {
         EventStatus::Handled
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use rusttype::{Scale, PositionedGlyph, Font, point};
 
 fn calc_text_width(glyphs: &[PositionedGlyph]) -> f32 {
@@ -37,5 +35,3 @@ pub fn text_to_texture(font: &Font, height: f32, text: &str) -> (u16, u16, Vec<u
     }
     (width as u16, pixel_height as u16, pixel_data)
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

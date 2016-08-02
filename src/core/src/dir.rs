@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use cgmath::{Vector2};
 use ::{MapPos};
 
@@ -101,5 +99,3 @@ impl Iterator for DirIter {
         next_dir
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

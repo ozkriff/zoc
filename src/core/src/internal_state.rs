@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use cgmath::{Vector2};
 use types::{Size2};
@@ -302,5 +300,3 @@ impl GameStateMut for InternalState {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

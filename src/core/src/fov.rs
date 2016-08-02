@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 /// Fielf of View
 
 use std::f32::consts::{PI};
@@ -62,5 +60,3 @@ pub fn fov(
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
@@ -57,5 +55,3 @@ pub struct UnitType {
     pub is_transporter: bool,
     pub is_big: bool,
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

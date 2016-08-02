@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use core::unit::{UnitTypeId};
 use mesh::{MeshId};
@@ -28,5 +26,3 @@ impl UnitTypeVisualInfoManager {
         &self.map[type_id]
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

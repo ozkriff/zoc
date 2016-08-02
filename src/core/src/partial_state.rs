@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use types::{Size2};
 use unit::{Unit};
@@ -48,5 +46,3 @@ impl GameStateMut for PartialState {
         self.fow.apply_event(db, &self.state, event);
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

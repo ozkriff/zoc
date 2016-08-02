@@ -1,5 +1,3 @@
-# See LICENSE file for copyright and license details.
-
 platform:
     - i686
     - x86_64
@@ -29,5 +27,3 @@ build_script:
 - cargo build
 
 test: false
-
-# vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

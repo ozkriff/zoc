@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::cmp;
 
 pub fn clamp<T>(n: T, min: T, max: T) -> T
@@ -11,5 +9,3 @@ pub fn clamp<T>(n: T, min: T, max: T) -> T
         n => n,
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:

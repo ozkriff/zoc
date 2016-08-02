@@ -1,5 +1,3 @@
-// See LICENSE file for copyright and license details.
-
 use std::collections::{HashMap};
 use cgmath::{Vector3, Matrix4, ortho};
 use context::{Context};
@@ -132,5 +130,3 @@ impl ButtonManager {
         }
     }
 }
-
-// vim: set tabstop=4 shiftwidth=4 softtabstop=4 expandtab:
