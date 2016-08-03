@@ -12,10 +12,9 @@ pub fn is_tap(context: &Context) -> bool {
     let mouse = context.mouse();
     let pos = &mouse.pos;
     // TODO: use Vector2 magic
-    let x = pos.v.x - mouse.last_press_pos.v.x;
-    let y = pos.v.y - mouse.last_press_pos.v.y;
-    let tolerance = 20;
-    x.abs() < tolerance && y.abs() < tolerance
+    let diff = pos.v - mouse.last_press_pos.v;
+    let tolerance = 20; // TODO: read from config file
+    diff.x.abs() < tolerance && diff.y.abs() < tolerance
 }
 
 pub fn basic_text_size(context: &Context) -> f32 {
