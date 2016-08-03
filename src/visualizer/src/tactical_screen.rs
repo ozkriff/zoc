@@ -503,7 +503,7 @@ impl TacticalScreen {
             let map = state.map();
             for tile_pos in map.get_iter() {
                 let objects = state.objects_at(&tile_pos);
-                if let Terrain::Trees = *map.tile(&tile_pos) {
+                if *map.tile(&tile_pos) == Terrain::Trees {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                     player_info.scene.add_node(SceneNode {

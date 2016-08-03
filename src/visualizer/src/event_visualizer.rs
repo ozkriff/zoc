@@ -207,7 +207,7 @@ impl EventAttackUnitVisualizer {
             let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
             let attacker_pos = scene.node(&attacker_node_id).pos;
             let attacker_map_pos = state.unit(attacker_id).pos.map_pos.clone();
-            if let core::FireMode::Reactive = attack_info.mode {
+            if attack_info.mode == core::FireMode::Reactive {
                 map_text.add_text(&attacker_map_pos, "reaction fire");
             }
             shell_node_id = Some(scene.add_node(SceneNode {

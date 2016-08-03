@@ -99,7 +99,7 @@ impl Ai {
                     attacker_id: unit.id.clone(),
                     defender_id: target.id.clone(),
                 };
-                if let Ok(()) = check_command(db, &self.state, &command) {
+                if check_command(db, &self.state, &command).is_ok() {
                     return Some(command);
                 }
             }

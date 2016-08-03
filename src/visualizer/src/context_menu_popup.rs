@@ -236,7 +236,7 @@ impl Screen for ContextMenuPopup {
                 self.handle_event_lmb_release(context);
             },
             Event::Touch(glutin::Touch{phase, ..}) => {
-                if let glutin::TouchPhase::Ended = phase {
+                if phase == glutin::TouchPhase::Ended {
                     self.handle_event_lmb_release(context);
                 }
             },

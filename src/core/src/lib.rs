@@ -153,7 +153,7 @@ pub struct Player {
     pub class: PlayerClass,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum FireMode {
     Active,
     Reactive,
@@ -171,7 +171,7 @@ pub enum MoveMode {
     Hunt,
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Command {
     Move{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode},
     EndTurn,
@@ -562,7 +562,7 @@ pub fn check_command<S: GameState>(
             if distance(&transporter.pos.map_pos, &pos.map_pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
-            if let None = transporter.passenger_id {
+            if transporter.passenger_id.is_none() {
                 return Err(CommandError::TransporterIsEmpty);
             }
             if !is_exact_pos_free(db, state, &passenger.type_id, pos) {
@@ -861,7 +861,7 @@ impl Core {
         let attacker_type = self.db.unit_type(&attacker.type_id);
         let defender_type = self.db.unit_type(&defender.type_id);
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        let cover_bonus = if let UnitClass::Infantry = defender_type.class {
+        let cover_bonus = if defender_type.class == UnitClass::Infantry {
             match *self.state.map().tile(&defender.pos) {
                 Terrain::Plain => 0,
                 Terrain::Trees => 2,
@@ -906,7 +906,7 @@ impl Core {
             defender,
             fire_mode,
         );
-        if let Err(..) = check_attack_result {
+        if check_attack_result.is_err() {
             return None;
         }
         let attacker_type = self.db.unit_type(&attacker.type_id);
@@ -940,7 +940,7 @@ impl Core {
         attacker: &Unit,
     ) -> bool {
         assert!(attacker.player_id != defender.player_id);
-        if let ReactionFireMode::HoldFire = attacker.reaction_fire_mode {
+        if attacker.reaction_fire_mode == ReactionFireMode::HoldFire {
             return false;
         }
         // TODO: move to `check_attack`
@@ -1126,7 +1126,7 @@ impl Core {
             }
             let command = self.ai.get_command(&self.db);
             self.do_command(command.clone());
-            if let Command::EndTurn = command {
+            if command == Command::EndTurn {
                 return;
             }
         }

@@ -22,6 +22,7 @@ use ::{
     get_free_slot_for_building,
 };
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum InfoLevel {
     Full,
     Partial,
@@ -170,7 +171,7 @@ impl InternalState {
             type_id: unit_info.type_id.clone(),
             move_points: unit_type.move_points.clone(),
             attack_points: unit_type.attack_points.clone(),
-            reactive_attack_points: if let InfoLevel::Full = info_level {
+            reactive_attack_points: if info_level == InfoLevel::Full {
                 Some(unit_type.reactive_attack_points.clone())
             } else {
                 None
@@ -178,7 +179,7 @@ impl InternalState {
             reaction_fire_mode: ReactionFireMode::Normal,
             count: unit_type.count,
             morale: 100,
-            passenger_id: if let InfoLevel::Full = info_level {
+            passenger_id: if info_level == InfoLevel::Full {
                 unit_info.passenger_id.clone()
             } else {
                 None

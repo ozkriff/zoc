@@ -104,11 +104,11 @@ impl Visualizer {
             for i in (0 .. self.popups.len()).rev() {
                 event_status = self.popups[i].handle_event(
                     &mut self.context, event);
-                if let EventStatus::Handled = event_status {
+                if event_status == EventStatus::Handled {
                     break;
                 }
             }
-            if let EventStatus::NotHandled = event_status {
+            if event_status == EventStatus::NotHandled {
                 let screen = self.screens.last_mut().unwrap();
                 screen.handle_event(&mut self.context, event);
             }
