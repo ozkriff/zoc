@@ -8,7 +8,7 @@ use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Command {
     Select{id: UnitId},
     Move{pos: ExactPos},
@@ -20,8 +20,7 @@ pub enum Command {
     DisableReactionFire{id: UnitId},
 }
 
-// TODO: Derive `Debug` trait
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Options {
     // TODO: display unit name and/or type, not just IDs
     pub selects: Vec<UnitId>,

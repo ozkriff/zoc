@@ -8,7 +8,7 @@ use game_state::{GameState};
 use dir::{Dir, dirs};
 use ::{MovePoints, ExactPos, SlotId, ObjectClass, get_free_exact_pos};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Tile {
     cost: MovePoints,
     parent: Option<Dir>,

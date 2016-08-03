@@ -36,16 +36,16 @@ use fow::{Fow};
 use fov::{fov};
 use dir::{Dir};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MovePoints{pub n: i32}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AttackPoints{pub n: i32}
 
-#[derive(PartialOrd, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct PlayerId{pub id: i32}
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct UnitId{pub id: i32}
 
 #[derive(PartialEq, Clone, Debug)]
@@ -153,25 +153,25 @@ pub struct Player {
     pub class: PlayerClass,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FireMode {
     Active,
     Reactive,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ReactionFireMode {
     Normal,
     HoldFire,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum MoveMode {
     Fast,
     Hunt,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Command {
     Move{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode},
     EndTurn,
@@ -182,7 +182,7 @@ pub enum Command {
     SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnitInfo {
     pub unit_id: UnitId,
     pub pos: ExactPos,
@@ -191,7 +191,7 @@ pub struct UnitInfo {
     pub passenger_id: Option<UnitId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AttackInfo {
     pub attacker_id: Option<UnitId>,
     pub defender_id: UnitId,
@@ -203,7 +203,7 @@ pub struct AttackInfo {
     pub is_inderect: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
@@ -581,14 +581,14 @@ pub fn check_command<S: GameState>(
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 enum ReactionFireResult {
     Attacked,
     Killed,
     None,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum GameType {
     Hotseat,
     SingleVsAi,
@@ -600,7 +600,7 @@ impl Default for GameType {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Options {
     pub game_type: GameType,
 }

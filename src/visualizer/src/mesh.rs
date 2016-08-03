@@ -6,7 +6,7 @@ use context::{Context};
 use texture::{Texture, load_texture};
 use pipeline::{Vertex};
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct MeshId{pub id: i32}
 
 // TODO: TODO: make fields private

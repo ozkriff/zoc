@@ -34,7 +34,7 @@ pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<f32> {
     ortho(left, right, bottom, top, near, far)
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct ButtonId {pub id: i32}
 
 pub struct Button {

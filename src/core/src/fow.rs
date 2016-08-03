@@ -8,7 +8,7 @@ use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
 use ::{CoreEvent, PlayerId, MapPos, ExactPos};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub enum TileVisibility {
     No,
     // Bad,

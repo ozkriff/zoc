@@ -4,9 +4,10 @@ use core::{UnitId};
 use types::{WorldPos};
 use mesh::{MeshId};
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct NodeId{pub id: i32}
 
+#[derive(Clone, Debug)]
 pub struct SceneNode {
     pub pos: WorldPos,
     pub rot: Rad<f32>,

@@ -5,7 +5,7 @@ use types::{Size2};
 use dir::{Dir, DirIter, dirs};
 use ::{MapPos};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Terrain {
     Plain,
     Trees,

@@ -3,7 +3,7 @@ use cgmath::{perspective, rad, Matrix4, Matrix3, Vector3, Rad, Array};
 use core::misc::{clamp};
 use types::{WorldPos, Size2};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Camera {
     x_angle: Rad<f32>,
     z_angle: Rad<f32>,
