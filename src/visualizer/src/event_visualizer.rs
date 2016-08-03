@@ -293,7 +293,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             for i in 0 .. self.killed as usize {
                 let child = children.get_mut(i)
                     .expect("draw: no child");
-                child.pos.v = child.pos.v + step;
+                child.pos.v += step;
             }
         }
     }
