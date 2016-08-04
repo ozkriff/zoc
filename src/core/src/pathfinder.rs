@@ -31,7 +31,7 @@ impl Default for Tile {
     }
 }
 
-pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Vec<ExactPos> {
+pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Option<Vec<ExactPos>> {
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
     new_path.push(path[0].clone());
@@ -44,7 +44,11 @@ pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Un
         }
         new_path.push(to.clone());
     }
-    new_path
+    if new_path.len() < 2 {
+        None
+    } else {
+        Some(new_path)
+    }
 }
 
 pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos])

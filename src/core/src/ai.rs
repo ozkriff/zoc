@@ -125,10 +125,14 @@ impl Ai {
                 Some(path) => path,
                 None => continue,
             };
-            if unit.move_points.n == 0 {
+            let path = match truncate_path(db, &self.state, &path, unit) {
+                Some(path) => path,
+                None => continue,
+            };
+            let cost = path_cost(db, &self.state, unit, &path);
+            if unit.move_points.n < cost.n {
                 continue;
             }
-            let path = truncate_path(db, &self.state, &path, unit);
             return Some(Command::Move {
                 unit_id: unit.id.clone(),
                 path: path,
