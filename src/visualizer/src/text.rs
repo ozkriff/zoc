@@ -1,11 +1,11 @@
+use types::{Size2};
 use rusttype::{Scale, PositionedGlyph, Font, point};
 
 fn calc_text_width(glyphs: &[PositionedGlyph]) -> f32 {
     glyphs.last().unwrap().pixel_bounding_box().unwrap().max.x as f32
 }
 
-// TODO: u16, u16 -> Size2
-pub fn text_to_texture(font: &Font, height: f32, text: &str) -> (u16, u16, Vec<u8>) {
+pub fn text_to_texture(font: &Font, height: f32, text: &str) -> (Size2, Vec<u8>) {
     let scale = Scale { x: height, y: height };
     let v_metrics = font.v_metrics(scale);
     let offset = point(0.0, v_metrics.ascent);
@@ -33,5 +33,6 @@ pub fn text_to_texture(font: &Font, height: f32, text: &str) -> (u16, u16, Vec<u
             }
         });
     }
-    (width as u16, pixel_height as u16, pixel_data)
+    let size = Size2{w: width as i32, h: pixel_height as i32};
+    (size, pixel_data)
 }

@@ -95,7 +95,7 @@ impl Context {
         let win_size = get_win_size(&window);
         // fake mesh for pipeline initialization
         let vb = factory.create_vertex_buffer(&[]);
-        let fake_texture = load_texture_raw(&mut factory, 2, 2, &[0; 4]);
+        let fake_texture = load_texture_raw(&mut factory, Size2{w: 2, h: 2}, &[0; 4]);
         let data = pipe::Data {
             basic_color: [1.0, 1.0, 1.0, 1.0],
             vbuf: vb,

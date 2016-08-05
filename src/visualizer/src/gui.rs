@@ -11,7 +11,6 @@ use pipeline::{Vertex};
 pub fn is_tap(context: &Context) -> bool {
     let mouse = context.mouse();
     let pos = &mouse.pos;
-    // TODO: use Vector2 magic
     let diff = pos.v - mouse.last_press_pos.v;
     let tolerance = 20; // TODO: read from config file
     diff.x.abs() < tolerance && diff.y.abs() < tolerance
@@ -45,10 +44,10 @@ pub struct Button {
 impl Button {
     pub fn new(context: &mut Context, label: &str, pos: &ScreenPos) -> Button {
         let text_size = basic_text_size(context);
-        let (w, h, texture_data) = text::text_to_texture(&context.font, text_size, label);
-        let texture = load_texture_raw(&mut context.factory, w, h, &texture_data);
-        let h = h as f32;
-        let w = w as f32;
+        let (texture_size, texture_data) = text::text_to_texture(&context.font, text_size, label);
+        let texture = load_texture_raw(&mut context.factory, texture_size, &texture_data);
+        let h = texture_size.h as f32;
+        let w = texture_size.w as f32;
         let vertices = &[
             Vertex{pos: [0.0, 0.0, 0.0], uv: [0.0, 1.0]},
             Vertex{pos: [0.0, h, 0.0], uv: [0.0, 0.0]},
@@ -59,7 +58,7 @@ impl Button {
         let mesh = Mesh::new(context, vertices, indices, texture);
         Button {
             pos: *pos,
-            size: Size2{w: w as i32, h: h as i32},
+            size: texture_size,
             mesh: mesh,
         }
     }
