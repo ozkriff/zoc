@@ -2,7 +2,7 @@
 
 use std::f32::consts::{PI};
 use cgmath::{InnerSpace};
-use map::{Map, Terrain, distance, spiral_iter};
+use map::{Map, Terrain, spiral_iter};
 use geom;
 use ::{MapPos};
 
