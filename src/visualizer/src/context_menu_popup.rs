@@ -3,6 +3,9 @@ use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{UnitId, ExactPos};
+use core::partial_state::{PartialState};
+use core::game_state::{GameState};
+use core::db::{Db};
 use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
@@ -64,6 +67,8 @@ pub struct ContextMenuPopup {
 
 impl ContextMenuPopup {
     pub fn new(
+        state: &PartialState,
+        db: &Db,
         context: &mut Context,
         pos: &ScreenPos,
         options: Options,
@@ -84,20 +89,23 @@ impl ContextMenuPopup {
         pos.v.x -= text_size as i32 / 2;
         let vstep = (text_size * 0.9) as i32;
         for unit_id in &options.selects {
+            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("select <{}>", unit_id.id), &pos));
+                Button::new(context, &format!("select <{}>", unit_type.name), &pos));
             select_button_ids.insert(button_id, unit_id.clone());
             pos.v.y -= vstep;
         }
         for unit_id in &options.attacks {
+            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("attack <{}>", unit_id.id), &pos));
+                Button::new(context, &format!("attack <{}>", unit_type.name), &pos));
             attack_button_ids.insert(button_id, unit_id.clone());
             pos.v.y -= vstep;
         }
         for unit_id in &options.loads {
+            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("load <{}>", unit_id.id), &pos));
+                Button::new(context, &format!("load <{}>", unit_type.name), &pos));
             load_button_ids.insert(button_id, unit_id.clone());
             pos.v.y -= vstep;
         }

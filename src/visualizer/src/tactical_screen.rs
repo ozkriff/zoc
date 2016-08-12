@@ -620,7 +620,13 @@ impl TacticalScreen {
         let mut menu_pos = context.mouse().pos;
         menu_pos.v.y = context.win_size.h - menu_pos.v.y;
         let screen = ContextMenuPopup::new(
-            context, &menu_pos, options, self.tx.clone());
+            self.current_state(),
+            self.core.db(),
+            context,
+            &menu_pos,
+            options,
+            self.tx.clone(),
+        );
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
     }
 
