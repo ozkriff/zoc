@@ -387,9 +387,7 @@ impl PlayerInfoManager {
     }
 }
 
-pub struct TacticalScreen {
-    map_text_manager: MapTextManager,
-    // TODO: Move buttons to 'Gui'/'Ui' struct
+pub struct Gui {
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,
     button_deselect_unit_id: ButtonId,
@@ -397,6 +395,52 @@ pub struct TacticalScreen {
     button_prev_unit_id: ButtonId,
     label_unit_info_id: Option<ButtonId>,
     label_score_id: ButtonId,
+}
+
+impl Gui {
+    fn new(context: &mut Context, state: &PartialState) -> Gui {
+        let mut button_manager = ButtonManager::new();
+        let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
+        let button_end_turn_id = button_manager.add_button(
+            Button::new(context, "[end turn]", &pos));
+        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
+        let button_deselect_unit_id = button_manager.add_button(
+            Button::new(context, "[X]", &pos));
+        pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
+        let button_prev_unit_id = button_manager.add_button(
+            Button::new(context, "[<]", &pos));
+        pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
+        let button_next_unit_id = button_manager.add_button(
+            Button::new(context, "[>]", &pos));
+        let label_score_id = {
+            let vp_pos = ScreenPos{v: Vector2 {
+                x: context.win_size.w - 10,
+                y: context.win_size.h - 10,
+            }};
+            let text = score_text(state);
+            let mut label_score = Button::new_small(context, &text, &vp_pos);
+            let mut pos = label_score.pos().clone();
+            pos.v.y -= label_score.size().h;
+            pos.v.x -= label_score.size().w;
+            label_score.set_pos(pos);
+            button_manager.add_button(label_score)
+        };
+
+        Gui {
+            button_manager: button_manager,
+            button_end_turn_id: button_end_turn_id,
+            button_deselect_unit_id: button_deselect_unit_id,
+            button_prev_unit_id: button_prev_unit_id,
+            button_next_unit_id: button_next_unit_id,
+            label_unit_info_id: None,
+            label_score_id: label_score_id,
+        }
+    }
+}
+
+pub struct TacticalScreen {
+    map_text_manager: MapTextManager,
+    gui: Gui,
     player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
@@ -454,32 +498,6 @@ impl TacticalScreen {
             &mut meshes, get_marker(context, "flag2.png"));
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), context, &mut meshes);
-        let mut button_manager = ButtonManager::new();
-        let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
-        let button_end_turn_id = button_manager.add_button(
-            Button::new(context, "[end turn]", &pos));
-        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
-        let button_deselect_unit_id = button_manager.add_button(
-            Button::new(context, "[X]", &pos));
-        pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
-        let button_prev_unit_id = button_manager.add_button(
-            Button::new(context, "[<]", &pos));
-        pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
-        let button_next_unit_id = button_manager.add_button(
-            Button::new(context, "[>]", &pos));
-        let label_score_id = {
-            let vp_pos = ScreenPos{v: Vector2 {
-                x: context.win_size.w - 10,
-                y: context.win_size.h - 10,
-            }};
-            let text = score_text(&player_info.get(core.player_id()).game_state);
-            let mut label_score = Button::new_small(context, &text, &vp_pos);
-            let mut pos = label_score.pos().clone();
-            pos.v.y -= label_score.size().h;
-            pos.v.x -= label_score.size().w;
-            label_score.set_pos(pos);
-            button_manager.add_button(label_score)
-        };
         let mesh_ids = MeshIdManager {
             big_building_mesh_w_id: big_building_mesh_w_id,
             building_mesh_w_id: building_mesh_w_id,
@@ -491,14 +509,9 @@ impl TacticalScreen {
         };
         let map_text_manager = MapTextManager::new();
         let (tx, rx) = channel();
+        let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
         let mut screen = TacticalScreen {
-            button_manager: button_manager,
-            button_end_turn_id: button_end_turn_id,
-            button_deselect_unit_id: button_deselect_unit_id,
-            button_prev_unit_id: button_prev_unit_id,
-            button_next_unit_id: button_next_unit_id,
-            label_unit_info_id: None,
-            label_score_id: label_score_id,
+            gui: gui,
             player_info: player_info,
             core: core,
             event: None,
@@ -625,8 +638,8 @@ impl TacticalScreen {
     }
 
     fn deselect_unit(&mut self) {
-        if let Some(label_id) = self.label_unit_info_id.take() {
-            self.button_manager.remove_button(label_id);
+        if let Some(label_id) = self.gui.label_unit_info_id.take() {
+            self.gui.button_manager.remove_button(label_id);
         }
         self.selected_unit_id = None;
         let player_info = self.player_info.get_mut(self.core.player_id());
@@ -825,7 +838,7 @@ impl TacticalScreen {
             let mut pos = unit_info_button.pos().clone();
             pos.v.y -= unit_info_button.size().h;
             unit_info_button.set_pos(pos);
-            self.label_unit_info_id = Some(self.button_manager.add_button(
+            self.gui.label_unit_info_id = Some(self.gui.button_manager.add_button(
                 unit_info_button));
         }
     }
@@ -956,7 +969,7 @@ impl TacticalScreen {
             return;
         }
         let pick_result = self.pick_tile(context);
-        if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
+        if let Some(button_id) = self.gui.button_manager.get_clicked_button_id(context) {
             self.handle_event_button_press(context, &button_id);
         } else if let Some(pick_result) = pick_result {
             self.try_create_context_menu_popup(context, &pick_result);
@@ -964,17 +977,17 @@ impl TacticalScreen {
     }
 
     fn handle_event_button_press(&mut self, context: &mut Context, button_id: &ButtonId) {
-        if *button_id == self.button_end_turn_id {
+        if *button_id == self.gui.button_end_turn_id {
             self.end_turn(context);
-        } else if *button_id == self.button_deselect_unit_id {
+        } else if *button_id == self.gui.button_deselect_unit_id {
             self.deselect_unit();
-        } else if *button_id == self.button_prev_unit_id {
+        } else if *button_id == self.gui.button_prev_unit_id {
             if let Some(id) = self.selected_unit_id.clone() {
                 let prev_id = find_prev_player_unit_id(
                     self.current_state(), self.core.player_id(), &id);
                 self.select_unit(context, &prev_id);
             }
-        } else if *button_id == self.button_next_unit_id {
+        } else if *button_id == self.gui.button_next_unit_id {
             if let Some(id) = self.selected_unit_id.clone() {
                 let next_id = find_next_player_unit_id(
                     self.current_state(), self.core.player_id(), &id);
@@ -1065,7 +1078,7 @@ impl TacticalScreen {
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         let player_info = self.player_info.get(self.core.player_id());
         self.map_text_manager.draw(context, &player_info.camera, dtime);
-        self.button_manager.draw(context);
+        self.gui.button_manager.draw(context);
     }
 
     fn pick_tile(&mut self, context: &Context) -> Option<MapPos> {
@@ -1259,10 +1272,10 @@ impl TacticalScreen {
     }
 
     fn update_score_labels(&mut self, context: &mut Context) {
-        let pos = self.button_manager.buttons()[&self.label_score_id].pos().clone();
+        let pos = self.gui.button_manager.buttons()[&self.gui.label_score_id].pos().clone();
         let label_score = Button::new_small(context, &score_text(self.current_state()), &pos);
-        self.button_manager.remove_button(self.label_score_id);
-        self.label_score_id = self.button_manager.add_button(label_score);
+        self.gui.button_manager.remove_button(self.gui.label_score_id);
+        self.gui.label_score_id = self.gui.button_manager.add_button(label_score);
     }
 
     fn end_event_visualization(&mut self, context: &mut Context) {
