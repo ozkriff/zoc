@@ -2,8 +2,10 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::path::{Path};
+use std::iter::IntoIterator;
 use std::collections::{HashMap};
 use cgmath::{
+    Array,
     Vector2,
     Vector3,
     Vector4,
@@ -89,25 +91,20 @@ fn get_max_camera_pos(map_size: &Size2) -> WorldPos {
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
-// TODO: `cond: F` -> `enum NameMe{Visible, Fogged}`
-fn gen_tiles<F: Fn(bool) -> bool>(
+fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
     context: &mut Context,
-    state: &PartialState,
     tex: Texture,
-    cond: F,
+    positions: I
 ) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut i = 0;
-    for tile_pos in state.map().get_iter() {
-        if !cond(state.is_tile_visible(&tile_pos)) {
-            continue;
-        }
+    for tile_pos in positions {
         let pos = geom::map_pos_to_world_pos(&tile_pos);
         for dir in dirs() {
             let vertex = geom::index_to_hex_vertex(dir.to_int());
-            let uv = vertex.v.truncate() / (geom::HEX_EX_RADIUS * 2.0);
-            let uv = uv + Vector2{x: 0.5, y: 0.5};
+            let uv = vertex.v.truncate() / (geom::HEX_EX_RADIUS * 2.0)
+                + Vector2::from_value(0.5);
             vertices.push(Vertex {
                 pos: (pos.v + vertex.v).into(),
                 uv: uv.into(),
@@ -125,11 +122,17 @@ fn gen_tiles<F: Fn(bool) -> bool>(
 }
 
 fn generate_visible_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    gen_tiles(context, state, tex, |vis| vis)
+    generate_tiles_mesh(context, tex, state.map().get_iter())
 }
 
 fn generate_fogged_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    gen_tiles(context, state, tex, |vis| !vis)
+    let mut fogged_positions = Vec::new();
+    for tile_pos in state.map().get_iter() {
+        if !state.is_tile_visible(&tile_pos) {
+            fogged_positions.push(tile_pos);
+        }
+    }
+    generate_tiles_mesh(context, tex, fogged_positions)
 }
 
 fn build_walkable_mesh(
