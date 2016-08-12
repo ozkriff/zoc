@@ -489,6 +489,9 @@ pub fn check_command<S: GameState>(
             }
         },
         Command::Move{ref unit_id, ref path, ref mode} => {
+            if path.len() < 2 {
+                return Err(CommandError::BadPath);
+            }
             if state.units().get(unit_id).is_none() {
                 return Err(CommandError::BadUnitId);
             }
