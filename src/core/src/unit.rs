@@ -9,6 +9,7 @@ pub enum UnitClass {
     Vehicle,
 }
 
+#[derive(Clone, Debug)]
 pub struct Unit {
     pub id: UnitId,
     pub pos: ExactPos,
@@ -23,6 +24,7 @@ pub struct Unit {
     pub passenger_id: Option<UnitId>,
 }
 
+#[derive(Clone, Debug)]
 pub struct WeaponType {
     pub name: String,
     pub damage: i32,

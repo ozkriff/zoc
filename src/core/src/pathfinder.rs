@@ -82,7 +82,10 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         for object in &objects {
             match object.pos.slot_id {
                 SlotId::Id(_) => if unit.pos == object.pos {
-                    assert_eq!(unit_type.class, UnitClass::Infantry);
+                    // assert_eq!(unit_type.class, UnitClass::Infantry); // TODO
+                    if unit_type.class != UnitClass::Infantry {
+                        println!("WARNING: non-infantry unit in small object: {:#?}", unit);
+                    }
                     break 'unit_loop;
                 },
                 SlotId::TwoTiles(_) | SlotId::WholeTile => {
