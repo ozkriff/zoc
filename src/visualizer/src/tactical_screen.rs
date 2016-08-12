@@ -366,6 +366,7 @@ pub struct TacticalScreen {
     button_deselect_unit_id: ButtonId,
     button_next_unit_id: ButtonId,
     button_prev_unit_id: ButtonId,
+    label_unit_info_id: Option<ButtonId>,
     player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
@@ -416,7 +417,7 @@ impl TacticalScreen {
         let mut button_manager = ButtonManager::new();
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
-            Button::new(context, "end turn", &pos));
+            Button::new(context, "[end turn]", &pos));
         pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
         let button_deselect_unit_id = button_manager.add_button(
             Button::new(context, "[X]", &pos));
@@ -443,6 +444,7 @@ impl TacticalScreen {
             button_deselect_unit_id: button_deselect_unit_id,
             button_prev_unit_id: button_prev_unit_id,
             button_next_unit_id: button_next_unit_id,
+            label_unit_info_id: None,
             player_info: player_info,
             core: core,
             event: None,
@@ -561,6 +563,9 @@ impl TacticalScreen {
     }
 
     fn deselect_unit(&mut self) {
+        if let Some(label_id) = self.label_unit_info_id.take() {
+            self.button_manager.remove_button(label_id);
+        }
         self.selected_unit_id = None;
         let player_info = self.player_info.get_mut(self.core.player_id());
         self.selection_manager.deselect(&mut player_info.scene);
@@ -721,6 +726,9 @@ impl TacticalScreen {
 
     // TODO: add ability to select enemy units
     fn select_unit(&mut self, context: &mut Context, unit_id: &UnitId) {
+        if self.selected_unit_id.is_some() {
+            self.deselect_unit();
+        }
         self.selected_unit_id = Some(unit_id.clone());
         let mut player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
@@ -733,6 +741,31 @@ impl TacticalScreen {
         let scene = &mut player_info.scene;
         self.selection_manager.create_selection_marker(
             state, scene, unit_id);
+        {
+            let pos = ScreenPos{v: Vector2{x: 10, y: context.win_size.h - 10}};
+            let text = {
+                let unit = state.unit(unit_id);
+                let unit_type = self.core.db().unit_type(&unit.type_id);
+                // TODO: core.rs: print_unit_info
+                format!("MP={}/{}, AP={}/{}, RAP={}/{}, C={}, M={}",
+                    unit.move_points.n,
+                    unit_type.move_points.n,
+                    unit.attack_points.n,
+                    unit_type.attack_points.n,
+                    if let Some(ref rap) = unit.reactive_attack_points { rap.n } else { 0 },
+                    unit_type.reactive_attack_points.n,
+                    unit.count,
+                    unit.morale,
+                )
+                // TODO: print info about unit type and weapon
+            };
+            let mut unit_info_button = Button::new_small(context, &text, &pos);
+            let mut pos = unit_info_button.pos().clone();
+            pos.v.y -= unit_info_button.size().h;
+            unit_info_button.set_pos(pos);
+            self.label_unit_info_id = Some(self.button_manager.add_button(
+                unit_info_button));
+        }
     }
 
     fn move_unit(&mut self, pos: &ExactPos, move_mode: &MoveMode) {

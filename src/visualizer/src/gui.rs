@@ -22,6 +22,10 @@ pub fn basic_text_size(context: &Context) -> f32 {
     (context.win_size.h as f32) / lines_per_screen_h
 }
 
+pub fn small_text_size(context: &Context) -> f32 {
+    basic_text_size(context) / 2.0
+}
+
 pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<f32> {
     let left = 0.0;
     let right = win_size.w as f32;
@@ -32,7 +36,7 @@ pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<f32> {
     ortho(left, right, bottom, top, near, far)
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct ButtonId {pub id: i32}
 
 pub struct Button {
@@ -44,7 +48,16 @@ pub struct Button {
 impl Button {
     pub fn new(context: &mut Context, label: &str, pos: &ScreenPos) -> Button {
         let text_size = basic_text_size(context);
-        let (texture_size, texture_data) = text::text_to_texture(&context.font, text_size, label);
+        Button::new_with_size(context, label, text_size, pos)
+    }
+
+    pub fn new_small(context: &mut Context, label: &str, pos: &ScreenPos) -> Button {
+        let text_size = small_text_size(context);
+        Button::new_with_size(context, label, text_size, pos)
+    }
+
+    pub fn new_with_size(context: &mut Context, label: &str, size: f32, pos: &ScreenPos) -> Button {
+        let (texture_size, texture_data) = text::text_to_texture(&context.font, size, label);
         let texture = load_texture_raw(&mut context.factory, texture_size, &texture_data);
         let h = texture_size.h as f32;
         let w = texture_size.w as f32;
@@ -69,6 +82,10 @@ impl Button {
 
     pub fn pos(&self) -> &ScreenPos {
         &self.pos
+    }
+
+    pub fn set_pos(&mut self, pos: ScreenPos) {
+        self.pos = pos;
     }
 
     pub fn size(&self) -> &Size2 {
@@ -98,6 +115,10 @@ impl ButtonManager {
         self.buttons.insert(id.clone(), button);
         self.last_id.id += 1;
         id
+    }
+
+    pub fn remove_button(&mut self, id: ButtonId) {
+        self.buttons.remove(&id).unwrap();
     }
 
     pub fn get_clicked_button_id(&self, context: &Context) -> Option<ButtonId> {
