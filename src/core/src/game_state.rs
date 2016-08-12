@@ -2,12 +2,14 @@ use std::collections::{HashMap};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use ::{CoreEvent, UnitId, ObjectId, Object, MapPos};
+use ::{CoreEvent, UnitId, ObjectId, Object, MapPos, Sector, SectorId, PlayerId, Score};
 
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;
     fn units(&self) -> &HashMap<UnitId, Unit>;
     fn objects(&self) -> &HashMap<ObjectId, Object>;
+    fn sectors(&self) -> &HashMap<SectorId, Sector>;
+    fn score(&self) -> &HashMap<PlayerId, Score>;
 
     fn unit(&self, id: &UnitId) -> &Unit {
         &self.units()[id]

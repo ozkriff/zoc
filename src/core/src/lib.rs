@@ -36,19 +36,25 @@ use fow::{Fow};
 use fov::{fov};
 use dir::{Dir};
 
+#[derive(Clone, Copy, Debug)]
+pub struct Score{pub n: i32}
+
 #[derive(Clone, Debug)]
 pub struct MovePoints{pub n: i32}
 
 #[derive(Clone, Debug)]
 pub struct AttackPoints{pub n: i32}
 
-#[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct PlayerId{pub id: i32}
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitId{pub id: i32}
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct SectorId{pub id: i32}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct MapPos{pub v: Vector2<i32>}
 
 impl fmt::Display for MapPos {
@@ -122,6 +128,29 @@ impl AsRef<MapPos> for ExactPos {
 impl AsRef<MapPos> for MapPos {
     fn as_ref(&self) -> &MapPos {
         self
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Sector {
+    pub owner_id: Option<PlayerId>,
+    pub positions: Vec<MapPos>,
+}
+
+impl Sector {
+    pub fn center(&self) -> MapPos {
+        let mut pos = Vector2{x: 0.0, y: 0.0};
+        for sector_pos in &self.positions {
+            pos.x += sector_pos.v.x as f32;
+            pos.y += sector_pos.v.y as f32;
+        }
+        pos /= self.positions.len() as f32;
+        let pos = MapPos{v: Vector2{
+            x: (pos.x + 0.5) as i32,
+            y: (pos.y + 0.5) as i32,
+        }};
+        assert!(self.positions.contains(&pos));
+        pos
     }
 }
 
@@ -244,6 +273,15 @@ pub enum CoreEvent {
         unit_id: UnitId,
         mode: ReactionFireMode,
     },
+    SectorOwnerChanged {
+        sector_id: SectorId,
+        new_owner_id: Option<PlayerId>,
+    },
+    VictoryPoint {
+        player_id: PlayerId,
+        pos: MapPos,
+        count: i32,
+    }
 }
 
 pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
@@ -582,6 +620,30 @@ pub fn check_command<S: GameState>(
             }
         },
     }
+}
+
+fn check_sectors(state: &InternalState) -> Vec<CoreEvent> {
+    let mut events = Vec::new();
+    for (sector_id, sector) in state.sectors() {
+        let mut claimers = HashSet::new();
+        for pos in &sector.positions {
+            for unit in state.units_at(pos) {
+                claimers.insert(unit.player_id.clone());
+            }
+        }
+        let owner_id = if claimers.len() != 1 {
+            None
+        } else {
+            Some(claimers.into_iter().next().unwrap())
+        };
+        if sector.owner_id != owner_id {
+            events.push(CoreEvent::SectorOwnerChanged {
+                sector_id: sector_id.clone(),
+                new_owner_id: owner_id,
+            });
+        }
+    }
+    events
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -1018,6 +1080,22 @@ impl Core {
             Command::EndTurn => {
                 let old_id = self.current_player_id.clone();
                 let new_id = self.next_player_id(&old_id);
+                let mut vp_events = Vec::new();
+                for (_, sector) in self.state.sectors() {
+                    if let Some(player_id) = sector.owner_id.clone() {
+                        if player_id != new_id {
+                            continue;
+                        }
+                        vp_events.push(CoreEvent::VictoryPoint {
+                            player_id: player_id.clone(),
+                            pos: sector.center(),
+                            count: 1,
+                        });
+                    }
+                }
+                for event in vp_events {
+                    self.do_core_event(&event);
+                }
                 self.do_core_event(&CoreEvent::EndTurn {
                     old_id: old_id,
                     new_id: new_id,
@@ -1028,7 +1106,6 @@ impl Core {
                     unit_info: UnitInfo {
                         unit_id: self.get_new_unit_id(),
                         pos: pos,
-                        // type_id: self.db.unit_type_id("soldier"),
                         type_id: type_id,
                         player_id: self.current_player_id.clone(),
                         passenger_id: None,
@@ -1116,6 +1193,10 @@ impl Core {
                 });
             },
         };
+        let sector_events = check_sectors(&self.state);
+        for event in sector_events {
+            self.do_core_event(&event);
+        }
     }
 
     pub fn do_command(&mut self, command: Command) {
@@ -1185,5 +1266,43 @@ impl Core {
         if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cgmath::{Vector2};
+    use ::{Sector, MapPos};
+
+    #[test]
+    fn test_center_1() {
+        let real = Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 5, y: 0}},
+                MapPos{v: Vector2{x: 6, y: 0}},
+                MapPos{v: Vector2{x: 5, y: 1}},
+                MapPos{v: Vector2{x: 6, y: 1}},
+                MapPos{v: Vector2{x: 7, y: 1}},
+                MapPos{v: Vector2{x: 5, y: 2}},
+                MapPos{v: Vector2{x: 6, y: 2}},
+            ],
+            owner_id: None,
+        }.center();
+        let expected = MapPos{v: Vector2{x: 6, y: 1}};
+        assert_eq!(expected, real);
+    }
+
+    #[test]
+    fn test_center_2() {
+        let real = Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 6, y: 0}},
+                MapPos{v: Vector2{x: 6, y: 1}},
+                MapPos{v: Vector2{x: 6, y: 2}},
+            ],
+            owner_id: None,
+        }.center();
+        let expected = MapPos{v: Vector2{x: 6, y: 1}};
+        assert_eq!(expected, real);
     }
 }

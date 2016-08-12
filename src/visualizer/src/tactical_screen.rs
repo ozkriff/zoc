@@ -40,6 +40,9 @@ use core::{
     ExactPos,
     SlotId,
     ObjectClass,
+    Sector,
+    SectorId,
+    Score,
     check_command,
     get_unit_ids_at,
     find_next_player_unit_id,
@@ -62,6 +65,8 @@ use event_visualizer::{
     EventShowUnitVisualizer,
     EventHideUnitVisualizer,
     EventSetReactionFireModeVisualizer,
+    EventSectorOwnerChangedVisualizer,
+    EventVictoryPointVisualizer,
 };
 use unit_type_visual_info::{
     UnitTypeVisualInfo,
@@ -78,6 +83,7 @@ use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context_menu_popup::{self, ContextMenuPopup};
 use end_turn_screen::{EndTurnScreen};
+use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
 
 fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
@@ -89,6 +95,22 @@ fn get_max_camera_pos(map_size: &Size2) -> WorldPos {
     let map_pos = MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}};
     let pos = geom::map_pos_to_world_pos(&map_pos);
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
+}
+
+// TODO: get from Core
+fn target_score() -> Score {
+    Score{n: 5}
+}
+
+fn score_text(state: &PartialState) -> String {
+    let score = state.score();
+    // TODO: get rid of magic num
+    format!("P0:{}/{}, P1:{}/{}",
+        score[&PlayerId{id: 0}].n,
+        target_score().n,
+        score[&PlayerId{id: 1}].n,
+        target_score().n,
+    )
 }
 
 fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
@@ -119,6 +141,10 @@ fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
         i += 6;
     }
     Mesh::new(context, &vertices, &indices, tex)
+}
+
+fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) -> Mesh {
+    generate_tiles_mesh(context, tex, sector.positions.to_vec())
 }
 
 fn generate_visible_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
@@ -370,6 +396,7 @@ pub struct TacticalScreen {
     button_next_unit_id: ButtonId,
     button_prev_unit_id: ButtonId,
     label_unit_info_id: Option<ButtonId>,
+    label_score_id: ButtonId,
     player_info: PlayerInfoManager,
     core: Core,
     event: Option<CoreEvent>,
@@ -384,6 +411,7 @@ pub struct TacticalScreen {
     targets_mesh: Option<Mesh>,
     visible_map_mesh: Mesh,
     fow_map_mesh: Mesh,
+    sector_meshes: HashMap<SectorId, Mesh>,
     floor_tex: Texture,
     tx: Sender<context_menu_popup::Command>,
     rx: Receiver<context_menu_popup::Command>,
@@ -395,11 +423,20 @@ impl TacticalScreen {
         let map_size = core.map_size().clone();
         let player_info = PlayerInfoManager::new(context, &map_size, core_options);
         let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
+        let chess_grid_tex = load_texture(&mut context.factory, &fs::load("chess_grid.png").into_inner());
         let mut meshes = Vec::new();
         let visible_map_mesh = generate_visible_tiles_mesh(
             context, &player_info.get(core.player_id()).game_state, floor_tex.clone());
         let fow_map_mesh = generate_fogged_tiles_mesh(
             context, &player_info.get(core.player_id()).game_state, floor_tex.clone());
+        let mut sector_meshes = HashMap::new();
+        {
+            let sectors = player_info.get(core.player_id()).game_state.sectors();
+            for (id, sector) in sectors {
+                let mesh = generate_sector_mesh(context, sector, chess_grid_tex.clone());
+                sector_meshes.insert(*id, mesh);
+            }
+        };
         let selection_marker_mesh_id = add_mesh(
             &mut meshes, get_selection_mesh(context));
         let big_building_mesh_w_id = add_mesh(
@@ -430,6 +467,19 @@ impl TacticalScreen {
         pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
         let button_next_unit_id = button_manager.add_button(
             Button::new(context, "[>]", &pos));
+        let label_score_id = {
+            let vp_pos = ScreenPos{v: Vector2 {
+                x: context.win_size.w - 10,
+                y: context.win_size.h - 10,
+            }};
+            let text = score_text(&player_info.get(core.player_id()).game_state);
+            let mut label_score = Button::new_small(context, &text, &vp_pos);
+            let mut pos = label_score.pos().clone();
+            pos.v.y -= label_score.size().h;
+            pos.v.x -= label_score.size().w;
+            label_score.set_pos(pos);
+            button_manager.add_button(label_score)
+        };
         let mesh_ids = MeshIdManager {
             big_building_mesh_w_id: big_building_mesh_w_id,
             building_mesh_w_id: building_mesh_w_id,
@@ -448,6 +498,7 @@ impl TacticalScreen {
             button_prev_unit_id: button_prev_unit_id,
             button_next_unit_id: button_next_unit_id,
             label_unit_info_id: None,
+            label_score_id: label_score_id,
             player_info: player_info,
             core: core,
             event: None,
@@ -462,6 +513,7 @@ impl TacticalScreen {
             map_text_manager: map_text_manager,
             visible_map_mesh: visible_map_mesh,
             fow_map_mesh: fow_map_mesh,
+            sector_meshes: sector_meshes,
             floor_tex: floor_tex,
             tx: tx,
             rx: rx,
@@ -563,6 +615,13 @@ impl TacticalScreen {
         }
         self.deselect_unit();
         self.core.do_command(Command::EndTurn);
+        self.regenerate_fow(context);
+    }
+
+    fn regenerate_fow(&mut self, context: &mut Context) {
+        let state = &self.player_info.get_mut(self.core.player_id()).game_state;
+        self.visible_map_mesh = generate_visible_tiles_mesh(context, state, self.floor_tex.clone());
+        self.fow_map_mesh = generate_fogged_tiles_mesh(context, state, self.floor_tex.clone());
     }
 
     fn deselect_unit(&mut self) {
@@ -985,6 +1044,18 @@ impl TacticalScreen {
             let player_info = self.player_info.get_mut(self.core.player_id());
             event_visualizer.draw(&mut player_info.scene, dtime);
         }
+        for (sector_id, sector_mesh) in &self.sector_meshes {
+            context.data.mvp = self.current_player_info().camera.mat().into();
+            let state = &self.player_info.get_mut(self.core.player_id()).game_state;
+            let basic_color = match state.sectors()[sector_id].owner_id {
+                None => [1.0, 1.0, 1.0, 0.5],
+                Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
+                Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
+                Some(PlayerId{id: _}) => unimplemented!(),
+            };
+            context.data.basic_color = basic_color;
+            context.draw_mesh(sector_mesh);
+        }
     }
 
     fn draw(&mut self, context: &mut Context, dtime: &Time) {
@@ -1118,6 +1189,21 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
+            CoreEvent::SectorOwnerChanged{ref sector_id, ref new_owner_id} => {
+                EventSectorOwnerChangedVisualizer::new(
+                    state,
+                    sector_id,
+                    new_owner_id,
+                    &mut self.map_text_manager,
+                )
+            }
+            CoreEvent::VictoryPoint{ref pos, count, ..} => {
+                EventVictoryPointVisualizer::new(
+                    pos,
+                    count,
+                    &mut self.map_text_manager,
+                )
+            }
         }
     }
 
@@ -1162,6 +1248,23 @@ impl TacticalScreen {
         }
     }
 
+    fn check_game_end(&mut self, context: &mut Context) {
+        for (_, score) in self.current_state().score() {
+            if score.n >= target_score().n {
+                context.add_command(ScreenCommand::PopScreen);
+                let screen = Box::new(GameResultsScreen::new(context, self.current_state()));
+                context.add_command(ScreenCommand::PushScreen(screen));
+            }
+        }
+    }
+
+    fn update_score_labels(&mut self, context: &mut Context) {
+        let pos = self.button_manager.buttons()[&self.label_score_id].pos().clone();
+        let label_score = Button::new_small(context, &score_text(self.current_state()), &pos);
+        self.button_manager.remove_button(self.label_score_id);
+        self.label_score_id = self.button_manager.add_button(label_score);
+    }
+
     fn end_event_visualization(&mut self, context: &mut Context) {
         self.attacker_died_from_reaction_fire();
         {
@@ -1170,9 +1273,12 @@ impl TacticalScreen {
             let state = &mut player_info.game_state;
             self.event_visualizer.as_mut().unwrap().end(scene, state);
             state.apply_event(self.core.db(), self.event.as_ref().unwrap());
-            self.visible_map_mesh = generate_visible_tiles_mesh(context, state, self.floor_tex.clone());
-            self.fow_map_mesh = generate_fogged_tiles_mesh(context, state, self.floor_tex.clone());
         }
+        if let Some(CoreEvent::VictoryPoint{..}) = self.event {
+            self.update_score_labels(context);
+            self.check_game_end(context);
+        }
+        self.regenerate_fow(context);
         self.event_visualizer = None;
         self.event = None;
         if let Some(event) = self.core.get_event() {

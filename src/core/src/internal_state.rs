@@ -19,10 +19,13 @@ use ::{
     Object,
     ObjectId,
     ObjectClass,
+    Sector,
+    SectorId,
+    Score,
     get_free_slot_for_building,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InfoLevel {
     Full,
     Partial,
@@ -32,6 +35,8 @@ pub struct InternalState {
     units: HashMap<UnitId, Unit>,
     objects: HashMap<ObjectId, Object>,
     map: Map<Terrain>,
+    sectors: HashMap<SectorId, Sector>,
+    score: HashMap<PlayerId, Score>,
 }
 
 impl InternalState {
@@ -48,10 +53,46 @@ impl InternalState {
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
+        let mut sectors = HashMap::new();
+        sectors.insert(
+            SectorId{id: 0},
+            Sector {
+                positions: vec![
+                    MapPos{v: Vector2{x: 5, y: 0}},
+                    MapPos{v: Vector2{x: 6, y: 0}},
+                    MapPos{v: Vector2{x: 5, y: 1}},
+                    MapPos{v: Vector2{x: 6, y: 1}},
+                    MapPos{v: Vector2{x: 7, y: 1}},
+                    MapPos{v: Vector2{x: 5, y: 2}},
+                    MapPos{v: Vector2{x: 6, y: 2}},
+                ],
+                owner_id: None,
+            },
+        );
+        sectors.insert(
+            SectorId{id: 1},
+            Sector {
+                positions: vec![
+                    MapPos{v: Vector2{x: 5, y: 4}},
+                    MapPos{v: Vector2{x: 6, y: 4}},
+                    MapPos{v: Vector2{x: 5, y: 5}},
+                    MapPos{v: Vector2{x: 6, y: 5}},
+                    MapPos{v: Vector2{x: 7, y: 5}},
+                    MapPos{v: Vector2{x: 5, y: 6}},
+                    MapPos{v: Vector2{x: 6, y: 6}},
+                ],
+                owner_id: None,
+            },
+        );
+        let mut score = HashMap::new();
+        score.insert(PlayerId{id: 0}, Score{n: 0});
+        score.insert(PlayerId{id: 1}, Score{n: 0});
         let mut state = InternalState {
             units: HashMap::new(),
             objects: HashMap::new(),
             map: map,
+            sectors: sectors,
+            score: score,
         };
         state.add_buildings(&MapPos{v: Vector2{x: 5, y: 4}}, 2);
         state.add_buildings(&MapPos{v: Vector2{x: 5, y: 5}}, 2);
@@ -157,6 +198,10 @@ impl InternalState {
                     *reactive_attack_points = unit_type.reactive_attack_points.clone();
                 }
                 unit.morale += 10;
+                let max_morale = 100; // TODO: get from UnitType
+                if unit.morale > max_morale {
+                    unit.morale = max_morale;
+                }
             }
         }
     }
@@ -199,6 +244,14 @@ impl GameState for InternalState {
 
     fn map(&self) -> &Map<Terrain> {
         &self.map
+    }
+
+    fn sectors(&self) -> &HashMap<SectorId, Sector> {
+        &self.sectors
+    }
+
+    fn score(&self) -> &HashMap<PlayerId, Score> {
+        &self.score
     }
 }
 
@@ -297,6 +350,13 @@ impl GameStateMut for InternalState {
                 self.units.get_mut(unit_id)
                     .expect("Bad unit id")
                     .reaction_fire_mode = mode.clone();
+            },
+            CoreEvent::SectorOwnerChanged{ref sector_id, ref new_owner_id} => {
+                let sector = self.sectors.get_mut(sector_id).unwrap();
+                sector.owner_id = new_owner_id.clone();
+            },
+            CoreEvent::VictoryPoint{ref player_id, count, ..} => {
+                self.score.get_mut(player_id).unwrap().n += count;
             },
         }
     }

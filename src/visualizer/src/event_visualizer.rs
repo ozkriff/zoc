@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 use cgmath::{Vector3, rad};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
-use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos};
+use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos, PlayerId, SectorId, MapPos};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
 use types::{WorldPos, Time};
@@ -483,6 +483,75 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
     }
 
     fn draw(&mut self, _: &mut Scene, _: &Time) {}
+
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+}
+
+pub struct EventSectorOwnerChangedVisualizer;
+
+impl EventSectorOwnerChangedVisualizer {
+    pub fn new(
+        state: &PartialState,
+        sector_id: &SectorId,
+        owner_id: &Option<PlayerId>,
+        map_text: &mut MapTextManager,
+    ) -> Box<EventVisualizer> {
+        // TODO: fix msg
+        // "Sector {} secured by an enemy"
+        // "Sector {} secured"
+        // "Sector {} lost" ??
+        let sector = &state.sectors()[sector_id];
+        let pos = sector.center();
+        let text = match *owner_id {
+            Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
+            None => format!("Sector {}: owner changed: None", sector_id.id),
+        };
+        map_text.add_text(&pos, &text);
+        Box::new(EventSectorOwnerChangedVisualizer)
+    }
+}
+
+impl EventVisualizer for EventSectorOwnerChangedVisualizer {
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn draw(&mut self, _: &mut Scene, _: &Time) {}
+
+    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+}
+
+pub struct EventVictoryPointVisualizer {
+    time: Time,
+    duration: Time,
+}
+
+impl EventVictoryPointVisualizer {
+    pub fn new(
+        pos: &MapPos,
+        count: i32,
+        map_text: &mut MapTextManager,
+    ) -> Box<EventVisualizer> {
+        let text = format!("+{} VP!", count);
+        map_text.add_text(&pos, &text);
+        // TODO: Time: u64 -> f32
+        let limit_seconds = 1.0;
+        let limit = limit_seconds * 1000000000.0;
+        Box::new(EventVictoryPointVisualizer{
+            time: Time{n: 0},
+            duration: Time{n: limit as u64},
+        })
+    }
+}
+
+impl EventVisualizer for EventVictoryPointVisualizer {
+    fn is_finished(&self) -> bool {
+        self.time.n >= self.duration.n
+    }
+
+    fn draw(&mut self, _: &mut Scene, dt: &Time) {
+        self.time.n += dt.n;
+    }
 
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
