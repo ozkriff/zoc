@@ -116,9 +116,9 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
             let road_from = i.next().unwrap();
             let road_to = i.next().unwrap();
             assert!(road_from != road_to);
-            let is_road_pos_ok = road_from == from.map_pos
-                && road_to == pos.map_pos;
-            if is_road_pos_ok && !unit_type.is_big {
+            let is_road_pos_ok = road_from == from.map_pos && road_to == pos.map_pos;
+            let is_road_pos_rev_ok = road_to == from.map_pos && road_from == pos.map_pos;
+            if (is_road_pos_ok || is_road_pos_rev_ok) && !unit_type.is_big {
                 terrain_cost = 2; // TODO: ultrahardcoded value :(
             }
         }
