@@ -951,6 +951,9 @@ impl TacticalScreen {
             let mut pos = unit_info_button.pos().clone();
             pos.v.y -= unit_info_button.size().h;
             unit_info_button.set_pos(pos);
+            if let Some(label_id) = self.gui.label_unit_info_id.take() {
+                self.gui.button_manager.remove_button(label_id);
+            }
             self.gui.label_unit_info_id = Some(self.gui.button_manager.add_button(
                 unit_info_button));
         }
@@ -1371,6 +1374,9 @@ impl TacticalScreen {
             self.event_visualizer.as_mut().unwrap().end(scene, state);
             state.apply_event(self.core.db(), self.event.as_ref().unwrap());
         }
+        if let Some(label_id) = self.gui.label_unit_info_id.take() {
+            self.gui.button_manager.remove_button(label_id);
+        }
         if let Some(CoreEvent::VictoryPoint{..}) = self.event {
             self.update_score_labels(context);
             self.check_game_end(context);
@@ -1380,8 +1386,8 @@ impl TacticalScreen {
         self.event = None;
         if let Some(event) = self.core.get_event() {
             self.start_event_visualization(context, event);
-        } else if let Some(ref unit_id) = self.selected_unit_id.clone() {
-            self.select_unit(context, unit_id);
+        } else if let Some(unit_id) = self.selected_unit_id {
+            self.select_unit(context, &unit_id);
         }
     }
 
