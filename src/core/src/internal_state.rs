@@ -43,6 +43,11 @@ impl InternalState {
     pub fn new(map_size: &Size2) -> InternalState {
         let mut map = Map::new(map_size);
         // TODO: read from scenario.json?
+        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 7}}) = Terrain::Water;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 8}}) = Terrain::Water;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 9}}) = Terrain::Water;
+        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 10}}) = Terrain::Water;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 11}}) = Terrain::Water;
         *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 2}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 6}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 2, y: 6}}) = Terrain::Trees;
@@ -50,6 +55,7 @@ impl InternalState {
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 1}}) = Terrain::Trees;
+        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 10}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
         *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
@@ -100,6 +106,9 @@ impl InternalState {
         state.add_big_building(&MapPos{v: Vector2{x: 6, y: 4}});
         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 5}}, 3);
         state.add_buildings(&MapPos{v: Vector2{x: 6, y: 6}}, 1);
+        state.add_buildings(&MapPos{v: Vector2{x: 8, y: 11}}, 2);
+        state.add_buildings(&MapPos{v: Vector2{x: 8, y: 10}}, 2);
+        state.add_buildings(&MapPos{v: Vector2{x: 9, y: 11}}, 1);
         state.add_road(&[
             MapPos{v: Vector2{x: 0, y: 1}},
             MapPos{v: Vector2{x: 1, y: 1}},
@@ -121,6 +130,10 @@ impl InternalState {
             MapPos{v: Vector2{x: 3, y: 6}},
             MapPos{v: Vector2{x: 4, y: 6}},
             MapPos{v: Vector2{x: 5, y: 7}},
+            MapPos{v: Vector2{x: 5, y: 8}},
+            MapPos{v: Vector2{x: 6, y: 9}},
+            MapPos{v: Vector2{x: 6, y: 10}},
+            MapPos{v: Vector2{x: 7, y: 11}},
         ]);
         state
     }

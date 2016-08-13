@@ -61,7 +61,8 @@ fn calc_visibility(terrain: &Terrain, unit_type: &UnitType, distance: &i32)
         match *terrain {
             Terrain::City |
             Terrain::Trees => TileVisibility::Normal,
-            Terrain::Plain => TileVisibility::Excellent,
+            Terrain::Plain |
+            Terrain::Water => TileVisibility::Excellent,
         }
     } else {
         TileVisibility::No

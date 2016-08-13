@@ -22,9 +22,8 @@ fn is_tile_visible(angle: f32, shadows: &[Shadow]) -> bool {
 
 fn is_obstacle(terrain: &Terrain) -> bool {
     match *terrain {
-        Terrain::Trees |
-        Terrain::City => true,
-        Terrain::Plain => false,
+        Terrain::Trees | Terrain::City => true,
+        Terrain::Plain | Terrain::Water => false,
     }
 }
 

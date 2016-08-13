@@ -405,6 +405,7 @@ pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
         Terrain::City => println!("City"),
         Terrain::Trees => println!("Trees"),
         Terrain::Plain => println!("Plain"),
+        Terrain::Water => println!("Water"),
     }
 }
 
@@ -832,7 +833,7 @@ pub fn is_exact_pos_free<S: GameState>(
 
 impl Core {
     pub fn new(options: &Options) -> Core {
-        let map_size = Size2{w: 10, h: 8}; // TODO: read from config file
+        let map_size = Size2{w: 10, h: 12}; // TODO: read from config file
         let mut core = Core {
             state: InternalState::new(&map_size),
             players: get_players_list(&options.game_type),
@@ -873,6 +874,8 @@ impl Core {
             (1, (9, 6), "light_spg"),
             (1, (8, 2), "field_gun"),
             (1, (8, 4), "field_gun"),
+            (1, (5, 10), "field_gun"),
+            (1, (5, 10), "soldier"),
         ] {
             let pos = MapPos{v: Vector2{x: x, y: y}};
             let unit_type_id = self.db.unit_type_id(type_name);
@@ -928,7 +931,7 @@ impl Core {
         let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
         let cover_bonus = if defender_type.class == UnitClass::Infantry {
             match *self.state.map().tile(&defender.pos) {
-                Terrain::Plain => 0,
+                Terrain::Plain | Terrain::Water => 0,
                 Terrain::Trees => 2,
                 Terrain::City => 3,
             }

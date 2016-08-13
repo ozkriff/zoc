@@ -100,10 +100,12 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         UnitClass::Infantry => match *tile {
             Terrain::Plain | Terrain::City => 4,
             Terrain::Trees => 5,
+            Terrain::Water => 99,
         },
         UnitClass::Vehicle => match *tile {
             Terrain::Plain | Terrain::City => 4,
             Terrain::Trees => 8,
+            Terrain::Water => 99,
         },
     };
     for object in &objects {

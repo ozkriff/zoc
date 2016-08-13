@@ -5,11 +5,12 @@ use types::{Size2};
 use dir::{Dir, DirIter, dirs};
 use ::{MapPos};
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Terrain {
     Plain,
     Trees,
     City,
+    Water,
 }
 
 impl Default for Terrain {

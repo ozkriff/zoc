@@ -148,7 +148,23 @@ fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) ->
 }
 
 fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    generate_tiles_mesh(context, tex, state.map().get_iter())
+    let mut normal_positions = Vec::new();
+    for tile_pos in state.map().get_iter() {
+        if *state.map().tile(&tile_pos) != Terrain::Water {
+            normal_positions.push(tile_pos);
+        }
+    }
+    generate_tiles_mesh(context, tex, normal_positions)
+}
+
+fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
+    let mut normal_positions = Vec::new();
+    for pos in state.map().get_iter() {
+        if *state.map().tile(&pos) == Terrain::Water {
+            normal_positions.push(pos);
+        }
+    }
+    generate_tiles_mesh(context, tex, normal_positions)
 }
 
 fn generate_fogged_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
@@ -341,6 +357,7 @@ struct MeshIdManager {
     walkable_mesh_id: MeshId,
     targets_mesh_id: MeshId,
     map_mesh_id: MeshId,
+    water_mesh_id: MeshId,
     fow_mesh_id: MeshId,
     selection_marker_mesh_id: MeshId,
     sector_mesh_ids: HashMap<SectorId, MeshId>,
@@ -355,6 +372,8 @@ impl MeshIdManager {
         let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
         let chess_grid_tex = load_texture(&mut context.factory, &fs::load("chess_grid.png").into_inner());
         let map_mesh_id = meshes.add(generate_map_mesh(
+            context, state, floor_tex.clone()));
+        let water_mesh_id = meshes.add(generate_water_mesh(
             context, state, floor_tex.clone()));
         let fow_mesh_id = meshes.add(generate_fogged_tiles_mesh(
             context, state, floor_tex.clone()));
@@ -388,6 +407,7 @@ impl MeshIdManager {
             walkable_mesh_id: walkable_mesh_id,
             targets_mesh_id: targets_mesh_id,
             map_mesh_id: map_mesh_id,
+            water_mesh_id: water_mesh_id,
             fow_mesh_id: fow_mesh_id,
             selection_marker_mesh_id: selection_marker_mesh_id,
             sector_mesh_ids: sector_mesh_ids,
@@ -630,6 +650,13 @@ impl TacticalScreen {
                 rot: rad(0.0),
                 mesh_id: Some(self.mesh_ids.map_mesh_id),
                 color: [0.8, 0.8, 0.8, 1.0],
+                children: Vec::new(),
+            });
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: Vector3::from_value(0.0)},
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.water_mesh_id),
+                color: [0.6, 0.6, 0.9, 1.0],
                 children: Vec::new(),
             });
             for (sector_id, sector_mesh_id) in &self.mesh_ids.sector_mesh_ids {
