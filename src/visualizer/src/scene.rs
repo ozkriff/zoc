@@ -1,23 +1,41 @@
-use std::collections::{HashMap};
+use std::collections::{HashMap, HashSet, BTreeMap};
+use std::cmp::{Ord, Ordering};
 use cgmath::{Rad};
-use core::{UnitId};
+use core::{UnitId, SectorId};
 use types::{WorldPos};
 use mesh::{MeshId};
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct NodeId{pub id: i32}
 
+// TODO: Builder constructor
 #[derive(Clone, Debug)]
 pub struct SceneNode {
     pub pos: WorldPos,
     pub rot: Rad<f32>,
     pub mesh_id: Option<MeshId>,
+    pub color: [f32; 4],
     pub children: Vec<SceneNode>,
 }
 
+#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
+pub struct Z(f32);
+
+impl Eq for Z {}
+
+impl Ord for Z {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Scene {
     unit_id_to_node_id_map: HashMap<UnitId, NodeId>,
+    sector_id_to_node_id_map: HashMap<SectorId, NodeId>,
+    // object_id_to_node_id_map: HashMap<ObjectId, NodeId>, // TODO: for https://github.com/ozkriff/zoc/issues/182
     nodes: HashMap<NodeId, SceneNode>,
+    transparent_node_ids: BTreeMap<Z, HashSet<NodeId>>,
     next_id: NodeId,
 }
 
@@ -25,13 +43,19 @@ impl Scene {
     pub fn new() -> Scene {
         Scene {
             unit_id_to_node_id_map: HashMap::new(),
+            sector_id_to_node_id_map: HashMap::new(),
             nodes: HashMap::new(),
+            transparent_node_ids: BTreeMap::new(),
             next_id: NodeId{id: 0},
         }
     }
 
     pub fn unit_id_to_node_id(&self, unit_id: &UnitId) -> NodeId {
-        self.unit_id_to_node_id_map[unit_id].clone()
+        self.unit_id_to_node_id_map[unit_id]
+    }
+
+    pub fn sector_id_to_node_id(&self, sector_id: SectorId) -> NodeId {
+        self.sector_id_to_node_id_map[&sector_id]
     }
 
     pub fn remove_node(&mut self, node_id: &NodeId) {
@@ -39,10 +63,18 @@ impl Scene {
     }
 
     pub fn add_node(&mut self, node: SceneNode) -> NodeId {
-        let node_id = self.next_id.clone();
+        let node_id = self.next_id;
         self.next_id.id += 1;
         assert!(!self.nodes.contains_key(&node_id));
-        self.nodes.insert(node_id.clone(), node);
+        if node.color[3] < 1.0 {
+            let z = Z(node.pos.v.z);
+            if !self.transparent_node_ids.contains_key(&z) {
+                self.transparent_node_ids.insert(z, HashSet::new());
+            }
+            let layer = self.transparent_node_ids.get_mut(&z).unwrap();
+            layer.insert(node_id);
+        }
+        self.nodes.insert(node_id, node);
         node_id
     }
 
@@ -56,7 +88,14 @@ impl Scene {
     pub fn add_unit(&mut self, unit_id: &UnitId, node: SceneNode) -> NodeId {
         let node_id = self.add_node(node);
         assert!(!self.unit_id_to_node_id_map.contains_key(unit_id));
-        self.unit_id_to_node_id_map.insert(unit_id.clone(), node_id.clone());
+        self.unit_id_to_node_id_map.insert(*unit_id, node_id);
+        node_id
+    }
+
+    pub fn add_sector(&mut self, sector_id: SectorId, node: SceneNode) -> NodeId {
+        let node_id = self.add_node(node);
+        assert!(!self.sector_id_to_node_id_map.contains_key(&sector_id));
+        self.sector_id_to_node_id_map.insert(sector_id, node_id);
         node_id
     }
 
@@ -64,12 +103,15 @@ impl Scene {
         &self.nodes
     }
 
+    pub fn transparent_node_ids(&self) -> &BTreeMap<Z, HashSet<NodeId>> {
+        &self.transparent_node_ids
+    }
+
     pub fn node(&self, node_id: &NodeId) -> &SceneNode {
         &self.nodes[node_id]
     }
 
     pub fn node_mut(&mut self, node_id: &NodeId) -> &mut SceneNode {
-        self.nodes.get_mut(node_id)
-            .expect("Bad node id")
+        self.nodes.get_mut(node_id).expect("Bad node id")
     }
 }

@@ -51,6 +51,7 @@ impl SelectionManager {
             pos: self.get_pos(state),
             rot: rad(0.0),
             mesh_id: Some(self.mesh_id.clone()),
+            color: [1.0, 1.0, 1.0, 1.0],
             children: Vec::new(),
         };
         self.selection_marker_node_id = Some(scene.add_node(node));

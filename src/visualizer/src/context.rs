@@ -134,13 +134,6 @@ impl Context {
         &self.mouse
     }
 
-    pub fn draw_mesh_with_color(&mut self, color: [f32; 4], mesh: &Mesh) {
-        let old_color = self.data.basic_color;
-        self.data.basic_color = color;
-        self.draw_mesh(mesh);
-        self.data.basic_color = old_color;
-    }
-
     pub fn draw_mesh(&mut self, mesh: &Mesh) {
         self.data.texture.0 = mesh.texture.clone();
         self.data.vbuf = mesh.vertex_buffer.clone();

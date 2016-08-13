@@ -115,6 +115,7 @@ impl MapTextManager {
         let rot_x_mat = Matrix4::from(Matrix3::from_angle_x(camera.get_x_angle()));
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         for (_, map_text) in &mut self.visible_labels_list {
+            // TODO: fade to alpha
             let pos = map_text.move_helper.step(dtime);
             let tr_mat = Matrix4::from_translation(pos.v);
             let mvp = camera.mat() * tr_mat * rot_z_mat * rot_x_mat;

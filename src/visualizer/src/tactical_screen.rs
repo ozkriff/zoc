@@ -147,7 +147,7 @@ fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) ->
     generate_tiles_mesh(context, tex, sector.positions.to_vec())
 }
 
-fn generate_visible_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
+fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
     generate_tiles_mesh(context, tex, state.map().get_iter())
 }
 
@@ -294,7 +294,7 @@ fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
     }
 }
 
-fn get_marker_mesh_id<'a>(mesh_ids: &'a MeshIdManager, player_id: &PlayerId) -> &'a MeshId {
+fn get_marker_mesh_id(mesh_ids: &MeshIdManager, player_id: PlayerId) -> &MeshId {
     // TODO: use one mesh, just different node colors
     match player_id.id {
         0 => &mesh_ids.marker_1_mesh_id,
@@ -340,9 +340,59 @@ struct MeshIdManager {
     marker_2_mesh_id: MeshId,
     walkable_mesh_id: MeshId,
     targets_mesh_id: MeshId,
-    visible_map_mesh_id: MeshId,
-    fow_map_mesh_id: MeshId,
+    map_mesh_id: MeshId,
+    fow_mesh_id: MeshId,
+    selection_marker_mesh_id: MeshId,
     sector_mesh_ids: HashMap<SectorId, MeshId>,
+}
+
+impl MeshIdManager {
+    fn new(
+        context: &mut Context,
+        meshes: &mut MeshManager,
+        state: &PartialState,
+    ) -> MeshIdManager {
+        let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
+        let chess_grid_tex = load_texture(&mut context.factory, &fs::load("chess_grid.png").into_inner());
+        let map_mesh_id = meshes.add(generate_map_mesh(
+            context, state, floor_tex.clone()));
+        let fow_mesh_id = meshes.add(generate_fogged_tiles_mesh(
+            context, state, floor_tex.clone()));
+        let mut sector_mesh_ids = HashMap::new();
+        for (id, sector) in state.sectors() {
+            let mesh_id = meshes.add(generate_sector_mesh(
+                context, sector, chess_grid_tex.clone()));
+            sector_mesh_ids.insert(*id, mesh_id);
+        }
+        let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
+        let big_building_mesh_w_id = meshes.add(
+            load_object_mesh(context, "big_building_wire"));
+        let building_mesh_w_id = meshes.add(
+            load_object_mesh(context, "building_wire"));
+        let trees_mesh_id = meshes.add(load_object_mesh(context, "trees"));
+        let shell_mesh_id = meshes.add(get_shell_mesh(context));
+        let road_mesh_id = meshes.add(get_road_mesh(context));
+        // TODO: use one mesh but with different node colors
+        let marker_1_mesh_id = meshes.add(get_marker(context, "flag1.png"));
+        let marker_2_mesh_id = meshes.add(get_marker(context, "flag2.png"));
+        let walkable_mesh_id = meshes.add(empty_mesh(context));
+        let targets_mesh_id = meshes.add(empty_mesh(context));
+        MeshIdManager {
+            big_building_mesh_w_id: big_building_mesh_w_id,
+            building_mesh_w_id: building_mesh_w_id,
+            trees_mesh_id: trees_mesh_id,
+            road_mesh_id: road_mesh_id,
+            shell_mesh_id: shell_mesh_id,
+            marker_1_mesh_id: marker_1_mesh_id,
+            marker_2_mesh_id: marker_2_mesh_id,
+            walkable_mesh_id: walkable_mesh_id,
+            targets_mesh_id: targets_mesh_id,
+            map_mesh_id: map_mesh_id,
+            fow_mesh_id: fow_mesh_id,
+            selection_marker_mesh_id: selection_marker_mesh_id,
+            sector_mesh_ids: sector_mesh_ids,
+        }
+    }
 }
 
 fn get_unit_type_visual_info(
@@ -481,7 +531,6 @@ pub struct TacticalScreen {
     unit_type_visual_info: UnitTypeVisualInfoManager,
     selected_unit_id: Option<UnitId>,
     selection_manager: SelectionManager,
-    floor_tex: Texture,
     tx: Sender<context_menu_popup::Command>,
     rx: Receiver<context_menu_popup::Command>,
 }
@@ -491,58 +540,18 @@ impl TacticalScreen {
         let core = Core::new(core_options);
         let map_size = core.map_size().clone();
         let player_info = PlayerInfoManager::new(context, &map_size, core_options);
-        let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
-        let chess_grid_tex = load_texture(&mut context.factory, &fs::load("chess_grid.png").into_inner());
         let mut meshes = MeshManager::new();
-        let visible_map_mesh_id = meshes.add(generate_visible_tiles_mesh(
-            context, &player_info.get(core.player_id()).game_state, floor_tex.clone()));
-        let fow_map_mesh_id = meshes.add(generate_fogged_tiles_mesh(
-            context, &player_info.get(core.player_id()).game_state, floor_tex.clone()));
-        let mut sector_mesh_ids = HashMap::new();
-        {
-            let sectors = player_info.get(core.player_id()).game_state.sectors();
-            for (id, sector) in sectors {
-                let mesh_id = meshes.add(generate_sector_mesh(
-                    context, sector, chess_grid_tex.clone()));
-                sector_mesh_ids.insert(*id, mesh_id);
-            }
-        };
-        let selection_marker_mesh_id = meshes.add(
-            get_selection_mesh(context));
-        let big_building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "big_building_wire"));
-        let building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "building_wire"));
-        let trees_mesh_id = meshes.add(
-            load_object_mesh(context, "trees"));
-        let shell_mesh_id = meshes.add(
-            get_shell_mesh(context));
-        let road_mesh_id = meshes.add(get_road_mesh(context));
-        let marker_1_mesh_id = meshes.add(
-            get_marker(context, "flag1.png"));
-        let marker_2_mesh_id = meshes.add(
-            get_marker(context, "flag2.png"));
-        let walkable_mesh_id = meshes.add(empty_mesh(context));
-        let targets_mesh_id = meshes.add(empty_mesh(context));
-        let mesh_ids = MeshIdManager {
-            big_building_mesh_w_id: big_building_mesh_w_id,
-            building_mesh_w_id: building_mesh_w_id,
-            trees_mesh_id: trees_mesh_id,
-            road_mesh_id: road_mesh_id,
-            shell_mesh_id: shell_mesh_id,
-            marker_1_mesh_id: marker_1_mesh_id,
-            marker_2_mesh_id: marker_2_mesh_id,
-            walkable_mesh_id: walkable_mesh_id,
-            targets_mesh_id: targets_mesh_id,
-            visible_map_mesh_id: visible_map_mesh_id,
-            fow_map_mesh_id: fow_map_mesh_id,
-            sector_mesh_ids: sector_mesh_ids,
-        };
+        let mesh_ids = MeshIdManager::new(
+            context,
+            &mut meshes,
+            &player_info.get(core.player_id()).game_state,
+        );
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), context, &mut meshes);
         let map_text_manager = MapTextManager::new();
         let (tx, rx) = channel();
         let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
+        let selection_manager = SelectionManager::new(mesh_ids.selection_marker_mesh_id);
         let mut screen = TacticalScreen {
             gui: gui,
             player_info: player_info,
@@ -553,13 +562,12 @@ impl TacticalScreen {
             meshes: meshes,
             unit_type_visual_info: unit_type_visual_info,
             selected_unit_id: None,
-            selection_manager: SelectionManager::new(selection_marker_mesh_id),
+            selection_manager: selection_manager,
             map_text_manager: map_text_manager,
-            floor_tex: floor_tex,
             tx: tx,
             rx: rx,
         };
-        screen.add_map_objects();
+        screen.add_map_objects(); // TODO: let scene = make_scene(state, mesh_ids, ...);
         screen
     }
 
@@ -590,24 +598,66 @@ impl TacticalScreen {
                 pos: *pos,
                 rot: rad(0.0),
                 mesh_id: Some(self.mesh_ids.shell_mesh_id.clone()),
+                color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             });
         }
     }
 
+    // TODO: rename: make_scene
+    // TODO: make a standalone func
     fn add_map_objects(&mut self) {
         for (_, player_info) in &mut self.player_info.info {
             let state = &player_info.game_state;
             let map = state.map();
+            let scene = &mut player_info.scene;
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: Vector3::from_value(0.0)},
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.walkable_mesh_id),
+                color: [0.0, 0.0, 1.0, 1.0],
+                children: Vec::new(),
+            });
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: Vector3::from_value(0.0)},
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.targets_mesh_id),
+                color: [1.0, 0.0, 0.0, 1.0],
+                children: Vec::new(),
+            });
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: Vector3::from_value(0.0)},
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.map_mesh_id),
+                color: [0.8, 0.8, 0.8, 1.0],
+                children: Vec::new(),
+            });
+            for (sector_id, sector_mesh_id) in &self.mesh_ids.sector_mesh_ids {
+                scene.add_sector(*sector_id, SceneNode {
+                    pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
+                    rot: rad(0.0),
+                    mesh_id: Some(*sector_mesh_id),
+                    color: [1.0, 1.0, 1.0, 0.5],
+                    children: Vec::new(),
+                });
+            }
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.02}}, // TODO
+                rot: rad(0.0),
+                mesh_id: Some(self.mesh_ids.fow_mesh_id),
+                color: [0.0, 0.1, 0.0, 0.3],
+                children: Vec::new(),
+            });
             for tile_pos in map.get_iter() {
                 let objects = state.objects_at(&tile_pos);
                 if *map.tile(&tile_pos) == Terrain::Trees {
                     let pos = geom::map_pos_to_world_pos(&tile_pos);
                     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                    player_info.scene.add_node(SceneNode {
+                    scene.add_node(SceneNode {
                         pos: pos,
                         rot: rot,
                         mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
+                        color: [1.0, 1.0, 1.0, 1.0],
                         children: Vec::new(),
                     });
                 }
@@ -616,7 +666,7 @@ impl TacticalScreen {
                         ObjectClass::Building => {
                             let pos = geom::exact_pos_to_world_pos(&object.pos);
                             let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                            player_info.scene.add_node(SceneNode {
+                            scene.add_node(SceneNode {
                                 pos: pos,
                                 rot: rot,
                                 mesh_id: Some(match object.pos.slot_id {
@@ -624,6 +674,7 @@ impl TacticalScreen {
                                     SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
                                     SlotId::TwoTiles(_) => unimplemented!(),
                                 }),
+                                color: [0.0, 0.0, 0.0, 1.0],
                                 children: Vec::new(),
                             });
                         }
@@ -635,10 +686,11 @@ impl TacticalScreen {
                                 },
                                 _ => panic!(),
                             };
-                            player_info.scene.add_node(SceneNode {
+                            scene.add_node(SceneNode {
                                 pos: pos,
                                 rot: rot,
                                 mesh_id: Some(self.mesh_ids.road_mesh_id.clone()),
+                                color: [1.0, 1.0, 1.0, 1.0],
                                 children: Vec::new(),
                             });
                         }
@@ -661,14 +713,9 @@ impl TacticalScreen {
 
     fn regenerate_fow(&mut self, context: &mut Context) {
         let state = &self.player_info.get_mut(self.core.player_id()).game_state;
-        self.meshes.set(
-            self.mesh_ids.visible_map_mesh_id,
-            generate_visible_tiles_mesh(context, state, self.floor_tex.clone()),
-        );
-        self.meshes.set(
-            self.mesh_ids.fow_map_mesh_id,
-            generate_fogged_tiles_mesh(context, state, self.floor_tex.clone()),
-        );
+        let texture = self.meshes.get(self.mesh_ids.fow_mesh_id).texture.clone();
+        let new_fow_mesh = generate_fogged_tiles_mesh(context, state, texture);
+        self.meshes.set(self.mesh_ids.fow_mesh_id, new_fow_mesh);
     }
 
     fn hide_selected_unit_meshes(&mut self, context: &mut Context) {
@@ -1051,13 +1098,9 @@ impl TacticalScreen {
         let rot_mat = Matrix4::from(Matrix3::from_angle_z(node.rot));
         let m = m * tr_mat * rot_mat;
         if let Some(mesh_id) = node.mesh_id {
-            let mesh = &self.meshes.get(mesh_id);
             context.data.mvp = m.into(); // TODO: use separate model matrix
-            if mesh.is_wire() {
-                context.draw_mesh_with_color([0.0, 0.0, 0.0, 1.0], mesh);
-            } else {
-                context.draw_mesh(mesh);
-            }
+            context.data.basic_color = node.color;
+            context.draw_mesh(&self.meshes.get(mesh_id));
         }
         for node in &node.children {
             self.draw_scene_node(context, node, m);
@@ -1065,45 +1108,25 @@ impl TacticalScreen {
     }
 
     fn draw_scene_nodes(&self, context: &mut Context) {
+        let m = self.current_player_info().camera.mat();
         for node in self.scene().nodes().values() {
-            let m = self.current_player_info().camera.mat();
-            self.draw_scene_node(context, node, m);
+            if !(node.color[3] < 1.0) {
+                self.draw_scene_node(context, node, m);
+            }
         }
-    }
-
-    fn draw_map(&mut self, context: &mut Context) {
-        // TODO: use scene nodes
-        context.data.mvp = self.current_player_info().camera.mat().into();
-        context.data.basic_color = [0.85, 0.85, 0.85, 1.0];
-        context.draw_mesh(&self.meshes.get(self.mesh_ids.visible_map_mesh_id));
-        context.data.basic_color = [0.5, 0.5, 0.5, 1.0];
-        context.draw_mesh(&self.meshes.get(self.mesh_ids.fow_map_mesh_id));
+        for layer in self.scene().transparent_node_ids().values() {
+            for node_id in layer {
+                let node = self.scene().node(node_id);
+                self.draw_scene_node(context, node, m);
+            }
+        }
     }
 
     fn draw_scene(&mut self, context: &mut Context, dtime: &Time) {
-        context.data.basic_color = [1.0, 1.0, 1.0, 1.0];
         self.draw_scene_nodes(context);
-        self.draw_map(context);
-        // TODO: use colored scene nodes
-        context.data.basic_color = [0.0, 0.0, 1.0, 1.0];
-        context.draw_mesh(&self.meshes.get(self.mesh_ids.walkable_mesh_id));
-        context.data.basic_color = [1.0, 0.0, 0.0, 1.0];
-        context.draw_mesh(&self.meshes.get(self.mesh_ids.targets_mesh_id));
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let player_info = self.player_info.get_mut(self.core.player_id());
             event_visualizer.draw(&mut player_info.scene, dtime);
-        }
-        for (sector_id, sector_mesh_id) in &self.mesh_ids.sector_mesh_ids {
-            context.data.mvp = self.current_player_info().camera.mat().into();
-            let state = &self.player_info.get_mut(self.core.player_id()).game_state;
-            let basic_color = match state.sectors()[sector_id].owner_id {
-                None => [1.0, 1.0, 1.0, 0.5],
-                Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
-                Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
-                Some(PlayerId{id: _}) => unimplemented!(),
-            };
-            context.data.basic_color = basic_color;
-            context.draw_mesh(&self.meshes.get(*sector_mesh_id));
         }
     }
 
@@ -1111,9 +1134,9 @@ impl TacticalScreen {
         context.clear_color = [0.7, 0.7, 0.7, 1.0];
         context.encoder.clear(&context.data.out, context.clear_color);
         self.draw_scene(context, dtime);
-        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         let player_info = self.player_info.get(self.core.player_id());
         self.map_text_manager.draw(context, &player_info.camera, dtime);
+        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.gui.button_manager.draw(context);
     }
 
@@ -1164,7 +1187,7 @@ impl TacticalScreen {
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, &unit_info.player_id);
+                    &self.mesh_ids, unit_info.player_id);
                 EventCreateUnitVisualizer::new(
                     self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
             },
@@ -1181,7 +1204,7 @@ impl TacticalScreen {
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, &unit_info.player_id);
+                    &self.mesh_ids, unit_info.player_id);
                 EventShowUnitVisualizer::new(
                     self.core.db(),
                     scene,
@@ -1218,7 +1241,7 @@ impl TacticalScreen {
                 let mesh_id = &self.unit_type_visual_info
                     .get(&unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, &unit_info.player_id);
+                    &self.mesh_ids, unit_info.player_id);
                 EventUnloadUnitVisualizer::new(
                     self.core.db(),
                     scene,
@@ -1238,8 +1261,9 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            CoreEvent::SectorOwnerChanged{ref sector_id, ref new_owner_id} => {
+            CoreEvent::SectorOwnerChanged{sector_id, new_owner_id} => {
                 EventSectorOwnerChangedVisualizer::new(
+                    scene,
                     state,
                     sector_id,
                     new_owner_id,

@@ -95,12 +95,14 @@ fn show_unit_at(
         pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
         rot: rad(0.0),
         mesh_id: Some(marker_mesh_id.clone()),
+        color: [1.0, 1.0, 1.0, 1.0],
         children: Vec::new(),
     });
     scene.add_unit(&unit_info.unit_id, SceneNode {
         pos: to,
         rot: rot,
         mesh_id: None,
+        color: [1.0, 1.0, 1.0, 1.0],
         children: children,
     });
 }
@@ -122,6 +124,7 @@ fn get_unit_scene_nodes(
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
             rot: rad(0.0),
             mesh_id: Some(mesh_id.clone()),
+            color: [1.0, 1.0, 1.0, 1.0],
             children: vec![],
         }]
     } else {
@@ -131,6 +134,7 @@ fn get_unit_scene_nodes(
                 pos: WorldPos{v: pos},
                 rot: rad(0.0),
                 mesh_id: Some(mesh_id.clone()),
+                color: [1.0, 1.0, 1.0, 1.0],
                 children: vec![],
             });
         }
@@ -214,6 +218,7 @@ impl EventAttackUnitVisualizer {
                 pos: from,
                 rot: geom::get_rot_angle(&attacker_pos, &defender_pos),
                 mesh_id: Some(shell_mesh_id.clone()),
+                color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             }));
             let shell_speed = 10.0;
@@ -491,18 +496,28 @@ pub struct EventSectorOwnerChangedVisualizer;
 
 impl EventSectorOwnerChangedVisualizer {
     pub fn new(
+        scene: &mut Scene,
         state: &PartialState,
-        sector_id: &SectorId,
-        owner_id: &Option<PlayerId>,
+        sector_id: SectorId,
+        owner_id: Option<PlayerId>,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         // TODO: fix msg
         // "Sector {} secured by an enemy"
         // "Sector {} secured"
         // "Sector {} lost" ??
-        let sector = &state.sectors()[sector_id];
+        let color = match owner_id {
+            None => [1.0, 1.0, 1.0, 0.5],
+            Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
+            Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
+            Some(PlayerId{id: _}) => unimplemented!(),
+        };
+        let node_id = scene.sector_id_to_node_id(sector_id);
+        let node = scene.node_mut(&node_id);
+        node.color = color;
+        let sector = &state.sectors()[&sector_id];
         let pos = sector.center();
-        let text = match *owner_id {
+        let text = match owner_id {
             Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
             None => format!("Sector {}: owner changed: None", sector_id.id),
         };
