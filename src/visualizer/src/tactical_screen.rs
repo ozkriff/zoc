@@ -50,6 +50,7 @@ use core::{
     get_free_exact_pos,
 };
 use core::db::{Db};
+use core::unit::{UnitTypeId};
 use obj;
 use camera::Camera;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
@@ -881,10 +882,9 @@ impl TacticalScreen {
         options
     }
 
-    fn create_unit(&mut self, context: &Context) {
+    fn create_unit(&mut self, context: &Context, type_id: UnitTypeId) {
         let pick_result = self.pick_tile(context);
         if let Some(ref pos) = pick_result {
-            let type_id = self.core.db().unit_type_id("soldier");
             let exact_pos = get_free_exact_pos(
                 self.core.db(),
                 self.current_state(),
@@ -1046,7 +1046,12 @@ impl TacticalScreen {
                 self.print_info(context);
             },
             VirtualKeyCode::U => {
-                self.create_unit(context);
+                let type_id = self.core.db().unit_type_id("soldier");
+                self.create_unit(context, type_id);
+            },
+            VirtualKeyCode::T => {
+                let type_id = self.core.db().unit_type_id("medium_tank");
+                self.create_unit(context, type_id);
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.current_player_info_mut().camera.change_zoom(1.3);
