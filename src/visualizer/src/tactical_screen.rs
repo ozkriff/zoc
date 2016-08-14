@@ -539,6 +539,105 @@ impl Gui {
     }
 }
 
+fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
+    let mut scene = Scene::new();
+    let map = state.map();
+    scene.add_node(SceneNode {
+        pos: WorldPos{v: Vector3::from_value(0.0)},
+        rot: rad(0.0),
+        mesh_id: Some(mesh_ids.walkable_mesh_id),
+        color: [0.0, 0.0, 1.0, 1.0],
+        children: Vec::new(),
+    });
+    scene.add_node(SceneNode {
+        pos: WorldPos{v: Vector3::from_value(0.0)},
+        rot: rad(0.0),
+        mesh_id: Some(mesh_ids.targets_mesh_id),
+        color: [1.0, 0.0, 0.0, 1.0],
+        children: Vec::new(),
+    });
+    scene.add_node(SceneNode {
+        pos: WorldPos{v: Vector3::from_value(0.0)},
+        rot: rad(0.0),
+        mesh_id: Some(mesh_ids.map_mesh_id),
+        color: [0.8, 0.8, 0.8, 1.0],
+        children: Vec::new(),
+    });
+    scene.add_node(SceneNode {
+        pos: WorldPos{v: Vector3::from_value(0.0)},
+        rot: rad(0.0),
+        mesh_id: Some(mesh_ids.water_mesh_id),
+        color: [0.6, 0.6, 0.9, 1.0],
+        children: Vec::new(),
+    });
+    for (sector_id, sector_mesh_id) in &mesh_ids.sector_mesh_ids {
+        scene.add_sector(*sector_id, SceneNode {
+            pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
+            rot: rad(0.0),
+            mesh_id: Some(*sector_mesh_id),
+            color: [1.0, 1.0, 1.0, 0.5],
+            children: Vec::new(),
+        });
+    }
+    scene.add_node(SceneNode {
+        pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.02}}, // TODO
+        rot: rad(0.0),
+        mesh_id: Some(mesh_ids.fow_mesh_id),
+        color: [0.0, 0.1, 0.0, 0.3],
+        children: Vec::new(),
+    });
+    for tile_pos in map.get_iter() {
+        let objects = state.objects_at(&tile_pos);
+        if *map.tile(&tile_pos) == Terrain::Trees {
+            let pos = geom::map_pos_to_world_pos(&tile_pos);
+            let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+            scene.add_node(SceneNode {
+                pos: pos,
+                rot: rot,
+                mesh_id: Some(mesh_ids.trees_mesh_id.clone()),
+                color: [1.0, 1.0, 1.0, 1.0],
+                children: Vec::new(),
+            });
+        }
+        for object in objects {
+            match object.class {
+                ObjectClass::Building => {
+                    let pos = geom::exact_pos_to_world_pos(&object.pos);
+                    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+                    scene.add_node(SceneNode {
+                        pos: pos,
+                        rot: rot,
+                        mesh_id: Some(match object.pos.slot_id {
+                            SlotId::Id(_) => mesh_ids.building_mesh_w_id.clone(),
+                            SlotId::WholeTile => mesh_ids.big_building_mesh_w_id.clone(),
+                            SlotId::TwoTiles(_) => unimplemented!(),
+                        }),
+                        color: [0.0, 0.0, 0.0, 1.0],
+                        children: Vec::new(),
+                    });
+                }
+                ObjectClass::Road => {
+                    let pos = geom::exact_pos_to_world_pos(&object.pos);
+                    let rot = match object.pos.slot_id {
+                        SlotId::TwoTiles(ref dir) => {
+                            rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
+                        },
+                        _ => panic!(),
+                    };
+                    scene.add_node(SceneNode {
+                        pos: pos,
+                        rot: rot,
+                        mesh_id: Some(mesh_ids.road_mesh_id.clone()),
+                        color: [1.0, 1.0, 1.0, 1.0],
+                        children: Vec::new(),
+                    });
+                }
+            }
+        }
+    }
+    scene
+}
+
 pub struct TacticalScreen {
     map_text_manager: MapTextManager,
     gui: Gui,
@@ -559,7 +658,7 @@ impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = Core::new(core_options);
         let map_size = core.map_size().clone();
-        let player_info = PlayerInfoManager::new(context, &map_size, core_options);
+        let mut player_info = PlayerInfoManager::new(context, &map_size, core_options);
         let mut meshes = MeshManager::new();
         let mesh_ids = MeshIdManager::new(
             context,
@@ -572,7 +671,10 @@ impl TacticalScreen {
         let (tx, rx) = channel();
         let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
         let selection_manager = SelectionManager::new(mesh_ids.selection_marker_mesh_id);
-        let mut screen = TacticalScreen {
+        for (_, player_info) in &mut player_info.info {
+            player_info.scene = make_scene(&player_info.game_state, &mesh_ids);
+        }
+        TacticalScreen {
             gui: gui,
             player_info: player_info,
             core: core,
@@ -586,9 +688,7 @@ impl TacticalScreen {
             map_text_manager: map_text_manager,
             tx: tx,
             rx: rx,
-        };
-        screen.add_map_objects(); // TODO: let scene = make_scene(state, mesh_ids, ...);
-        screen
+        }
     }
 
     fn pick_world_pos(&self, context: &Context) -> WorldPos {
@@ -621,109 +721,6 @@ impl TacticalScreen {
                 color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             });
-        }
-    }
-
-    // TODO: rename: make_scene
-    // TODO: make a standalone func
-    fn add_map_objects(&mut self) {
-        for (_, player_info) in &mut self.player_info.info {
-            let state = &player_info.game_state;
-            let map = state.map();
-            let scene = &mut player_info.scene;
-            scene.add_node(SceneNode {
-                pos: WorldPos{v: Vector3::from_value(0.0)},
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.walkable_mesh_id),
-                color: [0.0, 0.0, 1.0, 1.0],
-                children: Vec::new(),
-            });
-            scene.add_node(SceneNode {
-                pos: WorldPos{v: Vector3::from_value(0.0)},
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.targets_mesh_id),
-                color: [1.0, 0.0, 0.0, 1.0],
-                children: Vec::new(),
-            });
-            scene.add_node(SceneNode {
-                pos: WorldPos{v: Vector3::from_value(0.0)},
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.map_mesh_id),
-                color: [0.8, 0.8, 0.8, 1.0],
-                children: Vec::new(),
-            });
-            scene.add_node(SceneNode {
-                pos: WorldPos{v: Vector3::from_value(0.0)},
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.water_mesh_id),
-                color: [0.6, 0.6, 0.9, 1.0],
-                children: Vec::new(),
-            });
-            for (sector_id, sector_mesh_id) in &self.mesh_ids.sector_mesh_ids {
-                scene.add_sector(*sector_id, SceneNode {
-                    pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
-                    rot: rad(0.0),
-                    mesh_id: Some(*sector_mesh_id),
-                    color: [1.0, 1.0, 1.0, 0.5],
-                    children: Vec::new(),
-                });
-            }
-            scene.add_node(SceneNode {
-                pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.02}}, // TODO
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.fow_mesh_id),
-                color: [0.0, 0.1, 0.0, 0.3],
-                children: Vec::new(),
-            });
-            for tile_pos in map.get_iter() {
-                let objects = state.objects_at(&tile_pos);
-                if *map.tile(&tile_pos) == Terrain::Trees {
-                    let pos = geom::map_pos_to_world_pos(&tile_pos);
-                    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                    scene.add_node(SceneNode {
-                        pos: pos,
-                        rot: rot,
-                        mesh_id: Some(self.mesh_ids.trees_mesh_id.clone()),
-                        color: [1.0, 1.0, 1.0, 1.0],
-                        children: Vec::new(),
-                    });
-                }
-                for object in objects {
-                    match object.class {
-                        ObjectClass::Building => {
-                            let pos = geom::exact_pos_to_world_pos(&object.pos);
-                            let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                            scene.add_node(SceneNode {
-                                pos: pos,
-                                rot: rot,
-                                mesh_id: Some(match object.pos.slot_id {
-                                    SlotId::Id(_) => self.mesh_ids.building_mesh_w_id.clone(),
-                                    SlotId::WholeTile => self.mesh_ids.big_building_mesh_w_id.clone(),
-                                    SlotId::TwoTiles(_) => unimplemented!(),
-                                }),
-                                color: [0.0, 0.0, 0.0, 1.0],
-                                children: Vec::new(),
-                            });
-                        }
-                        ObjectClass::Road => {
-                            let pos = geom::exact_pos_to_world_pos(&object.pos);
-                            let rot = match object.pos.slot_id {
-                                SlotId::TwoTiles(ref dir) => {
-                                    rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
-                                },
-                                _ => panic!(),
-                            };
-                            scene.add_node(SceneNode {
-                                pos: pos,
-                                rot: rot,
-                                mesh_id: Some(self.mesh_ids.road_mesh_id.clone()),
-                                color: [1.0, 1.0, 1.0, 1.0],
-                                children: Vec::new(),
-                            });
-                        }
-                    }
-                }
-            }
         }
     }
 
