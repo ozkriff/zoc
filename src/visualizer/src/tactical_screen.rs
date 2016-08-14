@@ -712,18 +712,6 @@ impl TacticalScreen {
         WorldPos{v: p.to_vec()}
     }
 
-    fn add_marker(&mut self, pos: &WorldPos) {
-        for (_, player_info) in &mut self.player_info.info {
-            player_info.scene.add_node(SceneNode {
-                pos: *pos,
-                rot: rad(0.0),
-                mesh_id: Some(self.mesh_ids.shell_mesh_id.clone()),
-                color: [1.0, 1.0, 1.0, 1.0],
-                children: Vec::new(),
-            });
-        }
-    }
-
     fn end_turn(&mut self, context: &mut Context) {
         if self.player_info.info.len() > 1 {
             let next_id = self.core.next_player_id(self.core.player_id());
@@ -1059,10 +1047,6 @@ impl TacticalScreen {
             },
             VirtualKeyCode::U => {
                 self.create_unit(context);
-            },
-            VirtualKeyCode::C => {
-                let p = self.pick_world_pos(context);
-                self.add_marker(&p);
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.current_player_info_mut().camera.change_zoom(1.3);
