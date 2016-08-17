@@ -11,6 +11,7 @@ repository = "https://github.com/ozkriff/zoc"
 
 [profile.dev]
 opt-level = 2
+panic = "abort"
 debug-assertions = false # TODO: https://github.com/gfx-rs/gfx/issues/1017
 
 [[bin]]
