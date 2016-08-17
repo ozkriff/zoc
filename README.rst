@@ -28,7 +28,7 @@ Assets
 Basic game assets are stored in separate repo:
 https://github.com/ozkriff/zoc_assets
 
-Run ``make assets`` to download them.
+Run ``make assets`` (or ``git clone https://github.com/ozkriff/zoc_assets assets``) to download them.
 
 NOTE: If game will not die in early stage of development I'm planning
 to release actual game resources under proprietary license.
