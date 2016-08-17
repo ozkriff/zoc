@@ -1,4 +1,4 @@
-CARGO_FLAGS += --release
+# CARGO_FLAGS += --release
 # CARGO_FLAGS += --verbose
 
 zoc: assets
