@@ -198,11 +198,11 @@ fn build_walkable_mesh(
         if let Some(ref parent_dir) = *pf.get_map().tile(&tile_pos).parent() {
             let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
             let exact_pos = ExactPos {
-                map_pos: tile_pos.clone(),
+                map_pos: tile_pos,
                 slot_id: pf.get_map().tile(&tile_pos).slot_id().clone(),
             };
             let exact_pos_to = ExactPos {
-                map_pos: tile_pos_to.clone(),
+                map_pos: tile_pos_to,
                 slot_id: pf.get_map().tile(&tile_pos_to).slot_id().clone(),
             };
             let world_pos_from = geom::exact_pos_to_world_pos(&exact_pos);
@@ -595,7 +595,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
             scene.add_node(SceneNode {
                 pos: pos,
                 rot: rot,
-                mesh_id: Some(mesh_ids.trees_mesh_id.clone()),
+                mesh_id: Some(mesh_ids.trees_mesh_id),
                 color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             });
@@ -609,8 +609,8 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                         pos: pos,
                         rot: rot,
                         mesh_id: Some(match object.pos.slot_id {
-                            SlotId::Id(_) => mesh_ids.building_mesh_w_id.clone(),
-                            SlotId::WholeTile => mesh_ids.big_building_mesh_w_id.clone(),
+                            SlotId::Id(_) => mesh_ids.building_mesh_w_id,
+                            SlotId::WholeTile => mesh_ids.big_building_mesh_w_id,
                             SlotId::TwoTiles(_) => unimplemented!(),
                         }),
                         color: [0.0, 0.0, 0.0, 1.0],
@@ -628,7 +628,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                     scene.add_node(SceneNode {
                         pos: pos,
                         rot: rot,
-                        mesh_id: Some(mesh_ids.road_mesh_id.clone()),
+                        mesh_id: Some(mesh_ids.road_mesh_id),
                         color: [1.0, 1.0, 1.0, 1.0],
                         children: Vec::new(),
                     });
@@ -758,11 +758,11 @@ impl TacticalScreen {
         self.player_info.get_mut(self.core.player_id())
     }
 
-    fn can_unload_unit(&self, transporter_id: &UnitId, pos: &MapPos) -> Option<ExactPos> {
+    fn can_unload_unit(&self, transporter_id: UnitId, pos: &MapPos) -> Option<ExactPos> {
         let state = self.current_state();
-        let transporter = state.unit(transporter_id);
+        let transporter = state.unit(&transporter_id);
         let passenger_id = match transporter.passenger_id {
-            Some(ref id) => id.clone(),
+            Some(id) => id,
             None => return None,
         };
         let exact_pos = match get_free_exact_pos(
@@ -775,8 +775,8 @@ impl TacticalScreen {
             None => return None,
         };
         if check_command(self.core.db(), state, &Command::UnloadUnit {
-            transporter_id: transporter_id.clone(),
-            passenger_id: passenger_id.clone(),
+            transporter_id: transporter_id,
+            passenger_id: passenger_id,
             pos: exact_pos.clone(),
         }).is_ok() {
             Some(exact_pos)
@@ -817,38 +817,38 @@ impl TacticalScreen {
         let db = self.core.db();
         let mut options = context_menu_popup::Options::new();
         let unit_ids = get_unit_ids_at(db, state, pos);
-        if let Some(selected_unit_id) = self.selected_unit_id.clone() {
-            for unit_id in &unit_ids {
-                let unit = state.unit(unit_id);
+        if let Some(selected_unit_id) = self.selected_unit_id {
+            for unit_id in unit_ids {
+                let unit = state.unit(&unit_id);
                 if unit.player_id == *self.core.player_id() {
-                    if *unit_id == selected_unit_id {
+                    if unit_id == selected_unit_id {
                         // TODO: do not show both options if unit has no weapons
                         if unit.reaction_fire_mode == ReactionFireMode::HoldFire {
-                            options.enable_reaction_fire = Some(selected_unit_id.clone());
+                            options.enable_reaction_fire = Some(selected_unit_id);
                         } else {
-                            options.disable_reaction_fire = Some(selected_unit_id.clone());
+                            options.disable_reaction_fire = Some(selected_unit_id);
                         }
                     } else {
-                        options.selects.push(unit_id.clone());
+                        options.selects.push(unit_id);
                         let load_command = Command::LoadUnit {
-                            transporter_id: selected_unit_id.clone(),
-                            passenger_id: unit_id.clone(),
+                            transporter_id: selected_unit_id,
+                            passenger_id: unit_id,
                         };
                         if check_command(db, state, &load_command).is_ok() {
-                            options.loads.push(unit_id.clone());
+                            options.loads.push(unit_id);
                         }
                     }
                 } else {
                     let attack_command = Command::AttackUnit {
-                        attacker_id: selected_unit_id.clone(),
-                        defender_id: unit_id.clone(),
+                        attacker_id: selected_unit_id,
+                        defender_id: unit_id,
                     };
                     if check_command(db, state, &attack_command).is_ok() {
-                        options.attacks.push(unit_id.clone());
+                        options.attacks.push(unit_id);
                     }
                 }
             }
-            if let Some(pos) = self.can_unload_unit(&selected_unit_id, pos) {
+            if let Some(pos) = self.can_unload_unit(selected_unit_id, pos) {
                 options.unload_pos = Some(pos);
             }
             if let Some(destination) = get_free_exact_pos(
@@ -856,26 +856,26 @@ impl TacticalScreen {
             ) {
                 if let Some(path) = player_info.pathfinder.get_path(&destination) {
                     if check_command(db, state, &Command::Move {
-                        unit_id: selected_unit_id.clone(),
+                        unit_id: selected_unit_id,
                         path: path.clone(),
                         mode: MoveMode::Fast,
                     }).is_ok() {
                         options.move_pos = Some(destination.clone());
                     }
                     if check_command(db, state, &Command::Move {
-                        unit_id: selected_unit_id.clone(),
+                        unit_id: selected_unit_id,
                         path: path.clone(),
                         mode: MoveMode::Hunt,
                     }).is_ok() {
-                        options.hunt_pos = Some(destination.clone());
+                        options.hunt_pos = Some(destination);
                     }
                 }
             }
         } else {
-            for unit_id in &unit_ids {
-                let unit = state.unit(unit_id);
+            for unit_id in unit_ids {
+                let unit = state.unit(&unit_id);
                 if unit.player_id == *self.core.player_id() {
-                    options.selects.push(unit_id.clone());
+                    options.selects.push(unit_id);
                 }
             }
         }
@@ -945,12 +945,12 @@ impl TacticalScreen {
     }
 
     fn move_unit(&mut self, pos: &ExactPos, move_mode: &MoveMode) {
-        let unit_id = self.selected_unit_id.as_ref().unwrap();
+        let unit_id = self.selected_unit_id.unwrap();
         let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
         let path = player_info.pathfinder.get_path(pos).unwrap();
         self.core.do_command(Command::Move {
-            unit_id: unit_id.clone(),
+            unit_id: unit_id,
             path: path,
             mode: move_mode.clone(),
         });
@@ -1084,13 +1084,13 @@ impl TacticalScreen {
         } else if *button_id == self.gui.button_deselect_unit_id {
             self.deselect_unit(context);
         } else if *button_id == self.gui.button_prev_unit_id {
-            if let Some(id) = self.selected_unit_id.clone() {
+            if let Some(id) = self.selected_unit_id {
                 let prev_id = find_prev_player_unit_id(
                     self.current_state(), self.core.player_id(), &id);
                 self.select_unit(context, &prev_id);
             }
         } else if *button_id == self.gui.button_next_unit_id {
-            if let Some(id) = self.selected_unit_id.clone() {
+            if let Some(id) = self.selected_unit_id {
                 let next_id = find_next_player_unit_id(
                     self.current_state(), self.core.player_id(), &id);
                 self.select_unit(context, &next_id);
@@ -1322,7 +1322,7 @@ impl TacticalScreen {
             let mut player_info = self.player_info.get_mut(self.core.player_id());
             let state = &mut player_info.game_state;
             let selected_unit_id = match self.selected_unit_id {
-                Some(ref id) => id.clone(),
+                Some(id) => id,
                 None => return,
             };
             let defender = state.unit(&attack_info.defender_id);
@@ -1396,7 +1396,7 @@ impl TacticalScreen {
             self.select_unit(context, &id);
             return;
         }
-        let selected_unit_id = self.selected_unit_id.clone().unwrap();
+        let selected_unit_id = self.selected_unit_id.unwrap();
         match command {
             context_menu_popup::Command::Select{id} => {
                 self.select_unit(context, &id);
@@ -1409,25 +1409,25 @@ impl TacticalScreen {
             },
             context_menu_popup::Command::Attack{id} => {
                 self.core.do_command(Command::AttackUnit {
-                    attacker_id: selected_unit_id.clone(),
-                    defender_id: id.clone(),
+                    attacker_id: selected_unit_id,
+                    defender_id: id,
                 });
             },
             context_menu_popup::Command::LoadUnit{passenger_id} => {
                 self.core.do_command(Command::LoadUnit {
-                    transporter_id: selected_unit_id.clone(),
-                    passenger_id: passenger_id.clone(),
+                    transporter_id: selected_unit_id,
+                    passenger_id: passenger_id,
                 });
             },
             context_menu_popup::Command::UnloadUnit{pos} => {
                 let passenger_id = {
                     let transporter = self.current_state()
                         .unit(&selected_unit_id);
-                    transporter.passenger_id.clone().unwrap()
+                    transporter.passenger_id.unwrap()
                 };
                 self.core.do_command(Command::UnloadUnit {
-                    transporter_id: selected_unit_id.clone(),
-                    passenger_id: passenger_id.clone(),
+                    transporter_id: selected_unit_id,
+                    passenger_id: passenger_id,
                     pos: pos,
                 });
             },
