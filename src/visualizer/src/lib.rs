@@ -41,11 +41,20 @@ mod mesh;
 mod fs;
 
 use std::sync::mpsc::{channel, Receiver};
+use std::fs::{metadata};
 use gfx::traits::{Device};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
 use types::{Time};
+
+fn check_assets_dir() {
+    if let Err(e) = metadata("assets") {
+        println!("Can`t find 'assets' dir: {}", e);
+        println!("Note: see 'Assets' section of Readme.rst");
+        std::process::exit(1);
+    }
+}
 
 pub struct Visualizer {
     screens: Vec<Box<Screen>>,
@@ -58,6 +67,7 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Visualizer {
+        check_assets_dir();
         let (tx, rx) = channel();
         let mut context = Context::new(tx);
         let screens = vec![
