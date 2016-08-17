@@ -909,7 +909,7 @@ impl Core {
     }
 
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> i32 {
-        let hit = self.hit_test(attacker, defender);
+        let hit = self.attack_test(attacker, defender);
         if !hit {
             return 0;
         }
@@ -922,14 +922,9 @@ impl Core {
         }
     }
 
-    fn hit_test(&self, attacker: &Unit, defender: &Unit) -> bool {
-        fn test(needed: i32) -> bool {
-            thread_rng().gen_range(-5, 5) < needed
-        }
-        let attacker_type = self.db.unit_type(&attacker.type_id);
+    fn cover_bonus(&self, defender: &Unit) -> i32 {
         let defender_type = self.db.unit_type(&defender.type_id);
-        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
-        let cover_bonus = if defender_type.class == UnitClass::Infantry {
+        if defender_type.class == UnitClass::Infantry {
             match *self.state.map().tile(&defender.pos) {
                 Terrain::Plain | Terrain::Water => 0,
                 Terrain::Trees => 2,
@@ -937,12 +932,32 @@ impl Core {
             }
         } else {
             0
-        };
-        let hit_test_v = -13 - cover_bonus + defender_type.size
+        }
+    }
+
+    // TODO: i32 -> HitChance
+    pub fn hit_chance(&self, attacker: &Unit, defender: &Unit) -> i32 {
+        let attacker_type = self.db.unit_type(&attacker.type_id);
+        let defender_type = self.db.unit_type(&defender.type_id);
+        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
+        let cover_bonus = self.cover_bonus(defender);
+        let hit_test_v = -7 - cover_bonus + defender_type.size
             + weapon_type.accuracy + attacker_type.weapon_skill;
-        let pierce_test_v = 5 + -defender_type.armor + weapon_type.ap;
-        let wound_test_v = -defender_type.toughness + weapon_type.damage;
-        test(hit_test_v) && test(pierce_test_v) && test(wound_test_v)
+        let pierce_test_v = 10 + -defender_type.armor + weapon_type.ap;
+        let wound_test_v = 5 -defender_type.toughness + weapon_type.damage;
+        let hit_test_v = clamp(hit_test_v, 0, 10);
+        let pierce_test_v = clamp(pierce_test_v, 0, 10);
+        let wound_test_v = clamp(wound_test_v, 0, 10);
+        let k = (hit_test_v * pierce_test_v * wound_test_v) / 10;
+        assert!(0 <= k);
+        assert!(100 > k);
+        k
+    }
+
+    fn attack_test(&self, attacker: &Unit, defender: &Unit) -> bool {
+        let k = self.hit_chance(attacker, defender);
+        let r = thread_rng().gen_range(0, 100);
+        r < k
     }
 
     pub fn player(&self) -> &Player {
@@ -1026,10 +1041,7 @@ impl Core {
         check_attack_result.is_ok()
     }
 
-    // TODO: simplify
-    fn reaction_fire_internal<F>(&mut self, unit_id: &UnitId, f: F) -> ReactionFireResult
-        where F: Fn(&mut AttackInfo)
-    {
+    fn reaction_fire_internal(&mut self, unit_id: &UnitId, stop_on_attack: bool) -> ReactionFireResult {
         let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
@@ -1045,7 +1057,10 @@ impl Core {
                 let event = self.command_attack_unit_to_event(
                     &enemy_unit.id, unit_id, &FireMode::Reactive);
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
-                    f(&mut attack_info);
+                    let hit_chance = self.hit_chance(enemy_unit, unit);
+                    if hit_chance > 15 && stop_on_attack {
+                        attack_info.remove_move_points = true;
+                    }
                     CoreEvent::AttackUnit{attack_info: attack_info}
                 } else {
                     continue;
@@ -1061,7 +1076,7 @@ impl Core {
     }
 
     fn reaction_fire(&mut self, unit_id: &UnitId) {
-        self.reaction_fire_internal(unit_id, |_| {});
+        self.reaction_fire_internal(unit_id, false);
     }
 
     pub fn next_player_id(&self, id: &PlayerId) -> PlayerId {
@@ -1118,7 +1133,6 @@ impl Core {
             },
             Command::Move{unit_id, path, mode} => {
                 let player_id = self.state.unit(&unit_id).player_id.clone();
-                let is_careful_move = mode == MoveMode::Hunt;
                 for window in path.windows(2) {
                     let from = &window[0];
                     let to = &window[1];
@@ -1140,11 +1154,7 @@ impl Core {
                         .visible_enemies.clone();
                     self.do_core_event(&event);
                     let reaction_fire_result = self.reaction_fire_internal(
-                        &unit_id,
-                        |attack_info| {
-                            attack_info.remove_move_points = !is_careful_move;
-                        },
-                    );
+                        &unit_id, mode == MoveMode::Fast);
                     if reaction_fire_result != ReactionFireResult::None {
                         break;
                     }
