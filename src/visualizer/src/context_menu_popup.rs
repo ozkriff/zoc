@@ -27,7 +27,7 @@ pub enum Command {
 pub struct Options {
     // TODO: display unit name and/or type, not just IDs
     pub selects: Vec<UnitId>,
-    pub attacks: Vec<UnitId>,
+    pub attacks: Vec<(UnitId, i32)>,
     pub loads: Vec<UnitId>,
     pub move_pos: Option<ExactPos>,
     pub hunt_pos: Option<ExactPos>,
@@ -95,11 +95,12 @@ impl ContextMenuPopup {
             select_button_ids.insert(button_id, unit_id.clone());
             pos.v.y -= vstep;
         }
-        for unit_id in &options.attacks {
-            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
+        for &(unit_id, hit_chance) in &options.attacks {
+            let unit_type = db.unit_type(&state.unit(&unit_id).type_id);
+            let text = format!("attack <{}> ({}%)", unit_type.name, hit_chance);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("attack <{}>", unit_type.name), &pos));
-            attack_button_ids.insert(button_id, unit_id.clone());
+                Button::new(context, &text, &pos));
+            attack_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         for unit_id in &options.loads {

@@ -839,12 +839,15 @@ impl TacticalScreen {
                         }
                     }
                 } else {
+                    let attacker = state.unit(&selected_unit_id);
+                    let defender = state.unit(&unit_id);
+                    let hit_chance = self.core.hit_chance(attacker, defender);
                     let attack_command = Command::AttackUnit {
-                        attacker_id: selected_unit_id,
-                        defender_id: unit_id,
+                        attacker_id: attacker.id,
+                        defender_id: defender.id,
                     };
                     if check_command(db, state, &attack_command).is_ok() {
-                        options.attacks.push(unit_id);
+                        options.attacks.push((unit_id, hit_chance));
                     }
                 }
             }
