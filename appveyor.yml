@@ -26,4 +26,6 @@ install:
 build_script:
 - cargo build
 
-test: false
+test:
+- cargo test --package core
+- cargo test --package visualizer
