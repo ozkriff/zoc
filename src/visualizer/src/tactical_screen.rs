@@ -886,6 +886,9 @@ impl TacticalScreen {
     }
 
     fn create_unit(&mut self, context: &Context, type_id: UnitTypeId) {
+        if self.event_visualizer.is_some() {
+            return;
+        }
         let pick_result = self.pick_tile(context);
         if let Some(ref pos) = pick_result {
             if let Some(exact_pos) = get_free_exact_pos(
