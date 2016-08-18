@@ -82,10 +82,11 @@ impl MapTextManager {
                 let indices = &[0,  1,  2,  1,  2,  3];
                 Mesh::new(context, vertices, indices, texture)
             };
+            let move_speed = 1.0;
             self.visible_labels_list.insert(self.last_label_id, MapText {
                 pos: command.pos.clone(),
                 mesh: mesh,
-                move_helper: MoveHelper::new(&from, &to, 1.0),
+                move_helper: MoveHelper::new(&from, &to, move_speed),
             });
             self.last_label_id += 1;
         }
@@ -113,9 +114,16 @@ impl MapTextManager {
         self.do_commands(context);
         let rot_z_mat = Matrix4::from(Matrix3::from_angle_z(camera.get_z_angle()));
         let rot_x_mat = Matrix4::from(Matrix3::from_angle_x(camera.get_x_angle()));
-        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         for (_, map_text) in &mut self.visible_labels_list {
-            // TODO: fade to alpha
+            // TODO: use https://github.com/orhanbalci/rust-easing
+            let t = 0.8;
+            let p = map_text.move_helper.progress();
+            let alpha = if p > t {
+                (1.0 - p) / (1.0 - t)
+            } else {
+                1.0
+            };
+            context.data.basic_color = [0.0, 0.0, 0.0, alpha];
             let pos = map_text.move_helper.step(dtime);
             let tr_mat = Matrix4::from_translation(pos.v);
             let mvp = camera.mat() * tr_mat * rot_z_mat * rot_x_mat;
