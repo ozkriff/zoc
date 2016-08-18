@@ -888,14 +888,19 @@ impl TacticalScreen {
     fn create_unit(&mut self, context: &Context, type_id: UnitTypeId) {
         let pick_result = self.pick_tile(context);
         if let Some(ref pos) = pick_result {
-            let exact_pos = get_free_exact_pos(
+            if let Some(exact_pos) = get_free_exact_pos(
                 self.core.db(),
                 self.current_state(),
                 &type_id,
                 pos,
-            ).unwrap();
-            let cmd = Command::CreateUnit{pos: exact_pos, type_id: type_id};
-            self.core.do_command(cmd);
+            ) {
+                self.core.do_command(Command::CreateUnit {
+                    pos: exact_pos,
+                    type_id: type_id,
+                });
+            } else {
+                self.map_text_manager.add_text(&pos, "No free slot for unit");
+            }
         }
     }
 
