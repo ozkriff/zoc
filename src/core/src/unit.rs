@@ -1,9 +1,9 @@
 use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitTypeId{pub id: i32}
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum UnitClass {
     Infantry,
     Vehicle,
@@ -36,7 +36,7 @@ pub struct WeaponType {
     pub reaction_fire: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct WeaponTypeId{pub id: i32}
 
 #[derive(Clone, Debug)]

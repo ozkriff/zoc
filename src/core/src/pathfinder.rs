@@ -72,7 +72,6 @@ pub fn max_cost() -> MovePoints {
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos, pos: &ExactPos)
     -> MovePoints
 {
-    let unit_type = db.unit_type(&unit.type_id);
     let map_pos = &pos.map_pos;
     let objects = state.objects_at(map_pos);
     let units = state.units_at(map_pos);
@@ -82,10 +81,8 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         for object in &objects {
             match object.pos.slot_id {
                 SlotId::Id(_) => if unit.pos == object.pos {
-                    // assert_eq!(unit_type.class, UnitClass::Infantry); // TODO
-                    if unit_type.class != UnitClass::Infantry {
-                        println!("WARNING: non-infantry unit in small object: {:#?}", unit);
-                    }
+                    let unit_class = db.unit_type(&unit.type_id).class;
+                    assert_eq!(unit_class, UnitClass::Infantry);
                     break 'unit_loop;
                 },
                 SlotId::TwoTiles(_) | SlotId::WholeTile => {
@@ -95,6 +92,7 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         }
         unit_cost += 1;
     }
+    let unit_type = db.unit_type(&unit.type_id);
     let tile = state.map().tile(&pos);
     let mut terrain_cost = match unit_type.class {
         UnitClass::Infantry => match *tile {
