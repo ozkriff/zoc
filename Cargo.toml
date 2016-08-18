@@ -9,11 +9,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["opengl", "3D", "game", "gfx"]
 repository = "https://github.com/ozkriff/zoc"
 
-[profile.dev]
-opt-level = 2
-panic = "abort"
-debug-assertions = false # TODO: https://github.com/gfx-rs/gfx/issues/1017
-
 [[bin]]
 name = "zoc"
 
