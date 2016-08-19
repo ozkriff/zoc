@@ -31,7 +31,7 @@ impl Mesh {
     pub fn new_wireframe(context: &mut Context, vertices: &[Vertex], indices: &[u16]) -> Mesh {
         let (v, s) = context.factory.create_vertex_buffer_with_slice(vertices, indices);
         let texture_data = fs::load("white.png").into_inner();
-        let texture = load_texture(&mut context.factory, &texture_data);
+        let texture = load_texture(context, &texture_data);
         Mesh {
             slice: s,
             vertex_buffer: v,

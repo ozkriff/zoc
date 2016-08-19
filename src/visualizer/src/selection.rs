@@ -68,7 +68,7 @@ impl SelectionManager {
 
 pub fn get_selection_mesh(context: &mut Context) -> Mesh {
     let texture_data = fs::load("shell.png").into_inner();
-    let texture = load_texture(&mut context.factory, &texture_data);
+    let texture = load_texture(context, &texture_data);
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let scale_1 = 0.6;

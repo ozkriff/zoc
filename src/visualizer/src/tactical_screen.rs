@@ -266,7 +266,7 @@ fn get_shell_mesh(context: &mut Context) -> Mesh {
     ];
     let indices = [0, 1, 2, 2, 3, 0];
     let texture_data = fs::load("shell.png").into_inner();
-    let texture = load_texture(&mut context.factory, &texture_data);
+    let texture = load_texture(context, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
 }
 
@@ -282,7 +282,7 @@ fn get_road_mesh(context: &mut Context) -> Mesh {
     ];
     let indices = [0, 1, 2, 2, 3, 0];
     let texture_data = fs::load("road.png").into_inner();
-    let texture = load_texture(&mut context.factory, &texture_data);
+    let texture = load_texture(context, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
 }
 
@@ -295,7 +295,7 @@ fn get_marker<P: AsRef<Path>>(context: &mut Context, tex_path: P) -> Mesh {
     ];
     let indices = [0, 1, 2];
     let texture_data = fs::load(tex_path).into_inner();
-    let texture = load_texture(&mut context.factory, &texture_data);
+    let texture = load_texture(context, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
 }
 
@@ -306,7 +306,7 @@ fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
         Mesh::new_wireframe(context, &vertices, &indices)
     } else {
         let texture_data = fs::load(format!("{}.png", name)).into_inner();
-        let texture = load_texture(&mut context.factory, &texture_data);
+        let texture = load_texture(context, &texture_data);
         Mesh::new(context, &vertices, &indices, texture)
     }
 }
@@ -370,8 +370,8 @@ impl MeshIdManager {
         meshes: &mut MeshManager,
         state: &PartialState,
     ) -> MeshIdManager {
-        let floor_tex = load_texture(&mut context.factory, &fs::load("hex.png").into_inner());
-        let chess_grid_tex = load_texture(&mut context.factory, &fs::load("chess_grid.png").into_inner());
+        let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());
+        let chess_grid_tex = load_texture(context, &fs::load("chess_grid.png").into_inner());
         let map_mesh_id = meshes.add(generate_map_mesh(
             context, state, floor_tex.clone()));
         let water_mesh_id = meshes.add(generate_water_mesh(
