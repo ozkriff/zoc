@@ -12,11 +12,9 @@ pub fn load_texture<R, F>(factory: &mut F, data: &[u8]) -> ShaderResourceView<R,
     where R: gfx::Resources, F: gfx::Factory<R>
 {
     let img = image::load(Cursor::new(data), image::PNG).unwrap().to_rgba();
-    let (width, height) = img.dimensions();
-    let kind = tex::Kind::D2(width as tex::Size, height as tex::Size, tex::AaMode::Single);
-    let t = &img.into_vec();
-    let (_, view) = factory.create_texture_const_u8::<ColorFormat>(kind, &[t]).unwrap();
-    view
+    let (w, h) = img.dimensions();
+    let size = Size2{w: w as i32, h: h as i32};
+    load_texture_raw(factory, size, &img.into_vec())
 }
 
 pub fn load_texture_raw<R, F>(factory: &mut F, size: Size2, data: &[u8]) -> ShaderResourceView<R, [f32; 4]>
