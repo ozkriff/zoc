@@ -107,18 +107,21 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         },
     };
     for object in &objects {
-        if unit_type.class == UnitClass::Vehicle
-            && object.class == ObjectClass::Road
-        {
-            let mut i = object.pos.map_pos_iter();
-            let road_from = i.next().unwrap();
-            let road_to = i.next().unwrap();
-            assert!(road_from != road_to);
-            let is_road_pos_ok = road_from == from.map_pos && road_to == pos.map_pos;
-            let is_road_pos_rev_ok = road_to == from.map_pos && road_from == pos.map_pos;
-            if (is_road_pos_ok || is_road_pos_rev_ok) && !unit_type.is_big {
-                terrain_cost = 2; // TODO: ultrahardcoded value :(
-            }
+        if object.class != ObjectClass::Road {
+            continue;
+        }
+        let mut i = object.pos.map_pos_iter();
+        let road_from = i.next().unwrap();
+        let road_to = i.next().unwrap();
+        assert!(road_from != road_to);
+        let is_road_pos_ok = road_from == from.map_pos && road_to == pos.map_pos;
+        let is_road_pos_rev_ok = road_to == from.map_pos && road_from == pos.map_pos;
+        if (is_road_pos_ok || is_road_pos_rev_ok) && !unit_type.is_big {
+            // TODO: ultrahardcoded value :(
+            terrain_cost = match unit_type.class {
+                UnitClass::Vehicle => 2,
+                UnitClass::Infantry => 4,
+            };
         }
     }
     for object in &objects {
