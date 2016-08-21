@@ -24,6 +24,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 1,
             is_inderect: true,
             reaction_fire: false,
+            smoke: Some(3),
         },
         WeaponType {
             name: "super_heavy_tank_gun".to_owned(),
@@ -34,6 +35,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "heavy_tank_gun".to_owned(),
@@ -44,6 +46,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "medium_tank_gun".to_owned(),
@@ -54,6 +57,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "light_tank_gun".to_owned(),
@@ -64,6 +68,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "rifle".to_owned(),
@@ -74,6 +79,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "submachine_gun".to_owned(),
@@ -84,6 +90,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
         WeaponType {
             name: "machine_gun".to_owned(),
@@ -94,6 +101,7 @@ fn get_weapon_types() -> Vec<WeaponType> {
             min_distance: 0,
             is_inderect: false,
             reaction_fire: true,
+            smoke: None,
         },
     ]
 }

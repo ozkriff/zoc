@@ -128,11 +128,11 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
         let cost = match unit_type.class {
             UnitClass::Infantry => match object.class {
                 ObjectClass::Building => 1,
-                ObjectClass::Road => 0,
+                ObjectClass::Road | ObjectClass::Smoke => 0,
             },
             UnitClass::Vehicle => match object.class {
                 ObjectClass::Building => 2,
-                ObjectClass::Road => 0,
+                ObjectClass::Road | ObjectClass::Smoke => 0,
             },
         };
         object_cost += cost;

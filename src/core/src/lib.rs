@@ -27,7 +27,7 @@ use misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
-use map::{Map, Terrain, distance};
+use map::{Terrain, distance};
 use pathfinder::{path_cost, tile_cost};
 use unit::{Unit, UnitType, UnitTypeId, UnitClass};
 use db::{Db};
@@ -158,17 +158,19 @@ impl Sector {
 pub enum ObjectClass {
     Building,
     Road,
+    Smoke,
 }
 
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct ObjectId {
     pub id: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub pos: ExactPos,
     pub class: ObjectClass,
+    pub timer: Option<i32>,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -209,6 +211,7 @@ pub enum Command {
     LoadUnit{transporter_id: UnitId, passenger_id: UnitId},
     UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos},
     SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
+    Smoke{unit_id: UnitId, pos: MapPos},
 }
 
 #[derive(Clone, Debug)]
@@ -281,7 +284,17 @@ pub enum CoreEvent {
         player_id: PlayerId,
         pos: MapPos,
         count: i32,
-    }
+    },
+    // TODO: CreateObject
+    Smoke {
+        id: ObjectId,
+        pos: MapPos,
+        unit_id: Option<UnitId>,
+    },
+    // TODO: RemoveObject
+    RemoveSmoke {
+        id: ObjectId,
+    },
 }
 
 pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
@@ -433,6 +446,7 @@ pub enum CommandError {
     BadAttackerId,
     BadDefenderId,
     BadPath,
+    BadUnitType,
 }
 
 impl CommandError {
@@ -460,6 +474,7 @@ impl CommandError {
             CommandError::BadAttackerId => "Bad attacker id",
             CommandError::BadDefenderId => "Bad defender id",
             CommandError::BadPath => "Bad path",
+            CommandError::BadUnitType => "Bad unit type",
         }
     }
 }
@@ -505,9 +520,13 @@ fn check_attack<S: GameState>(
     if distance(&attacker.pos.map_pos, &defender.pos.map_pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
-    if !weapon_type.is_inderect
-        && !los(state.map(), attacker_type, &attacker.pos.map_pos, &defender.pos.map_pos)
-    {
+    let is_los_ok = los(
+        state,
+        attacker_type,
+        &attacker.pos.map_pos,
+        &defender.pos.map_pos,
+    );
+    if !weapon_type.is_inderect && !is_los_ok {
         return Err(CommandError::NoLos);
     }
     Ok(())
@@ -620,6 +639,24 @@ pub fn check_command<S: GameState>(
                 Ok(())
             }
         },
+        Command::Smoke{unit_id, pos} => {
+            let unit = match state.units().get(&unit_id) {
+                Some(unit) => unit,
+                None => return Err(CommandError::BadUnitId),
+            };
+            let unit_type = db.unit_type(&unit.type_id);
+            let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
+            if !weapon_type.smoke.is_some() {
+                return Err(CommandError::BadUnitType);
+            }
+            if distance(&unit.pos.map_pos, &pos) > weapon_type.max_distance {
+                return Err(CommandError::OutOfRange);
+            }
+            if unit.attack_points.n != unit_type.attack_points.n {
+                return Err(CommandError::NotEnoughAttackPoints);
+            }
+            Ok(())
+        },
     }
 }
 
@@ -712,8 +749,8 @@ fn get_player_info_lists(map_size: &Size2) -> HashMap<PlayerId, PlayerInfo> {
     map
 }
 
-pub fn los(
-    map: &Map<Terrain>,
+fn los<S: GameState>(
+    state: &S,
     unit_type: &UnitType,
     from: &MapPos,
     to: &MapPos,
@@ -721,7 +758,7 @@ pub fn los(
     // TODO: profile and optimize!
     let mut v = false;
     let range = unit_type.los_range;
-    fov(map, from, range, &mut |p| if *p == *to { v = true });
+    fov(state, from, range, &mut |p| if *p == *to { v = true });
     v
 }
 
@@ -772,7 +809,7 @@ pub fn get_free_slot_id<S: GameState>(
         for object in &objects_at {
             match object.class {
                 ObjectClass::Building => return None,
-                ObjectClass::Road => {},
+                ObjectClass::Smoke | ObjectClass::Road => {},
             }
         }
         if units_at.is_empty() {
@@ -794,7 +831,12 @@ pub fn get_free_slot_id<S: GameState>(
                 SlotId::Id(slot_id) => {
                     slots[slot_id as usize] = true;
                 },
-                SlotId::WholeTile => return None,
+                SlotId::WholeTile => {
+                    match object.class {
+                        ObjectClass::Building => return None,
+                        ObjectClass::Smoke | ObjectClass::Road => {},
+                    }
+                }
                 SlotId::TwoTiles(_) => {},
             }
         }
@@ -884,9 +926,18 @@ impl Core {
     }
 
     fn get_new_unit_id(&mut self) -> UnitId {
-        let new_unit_id = self.next_unit_id.clone();
+        let new_unit_id = self.next_unit_id;
         self.next_unit_id.id += 1;
         new_unit_id
+    }
+
+    fn get_new_object_id(&mut self) -> ObjectId {
+        let mut next_id = match self.state.objects().keys().max() {
+            Some(id) => *id,
+            None => ObjectId{id: 0},
+        };
+        next_id.id += 1;
+        next_id
     }
 
     fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
@@ -1098,20 +1149,30 @@ impl Core {
             Command::EndTurn => {
                 let old_id = self.current_player_id.clone();
                 let new_id = self.next_player_id(&old_id);
-                let mut vp_events = Vec::new();
+                // TODO: extruct func
+                let mut end_turn_events = Vec::new();
                 for (_, sector) in self.state.sectors() {
                     if let Some(player_id) = sector.owner_id.clone() {
                         if player_id != new_id {
                             continue;
                         }
-                        vp_events.push(CoreEvent::VictoryPoint {
+                        end_turn_events.push(CoreEvent::VictoryPoint {
                             player_id: player_id.clone(),
                             pos: sector.center(),
                             count: 1,
                         });
                     }
                 }
-                for event in vp_events {
+                for (object_id, object) in self.state.objects() {
+                    if let Some(timer) = object.timer {
+                        if timer == 0 {
+                            end_turn_events.push(CoreEvent::RemoveSmoke {
+                                id: *object_id,
+                            });
+                        }
+                    }
+                }
+                for event in end_turn_events {
                     self.do_core_event(&event);
                 }
                 self.do_core_event(&CoreEvent::EndTurn {
@@ -1204,6 +1265,36 @@ impl Core {
                     unit_id: unit_id,
                     mode: mode,
                 });
+            },
+            Command::Smoke{unit_id, pos} => {
+                let id = self.get_new_object_id();
+                self.do_core_event(&CoreEvent::Smoke {
+                    id: id,
+                    unit_id: Some(unit_id),
+                    pos: pos,
+                });
+                let mut dir = Dir::from_int(thread_rng().gen_range(0, 5));
+                let additional_smoke_count = {
+                    let unit = self.state.unit(&unit_id);
+                    let unit_type = self.db.unit_type(&unit.type_id);
+                    let weapon_type = self.db.weapon_type(&unit_type.weapon_type_id);
+                    weapon_type.smoke.unwrap()
+                };
+                assert!(additional_smoke_count <= 3);
+                for _ in 0..additional_smoke_count {
+                    let mut dir_index = dir.to_int() + thread_rng().gen_range(1, 3);
+                    if dir_index > 5 {
+                        dir_index -= 6;
+                    }
+                    dir = Dir::from_int(dir_index);
+                    let id = self.get_new_object_id();
+                    self.do_core_event(&CoreEvent::Smoke {
+                        id: id,
+                        unit_id: Some(unit_id),
+                        pos: Dir::get_neighbour_pos(&pos, &dir),
+                    });
+                }
+                self.reaction_fire(&unit_id);
             },
         };
         let sector_events = check_sectors(&self.state);

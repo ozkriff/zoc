@@ -149,11 +149,13 @@ impl InternalState {
                     map_pos: from.clone(),
                     slot_id: SlotId::TwoTiles(dir),
                 },
+                timer: None,
             };
             self.add_object(object);
         }
     }
 
+    // TODO: create trees, buildings and roads like units - using event system
     fn add_object(&mut self, object: Object) {
         let id = ObjectId{id: self.objects.len() as i32 + 1};
         self.objects.insert(id, object);
@@ -167,6 +169,7 @@ impl InternalState {
                 map_pos: pos.clone(),
                 slot_id: SlotId::WholeTile,
             },
+            timer: None,
         };
         self.add_object(object);
     }
@@ -179,6 +182,7 @@ impl InternalState {
             let object = Object {
                 class: ObjectClass::Building,
                 pos: obj_pos,
+                timer: None,
             };
             self.add_object(object);
         }
@@ -287,11 +291,19 @@ impl GameStateMut for InternalState {
             CoreEvent::EndTurn{ref new_id, ref old_id} => {
                 self.refresh_units(db, new_id);
                 self.convert_ap(db, old_id);
+                for (_, object) in &mut self.objects {
+                    if let Some(ref mut timer) = object.timer {
+                        *timer -= 1;
+                        assert!(*timer >= 0);
+                    }
+                }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Full);
             },
             CoreEvent::AttackUnit{ref attack_info} => {
+                // TODO: move 'defender' section to the bottom of the arm
+                // and remove braces
                 {
                     let unit = self.units.get_mut(&attack_info.defender_id)
                         .expect("Can`t find defender");
@@ -370,6 +382,25 @@ impl GameStateMut for InternalState {
             },
             CoreEvent::VictoryPoint{ref player_id, count, ..} => {
                 self.score.get_mut(player_id).unwrap().n += count;
+            },
+            CoreEvent::Smoke{pos, id, unit_id} => {
+                if let Some(unit_id) = unit_id {
+                    if let Some(unit) = self.units.get_mut(&unit_id) {
+                        unit.attack_points.n = 0;
+                    }
+                }
+                // TODO: if there is already smoke in tile then just restart its timer
+                self.objects.insert(id, Object {
+                    class: ObjectClass::Smoke,
+                    pos: ExactPos {
+                        map_pos: pos,
+                        slot_id: SlotId::WholeTile,
+                    },
+                    timer: Some(5),
+                });
+            },
+            CoreEvent::RemoveSmoke{id} => {
+                self.objects.remove(&id);
             },
         }
     }

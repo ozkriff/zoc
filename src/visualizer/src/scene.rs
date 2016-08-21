@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, BTreeMap};
 use std::cmp::{Ord, Ordering};
 use cgmath::{Rad};
-use core::{UnitId, SectorId};
+use core::{UnitId, SectorId, ObjectId};
 use types::{WorldPos};
 use mesh::{MeshId};
 
@@ -33,7 +33,7 @@ impl Ord for Z {
 pub struct Scene {
     unit_id_to_node_id_map: HashMap<UnitId, NodeId>,
     sector_id_to_node_id_map: HashMap<SectorId, NodeId>,
-    // object_id_to_node_id_map: HashMap<ObjectId, NodeId>, // TODO: for https://github.com/ozkriff/zoc/issues/182
+    object_id_to_node_id_map: HashMap<ObjectId, HashSet<NodeId>>, // TODO: for https://github.com/ozkriff/zoc/issues/182
     nodes: HashMap<NodeId, SceneNode>,
     transparent_node_ids: BTreeMap<Z, HashSet<NodeId>>,
     next_id: NodeId,
@@ -44,6 +44,7 @@ impl Scene {
         Scene {
             unit_id_to_node_id_map: HashMap::new(),
             sector_id_to_node_id_map: HashMap::new(),
+            object_id_to_node_id_map: HashMap::new(),
             nodes: HashMap::new(),
             transparent_node_ids: BTreeMap::new(),
             next_id: NodeId{id: 0},
@@ -58,8 +59,15 @@ impl Scene {
         self.sector_id_to_node_id_map[&sector_id]
     }
 
+    pub fn object_id_to_node_id(&self, object_id: ObjectId) -> &HashSet<NodeId> {
+        &self.object_id_to_node_id_map[&object_id]
+    }
+
     pub fn remove_node(&mut self, node_id: &NodeId) {
         self.nodes.remove(node_id).unwrap();
+        for layer in self.transparent_node_ids.values_mut() {
+            layer.remove(node_id);
+        }
     }
 
     pub fn add_node(&mut self, node: SceneNode) -> NodeId {
@@ -85,6 +93,15 @@ impl Scene {
         self.unit_id_to_node_id_map.remove(unit_id).unwrap();
     }
 
+    pub fn remove_object(&mut self, object_id: ObjectId) {
+        assert!(self.object_id_to_node_id_map.contains_key(&object_id));
+        let node_ids = self.object_id_to_node_id(object_id).clone();
+        for node_id in node_ids {
+            self.remove_node(&node_id);
+        }
+        self.object_id_to_node_id_map.remove(&object_id).unwrap();
+    }
+
     pub fn add_unit(&mut self, unit_id: &UnitId, node: SceneNode) -> NodeId {
         let node_id = self.add_node(node);
         assert!(!self.unit_id_to_node_id_map.contains_key(unit_id));
@@ -96,6 +113,16 @@ impl Scene {
         let node_id = self.add_node(node);
         assert!(!self.sector_id_to_node_id_map.contains_key(&sector_id));
         self.sector_id_to_node_id_map.insert(sector_id, node_id);
+        node_id
+    }
+
+    pub fn add_object(&mut self, object_id: ObjectId, node: SceneNode) -> NodeId {
+        let node_id = self.add_node(node);
+        if !self.object_id_to_node_id_map.contains_key(&object_id) {
+            self.object_id_to_node_id_map.insert(object_id, HashSet::new());
+        }
+        let node_ids = self.object_id_to_node_id_map.get_mut(&object_id).unwrap();
+        node_ids.insert(node_id);
         node_id
     }
 

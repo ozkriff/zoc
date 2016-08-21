@@ -2,7 +2,7 @@ use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{UnitId, ExactPos};
+use core::{UnitId, MapPos, ExactPos};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::db::{Db};
@@ -21,6 +21,7 @@ pub enum Command {
     UnloadUnit{pos: ExactPos},
     EnableReactionFire{id: UnitId},
     DisableReactionFire{id: UnitId},
+    Smoke{pos: MapPos},
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -32,6 +33,7 @@ pub struct Options {
     pub move_pos: Option<ExactPos>,
     pub hunt_pos: Option<ExactPos>,
     pub unload_pos: Option<ExactPos>,
+    pub smoke_pos: Option<MapPos>,
     pub enable_reaction_fire: Option<UnitId>,
     pub disable_reaction_fire: Option<UnitId>,
 }
@@ -45,6 +47,7 @@ impl Options {
             move_pos: None,
             hunt_pos: None,
             unload_pos: None,
+            smoke_pos: None,
             enable_reaction_fire: None,
             disable_reaction_fire: None,
         }
@@ -61,6 +64,7 @@ pub struct ContextMenuPopup {
     move_button_id: Option<ButtonId>,
     hunt_button_id: Option<ButtonId>,
     unload_unit_button_id: Option<ButtonId>,
+    smoke_button_id: Option<ButtonId>,
     enable_reaction_fire_button_id: Option<ButtonId>,
     disable_reaction_fire_button_id: Option<ButtonId>,
 }
@@ -81,6 +85,7 @@ impl ContextMenuPopup {
         let mut move_button_id = None;
         let mut hunt_button_id = None;
         let mut unload_unit_button_id = None;
+        let mut smoke_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
         let mut pos = *pos;
@@ -135,6 +140,11 @@ impl ContextMenuPopup {
                 Button::new(context, "unload", &pos)));
             pos.v.y -= vstep;
         }
+        if options.smoke_pos.is_some() {
+            smoke_button_id = Some(button_manager.add_button(
+                Button::new(context, "smoke", &pos)));
+            pos.v.y -= vstep;
+        }
         ContextMenuPopup {
             game_screen_tx: tx,
             button_manager: button_manager,
@@ -144,6 +154,7 @@ impl ContextMenuPopup {
             move_button_id: move_button_id,
             hunt_button_id: hunt_button_id,
             unload_unit_button_id: unload_unit_button_id,
+            smoke_button_id: smoke_button_id,
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
             options: options,
@@ -201,6 +212,10 @@ impl ContextMenuPopup {
         } else if id == self.unload_unit_button_id {
             self.return_command(context, Command::UnloadUnit {
                 pos: self.options.unload_pos.clone().unwrap(),
+            });
+        } else if id == self.smoke_button_id {
+            self.return_command(context, Command::Smoke {
+                pos: self.options.smoke_pos.unwrap(),
             });
         } else if id == self.enable_reaction_fire_button_id {
             self.return_command(context, Command::EnableReactionFire {

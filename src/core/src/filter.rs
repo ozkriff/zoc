@@ -195,6 +195,20 @@ pub fn filter_events(
                 events.push(event.clone());
             }
         },
+        CoreEvent::Smoke{id, pos, unit_id} => {
+            let unit_id = unit_id.expect("Core must know about everything");
+            let unit = state.unit(&unit_id);
+            if fow.is_visible(db, state, unit, &unit.pos) {
+                events.push(event.clone());
+            } else {
+                events.push(CoreEvent::Smoke {
+                    id: id,
+                    pos: pos,
+                    unit_id: None,
+                });
+            }
+        },
+        CoreEvent::RemoveSmoke{..} |
         CoreEvent::VictoryPoint{..} |
         CoreEvent::SectorOwnerChanged{..} => {
             events.push(event.clone());

@@ -34,6 +34,7 @@ pub struct WeaponType {
     pub min_distance: i32,
     pub is_inderect: bool,
     pub reaction_fire: bool,
+    pub smoke: Option<u8>,
 }
 
 #[derive(Clone, Copy, Debug)]
