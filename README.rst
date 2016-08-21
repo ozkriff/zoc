@@ -21,7 +21,11 @@ ZoC is turn-based hexagonal strategy game written in Rust_.
 
 .. image:: http://i.imgur.com/qnZZgdX.png
 
-Video: https://www.youtube.com/watch?v=hI6YmZeuZ3s
+Videos:
+
+- AI, reaction fire and sectors (2016.06.08): https://youtu.be/hI6YmZeuZ3s
+- transporter, roads (2016.08.07): https://youtu.be/_0_U-h1KCAE
+- smoke, water and bridge (2016.08.20): https://youtu.be/WJHkuWwAb7A
 
 
 Assets
