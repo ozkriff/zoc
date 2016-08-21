@@ -561,7 +561,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
         pos: WorldPos{v: Vector3::from_value(0.0)},
         rot: rad(0.0),
         mesh_id: Some(mesh_ids.map_mesh_id),
-        color: [0.8, 0.8, 0.8, 1.0],
+        color: [0.8, 0.9, 0.3, 1.0],
         children: Vec::new(),
     });
     scene.add_node(SceneNode {
