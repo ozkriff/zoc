@@ -64,7 +64,8 @@ impl MapTextManager {
                 postponed_commands.push(command);
                 continue;
             }
-            let from = geom::map_pos_to_world_pos(&command.pos);
+            let mut from = geom::map_pos_to_world_pos(&command.pos);
+            from.v.z += 0.5;
             let mut to = from;
             to.v.z += 2.0;
             let mesh = {
