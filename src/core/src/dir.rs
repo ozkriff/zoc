@@ -1,7 +1,7 @@
 use cgmath::{Vector2};
 use ::{MapPos};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dir {
     SouthEast,
     East,

@@ -63,7 +63,7 @@ impl fmt::Display for MapPos {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum SlotId {
     Id(u8),
     WholeTile,
@@ -71,7 +71,7 @@ pub enum SlotId {
     // Air, // TODO: implement air units
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct ExactPos {
     pub map_pos: MapPos,
     pub slot_id: SlotId,

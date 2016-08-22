@@ -372,6 +372,8 @@ impl MeshManager {
 }
 
 struct MeshIdManager {
+    big_building_mesh_id: MeshId,
+    building_mesh_id: MeshId,
     big_building_mesh_w_id: MeshId,
     building_mesh_w_id: MeshId,
     road_mesh_id: MeshId,
@@ -411,6 +413,10 @@ impl MeshIdManager {
         }
         let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
         let smoke_mesh_id = meshes.add(get_smoke_mesh(context));
+        let big_building_mesh_id = meshes.add(
+            load_object_mesh(context, "big_building"));
+        let building_mesh_id = meshes.add(
+            load_object_mesh(context, "building"));
         let big_building_mesh_w_id = meshes.add(
             load_object_mesh(context, "big_building_wire"));
         let building_mesh_w_id = meshes.add(
@@ -424,6 +430,8 @@ impl MeshIdManager {
         let walkable_mesh_id = meshes.add(empty_mesh(context));
         let targets_mesh_id = meshes.add(empty_mesh(context));
         MeshIdManager {
+            big_building_mesh_id: big_building_mesh_id,
+            building_mesh_id: building_mesh_id,
             big_building_mesh_w_id: big_building_mesh_w_id,
             building_mesh_w_id: building_mesh_w_id,
             trees_mesh_id: trees_mesh_id,
@@ -615,7 +623,6 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
         children: Vec::new(),
     });
     for tile_pos in map.get_iter() {
-        let objects = state.objects_at(&tile_pos);
         if *map.tile(&tile_pos) == Terrain::Trees {
             let pos = geom::map_pos_to_world_pos(&tile_pos);
             let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
@@ -627,41 +634,42 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                 children: Vec::new(),
             });
         }
-        for object in objects {
-            match object.class {
-                ObjectClass::Building => {
-                    let pos = geom::exact_pos_to_world_pos(&object.pos);
-                    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                    scene.add_node(SceneNode {
-                        pos: pos,
-                        rot: rot,
-                        mesh_id: Some(match object.pos.slot_id {
-                            SlotId::Id(_) => mesh_ids.building_mesh_w_id,
-                            SlotId::WholeTile => mesh_ids.big_building_mesh_w_id,
-                            SlotId::TwoTiles(_) => unimplemented!(),
-                        }),
-                        color: [0.0, 0.0, 0.0, 1.0],
-                        children: Vec::new(),
-                    });
-                }
-                ObjectClass::Road => {
-                    let pos = geom::exact_pos_to_world_pos(&object.pos);
-                    let rot = match object.pos.slot_id {
-                        SlotId::TwoTiles(ref dir) => {
-                            rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
-                        },
-                        _ => panic!(),
-                    };
-                    scene.add_node(SceneNode {
-                        pos: pos,
-                        rot: rot,
-                        mesh_id: Some(mesh_ids.road_mesh_id),
-                        color: [1.0, 1.0, 1.0, 1.0],
-                        children: Vec::new(),
-                    });
-                }
-                ObjectClass::Smoke => unimplemented!(),
+    }
+    for (object_id, object) in state.objects() {
+        match object.class {
+            ObjectClass::Building => {
+                let pos = geom::exact_pos_to_world_pos(&object.pos);
+                let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+                scene.add_object(*object_id, SceneNode {
+                    pos: pos,
+                    rot: rot,
+                    // TODO: merge with switch_wireframe
+                    mesh_id: Some(match object.pos.slot_id {
+                        SlotId::Id(_) => mesh_ids.building_mesh_id,
+                        SlotId::WholeTile => mesh_ids.big_building_mesh_id,
+                        SlotId::TwoTiles(_) => unimplemented!(),
+                    }),
+                    color: [1.0, 1.0, 1.0, 1.0],
+                    children: Vec::new(),
+                });
             }
+            ObjectClass::Road => {
+                let pos = geom::exact_pos_to_world_pos(&object.pos);
+                let rot = match object.pos.slot_id {
+                    SlotId::TwoTiles(ref dir) => {
+                        rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
+                    },
+                    _ => panic!(),
+                };
+                scene.add_node(SceneNode {
+                    pos: pos,
+                    rot: rot,
+                    mesh_id: Some(mesh_ids.road_mesh_id),
+                    color: [1.0, 1.0, 1.0, 1.0],
+                    children: Vec::new(),
+                });
+            }
+            ObjectClass::Smoke => unimplemented!(),
         }
     }
     scene
@@ -1413,6 +1421,49 @@ impl TacticalScreen {
         self.gui.label_score_id = self.gui.button_manager.add_button(label_score);
     }
 
+    // TODO: simplify
+    fn switch_wireframe(&mut self) {
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        let scene = &mut player_info.scene;
+        let state = &mut player_info.game_state;
+        'object_loop: for (object_id, object) in state.objects() {
+            if object.class != ObjectClass::Building {
+                continue;
+            }
+            let is_big = match object.pos.slot_id {
+                SlotId::Id(_) => false,
+                SlotId::WholeTile => true,
+                SlotId::TwoTiles(..) => unimplemented!(),
+            };
+            let normal_mesh_id = if is_big {
+                self.mesh_ids.big_building_mesh_id
+            } else {
+                self.mesh_ids.building_mesh_id
+            };
+            let wire_mesh_id = if is_big {
+                self.mesh_ids.big_building_mesh_w_id
+            } else {
+                self.mesh_ids.building_mesh_w_id
+            };
+            let node = {
+                let node_ids = scene.object_id_to_node_id(*object_id).clone();
+                assert_eq!(node_ids.len(), 1);
+                let node_id = node_ids.into_iter().next().unwrap();
+                let node = scene.node_mut(&node_id);
+                node
+            };
+            for unit in state.units().values() {
+                if unit.pos == object.pos || (is_big && unit.pos.map_pos == object.pos.map_pos) {
+                    node.mesh_id = Some(wire_mesh_id);
+                    node.color = [0.0, 0.0, 0.0, 1.0];
+                    continue 'object_loop;
+                }
+            }
+            node.mesh_id = Some(normal_mesh_id);
+            node.color = [1.0, 1.0, 1.0, 1.0];
+        }
+    }
+
     fn end_event_visualization(&mut self, context: &mut Context) {
         self.attacker_died_from_reaction_fire();
         {
@@ -1422,6 +1473,7 @@ impl TacticalScreen {
             self.event_visualizer.as_mut().unwrap().end(scene, state);
             state.apply_event(self.core.db(), self.event.as_ref().unwrap());
         }
+        self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {
             self.gui.button_manager.remove_button(label_id);
         }
