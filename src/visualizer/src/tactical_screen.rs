@@ -344,6 +344,7 @@ fn get_marker_mesh_id(mesh_ids: &MeshIdManager, player_id: PlayerId) -> &MeshId 
     }
 }
 
+#[derive(Clone, Debug)]
 struct MeshManager {
     meshes: Vec<Mesh>,
 }
@@ -371,6 +372,7 @@ impl MeshManager {
     }
 }
 
+#[derive(Clone, Debug)]
 struct MeshIdManager {
     big_building_mesh_id: MeshId,
     building_mesh_id: MeshId,
@@ -479,6 +481,7 @@ fn get_unit_type_visual_info(
     manager
 }
 
+#[derive(Clone, Debug)]
 struct PlayerInfo {
     game_state: PartialState,
     pathfinder: Pathfinder,
@@ -486,6 +489,7 @@ struct PlayerInfo {
     camera: Camera,
 }
 
+#[derive(Clone, Debug)]
 struct PlayerInfoManager {
     info: HashMap<PlayerId, PlayerInfo>,
 }
@@ -525,6 +529,7 @@ impl PlayerInfoManager {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Gui {
     button_manager: ButtonManager,
     button_end_turn_id: ButtonId,

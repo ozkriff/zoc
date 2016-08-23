@@ -2,6 +2,7 @@ use cgmath::{Vector3, InnerSpace};
 use geom;
 use types::{WorldPos, Time};
 
+#[derive(Clone, Debug)]
 pub struct MoveHelper {
     to: WorldPos,
     current: WorldPos,

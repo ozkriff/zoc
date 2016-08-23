@@ -9,6 +9,7 @@ use pipeline::{Vertex};
 
 type Face = [[u16; 3]; 3];
 
+#[derive(Clone, Debug)]
 struct Line {
     vertex: [u16; 2],
 }
@@ -17,6 +18,7 @@ type Uv = [f32; 2];
 
 type Pos = [f32; 3];
 
+#[derive(Clone, Debug)]
 pub struct Model {
     faces: Vec<Face>,
     lines: Vec<Line>,

@@ -16,6 +16,7 @@ use ::{
     get_free_exact_pos,
 };
 
+#[derive(Clone, Debug)]
 pub struct Ai {
     id: PlayerId,
     state: PartialState,

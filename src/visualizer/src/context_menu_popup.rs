@@ -54,6 +54,7 @@ impl Options {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ContextMenuPopup {
     game_screen_tx: Sender<Command>,
     button_manager: ButtonManager,

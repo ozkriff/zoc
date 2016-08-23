@@ -39,6 +39,7 @@ pub fn get_2d_screen_matrix(win_size: &Size2) -> Matrix4<f32> {
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct ButtonId {pub id: i32}
 
+#[derive(Clone, Debug)]
 pub struct Button {
     pos: ScreenPos,
     size: Size2,
@@ -93,6 +94,7 @@ impl Button {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ButtonManager {
     buttons: HashMap<ButtonId, Button>,
     last_id: ButtonId,

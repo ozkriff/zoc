@@ -9,6 +9,7 @@ use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use types::{ScreenPos, Time};
 
+#[derive(Clone, Debug)]
 pub struct MainMenuScreen {
     button_start_hotseat_id: ButtonId,
     button_start_vs_ai_id: ButtonId,

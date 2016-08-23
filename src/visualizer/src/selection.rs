@@ -13,6 +13,7 @@ use mesh::{MeshId};
 use mesh::{Mesh};
 use pipeline::{Vertex};
 
+#[derive(Clone, Debug)]
 pub struct SelectionManager {
     unit_id: Option<UnitId>,
     mesh_id: MeshId,

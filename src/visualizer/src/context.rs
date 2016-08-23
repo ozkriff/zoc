@@ -46,6 +46,7 @@ fn get_win_size(window: &glutin::Window) -> Size2 {
     Size2{w: w as i32, h: h as i32}
 }
 
+#[derive(Clone, Debug)]
 pub struct MouseState {
     pub is_left_button_pressed: bool,
     pub is_right_button_pressed: bool,

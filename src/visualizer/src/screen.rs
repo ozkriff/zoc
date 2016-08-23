@@ -9,7 +9,7 @@ pub enum ScreenCommand {
     PushPopup(Box<Screen>),
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum EventStatus {
     Handled,
     NotHandled,

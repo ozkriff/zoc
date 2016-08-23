@@ -8,6 +8,7 @@ use game_state::{GameState, GameStateMut};
 use fow::{Fow};
 use ::{CoreEvent, PlayerId, UnitId, ObjectId, Object, MapPos, Score, Sector, SectorId};
 
+#[derive(Clone, Debug)]
 pub struct PartialState {
     state: InternalState,
     fow: Fow,

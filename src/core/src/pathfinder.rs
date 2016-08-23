@@ -140,6 +140,7 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: &ExactPos,
     MovePoints{n: terrain_cost + object_cost + unit_cost}
 }
 
+#[derive(Clone, Debug)]
 pub struct Pathfinder {
     queue: Vec<ExactPos>,
     map: Map<Tile>,

@@ -7,6 +7,7 @@ use gui::{ButtonManager, Button, is_tap};
 use core::{PlayerId};
 use types::{ScreenPos, Time};
 
+#[derive(Clone, Debug)]
 pub struct EndTurnScreen {
     button_manager: ButtonManager,
 }

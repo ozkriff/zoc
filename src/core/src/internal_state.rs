@@ -31,6 +31,7 @@ pub enum InfoLevel {
     Partial,
 }
 
+#[derive(Clone, Debug)]
 pub struct InternalState {
     units: HashMap<UnitId, Unit>,
     objects: HashMap<ObjectId, Object>,

@@ -20,6 +20,7 @@ pub trait EventVisualizer {
     fn end(&mut self, scene: &mut Scene, state: &PartialState);
 }
 
+#[derive(Clone, Debug)]
 pub struct EventMoveVisualizer {
     node_id: NodeId,
     move_helper: MoveHelper,
@@ -62,6 +63,7 @@ impl EventMoveVisualizer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventEndTurnVisualizer;
 
 impl EventEndTurnVisualizer {
@@ -107,6 +109,7 @@ fn show_unit_at(
     });
 }
 
+#[derive(Clone, Debug)]
 pub struct EventCreateUnitVisualizer {
     node_id: NodeId,
     move_helper: MoveHelper,
@@ -181,6 +184,7 @@ fn vec3_z(z: f32) -> Vector3<f32> {
     Vector3{x: 0.0, y: 0.0, z: z}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
     defender_node_id: NodeId,
     killed: i32,
@@ -317,6 +321,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventShowUnitVisualizer;
 
 impl EventShowUnitVisualizer {
@@ -344,6 +349,7 @@ impl EventVisualizer for EventShowUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventHideUnitVisualizer;
 
 impl EventHideUnitVisualizer {
@@ -370,6 +376,7 @@ impl EventVisualizer for EventHideUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventUnloadUnitVisualizer {
     node_id: NodeId,
     move_helper: MoveHelper,
@@ -415,6 +422,7 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventLoadUnitVisualizer {
     passenger_id: UnitId,
     move_helper: MoveHelper,
@@ -460,6 +468,7 @@ impl EventVisualizer for EventLoadUnitVisualizer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventSetReactionFireModeVisualizer;
 
 impl EventSetReactionFireModeVisualizer {
@@ -492,6 +501,7 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventSectorOwnerChangedVisualizer;
 
 impl EventSectorOwnerChangedVisualizer {
@@ -536,6 +546,7 @@ impl EventVisualizer for EventSectorOwnerChangedVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventVictoryPointVisualizer {
     time: Time,
     duration: Time,
@@ -573,6 +584,7 @@ impl EventVisualizer for EventVictoryPointVisualizer {
 
 const SMOKE_ALPHA: f32 = 0.7;
 
+#[derive(Clone, Debug)]
 pub struct EventSmokeVisualizer {
     duration: Time,
     time: Time,
@@ -632,6 +644,7 @@ impl EventVisualizer for EventSmokeVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventRemoveSmokeVisualizer {
     duration: Time,
     time: Time,

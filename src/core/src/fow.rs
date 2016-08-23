@@ -8,7 +8,7 @@ use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
 use ::{CoreEvent, PlayerId, MapPos, ExactPos, ObjectClass};
 
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub enum TileVisibility {
     No,
     // Bad,
@@ -81,6 +81,7 @@ fn calc_visibility<S: GameState>(
 }
 
 /// Fog of War
+#[derive(Clone, Debug)]
 pub struct Fow {
     map: Map<TileVisibility>,
     player_id: PlayerId,

@@ -2,11 +2,13 @@ use std::collections::{HashMap};
 use core::unit::{UnitTypeId};
 use mesh::{MeshId};
 
+#[derive(Clone, Debug)]
 pub struct UnitTypeVisualInfo {
     pub mesh_id: MeshId,
     pub move_speed: f32, // TODO: f32 -> Speed
 }
 
+#[derive(Clone, Debug)]
 pub struct UnitTypeVisualInfoManager {
     map: HashMap<UnitTypeId, UnitTypeVisualInfo>,
 }

@@ -39,10 +39,10 @@ use dir::{Dir};
 #[derive(Clone, Copy, Debug)]
 pub struct Score{pub n: i32}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct MovePoints{pub n: i32}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct AttackPoints{pub n: i32}
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -77,6 +77,7 @@ pub struct ExactPos {
     pub slot_id: SlotId,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct ExactPosIter<'a> {
     p: &'a ExactPos,
     i: u8,
@@ -154,7 +155,7 @@ impl Sector {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ObjectClass {
     Building,
     Road,
@@ -173,30 +174,31 @@ pub struct Object {
     pub timer: Option<i32>,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum PlayerClass {
     Human,
     Ai,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Player {
     pub id: PlayerId,
     pub class: PlayerClass,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FireMode {
     Active,
     Reactive,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ReactionFireMode {
     Normal,
     HoldFire,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum MoveMode {
     Fast,
     Hunt,
@@ -369,6 +371,7 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
     }
 }
 
+#[derive(Clone, Debug)]
 struct PlayerInfo {
     events: VecDeque<CoreEvent>,
     fow: Fow,
@@ -422,7 +425,7 @@ pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CommandError {
     TileIsOccupied,
     NotEnoughMovePoints,
@@ -684,14 +687,14 @@ fn check_sectors(state: &InternalState) -> Vec<CoreEvent> {
     events
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum ReactionFireResult {
     Attacked,
     Killed,
     None,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum GameType {
     Hotseat,
     SingleVsAi,
@@ -703,11 +706,12 @@ impl Default for GameType {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct Options {
     pub game_type: GameType,
 }
 
+#[derive(Clone, Debug)]
 pub struct Core {
     state: InternalState,
     players: Vec<Player>,

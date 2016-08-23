@@ -78,6 +78,7 @@ impl Dir {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct DirIter {
     index: i32,
 }

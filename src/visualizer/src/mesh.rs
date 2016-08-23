@@ -10,6 +10,7 @@ use pipeline::{Vertex};
 pub struct MeshId{pub id: i32}
 
 // TODO: TODO: make fields private
+#[derive(Clone, Debug)]
 pub struct Mesh {
     pub slice: gfx::Slice<gfx_gl::Resources>,
     pub vertex_buffer: gfx::handle::Buffer<gfx_gl::Resources, Vertex>,

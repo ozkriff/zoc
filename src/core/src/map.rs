@@ -17,6 +17,7 @@ impl Default for Terrain {
     fn default() -> Terrain { Terrain::Plain }
 }
 
+#[derive(Clone, Debug)]
 pub struct Map<T> {
     tiles: Vec<T>,
     size: Size2,
@@ -62,6 +63,7 @@ impl<T: Clone + Default> Map<T> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct MapPosIter {
     cursor: MapPos,
     map_size: Size2,
@@ -94,6 +96,7 @@ impl Iterator for MapPosIter {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct RingIter {
     cursor: MapPos,
     segment_index: i32,
@@ -153,6 +156,7 @@ impl Iterator for RingIter {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct SpiralIter {
     ring_iter: RingIter,
     radius: i32,

@@ -11,17 +11,20 @@ use mesh::{Mesh};
 use text;
 use pipeline::{Vertex};
 
+#[derive(Clone, Debug)]
 struct ShowTextCommand {
     pos: MapPos,
     text: String,
 }
 
+#[derive(Clone, Debug)]
 struct MapText {
     move_helper: MoveHelper,
     mesh: Mesh,
     pos: MapPos,
 }
 
+#[derive(Clone, Debug)]
 pub struct MapTextManager {
     commands: VecDeque<ShowTextCommand>,
     visible_labels_list: HashMap<i32, MapText>,

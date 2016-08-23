@@ -22,6 +22,7 @@ fn winner_id(state: &PartialState) -> PlayerId {
     winner_id
 }
 
+#[derive(Clone, Debug)]
 pub struct GameResultsScreen {
     button_manager: ButtonManager,
 }
