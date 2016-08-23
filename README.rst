@@ -13,7 +13,14 @@ Zone of Control
 Overview
 --------
 
-ZoC is turn-based hexagonal strategy game written in Rust_.
+ZoC is a turn-based hexagonal strategy game written in Rust_.
+
+Core game features are:
+
+- advanced fog of war
+- slot system (multiple units per tile)
+- reaction fire (xcom-like)
+- morale and suppression
 
 .. image:: http://i.imgur.com/gZeJJGM.png
 
