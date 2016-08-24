@@ -215,7 +215,7 @@ mod tests {
         let expected = [
             (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 0) ];
         let mut expected = expected.iter();
-        for p in ring_iter(&start_pos, radius) {
+        for p in ring_iter(start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");
             assert_eq!(*expected, (p.v.x, p.v.y));
@@ -242,7 +242,7 @@ mod tests {
             (-2, 0),
         ];
         let mut expected = expected.iter();
-        for p in ring_iter(&start_pos, radius) {
+        for p in ring_iter(start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");
             assert_eq!(*expected, (p.v.x, p.v.y));
@@ -277,7 +277,7 @@ mod tests {
             (-2, 0),
         ];
         let mut expected = expected.iter();
-        for p in spiral_iter(&start_pos, radius) {
+        for p in spiral_iter(start_pos, radius) {
             let expected = expected.next().expect(
                 "Can not get next element from expected vector");
             assert_eq!(*expected, (p.v.x, p.v.y));
