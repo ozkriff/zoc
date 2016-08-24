@@ -9,9 +9,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["opengl", "3D", "game", "gfx"]
 repository = "https://github.com/ozkriff/zoc"
 
-[[bin]]
-name = "zoc"
-
 [package.metadata.android]
 assets = "assets"
 
