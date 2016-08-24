@@ -8,6 +8,9 @@ environment:
         - rust_version: beta
         - rust_version: nightly
 
+cache:
+    - target -> Cargo.lock
+
 install:
     - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-$env:rust_version-$env:platform-pc-windows-gnu.exe" -FileName rust.exe
     - cmd: rust.exe /VERYSILENT /NORESTART /DIR=C:\Rust
