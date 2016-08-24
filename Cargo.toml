@@ -12,8 +12,28 @@ repository = "https://github.com/ozkriff/zoc"
 [[bin]]
 name = "zoc"
 
-[dependencies.visualizer]
-path = "./src/visualizer/"
-
 [package.metadata.android]
 assets = "assets"
+
+[dependencies.core]
+path = "core"
+
+[dependencies]
+gfx_core = "*"
+gfx_device_gl = "*"
+gfx_window_glutin = "*"
+gfx = "*"
+glutin = "*"
+collision = "*"
+cgmath = "*"
+time = "*"
+rand = "*"
+rusttype = "*"
+
+[dependencies.image]
+version = "*"
+default-features = false
+features = ["png_codec"]
+
+[target.arm-linux-androideabi.dependencies]
+android_glue = "0.2.0"
