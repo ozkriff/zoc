@@ -13,10 +13,10 @@ fn winner_id(state: &PartialState) -> PlayerId {
     // TODO: `CoreEvent::GameEnd` event?
     let mut winner_id = PlayerId{id: 0};
     let mut winner_score = Score{n: 0};
-    for (id, score) in state.score() {
+    for (&id, &score) in state.score() {
         if score.n > winner_score.n {
-            winner_id = id.clone();
-            winner_score = score.clone();
+            winner_id = id;
+            winner_score = score;
         }
     }
     winner_id
@@ -35,12 +35,12 @@ impl GameResultsScreen {
         pos.v.y -= wh / 10; // TODO: magic num
         let winner_index = winner_id(state);
         let str = format!("Player {} wins!", winner_index.id);
-        let title_button = Button::new(context, &str, &pos);
+        let title_button = Button::new(context, &str, pos);
         pos.v.y -= title_button.size().h; // TODO: autolayout
         let _ = button_manager.add_button(title_button);
         for (player_index, player_score) in state.score() {
             let str = format!("Player {}: {} VPs", player_index.id, player_score.n);
-            let button = Button::new(context, &str, &pos);
+            let button = Button::new(context, &str, pos);
             pos.v.y -= button.size().h;
             let _ = button_manager.add_button(button);
         }
@@ -66,7 +66,7 @@ impl GameResultsScreen {
 }
 
 impl Screen for GameResultsScreen {
-    fn tick(&mut self, context: &mut Context, _: &Time) {
+    fn tick(&mut self, context: &mut Context, _: Time) {
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.button_manager.draw(context);
     }

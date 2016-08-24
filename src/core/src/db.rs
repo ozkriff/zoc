@@ -342,11 +342,11 @@ impl Db {
         None
     }
 
-    pub fn unit_type(&self, unit_type_id: &UnitTypeId) -> &UnitType {
+    pub fn unit_type(&self, unit_type_id: UnitTypeId) -> &UnitType {
         &self.unit_types[unit_type_id.id as usize]
     }
 
-    pub fn weapon_type(&self, type_id: &WeaponTypeId) -> &WeaponType {
+    pub fn weapon_type(&self, type_id: WeaponTypeId) -> &WeaponType {
         &self.weapon_types[type_id.id as usize]
     }
 

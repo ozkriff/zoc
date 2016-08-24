@@ -96,10 +96,10 @@ impl Visualizer {
         self.context.encoder.clear_depth(&self.context.data.out_depth, 1.0);
         {
             let screen = self.screens.last_mut().unwrap();
-            screen.tick(&mut self.context, &dtime);
+            screen.tick(&mut self.context, dtime);
         }
         for popup in &mut self.popups {
-            popup.tick(&mut self.context, &dtime);
+            popup.tick(&mut self.context, dtime);
         }
         self.context.encoder.flush(&mut self.context.device);
         self.context.window.swap_buffers()

@@ -15,14 +15,14 @@ pub struct EndTurnScreen {
 impl EndTurnScreen {
     pub fn new(
         context: &mut Context,
-        player_id: &PlayerId,
+        player_id: PlayerId,
     ) -> EndTurnScreen {
         let mut button_manager = ButtonManager::new();
         let pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let str = format!("Pass the device to Player {}", player_id.id);
         // TODO: button -> label + center on screen
         let _ = button_manager.add_button(Button::new(
-            context, &str, &pos));
+            context, &str, pos));
         EndTurnScreen {
             button_manager: button_manager,
         }
@@ -44,7 +44,7 @@ impl EndTurnScreen {
 }
 
 impl Screen for EndTurnScreen {
-    fn tick(&mut self, context: &mut Context, _: &Time) {
+    fn tick(&mut self, context: &mut Context, _: Time) {
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.button_manager.draw(context);
     }

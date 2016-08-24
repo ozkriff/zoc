@@ -15,14 +15,14 @@ pub struct PartialState {
 }
 
 impl PartialState {
-    pub fn new(map_size: &Size2, player_id: &PlayerId) -> PartialState {
+    pub fn new(map_size: Size2, player_id: PlayerId) -> PartialState {
         PartialState {
             state: InternalState::new(map_size),
             fow: Fow::new(map_size, player_id),
         }
     }
 
-    pub fn is_tile_visible(&self, pos: &MapPos) -> bool {
+    pub fn is_tile_visible(&self, pos: MapPos) -> bool {
         self.fow.is_tile_visible(pos)
     }
 }

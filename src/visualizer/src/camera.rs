@@ -13,7 +13,7 @@ pub struct Camera {
     projection_mat: Matrix4<f32>,
 }
 
-fn get_projection_mat(win_size: &Size2) -> Matrix4<f32> {
+fn get_projection_mat(win_size: Size2) -> Matrix4<f32> {
     let fov = rad(PI / 4.0);
     let ratio = win_size.w as f32 / win_size.h as f32;
     let display_range_min = 0.1;
@@ -22,7 +22,7 @@ fn get_projection_mat(win_size: &Size2) -> Matrix4<f32> {
 }
 
 impl Camera {
-    pub fn new(win_size: &Size2) -> Camera {
+    pub fn new(win_size: Size2) -> Camera {
         Camera {
             x_angle: rad(PI / 4.0),
             z_angle: rad(PI / 4.0),
@@ -98,7 +98,7 @@ impl Camera {
         self.clamp_pos();
     }
 
-    pub fn regenerate_projection_mat(&mut self, win_size: &Size2) {
+    pub fn regenerate_projection_mat(&mut self, win_size: Size2) {
         self.projection_mat = get_projection_mat(win_size);
     }
 }

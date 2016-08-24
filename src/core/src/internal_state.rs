@@ -41,25 +41,25 @@ pub struct InternalState {
 }
 
 impl InternalState {
-    pub fn new(map_size: &Size2) -> InternalState {
+    pub fn new(map_size: Size2) -> InternalState {
         let mut map = Map::new(map_size);
         // TODO: read from scenario.json?
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 7}}) = Terrain::Water;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 8}}) = Terrain::Water;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 9}}) = Terrain::Water;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 10}}) = Terrain::Water;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 11}}) = Terrain::Water;
-        *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 2}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 1, y: 6}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 2, y: 6}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 1}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 5, y: 10}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
-        *map.tile_mut(&MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 7}}) = Terrain::Water;
+        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 8}}) = Terrain::Water;
+        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 9}}) = Terrain::Water;
+        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 10}}) = Terrain::Water;
+        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 11}}) = Terrain::Water;
+        *map.tile_mut(MapPos{v: Vector2{x: 1, y: 2}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 1, y: 6}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 2, y: 6}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 1}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 10}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
+        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
         let mut sectors = HashMap::new();
         sectors.insert(
             SectorId{id: 0},
@@ -101,15 +101,15 @@ impl InternalState {
             sectors: sectors,
             score: score,
         };
-        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 4}}, 2);
-        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 5}}, 2);
-        state.add_buildings(&MapPos{v: Vector2{x: 5, y: 6}}, 1);
-        state.add_big_building(&MapPos{v: Vector2{x: 6, y: 4}});
-        state.add_buildings(&MapPos{v: Vector2{x: 6, y: 5}}, 3);
-        state.add_buildings(&MapPos{v: Vector2{x: 6, y: 6}}, 1);
-        state.add_buildings(&MapPos{v: Vector2{x: 8, y: 11}}, 2);
-        state.add_buildings(&MapPos{v: Vector2{x: 8, y: 10}}, 2);
-        state.add_buildings(&MapPos{v: Vector2{x: 9, y: 11}}, 1);
+        state.add_buildings(MapPos{v: Vector2{x: 5, y: 4}}, 2);
+        state.add_buildings(MapPos{v: Vector2{x: 5, y: 5}}, 2);
+        state.add_buildings(MapPos{v: Vector2{x: 5, y: 6}}, 1);
+        state.add_big_building(MapPos{v: Vector2{x: 6, y: 4}});
+        state.add_buildings(MapPos{v: Vector2{x: 6, y: 5}}, 3);
+        state.add_buildings(MapPos{v: Vector2{x: 6, y: 6}}, 1);
+        state.add_buildings(MapPos{v: Vector2{x: 8, y: 11}}, 2);
+        state.add_buildings(MapPos{v: Vector2{x: 8, y: 10}}, 2);
+        state.add_buildings(MapPos{v: Vector2{x: 9, y: 11}}, 1);
         state.add_road(&[
             MapPos{v: Vector2{x: 0, y: 1}},
             MapPos{v: Vector2{x: 1, y: 1}},
@@ -141,13 +141,13 @@ impl InternalState {
 
     fn add_road(&mut self, path: &[MapPos]) {
         for window in path.windows(2) {
-            let from = &window[0];
-            let to = &window[1];
+            let from = window[0];
+            let to = window[1];
             let dir = Dir::get_dir_from_to(from, to);
             let object = Object {
                 class: ObjectClass::Road,
                 pos: ExactPos {
-                    map_pos: from.clone(),
+                    map_pos: from,
                     slot_id: SlotId::TwoTiles(dir),
                 },
                 timer: None,
@@ -162,12 +162,12 @@ impl InternalState {
         self.objects.insert(id, object);
     }
 
-    fn add_big_building(&mut self, pos: &MapPos) {
+    fn add_big_building(&mut self, pos: MapPos) {
         *self.map.tile_mut(pos) = Terrain::City;
         let object = Object {
             class: ObjectClass::Building,
             pos: ExactPos {
-                map_pos: pos.clone(),
+                map_pos: pos,
                 slot_id: SlotId::WholeTile,
             },
             timer: None,
@@ -175,11 +175,11 @@ impl InternalState {
         self.add_object(object);
     }
 
-    fn add_buildings(&mut self, pos: &MapPos, count: i32) {
+    fn add_buildings(&mut self, pos: MapPos, count: i32) {
         *self.map.tile_mut(pos) = Terrain::City;
         for _ in 0 .. count {
             let slot_id = get_free_slot_for_building(self, pos).unwrap();
-            let obj_pos = ExactPos{map_pos: pos.clone(), slot_id: slot_id};
+            let obj_pos = ExactPos{map_pos: pos, slot_id: slot_id};
             let object = Object {
                 class: ObjectClass::Building,
                 pos: obj_pos,
@@ -190,11 +190,11 @@ impl InternalState {
     }
 
     /// Converts active ap (attack points) to reactive
-    fn convert_ap(&mut self, db: &Db, player_id: &PlayerId) {
+    fn convert_ap(&mut self, db: &Db, player_id: PlayerId) {
         for (_, unit) in &mut self.units {
-            let unit_type = db.unit_type(&unit.type_id);
-            let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
-            if unit.player_id != *player_id || !weapon_type.reaction_fire {
+            let unit_type = db.unit_type(unit.type_id);
+            let weapon_type = db.weapon_type(unit_type.weapon_type_id);
+            if unit.player_id != player_id || !weapon_type.reaction_fire {
                 continue;
             }
             if let Some(ref mut reactive_attack_points)
@@ -206,14 +206,14 @@ impl InternalState {
         }
     }
 
-    fn refresh_units(&mut self, db: &Db, player_id: &PlayerId) {
+    fn refresh_units(&mut self, db: &Db, player_id: PlayerId) {
         for (_, unit) in &mut self.units {
-            if unit.player_id == *player_id {
-                let unit_type = db.unit_type(&unit.type_id);
-                unit.move_points = unit_type.move_points.clone();
-                unit.attack_points = unit_type.attack_points.clone();
+            if unit.player_id == player_id {
+                let unit_type = db.unit_type(unit.type_id);
+                unit.move_points = unit_type.move_points;
+                unit.attack_points = unit_type.attack_points;
                 if let Some(ref mut reactive_attack_points) = unit.reactive_attack_points {
-                    *reactive_attack_points = unit_type.reactive_attack_points.clone();
+                    *reactive_attack_points = unit_type.reactive_attack_points;
                 }
                 unit.morale += 10;
                 let max_morale = 100; // TODO: get from UnitType
@@ -226,16 +226,16 @@ impl InternalState {
 
     fn add_unit(&mut self, db: &Db, unit_info: &UnitInfo, info_level: InfoLevel) {
         assert!(self.units.get(&unit_info.unit_id).is_none());
-        let unit_type = db.unit_type(&unit_info.type_id);
-        self.units.insert(unit_info.unit_id.clone(), Unit {
-            id: unit_info.unit_id.clone(),
-            pos: unit_info.pos.clone(),
-            player_id: unit_info.player_id.clone(),
-            type_id: unit_info.type_id.clone(),
-            move_points: unit_type.move_points.clone(),
-            attack_points: unit_type.attack_points.clone(),
+        let unit_type = db.unit_type(unit_info.type_id);
+        self.units.insert(unit_info.unit_id, Unit {
+            id: unit_info.unit_id,
+            pos: unit_info.pos,
+            player_id: unit_info.player_id,
+            type_id: unit_info.type_id,
+            move_points: unit_type.move_points,
+            attack_points: unit_type.attack_points,
             reactive_attack_points: if info_level == InfoLevel::Full {
-                Some(unit_type.reactive_attack_points.clone())
+                Some(unit_type.reactive_attack_points)
             } else {
                 None
             },
@@ -243,7 +243,7 @@ impl InternalState {
             count: unit_type.count,
             morale: 100,
             passenger_id: if info_level == InfoLevel::Full {
-                unit_info.passenger_id.clone()
+                unit_info.passenger_id
             } else {
                 None
             },
@@ -276,20 +276,20 @@ impl GameState for InternalState {
 impl GameStateMut for InternalState {
     fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
         match *event {
-            CoreEvent::Move{ref unit_id, ref to, ref cost, ..} => {
+            CoreEvent::Move{unit_id, to, cost, ..} => {
                 {
-                    let unit = self.units.get_mut(unit_id).unwrap();
-                    unit.pos = to.clone();
+                    let unit = self.units.get_mut(&unit_id).unwrap();
+                    unit.pos = to;
                     assert!(unit.move_points.n > 0);
                     unit.move_points.n -= cost.n;
                     assert!(unit.move_points.n >= 0);
                 }
-                if let Some(passenger_id) = self.units[unit_id].passenger_id.clone() {
+                if let Some(passenger_id) = self.units[&unit_id].passenger_id {
                     let passenger = self.units.get_mut(&passenger_id).unwrap();
-                    passenger.pos = to.clone();
+                    passenger.pos = to;
                 }
             },
-            CoreEvent::EndTurn{ref new_id, ref old_id} => {
+            CoreEvent::EndTurn{new_id, old_id} => {
                 self.refresh_units(db, new_id);
                 self.convert_ap(db, old_id);
                 for (_, object) in &mut self.objects {
@@ -320,7 +320,7 @@ impl GameStateMut for InternalState {
                     assert!(self.units.get(&attack_info.defender_id).is_some());
                     self.units.remove(&attack_info.defender_id);
                 }
-                let attacker_id = match attack_info.attacker_id.clone() {
+                let attacker_id = match attack_info.attacker_id {
                     Some(attacker_id) => attacker_id,
                     None => return,
                 };
@@ -344,45 +344,45 @@ impl GameStateMut for InternalState {
             CoreEvent::ShowUnit{ref unit_info} => {
                 self.add_unit(db, unit_info, InfoLevel::Partial);
             },
-            CoreEvent::HideUnit{ref unit_id} => {
-                assert!(self.units.get(unit_id).is_some());
-                self.units.remove(unit_id);
+            CoreEvent::HideUnit{unit_id} => {
+                assert!(self.units.get(&unit_id).is_some());
+                self.units.remove(&unit_id);
             },
-            CoreEvent::LoadUnit{ref passenger_id, ref transporter_id, ref to, ..} => {
+            CoreEvent::LoadUnit{passenger_id, transporter_id, to, ..} => {
                 // TODO: hide info about passenger from enemy player
-                if let Some(ref transporter_id) = *transporter_id {
-                    self.units.get_mut(transporter_id)
+                if let Some(transporter_id) = transporter_id {
+                    self.units.get_mut(&transporter_id)
                         .expect("Bad transporter_id")
-                        .passenger_id = Some(passenger_id.clone());
+                        .passenger_id = Some(passenger_id);
                 }
-                let passenger = self.units.get_mut(passenger_id)
+                let passenger = self.units.get_mut(&passenger_id)
                     .expect("Bad passenger_id");
-                passenger.pos = to.clone();
+                passenger.pos = to;
                 passenger.move_points.n = 0;
             },
-            CoreEvent::UnloadUnit{ref transporter_id, ref unit_info, ..} => {
-                if let Some(ref transporter_id) = *transporter_id {
-                    self.units.get_mut(transporter_id)
+            CoreEvent::UnloadUnit{transporter_id, ref unit_info, ..} => {
+                if let Some(transporter_id) = transporter_id {
+                    self.units.get_mut(&transporter_id)
                         .expect("Bad transporter_id")
                         .passenger_id = None;
                 }
                 if let Some(unit) = self.units.get_mut(&unit_info.unit_id) {
-                    unit.pos = unit_info.pos.clone();
+                    unit.pos = unit_info.pos;
                     return;
                 }
                 self.add_unit(db, unit_info, InfoLevel::Partial);
             },
-            CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
-                self.units.get_mut(unit_id)
+            CoreEvent::SetReactionFireMode{unit_id, mode} => {
+                self.units.get_mut(&unit_id)
                     .expect("Bad unit id")
-                    .reaction_fire_mode = mode.clone();
+                    .reaction_fire_mode = mode;
             },
-            CoreEvent::SectorOwnerChanged{ref sector_id, ref new_owner_id} => {
-                let sector = self.sectors.get_mut(sector_id).unwrap();
-                sector.owner_id = new_owner_id.clone();
+            CoreEvent::SectorOwnerChanged{sector_id, new_owner_id} => {
+                let sector = self.sectors.get_mut(&sector_id).unwrap();
+                sector.owner_id = new_owner_id;
             },
-            CoreEvent::VictoryPoint{ref player_id, count, ..} => {
-                self.score.get_mut(player_id).unwrap().n += count;
+            CoreEvent::VictoryPoint{player_id, count, ..} => {
+                self.score.get_mut(&player_id).unwrap().n += count;
             },
             CoreEvent::Smoke{pos, id, unit_id} => {
                 if let Some(unit_id) = unit_id {

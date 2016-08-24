@@ -24,9 +24,9 @@ pub struct Ai {
 }
 
 impl Ai {
-    pub fn new(id: &PlayerId, map_size: &Size2) -> Ai {
+    pub fn new(id: PlayerId, map_size: Size2) -> Ai {
         Ai {
-            id: id.clone(),
+            id: id,
             state: PartialState::new(map_size, id),
             pathfinder: Pathfinder::new(map_size),
         }
@@ -46,17 +46,17 @@ impl Ai {
             }
             for i in 0 .. 6 {
                 let dir = Dir::from_int(i);
-                let destination = Dir::get_neighbour_pos(&enemy.pos.map_pos, &dir);
-                if !self.state.map().is_inboard(&destination) {
+                let destination = Dir::get_neighbour_pos(enemy.pos.map_pos, dir);
+                if !self.state.map().is_inboard(destination) {
                     continue;
                 }
                 let exact_destination = match get_free_exact_pos(
-                    db, &self.state, &unit.type_id, &destination
+                    db, &self.state, unit.type_id, destination
                 ) {
                     Some(pos) => pos,
                     None => continue,
                 };
-                let path = match self.pathfinder.get_path(&exact_destination) {
+                let path = match self.pathfinder.get_path(exact_destination) {
                     Some(path) => path,
                     None => continue,
                 };
@@ -75,9 +75,9 @@ impl Ai {
             if target.player_id == self.id {
                 continue;
             }
-            let attacker_type = db.unit_type(&unit.type_id);
-            let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-            if distance(&unit.pos.map_pos, &target.pos.map_pos) <= weapon_type.max_distance {
+            let attacker_type = db.unit_type(unit.type_id);
+            let weapon_type = db.weapon_type(attacker_type.weapon_type_id);
+            if distance(unit.pos.map_pos, target.pos.map_pos) <= weapon_type.max_distance {
                 return true;
             }
         }
@@ -97,8 +97,8 @@ impl Ai {
                     continue;
                 }
                 let command = Command::AttackUnit {
-                    attacker_id: unit.id.clone(),
-                    defender_id: target.id.clone(),
+                    attacker_id: unit.id,
+                    defender_id: target.id,
                 };
                 if check_command(db, &self.state, &command).is_ok() {
                     return Some(command);
@@ -122,7 +122,7 @@ impl Ai {
                 Some(destination) => destination,
                 None => continue,
             };
-            let path = match self.pathfinder.get_path(&destination) {
+            let path = match self.pathfinder.get_path(destination) {
                 Some(path) => path,
                 None => continue,
             };
@@ -135,7 +135,7 @@ impl Ai {
                 continue;
             }
             return Some(Command::Move {
-                unit_id: unit.id.clone(),
+                unit_id: unit.id,
                 path: path,
                 mode: MoveMode::Fast,
             });

@@ -40,18 +40,18 @@ impl MapTextManager {
         }
     }
 
-    pub fn add_text(&mut self, pos: &MapPos, text: &str) {
+    pub fn add_text(&mut self, pos: MapPos, text: &str) {
         self.commands.push_back(ShowTextCommand {
-            pos: pos.clone(),
+            pos: pos,
             text: text.to_owned(),
         });
     }
 
-    fn can_show_text_here(&self, pos: &MapPos) -> bool {
+    fn can_show_text_here(&self, pos: MapPos) -> bool {
         let min_progress = 0.3;
         for map_text in self.visible_labels_list.values() {
             let progress = map_text.move_helper.progress();
-            if map_text.pos == *pos && progress < min_progress {
+            if map_text.pos == pos && progress < min_progress {
                 return false;
             }
         }
@@ -63,11 +63,11 @@ impl MapTextManager {
         while !self.commands.is_empty() {
             let command = self.commands.pop_front()
                 .expect("MapTextManager: Can`t get next command");
-            if !self.can_show_text_here(&command.pos) {
+            if !self.can_show_text_here(command.pos) {
                 postponed_commands.push(command);
                 continue;
             }
-            let mut from = geom::map_pos_to_world_pos(&command.pos);
+            let mut from = geom::map_pos_to_world_pos(command.pos);
             from.v.z += 0.5;
             let mut to = from;
             to.v.z += 2.0;
@@ -88,9 +88,9 @@ impl MapTextManager {
             };
             let move_speed = 1.0;
             self.visible_labels_list.insert(self.last_label_id, MapText {
-                pos: command.pos.clone(),
+                pos: command.pos,
                 mesh: mesh,
-                move_helper: MoveHelper::new(&from, &to, move_speed),
+                move_helper: MoveHelper::new(from, to, move_speed),
             });
             self.last_label_id += 1;
         }
@@ -99,9 +99,9 @@ impl MapTextManager {
 
     fn delete_old(&mut self) {
         let mut bad_keys = Vec::new();
-        for (key, map_text) in &self.visible_labels_list {
+        for (&key, map_text) in &self.visible_labels_list {
             if map_text.move_helper.is_finished() {
-                bad_keys.push(*key);
+                bad_keys.push(key);
             }
         }
         for key in &bad_keys {
@@ -113,7 +113,7 @@ impl MapTextManager {
         &mut self,
         context: &mut Context,
         camera: &Camera,
-        dtime: &Time,
+        dtime: Time,
     ) {
         self.do_commands(context);
         let rot_z_mat = Matrix4::from(Matrix3::from_angle_z(camera.get_z_angle()));

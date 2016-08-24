@@ -150,8 +150,8 @@ pub fn build(model: &Model) -> (Vec<Vertex>, Vec<u16>) {
         }
     }
     for line in &model.lines {
-        for line_vertex in &line.vertex {
-            let pos_id = *line_vertex as usize - 1;
+        for &line_vertex in &line.vertex {
+            let pos_id = line_vertex as usize - 1;
             vertices.push(Vertex {
                 pos: model.positions[pos_id],
                 uv: [0.0, 0.0],

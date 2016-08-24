@@ -75,7 +75,7 @@ impl ContextMenuPopup {
         state: &PartialState,
         db: &Db,
         context: &mut Context,
-        pos: &ScreenPos,
+        pos: ScreenPos,
         options: Options,
         tx: Sender<Command>,
     ) -> ContextMenuPopup {
@@ -89,61 +89,61 @@ impl ContextMenuPopup {
         let mut smoke_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
-        let mut pos = *pos;
+        let mut pos = pos;
         let text_size = basic_text_size(context);
         pos.v.y -= text_size as i32 / 2;
         pos.v.x -= text_size as i32 / 2;
         let vstep = (text_size * 0.9) as i32;
-        for unit_id in &options.selects {
-            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
+        for &unit_id in &options.selects {
+            let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("select <{}>", unit_type.name), &pos));
-            select_button_ids.insert(button_id, unit_id.clone());
+                Button::new(context, &format!("select <{}>", unit_type.name), pos));
+            select_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         for &(unit_id, hit_chance) in &options.attacks {
-            let unit_type = db.unit_type(&state.unit(&unit_id).type_id);
+            let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let text = format!("attack <{}> ({}%)", unit_type.name, hit_chance);
             let button_id = button_manager.add_button(
-                Button::new(context, &text, &pos));
+                Button::new(context, &text, pos));
             attack_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
-        for unit_id in &options.loads {
-            let unit_type = db.unit_type(&state.unit(unit_id).type_id);
+        for &unit_id in &options.loads {
+            let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("load <{}>", unit_type.name), &pos));
-            load_button_ids.insert(button_id, unit_id.clone());
+                Button::new(context, &format!("load <{}>", unit_type.name), pos));
+            load_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         if options.move_pos.is_some() {
             move_button_id = Some(button_manager.add_button(
-                Button::new(context, "move", &pos)));
+                Button::new(context, "move", pos)));
             pos.v.y -= vstep;
         }
         if options.hunt_pos.is_some() {
             hunt_button_id = Some(button_manager.add_button(
-                Button::new(context, "hunt", &pos)));
+                Button::new(context, "hunt", pos)));
             pos.v.y -= vstep;
         }
         if options.enable_reaction_fire.is_some() {
             enable_reaction_fire_button_id = Some(button_manager.add_button(
-                Button::new(context, "enable reaction fire", &pos)));
+                Button::new(context, "enable reaction fire", pos)));
             pos.v.y -= vstep;
         }
         if options.disable_reaction_fire.is_some() {
             disable_reaction_fire_button_id = Some(button_manager.add_button(
-                Button::new(context, "disable reaction fire", &pos)));
+                Button::new(context, "disable reaction fire", pos)));
             pos.v.y -= vstep;
         }
         if options.unload_pos.is_some() {
             unload_unit_button_id = Some(button_manager.add_button(
-                Button::new(context, "unload", &pos)));
+                Button::new(context, "unload", pos)));
             pos.v.y -= vstep;
         }
         if options.smoke_pos.is_some() {
             smoke_button_id = Some(button_manager.add_button(
-                Button::new(context, "smoke", &pos)));
+                Button::new(context, "smoke", pos)));
             pos.v.y -= vstep;
         }
         ContextMenuPopup {
@@ -167,7 +167,7 @@ impl ContextMenuPopup {
             return;
         }
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
-            self.handle_event_button_press(context, &button_id);
+            self.handle_event_button_press(context, button_id);
         } else {
             context.add_command(ScreenCommand::PopPopup);
         }
@@ -181,38 +181,38 @@ impl ContextMenuPopup {
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: &ButtonId
+        button_id: ButtonId
     ) {
-        if let Some(unit_id) = self.select_button_ids.get(button_id) {
+        if let Some(&unit_id) = self.select_button_ids.get(&button_id) {
             self.return_command(context, Command::Select {
-                id: unit_id.clone(),
+                id: unit_id,
             });
             return;
         }
-        if let Some(unit_id) = self.attack_button_ids.get(button_id) {
+        if let Some(&unit_id) = self.attack_button_ids.get(&button_id) {
             self.return_command(context, Command::Attack {
-                id: unit_id.clone(),
+                id: unit_id,
             });
             return;
         }
-        if let Some(unit_id) = self.load_button_ids.get(button_id) {
+        if let Some(&unit_id) = self.load_button_ids.get(&button_id) {
             self.return_command(context, Command::LoadUnit {
-                passenger_id: unit_id.clone(),
+                passenger_id: unit_id,
             });
             return;
         }
-        let id = Some(button_id.clone());
+        let id = Some(button_id);
         if id == self.move_button_id {
             self.return_command(context, Command::Move {
-                pos: self.options.move_pos.clone().unwrap(),
+                pos: self.options.move_pos.unwrap(),
             });
         } else if id == self.hunt_button_id {
             self.return_command(context, Command::Hunt {
-                pos: self.options.move_pos.clone().unwrap(),
+                pos: self.options.move_pos.unwrap(),
             });
         } else if id == self.unload_unit_button_id {
             self.return_command(context, Command::UnloadUnit {
-                pos: self.options.unload_pos.clone().unwrap(),
+                pos: self.options.unload_pos.unwrap(),
             });
         } else if id == self.smoke_button_id {
             self.return_command(context, Command::Smoke {
@@ -220,11 +220,11 @@ impl ContextMenuPopup {
             });
         } else if id == self.enable_reaction_fire_button_id {
             self.return_command(context, Command::EnableReactionFire {
-                id: self.options.enable_reaction_fire.clone().unwrap(),
+                id: self.options.enable_reaction_fire.unwrap(),
             });
         } else if id == self.disable_reaction_fire_button_id {
             self.return_command(context, Command::DisableReactionFire {
-                id: self.options.disable_reaction_fire.clone().unwrap(),
+                id: self.options.disable_reaction_fire.unwrap(),
             });
         } else {
             panic!("Bad button id: {}", button_id.id);
@@ -244,7 +244,7 @@ impl ContextMenuPopup {
 }
 
 impl Screen for ContextMenuPopup {
-    fn tick(&mut self, context: &mut Context, _: &Time) {
+    fn tick(&mut self, context: &mut Context, _: Time) {
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
         self.button_manager.draw(context);
     }

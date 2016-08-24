@@ -30,28 +30,28 @@ impl SelectionManager {
     }
 
     fn get_pos(&self, state: &PartialState) -> WorldPos {
-        let unit_id = self.unit_id.clone()
+        let unit_id = self.unit_id
             .expect("Can`t get pos if no unit is selected");
-        let map_pos = state.units()[&unit_id].pos.clone();
-        WorldPos{v: geom::lift(geom::exact_pos_to_world_pos(&map_pos).v)}
+        let map_pos = state.units()[&unit_id].pos;
+        WorldPos{v: geom::lift(geom::exact_pos_to_world_pos(map_pos).v)}
     }
 
     pub fn create_selection_marker(
         &mut self,
         state: &PartialState,
         scene: &mut Scene,
-        unit_id: &UnitId,
+        unit_id: UnitId,
     ) {
-        self.unit_id = Some(unit_id.clone());
-        if let Some(ref node_id) = self.selection_marker_node_id {
-            if scene.nodes().get(node_id).is_some() {
+        self.unit_id = Some(unit_id);
+        if let Some(node_id) = self.selection_marker_node_id {
+            if scene.nodes().get(&node_id).is_some() {
                 scene.remove_node(node_id);
             }
         }
         let node = SceneNode {
             pos: self.get_pos(state),
             rot: rad(0.0),
-            mesh_id: Some(self.mesh_id.clone()),
+            mesh_id: Some(self.mesh_id),
             color: [1.0, 1.0, 1.0, 1.0],
             children: Vec::new(),
         };
@@ -60,7 +60,7 @@ impl SelectionManager {
 
     pub fn deselect(&mut self, scene: &mut Scene) {
         self.unit_id = None;
-        if let Some(ref node_id) = self.selection_marker_node_id {
+        if let Some(node_id) = self.selection_marker_node_id {
             scene.remove_node(node_id);
         }
         self.selection_marker_node_id = None;

@@ -24,35 +24,35 @@ pub struct Map<T> {
 }
 
 impl<T: Clone + Default> Map<T> {
-    pub fn new(size: &Size2) -> Map<T> {
+    pub fn new(size: Size2) -> Map<T> {
         let tiles_count = (size.w * size.h) as usize;
         let tiles = repeat(Default::default()).take(tiles_count).collect();
         Map {
             tiles: tiles,
-            size: size.clone(),
+            size: size,
         }
     }
 
-    pub fn size(&self) -> &Size2 {
-        &self.size
+    pub fn size(&self) -> Size2 {
+        self.size
     }
 
-    pub fn tile_mut<P: AsRef<MapPos>>(&mut self, pos: &P) -> &mut T {
-        let pos = pos.as_ref();
+    pub fn tile_mut<P: Into<MapPos>>(&mut self, pos: P) -> &mut T {
+        let pos = pos.into();
         assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &mut self.tiles[index as usize]
     }
 
-    pub fn tile<P: AsRef<MapPos>>(&self, pos: &P) -> &T {
-        let pos = pos.as_ref();
+    pub fn tile<P: Into<MapPos>>(&self, pos: P) -> &T {
+        let pos = pos.into();
         assert!(self.is_inboard(pos));
         let index = self.size.w * pos.v.y + pos.v.x;
         &self.tiles[index as usize]
     }
 
-    pub fn is_inboard<P: AsRef<MapPos>>(&self, pos: &P) -> bool {
-        let pos = pos.as_ref();
+    pub fn is_inboard<P: Into<MapPos>>(&self, pos: P) -> bool {
+        let pos = pos.into();
         let x = pos.v.x;
         let y = pos.v.y;
         x >= 0 && y >= 0 && x < self.size.w && y < self.size.h
@@ -70,10 +70,10 @@ pub struct MapPosIter {
 }
 
 impl MapPosIter {
-    fn new(map_size: &Size2) -> MapPosIter {
+    fn new(map_size: Size2) -> MapPosIter {
         MapPosIter {
             cursor: MapPos{v: Vector2::from_value(0)},
-            map_size: map_size.clone(),
+            map_size: map_size,
         }
     }
 }
@@ -85,7 +85,7 @@ impl Iterator for MapPosIter {
         let current_pos = if self.cursor.v.y >= self.map_size.h {
             None
         } else {
-            Some(self.cursor.clone())
+            Some(self.cursor)
         };
         self.cursor.v.x += 1;
         if self.cursor.v.x >= self.map_size.w {
@@ -105,15 +105,15 @@ pub struct RingIter {
     dir: Dir,
 }
 
-pub fn ring_iter(pos: &MapPos, radius: i32) -> RingIter {
-    let mut pos = pos.clone();
+pub fn ring_iter(pos: MapPos, radius: i32) -> RingIter {
+    let mut pos = pos;
     pos.v.x -= radius;
     let mut dir_iter = dirs();
     let dir = dir_iter.next()
         .expect("Can`t get first direction");
     assert_eq!(dir, Dir::SouthEast);
     RingIter {
-        cursor: pos.clone(),
+        cursor: pos,
         radius: radius,
         segment_index: 0,
         dir_iter: dir_iter,
@@ -124,16 +124,16 @@ pub fn ring_iter(pos: &MapPos, radius: i32) -> RingIter {
 impl RingIter {
     fn simple_step(&mut self) -> Option<MapPos> {
         self.cursor = Dir::get_neighbour_pos(
-            &self.cursor, &self.dir);
+            self.cursor, self.dir);
         self.segment_index += 1;
-        Some(self.cursor.clone())
+        Some(self.cursor)
     }
 
     fn rotate(&mut self, dir: Dir) -> Option<MapPos> {
         self.segment_index = 0;
-        self.cursor = Dir::get_neighbour_pos(&self.cursor, &self.dir);
+        self.cursor = Dir::get_neighbour_pos(self.cursor, self.dir);
         self.dir = dir;
-        Some(self.cursor.clone())
+        Some(self.cursor)
     }
 }
 
@@ -164,13 +164,13 @@ pub struct SpiralIter {
     origin: MapPos,
 }
 
-pub fn spiral_iter(pos: &MapPos, radius: i32) -> SpiralIter {
+pub fn spiral_iter(pos: MapPos, radius: i32) -> SpiralIter {
     assert!(radius >= 1);
     SpiralIter {
         ring_iter: ring_iter(pos, 1),
         radius: 1,
         last_radius: radius,
-        origin: pos.clone(),
+        origin: pos,
     }
 }
 
@@ -187,14 +187,14 @@ impl Iterator for SpiralIter {
                 None
             } else {
                 self.ring_iter = ring_iter(
-                    &self.origin, self.radius);
+                    self.origin, self.radius);
                 self.ring_iter.next()
             }
         }
     }
 }
 
-pub fn distance(from: &MapPos, to: &MapPos) -> i32 {
+pub fn distance(from: MapPos, to: MapPos) -> i32 {
     let to = to.v;
     let from = from.v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);

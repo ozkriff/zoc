@@ -41,7 +41,7 @@ impl Dir {
             Dir::West,
             Dir::SouthWest,
         ];
-        dirs[n as usize].clone()
+        dirs[n as usize]
     }
 
     pub fn to_int(&self) -> i32 {
@@ -55,7 +55,7 @@ impl Dir {
         }
     }
 
-    pub fn get_dir_from_to(from: &MapPos, to: &MapPos) -> Dir {
+    pub fn get_dir_from_to(from: MapPos, to: MapPos) -> Dir {
         // assert!(from.distance(to) == 1);
         let diff = to.v - from.v;
         let is_odd_row = from.v.y % 2 != 0;
@@ -68,7 +68,7 @@ impl Dir {
         panic!("impossible positions: {}, {}", from, to);
     }
 
-    pub fn get_neighbour_pos(pos: &MapPos, dir: &Dir) -> MapPos {
+    pub fn get_neighbour_pos(pos: MapPos, dir: Dir) -> MapPos {
         let is_odd_row = pos.v.y % 2 != 0;
         let subtable_index = if is_odd_row { 1 } else { 0 };
         let direction_index = dir.to_int();

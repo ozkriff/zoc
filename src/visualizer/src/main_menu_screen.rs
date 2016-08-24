@@ -25,7 +25,7 @@ impl MainMenuScreen {
         let button_start_hotseat_id = button_manager.add_button(Button::new(
             context,
             "start hotseat",
-            &button_pos,
+            button_pos,
         ));
         // TODO: Add something like QLayout
         button_pos.v.y += button_manager.buttons()[&button_start_hotseat_id]
@@ -33,7 +33,7 @@ impl MainMenuScreen {
         let button_start_vs_ai_id = button_manager.add_button(Button::new(
             context,
             "start human vs ai",
-            &button_pos,
+            button_pos,
         ));
         MainMenuScreen {
             button_manager: button_manager,
@@ -47,20 +47,20 @@ impl MainMenuScreen {
             return;
         }
         if let Some(button_id) = self.button_manager.get_clicked_button_id(context) {
-            self.handle_event_button_press(context, &button_id);
+            self.handle_event_button_press(context, button_id);
         }
     }
 
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: &ButtonId
+        button_id: ButtonId
     ) {
-        if *button_id == self.button_start_hotseat_id {
+        if button_id == self.button_start_hotseat_id {
             let core_options = Default::default();
             let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
-        } else if *button_id == self.button_start_vs_ai_id {
+        } else if button_id == self.button_start_vs_ai_id {
             let core_options = core::Options {
                 game_type: core::GameType::SingleVsAi,
             };
@@ -84,7 +84,7 @@ impl MainMenuScreen {
 }
 
 impl Screen for MainMenuScreen {
-    fn tick(&mut self, context: &mut Context, _: &Time) {
+    fn tick(&mut self, context: &mut Context, _: Time) {
         context.clear_color = [0.7, 0.7, 0.7, 1.0];
         context.encoder.clear(&context.data.out, context.clear_color);
         context.data.basic_color = [0.0, 0.0, 0.0, 1.0];

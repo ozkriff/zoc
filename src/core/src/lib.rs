@@ -78,13 +78,13 @@ pub struct ExactPos {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ExactPosIter<'a> {
-    p: &'a ExactPos,
+pub struct ExactPosIter {
+    p: ExactPos,
     i: u8,
 }
 
 impl ExactPos {
-    pub fn map_pos_iter(&self) -> ExactPosIter {
+    pub fn map_pos_iter(self) -> ExactPosIter {
         ExactPosIter {
             p: self,
             i: 0,
@@ -92,23 +92,23 @@ impl ExactPos {
     }
 }
 
-impl<'a> Iterator for ExactPosIter<'a> {
+impl Iterator for ExactPosIter {
     type Item = MapPos;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next_pos = match self.p.slot_id {
             SlotId::Id(_) | SlotId::WholeTile => {
                 if self.i == 0 {
-                    Some(self.p.map_pos.clone())
+                    Some(self.p.map_pos)
                 } else {
                     None
                 }
             }
-            SlotId::TwoTiles(ref dir) => {
+            SlotId::TwoTiles(dir) => {
                 if self.i == 0 {
-                    Some(self.p.map_pos.clone())
+                    Some(self.p.map_pos)
                 } else if self.i == 1 {
-                    Some(Dir::get_neighbour_pos(&self.p.map_pos, dir))
+                    Some(Dir::get_neighbour_pos(self.p.map_pos, dir))
                 } else {
                     None
                 }
@@ -120,15 +120,9 @@ impl<'a> Iterator for ExactPosIter<'a> {
 }
 
 // TODO: return iterator?
-impl AsRef<MapPos> for ExactPos {
-    fn as_ref(&self) -> &MapPos {
-        &self.map_pos
-    }
-}
-
-impl AsRef<MapPos> for MapPos {
-    fn as_ref(&self) -> &MapPos {
-        self
+impl From<ExactPos> for MapPos {
+    fn from(pos: ExactPos) -> MapPos {
+        pos.map_pos
     }
 }
 
@@ -301,8 +295,8 @@ pub enum CoreEvent {
 
 pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
 
-pub fn move_cost_modifier(mode: &MoveMode) -> i32 {
-    match *mode {
+pub fn move_cost_modifier(mode: MoveMode) -> i32 {
+    match mode {
         MoveMode::Fast => 1,
         MoveMode::Hunt => 2,
     }
@@ -311,15 +305,15 @@ pub fn move_cost_modifier(mode: &MoveMode) -> i32 {
 // TODO: simplify/optimize
 pub fn find_next_player_unit_id<S: GameState>(
     state: &S,
-    player_id: &PlayerId,
-    unit_id: &UnitId,
+    player_id: PlayerId,
+    unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().iter().cycle().filter(
-        |&(_, unit)| unit.player_id == *player_id);
-    while let Some((id, _)) = i.next() {
-        if *id == *unit_id {
-            let (id, _) = i.next().unwrap();
-            return id.clone();
+        |&(_, unit)| unit.player_id == player_id);
+    while let Some((&id, _)) = i.next() {
+        if id == unit_id {
+            let (&id, _) = i.next().unwrap();
+            return id;
         }
     }
     unreachable!()
@@ -328,34 +322,34 @@ pub fn find_next_player_unit_id<S: GameState>(
 // TODO: simplify/optimize
 pub fn find_prev_player_unit_id<S: GameState>(
     state: &S,
-    player_id: &PlayerId,
-    unit_id: &UnitId,
+    player_id: PlayerId,
+    unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().iter().cycle().filter(
-        |&(_, unit)| unit.player_id == *player_id).peekable();
-    while let Some((id, _)) = i.next() {
-        let &(next_id, _) = i.peek().unwrap();
-        if *next_id == *unit_id {
-            return id.clone();
+        |&(_, unit)| unit.player_id == player_id).peekable();
+    while let Some((&id, _)) = i.next() {
+        let &(&next_id, _) = i.peek().unwrap();
+        if next_id == unit_id {
+            return id;
         }
     }
     unreachable!()
 }
 
-pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: &MapPos) -> Vec<UnitId> {
+pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId> {
     let units_at = state.units_at(pos);
     let mut hidden_ids = HashSet::new();
     for unit in &units_at {
-        if db.unit_type(&unit.type_id).is_transporter {
-            if let Some(ref passenger_id) = unit.passenger_id {
-                hidden_ids.insert(passenger_id.clone());
+        if db.unit_type(unit.type_id).is_transporter {
+            if let Some(passenger_id) = unit.passenger_id {
+                hidden_ids.insert(passenger_id);
             }
         }
     }
     let mut ids = Vec::new();
     for unit in &units_at {
         if !hidden_ids.contains(&unit.id) {
-            ids.push(unit.id.clone())
+            ids.push(unit.id)
         }
     }
     ids
@@ -363,11 +357,11 @@ pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: &MapPos) -> Vec<UnitI
 
 pub fn unit_to_info(unit: &Unit) -> UnitInfo {
     UnitInfo {
-        unit_id: unit.id.clone(),
-        pos: unit.pos.clone(),
-        type_id: unit.type_id.clone(),
-        player_id: unit.player_id.clone(),
-        passenger_id: unit.passenger_id.clone(),
+        unit_id: unit.id,
+        pos: unit.pos,
+        type_id: unit.type_id,
+        player_id: unit.player_id,
+        passenger_id: unit.passenger_id,
     }
 }
 
@@ -379,13 +373,13 @@ struct PlayerInfo {
 }
 
 pub fn print_unit_info(db: &Db, unit: &Unit) {
-    let unit_type = db.unit_type(&unit.type_id);
-    let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
+    let unit_type = db.unit_type(unit.type_id);
+    let weapon_type = db.weapon_type(unit_type.weapon_type_id);
     println!("unit:");
     println!("  player_id: {}", unit.player_id.id);
     println!("  move_points: {}", unit.move_points.n);
     println!("  attack_points: {}", unit.attack_points.n);
-    if let Some(ref reactive_attack_points) = unit.reactive_attack_points {
+    if let Some(reactive_attack_points) = unit.reactive_attack_points {
         println!("  reactive_attack_points: {}", reactive_attack_points.n);
     } else {
         println!("  reactive_attack_points: ?");
@@ -416,7 +410,7 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     println!("  max_distance: {}", weapon_type.max_distance);
 }
 
-pub fn print_terrain_info<S: GameState>(state: &S, pos: &MapPos) {
+pub fn print_terrain_info<S: GameState>(state: &S, pos: MapPos) {
     match *state.map().tile(pos) {
         Terrain::City => println!("City"),
         Terrain::Trees => println!("Trees"),
@@ -499,11 +493,10 @@ fn check_attack<S: GameState>(
     state: &S,
     attacker: &Unit,
     defender: &Unit,
-    fire_mode: &FireMode,
+    fire_mode: FireMode,
 ) -> Result<(), CommandError> {
-    let reactive_attack_points = attacker
-        .reactive_attack_points.as_ref().unwrap().clone();
-    match *fire_mode {
+    let reactive_attack_points = attacker.reactive_attack_points.unwrap();
+    match fire_mode {
         FireMode::Active => if attacker.attack_points.n <= 0 {
             return Err(CommandError::NotEnoughAttackPoints);
         },
@@ -515,19 +508,19 @@ fn check_attack<S: GameState>(
     if attacker.morale < minimal_ok_morale {
         return Err(CommandError::BadMorale);
     }
-    let attacker_type = db.unit_type(&attacker.type_id);
-    let weapon_type = db.weapon_type(&attacker_type.weapon_type_id);
-    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) > weapon_type.max_distance {
+    let attacker_type = db.unit_type(attacker.type_id);
+    let weapon_type = db.weapon_type(attacker_type.weapon_type_id);
+    if distance(attacker.pos.map_pos, defender.pos.map_pos) > weapon_type.max_distance {
         return Err(CommandError::OutOfRange);
     }
-    if distance(&attacker.pos.map_pos, &defender.pos.map_pos) < weapon_type.min_distance {
+    if distance(attacker.pos.map_pos, defender.pos.map_pos) < weapon_type.min_distance {
         return Err(CommandError::TooClose);
     }
     let is_los_ok = los(
         state,
         attacker_type,
-        &attacker.pos.map_pos,
-        &defender.pos.map_pos,
+        attacker.pos.map_pos,
+        defender.pos.map_pos,
     );
     if !weapon_type.is_inderect && !is_los_ok {
         return Err(CommandError::NoLos);
@@ -542,24 +535,24 @@ pub fn check_command<S: GameState>(
 ) -> Result<(), CommandError> {
     match *command {
         Command::EndTurn => Ok(()),
-        Command::CreateUnit{ref pos, ref type_id} => {
+        Command::CreateUnit{pos, type_id} => {
             if is_exact_pos_free(db, state, type_id, pos) {
                 Ok(())
             } else {
                 Err(CommandError::TileIsOccupied)
             }
         },
-        Command::Move{ref unit_id, ref path, ref mode} => {
+        Command::Move{unit_id, ref path, mode} => {
             if path.len() < 2 {
                 return Err(CommandError::BadPath);
             }
-            if state.units().get(unit_id).is_none() {
+            if state.units().get(&unit_id).is_none() {
                 return Err(CommandError::BadUnitId);
             }
             let unit = state.unit(unit_id);
             for window in path.windows(2) {
-                let pos = &window[1];
-                if !is_exact_pos_free(db, state, &unit.type_id, pos) {
+                let pos = window[1];
+                if !is_exact_pos_free(db, state, unit.type_id, pos) {
                     return Err(CommandError::BadPath);
                 }
             }
@@ -570,30 +563,30 @@ pub fn check_command<S: GameState>(
             }
             Ok(())
         },
-        Command::AttackUnit{ref attacker_id, ref defender_id} => {
-            if state.units().get(attacker_id).is_none() {
+        Command::AttackUnit{attacker_id, defender_id} => {
+            if state.units().get(&attacker_id).is_none() {
                 return Err(CommandError::BadAttackerId);
             }
-            if state.units().get(defender_id).is_none() {
+            if state.units().get(&defender_id).is_none() {
                 return Err(CommandError::BadDefenderId);
             }
             let attacker = state.unit(attacker_id);
             let defender = state.unit(defender_id);
-            check_attack(db, state, attacker, defender, &FireMode::Active)
+            check_attack(db, state, attacker, defender, FireMode::Active)
         },
-        Command::LoadUnit{ref transporter_id, ref passenger_id} => {
-            if state.units().get(transporter_id).is_none() {
+        Command::LoadUnit{transporter_id, passenger_id} => {
+            if state.units().get(&transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
-            if state.units().get(passenger_id).is_none() {
+            if state.units().get(&passenger_id).is_none() {
                 return Err(CommandError::BadPassengerId);
             }
             let passenger = state.unit(passenger_id);
             let transporter = state.unit(transporter_id);
-            if !db.unit_type(&transporter.type_id).is_transporter {
+            if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
-            match db.unit_type(&passenger.type_id).class {
+            match db.unit_type(passenger.type_id).class {
                 UnitClass::Infantry => {},
                 _ => {
                     return Err(CommandError::BadPassengerClass);
@@ -602,7 +595,7 @@ pub fn check_command<S: GameState>(
             if transporter.passenger_id.is_some() {
                 return Err(CommandError::TransporterIsNotEmpty);
             }
-            if distance(&transporter.pos.map_pos, &passenger.pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, passenger.pos.map_pos) > 1 {
                 return Err(CommandError::TransporterIsTooFarAway);
             }
             // TODO: 0 -> real move cost of transport tile for passenger
@@ -611,32 +604,32 @@ pub fn check_command<S: GameState>(
             }
             Ok(())
         },
-        Command::UnloadUnit{ref transporter_id, ref passenger_id, ref pos} => {
-            if state.units().get(transporter_id).is_none() {
+        Command::UnloadUnit{transporter_id, passenger_id, pos} => {
+            if state.units().get(&transporter_id).is_none() {
                 return Err(CommandError::BadTransporterId);
             }
-            let passenger = match state.units().get(passenger_id) {
+            let passenger = match state.units().get(&passenger_id) {
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
             };
             let transporter = state.unit(transporter_id);
-            if !db.unit_type(&transporter.type_id).is_transporter {
+            if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
-            if distance(&transporter.pos.map_pos, &pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, pos.map_pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
             if transporter.passenger_id.is_none() {
                 return Err(CommandError::TransporterIsEmpty);
             }
-            if !is_exact_pos_free(db, state, &passenger.type_id, pos) {
+            if !is_exact_pos_free(db, state, passenger.type_id, pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             // TODO: check that tile is walkable for passenger
             Ok(())
         },
-        Command::SetReactionFireMode{ref unit_id, ..} => {
-            if state.units().get(unit_id).is_none() {
+        Command::SetReactionFireMode{unit_id, ..} => {
+            if state.units().get(&unit_id).is_none() {
                 Err(CommandError::BadUnitId)
             } else {
                 Ok(())
@@ -647,12 +640,12 @@ pub fn check_command<S: GameState>(
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };
-            let unit_type = db.unit_type(&unit.type_id);
-            let weapon_type = db.weapon_type(&unit_type.weapon_type_id);
+            let unit_type = db.unit_type(unit.type_id);
+            let weapon_type = db.weapon_type(unit_type.weapon_type_id);
             if !weapon_type.smoke.is_some() {
                 return Err(CommandError::BadUnitType);
             }
-            if distance(&unit.pos.map_pos, &pos) > weapon_type.max_distance {
+            if distance(unit.pos.map_pos, pos) > weapon_type.max_distance {
                 return Err(CommandError::OutOfRange);
             }
             if unit.attack_points.n != unit_type.attack_points.n {
@@ -665,11 +658,11 @@ pub fn check_command<S: GameState>(
 
 fn check_sectors(state: &InternalState) -> Vec<CoreEvent> {
     let mut events = Vec::new();
-    for (sector_id, sector) in state.sectors() {
+    for (&sector_id, sector) in state.sectors() {
         let mut claimers = HashSet::new();
-        for pos in &sector.positions {
+        for &pos in &sector.positions {
             for unit in state.units_at(pos) {
-                claimers.insert(unit.player_id.clone());
+                claimers.insert(unit.player_id);
             }
         }
         let owner_id = if claimers.len() != 1 {
@@ -679,7 +672,7 @@ fn check_sectors(state: &InternalState) -> Vec<CoreEvent> {
         };
         if sector.owner_id != owner_id {
             events.push(CoreEvent::SectorOwnerChanged {
-                sector_id: sector_id.clone(),
+                sector_id: sector_id,
                 new_owner_id: owner_id,
             });
         }
@@ -722,7 +715,7 @@ pub struct Core {
     next_unit_id: UnitId,
 }
 
-fn get_players_list(game_type: &GameType) -> Vec<Player> {
+fn get_players_list(game_type: GameType) -> Vec<Player> {
     vec!(
         Player {
             id: PlayerId{id: 0},
@@ -730,7 +723,7 @@ fn get_players_list(game_type: &GameType) -> Vec<Player> {
         },
         Player {
             id: PlayerId{id: 1},
-            class: match *game_type {
+            class: match game_type {
                 GameType::SingleVsAi => PlayerClass::Ai,
                 GameType::Hotseat => PlayerClass::Human,
             },
@@ -738,15 +731,15 @@ fn get_players_list(game_type: &GameType) -> Vec<Player> {
     )
 }
 
-fn get_player_info_lists(map_size: &Size2) -> HashMap<PlayerId, PlayerInfo> {
+fn get_player_info_lists(map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo {
-        fow: Fow::new(map_size, &PlayerId{id: 0}),
+        fow: Fow::new(map_size, PlayerId{id: 0}),
         events: VecDeque::new(),
         visible_enemies: HashSet::new(),
     });
     map.insert(PlayerId{id: 1}, PlayerInfo {
-        fow: Fow::new(map_size, &PlayerId{id: 1}),
+        fow: Fow::new(map_size, PlayerId{id: 1}),
         events: VecDeque::new(),
         visible_enemies: HashSet::new(),
     });
@@ -756,19 +749,19 @@ fn get_player_info_lists(map_size: &Size2) -> HashMap<PlayerId, PlayerInfo> {
 fn los<S: GameState>(
     state: &S,
     unit_type: &UnitType,
-    from: &MapPos,
-    to: &MapPos,
+    from: MapPos,
+    to: MapPos,
 ) -> bool {
     // TODO: profile and optimize!
     let mut v = false;
     let range = unit_type.los_range;
-    fov(state, from, range, &mut |p| if *p == *to { v = true });
+    fov(state, from, range, &mut |p| if p == to { v = true });
     v
 }
 
 pub fn get_free_slot_for_building<S: GameState>(
     state: &S,
-    pos: &MapPos,
+    pos: MapPos,
 ) -> Option<SlotId> {
     let objects_at = state.objects_at(pos);
     let mut slots = [false, false, false];
@@ -790,21 +783,21 @@ pub fn get_free_slot_for_building<S: GameState>(
 pub fn get_free_exact_pos<S: GameState>(
     db: &Db,
     state: &S,
-    type_id: &UnitTypeId,
-    pos: &MapPos,
+    type_id: UnitTypeId,
+    pos: MapPos,
 ) -> Option<ExactPos> {
     let slot_id = match get_free_slot_id(db, state, type_id, pos) {
         Some(id) => id,
         None => return None,
     };
-    Some(ExactPos{map_pos: pos.clone(), slot_id: slot_id})
+    Some(ExactPos{map_pos: pos, slot_id: slot_id})
 }
 
 pub fn get_free_slot_id<S: GameState>(
     db: &Db,
     state: &S,
-    type_id: &UnitTypeId,
-    pos: &MapPos,
+    type_id: UnitTypeId,
+    pos: MapPos,
 ) -> Option<SlotId> {
     let objects_at = state.objects_at(pos);
     let units_at = state.units_at(pos);
@@ -857,21 +850,21 @@ pub fn get_free_slot_id<S: GameState>(
 pub fn is_exact_pos_free<S: GameState>(
     db: &Db,
     state: &S,
-    type_id: &UnitTypeId,
-    pos: &ExactPos,
+    type_id: UnitTypeId,
+    pos: ExactPos,
 ) -> bool {
-    let units_at = state.units_at(&pos.map_pos);
+    let units_at = state.units_at(pos.map_pos);
     if db.unit_type(type_id).is_big {
         return units_at.is_empty();
     }
     for unit in &units_at {
-        match &unit.pos.slot_id {
-            slot_id @ &SlotId::Id(_) => {
-                if *slot_id == pos.slot_id {
+        match unit.pos.slot_id {
+            slot_id @ SlotId::Id(_) => {
+                if slot_id == pos.slot_id {
                     return false;
                 }
             }
-            &SlotId::WholeTile | &SlotId::TwoTiles(_) => return false,
+            SlotId::WholeTile | SlotId::TwoTiles(_) => return false,
         }
     }
     true
@@ -881,12 +874,12 @@ impl Core {
     pub fn new(options: &Options) -> Core {
         let map_size = Size2{w: 10, h: 12}; // TODO: read from config file
         let mut core = Core {
-            state: InternalState::new(&map_size),
-            players: get_players_list(&options.game_type),
+            state: InternalState::new(map_size),
+            players: get_players_list(options.game_type),
             current_player_id: PlayerId{id: 0},
             db: Db::new(),
-            ai: Ai::new(&PlayerId{id:1}, &map_size),
-            players_info: get_player_info_lists(&map_size),
+            ai: Ai::new(PlayerId{id:1}, map_size),
+            players_info: get_player_info_lists(map_size),
             next_unit_id: UnitId{id: 0},
         };
         core.get_units();
@@ -925,7 +918,7 @@ impl Core {
         ] {
             let pos = MapPos{v: Vector2{x: x, y: y}};
             let unit_type_id = self.db.unit_type_id(type_name);
-            self.add_unit(&pos, &unit_type_id, &PlayerId{id: player_id});
+            self.add_unit(pos, unit_type_id, PlayerId{id: player_id});
         }
     }
 
@@ -937,29 +930,29 @@ impl Core {
 
     fn get_new_object_id(&mut self) -> ObjectId {
         let mut next_id = match self.state.objects().keys().max() {
-            Some(id) => *id,
+            Some(&id) => id,
             None => ObjectId{id: 0},
         };
         next_id.id += 1;
         next_id
     }
 
-    fn add_unit(&mut self, pos: &MapPos, type_id: &UnitTypeId, player_id: &PlayerId) {
+    fn add_unit(&mut self, pos: MapPos, type_id: UnitTypeId, player_id: PlayerId) {
         let new_unit_id = self.get_new_unit_id();
         let pos = get_free_exact_pos(&self.db, &self.state, type_id, pos).unwrap();
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
                 unit_id: new_unit_id,
                 pos: pos,
-                type_id: type_id.clone(),
-                player_id: player_id.clone(),
+                type_id: type_id,
+                player_id: player_id,
                 passenger_id: None,
             },
         };
         self.do_core_event(&event);
     }
 
-    pub fn map_size(&self) -> &Size2 {
+    pub fn map_size(&self) -> Size2 {
         self.state.map().size()
     }
 
@@ -968,7 +961,7 @@ impl Core {
         if !hit {
             return 0;
         }
-        let defender_type = self.db.unit_type(&defender.type_id);
+        let defender_type = self.db.unit_type(defender.type_id);
         match defender_type.class {
             UnitClass::Infantry => {
                 clamp(thread_rng().gen_range(1, 5), 1, defender.count)
@@ -978,9 +971,9 @@ impl Core {
     }
 
     fn cover_bonus(&self, defender: &Unit) -> i32 {
-        let defender_type = self.db.unit_type(&defender.type_id);
+        let defender_type = self.db.unit_type(defender.type_id);
         if defender_type.class == UnitClass::Infantry {
-            match *self.state.map().tile(&defender.pos) {
+            match *self.state.map().tile(defender.pos) {
                 Terrain::Plain | Terrain::Water => 0,
                 Terrain::Trees => 2,
                 Terrain::City => 3,
@@ -992,9 +985,9 @@ impl Core {
 
     // TODO: i32 -> HitChance
     pub fn hit_chance(&self, attacker: &Unit, defender: &Unit) -> i32 {
-        let attacker_type = self.db.unit_type(&attacker.type_id);
-        let defender_type = self.db.unit_type(&defender.type_id);
-        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
+        let attacker_type = self.db.unit_type(attacker.type_id);
+        let defender_type = self.db.unit_type(defender.type_id);
+        let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
         let cover_bonus = self.cover_bonus(defender);
         let hit_test_v = -7 - cover_bonus + defender_type.size
             + weapon_type.accuracy + attacker_type.weapon_skill;
@@ -1019,8 +1012,8 @@ impl Core {
         &self.players[self.player_id().id as usize]
     }
 
-    pub fn player_id(&self) -> &PlayerId {
-        &self.current_player_id
+    pub fn player_id(&self) -> PlayerId {
+        self.current_player_id
     }
 
     pub fn get_event(&mut self) -> Option<CoreEvent> {
@@ -1031,9 +1024,9 @@ impl Core {
 
     fn command_attack_unit_to_event(
         &self,
-        attacker_id: &UnitId,
-        defender_id: &UnitId,
-        fire_mode: &FireMode,
+        attacker_id: UnitId,
+        defender_id: UnitId,
+        fire_mode: FireMode,
     ) -> Option<CoreEvent> {
         let attacker = self.state.unit(attacker_id);
         let defender = self.state.unit(defender_id);
@@ -1047,23 +1040,23 @@ impl Core {
         if check_attack_result.is_err() {
             return None;
         }
-        let attacker_type = self.db.unit_type(&attacker.type_id);
-        let weapon_type = self.db.weapon_type(&attacker_type.weapon_type_id);
+        let attacker_type = self.db.unit_type(attacker.type_id);
+        let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
         let is_visible = fow.is_visible(
-            &self.db, &self.state, attacker, &attacker.pos);
+            &self.db, &self.state, attacker, attacker.pos);
         let ambush_chance = 70;
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
         let base_suppression = 10;
         let per_death_suppression = 20;
         let attack_info = AttackInfo {
-            attacker_id: Some(attacker_id.clone()),
-            defender_id: defender_id.clone(),
+            attacker_id: Some(attacker_id),
+            defender_id: defender_id,
             killed: killed,
-            mode: fire_mode.clone(),
+            mode: fire_mode,
             suppression: base_suppression + per_death_suppression * killed,
             remove_move_points: false,
             is_ambush: is_ambush,
@@ -1083,7 +1076,7 @@ impl Core {
         }
         // TODO: move to `check_attack`
         let fow = &self.players_info[&attacker.player_id].fow;
-        if !fow.is_visible(&self.db, &self.state, defender, &defender.pos) {
+        if !fow.is_visible(&self.db, &self.state, defender, defender.pos) {
             return false;
         }
         let check_attack_result = check_attack(
@@ -1091,17 +1084,17 @@ impl Core {
             &self.state,
             attacker,
             defender,
-            &FireMode::Reactive,
+            FireMode::Reactive,
         );
         check_attack_result.is_ok()
     }
 
-    fn reaction_fire_internal(&mut self, unit_id: &UnitId, stop_on_attack: bool) -> ReactionFireResult {
+    fn reaction_fire_internal(&mut self, unit_id: UnitId, stop_on_attack: bool) -> ReactionFireResult {
         let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
             let event = {
-                let enemy_unit = self.state.unit(&enemy_unit_id);
+                let enemy_unit = self.state.unit(enemy_unit_id);
                 let unit = self.state.unit(unit_id);
                 if enemy_unit.player_id == unit.player_id {
                     continue;
@@ -1110,7 +1103,7 @@ impl Core {
                     continue;
                 }
                 let event = self.command_attack_unit_to_event(
-                    &enemy_unit.id, unit_id, &FireMode::Reactive);
+                    enemy_unit.id, unit_id, FireMode::Reactive);
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
                     let hit_chance = self.hit_chance(enemy_unit, unit);
                     if hit_chance > 15 && stop_on_attack {
@@ -1123,18 +1116,18 @@ impl Core {
             };
             self.do_core_event(&event);
             result = ReactionFireResult::Attacked;
-            if self.state.units().get(unit_id).is_none() {
+            if self.state.units().get(&unit_id).is_none() {
                 return ReactionFireResult::Killed;
             }
         }
         result
     }
 
-    fn reaction_fire(&mut self, unit_id: &UnitId) {
+    fn reaction_fire(&mut self, unit_id: UnitId) {
         self.reaction_fire_internal(unit_id, false);
     }
 
-    pub fn next_player_id(&self, id: &PlayerId) -> PlayerId {
+    pub fn next_player_id(&self, id: PlayerId) -> PlayerId {
         let old_id = id.id;
         let max_id = self.players.len() as i32;
         PlayerId{id: if old_id + 1 == max_id {
@@ -1151,27 +1144,27 @@ impl Core {
         }
         match command {
             Command::EndTurn => {
-                let old_id = self.current_player_id.clone();
-                let new_id = self.next_player_id(&old_id);
+                let old_id = self.current_player_id;
+                let new_id = self.next_player_id(old_id);
                 // TODO: extruct func
                 let mut end_turn_events = Vec::new();
                 for (_, sector) in self.state.sectors() {
-                    if let Some(player_id) = sector.owner_id.clone() {
+                    if let Some(player_id) = sector.owner_id {
                         if player_id != new_id {
                             continue;
                         }
                         end_turn_events.push(CoreEvent::VictoryPoint {
-                            player_id: player_id.clone(),
+                            player_id: player_id,
                             pos: sector.center(),
                             count: 1,
                         });
                     }
                 }
-                for (object_id, object) in self.state.objects() {
+                for (&object_id, object) in self.state.objects() {
                     if let Some(timer) = object.timer {
                         if timer == 0 {
                             end_turn_events.push(CoreEvent::RemoveSmoke {
-                                id: *object_id,
+                                id: object_id,
                             });
                         }
                     }
@@ -1190,28 +1183,28 @@ impl Core {
                         unit_id: self.get_new_unit_id(),
                         pos: pos,
                         type_id: type_id,
-                        player_id: self.current_player_id.clone(),
+                        player_id: self.current_player_id,
                         passenger_id: None,
                     },
                 };
                 self.do_core_event(&event);
             },
             Command::Move{unit_id, path, mode} => {
-                let player_id = self.state.unit(&unit_id).player_id.clone();
+                let player_id = self.state.unit(unit_id).player_id;
                 for window in path.windows(2) {
-                    let from = &window[0];
-                    let to = &window[1];
+                    let from = window[0];
+                    let to = window[1];
                     let event = {
-                        let unit = self.state.unit(&unit_id);
+                        let unit = self.state.unit(unit_id);
                         let cost = MovePoints {
                             n: tile_cost(&self.db, &self.state, unit, from, to).n
-                                * move_cost_modifier(&mode)
+                                * move_cost_modifier(mode)
                         };
                         CoreEvent::Move {
-                            unit_id: unit_id.clone(),
-                            from: from.clone(),
-                            to: to.clone(),
-                            mode: mode.clone(),
+                            unit_id: unit_id,
+                            from: from,
+                            to: to,
+                            mode: mode,
                             cost: cost,
                         }
                     };
@@ -1219,7 +1212,7 @@ impl Core {
                         .visible_enemies.clone();
                     self.do_core_event(&event);
                     let reaction_fire_result = self.reaction_fire_internal(
-                        &unit_id, mode == MoveMode::Fast);
+                        unit_id, mode == MoveMode::Fast);
                     if reaction_fire_result != ReactionFireResult::None {
                         break;
                     }
@@ -1229,17 +1222,17 @@ impl Core {
                     }
                 }
             },
-            Command::AttackUnit{ref attacker_id, ref defender_id} => {
+            Command::AttackUnit{attacker_id, defender_id} => {
                 if let Some(ref event) = self.command_attack_unit_to_event(
-                    attacker_id, defender_id, &FireMode::Active)
+                    attacker_id, defender_id, FireMode::Active)
                 {
                     self.do_core_event(event);
                     self.reaction_fire(attacker_id);
                 }
             },
             Command::LoadUnit{transporter_id, passenger_id} => {
-                let from = self.state.unit(&passenger_id).pos.clone();
-                let to = self.state.unit(&transporter_id).pos.clone();
+                let from = self.state.unit(passenger_id).pos;
+                let to = self.state.unit(transporter_id).pos;
                 self.do_core_event(&CoreEvent::LoadUnit {
                     transporter_id: Some(transporter_id),
                     passenger_id: passenger_id,
@@ -1249,20 +1242,20 @@ impl Core {
             },
             Command::UnloadUnit{transporter_id, passenger_id, pos} => {
                 let event = {
-                    let passenger = self.state.unit(&passenger_id);
-                    let from = self.state.unit(&transporter_id).pos.clone();
+                    let passenger = self.state.unit(passenger_id);
+                    let from = self.state.unit(transporter_id).pos;
                     CoreEvent::UnloadUnit {
                         transporter_id: Some(transporter_id),
                         unit_info: UnitInfo {
-                            pos: pos.clone(),
+                            pos: pos,
                             .. unit_to_info(passenger)
                         },
                         from: from,
-                        to: pos.clone(),
+                        to: pos,
                     }
                 };
                 self.do_core_event(&event);
-                self.reaction_fire(&passenger_id);
+                self.reaction_fire(passenger_id);
             },
             Command::SetReactionFireMode{unit_id, mode} => {
                 self.do_core_event(&CoreEvent::SetReactionFireMode {
@@ -1279,9 +1272,9 @@ impl Core {
                 });
                 let mut dir = Dir::from_int(thread_rng().gen_range(0, 5));
                 let additional_smoke_count = {
-                    let unit = self.state.unit(&unit_id);
-                    let unit_type = self.db.unit_type(&unit.type_id);
-                    let weapon_type = self.db.weapon_type(&unit_type.weapon_type_id);
+                    let unit = self.state.unit(unit_id);
+                    let unit_type = self.db.unit_type(unit.type_id);
+                    let weapon_type = self.db.weapon_type(unit_type.weapon_type_id);
                     weapon_type.smoke.unwrap()
                 };
                 assert!(additional_smoke_count <= 3);
@@ -1295,10 +1288,10 @@ impl Core {
                     self.do_core_event(&CoreEvent::Smoke {
                         id: id,
                         unit_id: Some(unit_id),
-                        pos: Dir::get_neighbour_pos(&pos, &dir),
+                        pos: Dir::get_neighbour_pos(pos, dir),
                     });
                 }
-                self.reaction_fire(&unit_id);
+                self.reaction_fire(unit_id);
             },
         };
         let sector_events = check_sectors(&self.state);
@@ -1324,17 +1317,17 @@ impl Core {
         }
     }
 
-    fn handle_end_turn_event(&mut self, old_id: &PlayerId, new_id: &PlayerId) {
+    fn handle_end_turn_event(&mut self, old_id: PlayerId, new_id: PlayerId) {
         for player in &self.players {
-            if player.id == *new_id {
-                if self.current_player_id == *old_id {
-                    self.current_player_id = player.id.clone();
+            if player.id == new_id {
+                if self.current_player_id == old_id {
+                    self.current_player_id = player.id;
                 }
                 break;
             }
         }
         if self.player().class == PlayerClass::Ai
-            && *new_id == *self.player_id()
+            && new_id == self.player_id()
         {
             self.do_ai();
         }
@@ -1346,7 +1339,7 @@ impl Core {
             let (filtered_events, active_unit_ids) = filter::filter_events(
                 &self.db,
                 &self.state,
-                &player.id,
+                player.id,
                 &self.players_info[&player.id].fow,
                 event,
             );
@@ -1359,7 +1352,7 @@ impl Core {
                     &self.db,
                     &self.state,
                     &i.fow,
-                    &player.id,
+                    player.id,
                 );
                 let show_hide_events = filter::show_or_hide_passive_enemies(
                     self.state.units(),
@@ -1371,7 +1364,7 @@ impl Core {
                 i.visible_enemies = new_visible_enemies;
             }
         }
-        if let CoreEvent::EndTurn{ref old_id, ref new_id} = *event {
+        if let &CoreEvent::EndTurn{old_id, new_id} = event {
             self.handle_end_turn_event(old_id, new_id);
         }
     }

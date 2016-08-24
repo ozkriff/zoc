@@ -89,14 +89,14 @@ use end_turn_screen::{EndTurnScreen};
 use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
 
-fn get_initial_camera_pos(map_size: &Size2) -> WorldPos {
+fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
     WorldPos{v: Vector3{x: pos.v.x / 2.0, y: pos.v.y / 2.0, z: 0.0}}
 }
 
-fn get_max_camera_pos(map_size: &Size2) -> WorldPos {
+fn get_max_camera_pos(map_size: Size2) -> WorldPos {
     let map_pos = MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}};
-    let pos = geom::map_pos_to_world_pos(&map_pos);
+    let pos = geom::map_pos_to_world_pos(map_pos);
     WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
 }
 
@@ -125,7 +125,7 @@ fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
     let mut indices = Vec::new();
     let mut i = 0;
     for tile_pos in positions {
-        let pos = geom::map_pos_to_world_pos(&tile_pos);
+        let pos = geom::map_pos_to_world_pos(tile_pos);
         for dir in dirs() {
             let vertex = geom::index_to_hex_vertex(dir.to_int());
             let uv = vertex.v.truncate() / (geom::HEX_EX_RADIUS * 2.0)
@@ -153,7 +153,7 @@ fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) ->
 fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
     let mut normal_positions = Vec::new();
     for tile_pos in state.map().get_iter() {
-        if *state.map().tile(&tile_pos) != Terrain::Water {
+        if *state.map().tile(tile_pos) != Terrain::Water {
             normal_positions.push(tile_pos);
         }
     }
@@ -163,7 +163,7 @@ fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) 
 fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
     let mut normal_positions = Vec::new();
     for pos in state.map().get_iter() {
-        if *state.map().tile(&pos) == Terrain::Water {
+        if *state.map().tile(pos) == Terrain::Water {
             normal_positions.push(pos);
         }
     }
@@ -173,7 +173,7 @@ fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Texture
 fn generate_fogged_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
     let mut fogged_positions = Vec::new();
     for tile_pos in state.map().get_iter() {
-        if !state.is_tile_visible(&tile_pos) {
+        if !state.is_tile_visible(tile_pos) {
             fogged_positions.push(tile_pos);
         }
     }
@@ -188,27 +188,27 @@ fn build_walkable_mesh(
     context: &mut Context,
     pf: &Pathfinder,
     map: &Map<Terrain>,
-    move_points: &MovePoints,
+    move_points: MovePoints,
 ) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut i = 0;
     for tile_pos in map.get_iter() {
-        if pf.get_map().tile(&tile_pos).cost().n > move_points.n {
+        if pf.get_map().tile(tile_pos).cost().n > move_points.n {
             continue;
         }
-        if let Some(ref parent_dir) = *pf.get_map().tile(&tile_pos).parent() {
-            let tile_pos_to = Dir::get_neighbour_pos(&tile_pos, parent_dir);
+        if let Some(parent_dir) = pf.get_map().tile(tile_pos).parent() {
+            let tile_pos_to = Dir::get_neighbour_pos(tile_pos, parent_dir);
             let exact_pos = ExactPos {
                 map_pos: tile_pos,
-                slot_id: pf.get_map().tile(&tile_pos).slot_id().clone(),
+                slot_id: pf.get_map().tile(tile_pos).slot_id(),
             };
             let exact_pos_to = ExactPos {
                 map_pos: tile_pos_to,
-                slot_id: pf.get_map().tile(&tile_pos_to).slot_id().clone(),
+                slot_id: pf.get_map().tile(tile_pos_to).slot_id(),
             };
-            let world_pos_from = geom::exact_pos_to_world_pos(&exact_pos);
-            let world_pos_to = geom::exact_pos_to_world_pos(&exact_pos_to);
+            let world_pos_from = geom::exact_pos_to_world_pos(exact_pos);
+            let world_pos_to = geom::exact_pos_to_world_pos(exact_pos_to);
             vertices.push(Vertex {
                 pos: geom::lift(world_pos_from.v).into(),
                 uv: [0.5, 0.5],
@@ -224,24 +224,24 @@ fn build_walkable_mesh(
     Mesh::new_wireframe(context, &vertices, &indices)
 }
 
-fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit_id: &UnitId) -> Mesh {
+fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit_id: UnitId) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let unit = state.unit(unit_id);
     let mut i = 0;
-    for (enemy_id, enemy) in state.units() {
+    for (&enemy_id, enemy) in state.units() {
         if unit.player_id == enemy.player_id {
             continue;
         }
         let command = Command::AttackUnit {
-            attacker_id: unit_id.clone(),
-            defender_id: enemy_id.clone(),
+            attacker_id: unit_id,
+            defender_id: enemy_id,
         };
         if !check_command(db, state, &command).is_ok() {
             continue;
         }
-        let world_pos_from = geom::exact_pos_to_world_pos(&unit.pos);
-        let world_pos_to = geom::exact_pos_to_world_pos(&enemy.pos);
+        let world_pos_from = geom::exact_pos_to_world_pos(unit.pos);
+        let world_pos_to = geom::exact_pos_to_world_pos(enemy.pos);
         vertices.push(Vertex {
             pos: geom::lift(world_pos_from.v).into(),
             uv: [0.5, 0.5],
@@ -335,11 +335,11 @@ fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
     }
 }
 
-fn get_marker_mesh_id(mesh_ids: &MeshIdManager, player_id: PlayerId) -> &MeshId {
+fn get_marker_mesh_id(mesh_ids: &MeshIdManager, player_id: PlayerId) -> MeshId {
     // TODO: use one mesh, just different node colors
     match player_id.id {
-        0 => &mesh_ids.marker_1_mesh_id,
-        1 => &mesh_ids.marker_2_mesh_id,
+        0 => mesh_ids.marker_1_mesh_id,
+        1 => mesh_ids.marker_2_mesh_id,
         n => panic!("Wrong player id: {}", n),
     }
 }
@@ -408,10 +408,10 @@ impl MeshIdManager {
         let fow_mesh_id = meshes.add(generate_fogged_tiles_mesh(
             context, state, floor_tex.clone()));
         let mut sector_mesh_ids = HashMap::new();
-        for (id, sector) in state.sectors() {
+        for (&id, sector) in state.sectors() {
             let mesh_id = meshes.add(generate_sector_mesh(
                 context, sector, chess_grid_tex.clone()));
-            sector_mesh_ids.insert(*id, mesh_id);
+            sector_mesh_ids.insert(id, mesh_id);
         }
         let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
         let smoke_mesh_id = meshes.add(get_smoke_mesh(context));
@@ -473,7 +473,7 @@ fn get_unit_type_visual_info(
         ("truck", "truck", 3.0),
         ("jeep", "jeep", 3.5),
     ] {
-        manager.add_info(&db.unit_type_id(unit_name), UnitTypeVisualInfo {
+        manager.add_info(db.unit_type_id(unit_name), UnitTypeVisualInfo {
             mesh_id: meshes.add(load_object_mesh(context, model_name)),
             move_speed: move_speed,
         });
@@ -495,20 +495,20 @@ struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    fn new(context: &Context, map_size: &Size2, options: &core::Options) -> PlayerInfoManager {
+    fn new(context: &Context, map_size: Size2, options: &core::Options) -> PlayerInfoManager {
         let mut m = HashMap::new();
-        let mut camera = Camera::new(&context.win_size);
+        let mut camera = Camera::new(context.win_size);
         camera.set_max_pos(get_max_camera_pos(map_size));
         camera.set_pos(get_initial_camera_pos(map_size));
         m.insert(PlayerId{id: 0}, PlayerInfo {
-            game_state: PartialState::new(map_size, &PlayerId{id: 0}),
+            game_state: PartialState::new(map_size, PlayerId{id: 0}),
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
             camera: camera.clone(),
         });
         if options.game_type == core::GameType::Hotseat {
             m.insert(PlayerId{id: 1}, PlayerInfo {
-                game_state: PartialState::new(map_size, &PlayerId{id: 1}),
+                game_state: PartialState::new(map_size, PlayerId{id: 1}),
                 pathfinder: Pathfinder::new(map_size),
                 scene: Scene::new(),
                 camera: camera,
@@ -517,12 +517,12 @@ impl PlayerInfoManager {
         PlayerInfoManager{info: m}
     }
 
-    fn get(&self, player_id: &PlayerId) -> &PlayerInfo {
-        &self.info[player_id]
+    fn get(&self, player_id: PlayerId) -> &PlayerInfo {
+        &self.info[&player_id]
     }
 
-    fn get_mut(&mut self, player_id: &PlayerId) -> &mut PlayerInfo {
-        match self.info.get_mut(player_id) {
+    fn get_mut(&mut self, player_id: PlayerId) -> &mut PlayerInfo {
+        match self.info.get_mut(&player_id) {
             Some(i) => i,
             None => panic!("Can`t find player_info for id={}", player_id.id),
         }
@@ -545,24 +545,24 @@ impl Gui {
         let mut button_manager = ButtonManager::new();
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
-            Button::new(context, "[end turn]", &pos));
+            Button::new(context, "[end turn]", pos));
         pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
         let button_deselect_unit_id = button_manager.add_button(
-            Button::new(context, "[X]", &pos));
+            Button::new(context, "[X]", pos));
         pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
         let button_prev_unit_id = button_manager.add_button(
-            Button::new(context, "[<]", &pos));
+            Button::new(context, "[<]", pos));
         pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
         let button_next_unit_id = button_manager.add_button(
-            Button::new(context, "[>]", &pos));
+            Button::new(context, "[>]", pos));
         let label_score_id = {
             let vp_pos = ScreenPos{v: Vector2 {
                 x: context.win_size.w - 10,
                 y: context.win_size.h - 10,
             }};
             let text = score_text(state);
-            let mut label_score = Button::new_small(context, &text, &vp_pos);
-            let mut pos = label_score.pos().clone();
+            let mut label_score = Button::new_small(context, &text, vp_pos);
+            let mut pos = label_score.pos();
             pos.v.y -= label_score.size().h;
             pos.v.x -= label_score.size().w;
             label_score.set_pos(pos);
@@ -611,11 +611,11 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
         color: [0.6, 0.6, 0.9, 1.0],
         children: Vec::new(),
     });
-    for (sector_id, sector_mesh_id) in &mesh_ids.sector_mesh_ids {
-        scene.add_sector(*sector_id, SceneNode {
+    for (&sector_id, &sector_mesh_id) in &mesh_ids.sector_mesh_ids {
+        scene.add_sector(sector_id, SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
             rot: rad(0.0),
-            mesh_id: Some(*sector_mesh_id),
+            mesh_id: Some(sector_mesh_id),
             color: [1.0, 1.0, 1.0, 0.5],
             children: Vec::new(),
         });
@@ -628,8 +628,8 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
         children: Vec::new(),
     });
     for tile_pos in map.get_iter() {
-        if *map.tile(&tile_pos) == Terrain::Trees {
-            let pos = geom::map_pos_to_world_pos(&tile_pos);
+        if *map.tile(tile_pos) == Terrain::Trees {
+            let pos = geom::map_pos_to_world_pos(tile_pos);
             let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
             scene.add_node(SceneNode {
                 pos: pos,
@@ -640,12 +640,12 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
             });
         }
     }
-    for (object_id, object) in state.objects() {
+    for (&object_id, object) in state.objects() {
         match object.class {
             ObjectClass::Building => {
-                let pos = geom::exact_pos_to_world_pos(&object.pos);
+                let pos = geom::exact_pos_to_world_pos(object.pos);
                 let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
-                scene.add_object(*object_id, SceneNode {
+                scene.add_object(object_id, SceneNode {
                     pos: pos,
                     rot: rot,
                     // TODO: merge with switch_wireframe
@@ -659,9 +659,9 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                 });
             }
             ObjectClass::Road => {
-                let pos = geom::exact_pos_to_world_pos(&object.pos);
+                let pos = geom::exact_pos_to_world_pos(object.pos);
                 let rot = match object.pos.slot_id {
-                    SlotId::TwoTiles(ref dir) => {
+                    SlotId::TwoTiles(dir) => {
                         rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
                     },
                     _ => panic!(),
@@ -699,8 +699,8 @@ pub struct TacticalScreen {
 impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = Core::new(core_options);
-        let map_size = core.map_size().clone();
-        let mut player_info = PlayerInfoManager::new(context, &map_size, core_options);
+        let map_size = core.map_size();
+        let mut player_info = PlayerInfoManager::new(context, map_size, core_options);
         let mut meshes = MeshManager::new();
         let mesh_ids = MeshIdManager::new(
             context,
@@ -757,7 +757,7 @@ impl TacticalScreen {
     fn end_turn(&mut self, context: &mut Context) {
         if self.player_info.info.len() > 1 {
             let next_id = self.core.next_player_id(self.core.player_id());
-            let screen = Box::new(EndTurnScreen::new(context, &next_id));
+            let screen = Box::new(EndTurnScreen::new(context, next_id));
             context.add_command(ScreenCommand::PushScreen(screen));
         }
         self.deselect_unit(context);
@@ -799,9 +799,9 @@ impl TacticalScreen {
         self.player_info.get_mut(self.core.player_id())
     }
 
-    fn can_unload_unit(&self, transporter_id: UnitId, pos: &MapPos) -> Option<ExactPos> {
+    fn can_unload_unit(&self, transporter_id: UnitId, pos: MapPos) -> Option<ExactPos> {
         let state = self.current_state();
-        let transporter = state.unit(&transporter_id);
+        let transporter = state.unit(transporter_id);
         let passenger_id = match transporter.passenger_id {
             Some(id) => id,
             None => return None,
@@ -809,7 +809,7 @@ impl TacticalScreen {
         let exact_pos = match get_free_exact_pos(
             self.core.db(),
             state,
-            &state.unit(&passenger_id).type_id,
+            state.unit(passenger_id).type_id,
             pos,
         ) {
             Some(pos) => pos,
@@ -818,7 +818,7 @@ impl TacticalScreen {
         if check_command(self.core.db(), state, &Command::UnloadUnit {
             transporter_id: transporter_id,
             passenger_id: passenger_id,
-            pos: exact_pos.clone(),
+            pos: exact_pos,
         }).is_ok() {
             Some(exact_pos)
         } else {
@@ -830,7 +830,7 @@ impl TacticalScreen {
     fn try_create_context_menu_popup(
         &mut self,
         context: &mut Context,
-        pos: &MapPos,
+        pos: MapPos,
     ) {
         let options = self.get_context_menu_popup_options(pos);
         if options == context_menu_popup::Options::new() {
@@ -842,7 +842,7 @@ impl TacticalScreen {
             self.current_state(),
             self.core.db(),
             context,
-            &menu_pos,
+            menu_pos,
             options,
             self.tx.clone(),
         );
@@ -851,7 +851,7 @@ impl TacticalScreen {
 
     fn get_context_menu_popup_options(
         &self,
-        pos: &MapPos,
+        pos: MapPos,
     ) -> context_menu_popup::Options {
         let player_info = self.current_player_info();
         let state = &player_info.game_state;
@@ -860,8 +860,8 @@ impl TacticalScreen {
         let unit_ids = get_unit_ids_at(db, state, pos);
         if let Some(selected_unit_id) = self.selected_unit_id {
             for unit_id in unit_ids {
-                let unit = state.unit(&unit_id);
-                if unit.player_id == *self.core.player_id() {
+                let unit = state.unit(unit_id);
+                if unit.player_id == self.core.player_id() {
                     if unit_id == selected_unit_id {
                         // TODO: do not show both options if unit has no weapons
                         if unit.reaction_fire_mode == ReactionFireMode::HoldFire {
@@ -880,8 +880,8 @@ impl TacticalScreen {
                         }
                     }
                 } else {
-                    let attacker = state.unit(&selected_unit_id);
-                    let defender = state.unit(&unit_id);
+                    let attacker = state.unit(selected_unit_id);
+                    let defender = state.unit(unit_id);
                     let hit_chance = self.core.hit_chance(attacker, defender);
                     let attack_command = Command::AttackUnit {
                         attacker_id: attacker.id,
@@ -894,23 +894,23 @@ impl TacticalScreen {
             }
             if check_command(db, state, &Command::Smoke {
                 unit_id: selected_unit_id,
-                pos: *pos
+                pos: pos,
             }).is_ok() {
-                options.smoke_pos = Some(*pos);
+                options.smoke_pos = Some(pos);
             }
             if let Some(pos) = self.can_unload_unit(selected_unit_id, pos) {
                 options.unload_pos = Some(pos);
             }
             if let Some(destination) = get_free_exact_pos(
-                db, state, &state.unit(&selected_unit_id).type_id, pos,
+                db, state, state.unit(selected_unit_id).type_id, pos,
             ) {
-                if let Some(path) = player_info.pathfinder.get_path(&destination) {
+                if let Some(path) = player_info.pathfinder.get_path(destination) {
                     if check_command(db, state, &Command::Move {
                         unit_id: selected_unit_id,
                         path: path.clone(),
                         mode: MoveMode::Fast,
                     }).is_ok() {
-                        options.move_pos = Some(destination.clone());
+                        options.move_pos = Some(destination);
                     }
                     if check_command(db, state, &Command::Move {
                         unit_id: selected_unit_id,
@@ -923,8 +923,8 @@ impl TacticalScreen {
             }
         } else {
             for unit_id in unit_ids {
-                let unit = state.unit(&unit_id);
-                if unit.player_id == *self.core.player_id() {
+                let unit = state.unit(unit_id);
+                if unit.player_id == self.core.player_id() {
                     options.selects.push(unit_id);
                 }
             }
@@ -937,11 +937,11 @@ impl TacticalScreen {
             return;
         }
         let pick_result = self.pick_tile(context);
-        if let Some(ref pos) = pick_result {
+        if let Some(pos) = pick_result {
             if let Some(exact_pos) = get_free_exact_pos(
                 self.core.db(),
                 self.current_state(),
-                &type_id,
+                type_id,
                 pos,
             ) {
                 self.core.do_command(Command::CreateUnit {
@@ -949,23 +949,23 @@ impl TacticalScreen {
                     type_id: type_id,
                 });
             } else {
-                self.map_text_manager.add_text(&pos, "No free slot for unit");
+                self.map_text_manager.add_text(pos, "No free slot for unit");
             }
         }
     }
 
     // TODO: add ability to select enemy units
-    fn select_unit(&mut self, context: &mut Context, unit_id: &UnitId) {
+    fn select_unit(&mut self, context: &mut Context, unit_id: UnitId) {
         if self.selected_unit_id.is_some() {
             self.deselect_unit(context);
         }
-        self.selected_unit_id = Some(unit_id.clone());
+        self.selected_unit_id = Some(unit_id);
         let mut player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let pf = &mut player_info.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
         let new_walkable_mesh = build_walkable_mesh(
-            context, pf, state.map(), &state.unit(unit_id).move_points);
+            context, pf, state.map(), state.unit(unit_id).move_points);
         self.meshes.set(self.mesh_ids.walkable_mesh_id, new_walkable_mesh);
         let new_targets_mesh = build_targets_mesh(self.core.db(), context, state, unit_id);
         self.meshes.set(self.mesh_ids.targets_mesh_id, new_targets_mesh);
@@ -976,22 +976,22 @@ impl TacticalScreen {
             let pos = ScreenPos{v: Vector2{x: 10, y: context.win_size.h - 10}};
             let text = {
                 let unit = state.unit(unit_id);
-                let unit_type = self.core.db().unit_type(&unit.type_id);
+                let unit_type = self.core.db().unit_type(unit.type_id);
                 // TODO: core.rs: print_unit_info
                 format!("MP={}/{}, AP={}/{}, RAP={}/{}, C={}, M={}",
                     unit.move_points.n,
                     unit_type.move_points.n,
                     unit.attack_points.n,
                     unit_type.attack_points.n,
-                    if let Some(ref rap) = unit.reactive_attack_points { rap.n } else { 0 },
+                    if let Some(rap) = unit.reactive_attack_points { rap.n } else { 0 },
                     unit_type.reactive_attack_points.n,
                     unit.count,
                     unit.morale,
                 )
                 // TODO: print info about unit type and weapon
             };
-            let mut unit_info_button = Button::new_small(context, &text, &pos);
-            let mut pos = unit_info_button.pos().clone();
+            let mut unit_info_button = Button::new_small(context, &text, pos);
+            let mut pos = unit_info_button.pos();
             pos.v.y -= unit_info_button.size().h;
             unit_info_button.set_pos(pos);
             if let Some(label_id) = self.gui.label_unit_info_id.take() {
@@ -1002,7 +1002,7 @@ impl TacticalScreen {
         }
     }
 
-    fn move_unit(&mut self, pos: &ExactPos, move_mode: &MoveMode) {
+    fn move_unit(&mut self, pos: ExactPos, move_mode: MoveMode) {
         let unit_id = self.selected_unit_id.unwrap();
         let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
@@ -1010,11 +1010,11 @@ impl TacticalScreen {
         self.core.do_command(Command::Move {
             unit_id: unit_id,
             path: path,
-            mode: move_mode.clone(),
+            mode: move_mode,
         });
     }
 
-    fn handle_camera_move(&mut self, context: &Context, pos: &ScreenPos) {
+    fn handle_camera_move(&mut self, context: &Context, pos: ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
         let per_x_pixel = camera_move_speed / (context.win_size.w as f32);
@@ -1024,7 +1024,7 @@ impl TacticalScreen {
         camera.move_camera(rad(PI * 1.5), diff.y as f32 * per_y_pixel);
     }
 
-    fn handle_camera_rotate(&mut self, context: &Context, pos: &ScreenPos) {
+    fn handle_camera_rotate(&mut self, context: &Context, pos: ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
         let per_x_pixel = PI / (context.win_size.w as f32);
         // TODO: get max angles from camera
@@ -1034,12 +1034,12 @@ impl TacticalScreen {
         camera.add_vertical_angle(rad(diff.y as f32 * per_y_pixel));
     }
 
-    fn handle_event_mouse_move(&mut self, context: &Context, pos: &ScreenPos) {
+    fn handle_event_mouse_move(&mut self, context: &Context, pos: ScreenPos) {
         self.handle_event_mouse_move_platform(context, pos);
     }
 
     #[cfg(not(target_os = "android"))]
-    fn handle_event_mouse_move_platform(&mut self, context: &Context, pos: &ScreenPos) {
+    fn handle_event_mouse_move_platform(&mut self, context: &Context, pos: ScreenPos) {
         if context.mouse().is_left_button_pressed {
             self.handle_camera_move(context, pos);
         } else if context.mouse().is_right_button_pressed {
@@ -1048,7 +1048,7 @@ impl TacticalScreen {
     }
 
     #[cfg(target_os = "android")]
-    fn handle_event_mouse_move_platform(&mut self, context: &Context, pos: &ScreenPos) {
+    fn handle_event_mouse_move_platform(&mut self, context: &Context, pos: ScreenPos) {
         if !context.mouse().is_left_button_pressed {
             return;
         }
@@ -1071,7 +1071,7 @@ impl TacticalScreen {
     fn print_info(&mut self, context: &Context) {
         // TODO: move this to `fn Core::get_unit_info(...) -> &str`?
         let pick_result = self.pick_tile(context);
-        if let Some(ref pos) = pick_result {
+        if let Some(pos) = pick_result {
             core::print_terrain_info(self.current_state(), pos);
             println!("");
             for unit in self.current_state().units_at(pos) {
@@ -1130,28 +1130,28 @@ impl TacticalScreen {
         }
         let pick_result = self.pick_tile(context);
         if let Some(button_id) = self.gui.button_manager.get_clicked_button_id(context) {
-            self.handle_event_button_press(context, &button_id);
+            self.handle_event_button_press(context, button_id);
         } else if let Some(pick_result) = pick_result {
-            self.try_create_context_menu_popup(context, &pick_result);
+            self.try_create_context_menu_popup(context, pick_result);
         }
     }
 
-    fn handle_event_button_press(&mut self, context: &mut Context, button_id: &ButtonId) {
-        if *button_id == self.gui.button_end_turn_id {
+    fn handle_event_button_press(&mut self, context: &mut Context, button_id: ButtonId) {
+        if button_id == self.gui.button_end_turn_id {
             self.end_turn(context);
-        } else if *button_id == self.gui.button_deselect_unit_id {
+        } else if button_id == self.gui.button_deselect_unit_id {
             self.deselect_unit(context);
-        } else if *button_id == self.gui.button_prev_unit_id {
+        } else if button_id == self.gui.button_prev_unit_id {
             if let Some(id) = self.selected_unit_id {
                 let prev_id = find_prev_player_unit_id(
-                    self.current_state(), self.core.player_id(), &id);
-                self.select_unit(context, &prev_id);
+                    self.current_state(), self.core.player_id(), id);
+                self.select_unit(context, prev_id);
             }
-        } else if *button_id == self.gui.button_next_unit_id {
+        } else if button_id == self.gui.button_next_unit_id {
             if let Some(id) = self.selected_unit_id {
                 let next_id = find_next_player_unit_id(
-                    self.current_state(), self.core.player_id(), &id);
-                self.select_unit(context, &next_id);
+                    self.current_state(), self.core.player_id(), id);
+                self.select_unit(context, next_id);
             }
         } else {
             panic!("BUTTON ID ERROR");
@@ -1189,14 +1189,14 @@ impl TacticalScreen {
             }
         }
         for layer in self.scene().transparent_node_ids().values() {
-            for node_id in layer {
+            for &node_id in layer {
                 let node = self.scene().node(node_id);
                 self.draw_scene_node(context, node, m);
             }
         }
     }
 
-    fn draw_scene(&mut self, context: &mut Context, dtime: &Time) {
+    fn draw_scene(&mut self, context: &mut Context, dtime: Time) {
         self.draw_scene_nodes(context);
         if let Some(ref mut event_visualizer) = self.event_visualizer {
             let player_info = self.player_info.get_mut(self.core.player_id());
@@ -1204,7 +1204,7 @@ impl TacticalScreen {
         }
     }
 
-    fn draw(&mut self, context: &mut Context, dtime: &Time) {
+    fn draw(&mut self, context: &mut Context, dtime: Time) {
         context.clear_color = [0.7, 0.7, 0.7, 1.0];
         context.encoder.clear(&context.data.out, context.clear_color);
         self.draw_scene(context, dtime);
@@ -1220,11 +1220,11 @@ impl TacticalScreen {
             x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as i32,
             y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as i32,
         }};
-        let origin_world_pos = geom::map_pos_to_world_pos(&origin);
-        let mut closest_map_pos = origin.clone();
+        let origin_world_pos = geom::map_pos_to_world_pos(origin);
+        let mut closest_map_pos = origin;
         let mut min_dist = (origin_world_pos.v - p.v).magnitude();
-        for map_pos in spiral_iter(&origin, 1) {
-            let pos = geom::map_pos_to_world_pos(&map_pos);
+        for map_pos in spiral_iter(origin, 1) {
+            let pos = geom::map_pos_to_world_pos(map_pos);
             let d = (pos.v - p.v).magnitude();
             if d < min_dist {
                 min_dist = d;
@@ -1233,7 +1233,7 @@ impl TacticalScreen {
         }
         let pos = closest_map_pos;
         let state = self.current_state();
-        if state.map().is_inboard(&pos) {
+        if state.map().is_inboard(pos) {
             Some(pos)
         } else {
             None
@@ -1249,17 +1249,17 @@ impl TacticalScreen {
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
         match *event {
-            CoreEvent::Move{ref unit_id, ref to, ..} => {
-                let type_id = state.unit(unit_id).type_id.clone();
-                let visual_info = self.unit_type_visual_info.get(&type_id);
+            CoreEvent::Move{unit_id, to, ..} => {
+                let type_id = state.unit(unit_id).type_id;
+                let visual_info = self.unit_type_visual_info.get(type_id);
                 EventMoveVisualizer::new(scene, unit_id, visual_info, to)
             },
             CoreEvent::EndTurn{..} => {
                 EventEndTurnVisualizer::new()
             },
             CoreEvent::CreateUnit{ref unit_info} => {
-                let mesh_id = &self.unit_type_visual_info
-                    .get(&unit_info.type_id).mesh_id;
+                let mesh_id = self.unit_type_visual_info
+                    .get(unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, unit_info.player_id);
                 EventCreateUnitVisualizer::new(
@@ -1270,13 +1270,13 @@ impl TacticalScreen {
                     state,
                     scene,
                     attack_info,
-                    &self.mesh_ids.shell_mesh_id,
+                    self.mesh_ids.shell_mesh_id,
                     &mut self.map_text_manager,
                 )
             },
             CoreEvent::ShowUnit{ref unit_info, ..} => {
-                let mesh_id = &self.unit_type_visual_info
-                    .get(&unit_info.type_id).mesh_id;
+                let mesh_id = self.unit_type_visual_info
+                    .get(unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, unit_info.player_id);
                 EventShowUnitVisualizer::new(
@@ -1288,7 +1288,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            CoreEvent::HideUnit{ref unit_id} => {
+            CoreEvent::HideUnit{unit_id} => {
                 EventHideUnitVisualizer::new(
                     scene,
                     state,
@@ -1296,10 +1296,10 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            CoreEvent::LoadUnit{ref passenger_id, ref to, ..} => {
-                let type_id = state.unit(passenger_id).type_id.clone();
+            CoreEvent::LoadUnit{passenger_id, to, ..} => {
+                let type_id = state.unit(passenger_id).type_id;
                 let unit_type_visual_info
-                    = self.unit_type_visual_info.get(&type_id);
+                    = self.unit_type_visual_info.get(type_id);
                 EventLoadUnitVisualizer::new(
                     scene,
                     state,
@@ -1309,11 +1309,11 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            CoreEvent::UnloadUnit{ref unit_info, ref from, ..} => {
+            CoreEvent::UnloadUnit{ref unit_info, from, ..} => {
                 let unit_type_visual_info
-                    = self.unit_type_visual_info.get(&unit_info.type_id);
-                let mesh_id = &self.unit_type_visual_info
-                    .get(&unit_info.type_id).mesh_id;
+                    = self.unit_type_visual_info.get(unit_info.type_id);
+                let mesh_id = self.unit_type_visual_info
+                    .get(unit_info.type_id).mesh_id;
                 let marker_mesh_id = get_marker_mesh_id(
                     &self.mesh_ids, unit_info.player_id);
                 EventUnloadUnitVisualizer::new(
@@ -1327,7 +1327,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             },
-            CoreEvent::SetReactionFireMode{ref unit_id, ref mode} => {
+            CoreEvent::SetReactionFireMode{unit_id, mode} => {
                 EventSetReactionFireModeVisualizer::new(
                     state,
                     unit_id,
@@ -1344,7 +1344,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             }
-            CoreEvent::VictoryPoint{ref pos, count, ..} => {
+            CoreEvent::VictoryPoint{pos, count, ..} => {
                 EventVictoryPointVisualizer::new(
                     pos,
                     count,
@@ -1400,7 +1400,7 @@ impl TacticalScreen {
                 Some(id) => id,
                 None => return,
             };
-            let defender = state.unit(&attack_info.defender_id);
+            let defender = state.unit(attack_info.defender_id);
             if selected_unit_id == attack_info.defender_id
                 && defender.count - attack_info.killed <= 0
             {
@@ -1420,8 +1420,8 @@ impl TacticalScreen {
     }
 
     fn update_score_labels(&mut self, context: &mut Context) {
-        let pos = self.gui.button_manager.buttons()[&self.gui.label_score_id].pos().clone();
-        let label_score = Button::new_small(context, &score_text(self.current_state()), &pos);
+        let pos = self.gui.button_manager.buttons()[&self.gui.label_score_id].pos();
+        let label_score = Button::new_small(context, &score_text(self.current_state()), pos);
         self.gui.button_manager.remove_button(self.gui.label_score_id);
         self.gui.label_score_id = self.gui.button_manager.add_button(label_score);
     }
@@ -1431,7 +1431,7 @@ impl TacticalScreen {
         let player_info = self.player_info.get_mut(self.core.player_id());
         let scene = &mut player_info.scene;
         let state = &mut player_info.game_state;
-        'object_loop: for (object_id, object) in state.objects() {
+        'object_loop: for (&object_id, object) in state.objects() {
             if object.class != ObjectClass::Building {
                 continue;
             }
@@ -1451,10 +1451,10 @@ impl TacticalScreen {
                 self.mesh_ids.building_mesh_w_id
             };
             let node = {
-                let node_ids = scene.object_id_to_node_id(*object_id).clone();
+                let node_ids = scene.object_id_to_node_id(object_id).clone();
                 assert_eq!(node_ids.len(), 1);
                 let node_id = node_ids.into_iter().next().unwrap();
-                let node = scene.node_mut(&node_id);
+                let node = scene.node_mut(node_id);
                 node
             };
             for unit in state.units().values() {
@@ -1492,7 +1492,7 @@ impl TacticalScreen {
         if let Some(event) = self.core.get_event() {
             self.start_event_visualization(context, event);
         } else if let Some(unit_id) = self.selected_unit_id {
-            self.select_unit(context, &unit_id);
+            self.select_unit(context, unit_id);
         }
     }
 
@@ -1512,19 +1512,19 @@ impl TacticalScreen {
         command: context_menu_popup::Command,
     ) {
         if let context_menu_popup::Command::Select{id} = command {
-            self.select_unit(context, &id);
+            self.select_unit(context, id);
             return;
         }
         let selected_unit_id = self.selected_unit_id.unwrap();
         match command {
             context_menu_popup::Command::Select{id} => {
-                self.select_unit(context, &id);
+                self.select_unit(context, id);
             },
             context_menu_popup::Command::Move{pos} => {
-                self.move_unit(&pos, &MoveMode::Fast);
+                self.move_unit(pos, MoveMode::Fast);
             },
             context_menu_popup::Command::Hunt{pos} => {
-                self.move_unit(&pos, &MoveMode::Hunt);
+                self.move_unit(pos, MoveMode::Hunt);
             },
             context_menu_popup::Command::Attack{id} => {
                 self.core.do_command(Command::AttackUnit {
@@ -1541,7 +1541,7 @@ impl TacticalScreen {
             context_menu_popup::Command::UnloadUnit{pos} => {
                 let passenger_id = {
                     let transporter = self.current_state()
-                        .unit(&selected_unit_id);
+                        .unit(selected_unit_id);
                     transporter.passenger_id.unwrap()
                 };
                 self.core.do_command(Command::UnloadUnit {
@@ -1579,7 +1579,7 @@ impl TacticalScreen {
 }
 
 impl Screen for TacticalScreen {
-    fn tick(&mut self, context: &mut Context, dtime: &Time) {
+    fn tick(&mut self, context: &mut Context, dtime: Time) {
         self.logic(context);
         self.draw(context, dtime);
         self.handle_context_menu_popup_commands(context);
@@ -1589,12 +1589,12 @@ impl Screen for TacticalScreen {
         match *event {
             Event::Resized(..) => {
                 for (_, player_info) in &mut self.player_info.info {
-                    player_info.camera.regenerate_projection_mat(&context.win_size);
+                    player_info.camera.regenerate_projection_mat(context.win_size);
                 }
             },
             Event::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
-                self.handle_event_mouse_move(context, &pos);
+                self.handle_event_mouse_move(context, pos);
             },
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
@@ -1606,10 +1606,10 @@ impl Screen for TacticalScreen {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 match phase {
                     TouchPhase::Started | TouchPhase::Moved => {
-                        self.handle_event_mouse_move(context, &pos);
+                        self.handle_event_mouse_move(context, pos);
                     },
                     TouchPhase::Ended => {
-                        self.handle_event_mouse_move(context, &pos);
+                        self.handle_event_mouse_move(context, pos);
                         self.handle_event_lmb_release(context);
                     },
                     TouchPhase::Cancelled => {
