@@ -6,7 +6,7 @@ zoc: assets
 
 test:
 	cargo test --package core $(CARGO_FLAGS)
-	cargo test --package visualizer $(CARGO_FLAGS)
+	cargo test $(CARGO_FLAGS)
 
 run: assets
 	RUST_BACKTRACE=1 cargo run $(CARGO_FLAGS)

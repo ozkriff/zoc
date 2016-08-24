@@ -31,4 +31,4 @@ build_script:
 
 test_script:
     - cargo test --package core
-    - cargo test --package visualizer
+    - cargo test
