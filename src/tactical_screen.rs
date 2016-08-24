@@ -1174,7 +1174,7 @@ impl TacticalScreen {
         if let Some(mesh_id) = node.mesh_id {
             context.data.mvp = m.into(); // TODO: use separate model matrix
             context.data.basic_color = node.color;
-            context.draw_mesh(&self.meshes.get(mesh_id));
+            context.draw_mesh(self.meshes.get(mesh_id));
         }
         for node in &node.children {
             self.draw_scene_node(context, node, m);
@@ -1409,7 +1409,7 @@ impl TacticalScreen {
     }
 
     fn check_game_end(&mut self, context: &mut Context) {
-        for (_, score) in self.current_state().score() {
+        for score in self.current_state().score().values() {
             if score.n >= target_score().n {
                 context.add_command(ScreenCommand::PopScreen);
                 let screen = Box::new(GameResultsScreen::new(context, self.current_state()));
@@ -1453,8 +1453,7 @@ impl TacticalScreen {
                 let node_ids = scene.object_id_to_node_id(object_id).clone();
                 assert_eq!(node_ids.len(), 1);
                 let node_id = node_ids.into_iter().next().unwrap();
-                let node = scene.node_mut(node_id);
-                node
+                scene.node_mut(node_id)
             };
             for unit in state.units().values() {
                 if unit.pos == object.pos || (is_big && unit.pos.map_pos == object.pos.map_pos) {

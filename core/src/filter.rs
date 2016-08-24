@@ -87,9 +87,6 @@ pub fn filter_events(
                 active_unit_ids.insert(unit_id);
             }
         },
-        CoreEvent::EndTurn{..} => {
-            events.push(event.clone());
-        },
         CoreEvent::CreateUnit{ref unit_info} => {
             let unit = state.unit(unit_info.unit_id);
             if player_id == unit_info.player_id
@@ -208,6 +205,7 @@ pub fn filter_events(
                 });
             }
         },
+        CoreEvent::EndTurn{..} |
         CoreEvent::RemoveSmoke{..} |
         CoreEvent::VictoryPoint{..} |
         CoreEvent::SectorOwnerChanged{..} => {

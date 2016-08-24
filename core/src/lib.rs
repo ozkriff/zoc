@@ -1148,7 +1148,7 @@ impl Core {
                 let new_id = self.next_player_id(old_id);
                 // TODO: extruct func
                 let mut end_turn_events = Vec::new();
-                for (_, sector) in self.state.sectors() {
+                for sector in self.state.sectors().values() {
                     if let Some(player_id) = sector.owner_id {
                         if player_id != new_id {
                             continue;
@@ -1364,7 +1364,7 @@ impl Core {
                 i.visible_enemies = new_visible_enemies;
             }
         }
-        if let &CoreEvent::EndTurn{old_id, new_id} = event {
+        if let CoreEvent::EndTurn{old_id, new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
         }
     }

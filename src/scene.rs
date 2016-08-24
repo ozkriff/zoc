@@ -76,9 +76,7 @@ impl Scene {
         assert!(!self.nodes.contains_key(&node_id));
         if node.color[3] < 1.0 {
             let z = Z(node.pos.v.z);
-            if !self.transparent_node_ids.contains_key(&z) {
-                self.transparent_node_ids.insert(z, HashSet::new());
-            }
+            self.transparent_node_ids.entry(z).or_insert_with(HashSet::new);
             let layer = self.transparent_node_ids.get_mut(&z).unwrap();
             layer.insert(node_id);
         }
@@ -118,9 +116,7 @@ impl Scene {
 
     pub fn add_object(&mut self, object_id: ObjectId, node: SceneNode) -> NodeId {
         let node_id = self.add_node(node);
-        if !self.object_id_to_node_id_map.contains_key(&object_id) {
-            self.object_id_to_node_id_map.insert(object_id, HashSet::new());
-        }
+        self.object_id_to_node_id_map.entry(object_id).or_insert_with(HashSet::new);
         let node_ids = self.object_id_to_node_id_map.get_mut(&object_id).unwrap();
         node_ids.insert(node_id);
         node_id

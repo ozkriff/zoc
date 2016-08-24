@@ -32,7 +32,7 @@ fn is_obstacle<S: GameState>(state: &S, pos: MapPos) -> bool {
             ObjectClass::Road => {},
         }
     }
-    return false;
+    false
 }
 
 // TODO: precalculate all 'atan2' and 'asin' stuff

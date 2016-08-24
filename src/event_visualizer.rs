@@ -520,7 +520,7 @@ impl EventSectorOwnerChangedVisualizer {
             None => [1.0, 1.0, 1.0, 0.5],
             Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
             Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
-            Some(PlayerId{id: _}) => unimplemented!(),
+            Some(_) => unimplemented!(),
         };
         let node_id = scene.sector_id_to_node_id(sector_id);
         let node = scene.node_mut(node_id);
