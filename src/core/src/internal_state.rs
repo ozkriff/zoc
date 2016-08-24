@@ -303,8 +303,6 @@ impl GameStateMut for InternalState {
                 self.add_unit(db, unit_info, InfoLevel::Full);
             },
             CoreEvent::AttackUnit{ref attack_info} => {
-                // TODO: move 'defender' section to the bottom of the arm
-                // and remove braces
                 {
                     let unit = self.units.get_mut(&attack_info.defender_id)
                         .expect("Can`t find defender");
