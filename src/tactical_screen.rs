@@ -1390,22 +1390,21 @@ impl TacticalScreen {
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
-        // TODO: simplify
-        if let Some(CoreEvent::AttackUnit{ref attack_info})
-            = self.event
+        let attack_info = match self.event {
+            Some(CoreEvent::AttackUnit{ref attack_info}) => attack_info,
+            _ => return,
+        };
+        let player_info = self.player_info.get(self.core.player_id());
+        let state = &player_info.game_state;
+        let selected_unit_id = match self.selected_unit_id {
+            Some(id) => id,
+            None => return,
+        };
+        let defender = state.unit(attack_info.defender_id);
+        if selected_unit_id == attack_info.defender_id
+            && defender.count - attack_info.killed <= 0
         {
-            let mut player_info = self.player_info.get_mut(self.core.player_id());
-            let state = &mut player_info.game_state;
-            let selected_unit_id = match self.selected_unit_id {
-                Some(id) => id,
-                None => return,
-            };
-            let defender = state.unit(attack_info.defender_id);
-            if selected_unit_id == attack_info.defender_id
-                && defender.count - attack_info.killed <= 0
-            {
-                self.selected_unit_id = None;
-            }
+            self.selected_unit_id = None;
         }
     }
 
