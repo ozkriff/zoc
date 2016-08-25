@@ -1,7 +1,6 @@
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
-use std::path::{Path};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
 use cgmath::{
@@ -21,8 +20,7 @@ use collision::{Plane, Ray, Intersect};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use types::{Size2, Time};
-use core::map::{Map, Terrain, spiral_iter};
-use core::dir::{Dir, dirs};
+use core::map::{Terrain, spiral_iter};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::pathfinder::{Pathfinder};
@@ -33,14 +31,12 @@ use core::{
     Command,
     MoveMode,
     ReactionFireMode,
-    MovePoints,
     UnitId,
     PlayerId,
     MapPos,
     ExactPos,
     SlotId,
     ObjectClass,
-    Sector,
     SectorId,
     Score,
     check_command,
@@ -78,9 +74,8 @@ use unit_type_visual_info::{
 use selection::{SelectionManager, get_selection_mesh};
 use map_text::{MapTextManager};
 use context::{Context};
-use texture::{Texture, load_texture};
+use texture::{load_texture};
 use mesh::{Mesh, MeshId};
-use pipeline::{Vertex};
 use fs;
 use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
@@ -88,6 +83,7 @@ use context_menu_popup::{self, ContextMenuPopup};
 use end_turn_screen::{EndTurnScreen};
 use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
+use gen;
 
 fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -114,213 +110,6 @@ fn score_text(state: &PartialState) -> String {
         score[&PlayerId{id: 1}].n,
         target_score().n,
     )
-}
-
-fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
-    context: &mut Context,
-    tex: Texture,
-    positions: I
-) -> Mesh {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    let mut i = 0;
-    for tile_pos in positions {
-        let pos = geom::map_pos_to_world_pos(tile_pos);
-        for dir in dirs() {
-            let vertex = geom::index_to_hex_vertex(dir.to_int());
-            let uv = vertex.v.truncate() / (geom::HEX_EX_RADIUS * 2.0)
-                + Vector2::from_value(0.5);
-            vertices.push(Vertex {
-                pos: (pos.v + vertex.v).into(),
-                uv: uv.into(),
-            });
-        }
-        indices.extend_from_slice(&[
-            i, i + 1, i + 2,
-            i, i + 2, i + 3,
-            i, i + 3, i + 5,
-            i + 3, i + 4, i + 5,
-        ]);
-        i += 6;
-    }
-    Mesh::new(context, &vertices, &indices, tex)
-}
-
-fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) -> Mesh {
-    generate_tiles_mesh(context, tex, sector.positions.to_vec())
-}
-
-fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    let mut normal_positions = Vec::new();
-    for tile_pos in state.map().get_iter() {
-        if *state.map().tile(tile_pos) != Terrain::Water {
-            normal_positions.push(tile_pos);
-        }
-    }
-    generate_tiles_mesh(context, tex, normal_positions)
-}
-
-fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    let mut normal_positions = Vec::new();
-    for pos in state.map().get_iter() {
-        if *state.map().tile(pos) == Terrain::Water {
-            normal_positions.push(pos);
-        }
-    }
-    generate_tiles_mesh(context, tex, normal_positions)
-}
-
-fn generate_fogged_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    let mut fogged_positions = Vec::new();
-    for tile_pos in state.map().get_iter() {
-        if !state.is_tile_visible(tile_pos) {
-            fogged_positions.push(tile_pos);
-        }
-    }
-    generate_tiles_mesh(context, tex, fogged_positions)
-}
-
-fn empty_mesh(context: &mut Context) -> Mesh {
-    Mesh::new_wireframe(context, &[], &[])
-}
-
-fn build_walkable_mesh(
-    context: &mut Context,
-    pf: &Pathfinder,
-    map: &Map<Terrain>,
-    move_points: MovePoints,
-) -> Mesh {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    let mut i = 0;
-    for tile_pos in map.get_iter() {
-        if pf.get_map().tile(tile_pos).cost().n > move_points.n {
-            continue;
-        }
-        if let Some(parent_dir) = pf.get_map().tile(tile_pos).parent() {
-            let tile_pos_to = Dir::get_neighbour_pos(tile_pos, parent_dir);
-            let exact_pos = ExactPos {
-                map_pos: tile_pos,
-                slot_id: pf.get_map().tile(tile_pos).slot_id(),
-            };
-            let exact_pos_to = ExactPos {
-                map_pos: tile_pos_to,
-                slot_id: pf.get_map().tile(tile_pos_to).slot_id(),
-            };
-            let world_pos_from = geom::exact_pos_to_world_pos(exact_pos);
-            let world_pos_to = geom::exact_pos_to_world_pos(exact_pos_to);
-            vertices.push(Vertex {
-                pos: geom::lift(world_pos_from.v).into(),
-                uv: [0.5, 0.5],
-            });
-            vertices.push(Vertex {
-                pos: geom::lift(world_pos_to.v).into(),
-                uv: [0.5, 0.5],
-            });
-            indices.extend_from_slice(&[i, i + 1]);
-            i += 2;
-        }
-    }
-    Mesh::new_wireframe(context, &vertices, &indices)
-}
-
-fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit_id: UnitId) -> Mesh {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    let unit = state.unit(unit_id);
-    let mut i = 0;
-    for (&enemy_id, enemy) in state.units() {
-        if unit.player_id == enemy.player_id {
-            continue;
-        }
-        let command = Command::AttackUnit {
-            attacker_id: unit_id,
-            defender_id: enemy_id,
-        };
-        if !check_command(db, state, &command).is_ok() {
-            continue;
-        }
-        let world_pos_from = geom::exact_pos_to_world_pos(unit.pos);
-        let world_pos_to = geom::exact_pos_to_world_pos(enemy.pos);
-        vertices.push(Vertex {
-            pos: geom::lift(world_pos_from.v).into(),
-            uv: [0.5, 0.5],
-        });
-        vertices.push(Vertex {
-            pos: geom::lift(world_pos_to.v).into(),
-            uv: [0.5, 0.5],
-        });
-        indices.extend_from_slice(&[i, i + 1]);
-        i += 2;
-    }
-    Mesh::new_wireframe(context, &vertices, &indices)
-}
-
-fn get_shell_mesh(context: &mut Context) -> Mesh {
-    let w = 0.05;
-    let l = w * 3.0;
-    let h = 0.1;
-    let vertices = [
-        Vertex{pos: [-w, -l, h], uv: [0.0, 0.0]},
-        Vertex{pos: [-w, l, h], uv: [0.0, 1.0]},
-        Vertex{pos: [w, l, h], uv: [1.0, 0.0]},
-        Vertex{pos: [w, -l, h], uv: [1.0, 0.0]},
-    ];
-    let indices = [0, 1, 2, 2, 3, 0];
-    let texture_data = fs::load("shell.png").into_inner();
-    let texture = load_texture(context, &texture_data);
-    Mesh::new(context, &vertices, &indices, texture)
-}
-
-fn get_road_mesh(context: &mut Context) -> Mesh {
-    let w = geom::HEX_EX_RADIUS * 0.3;
-    let l = geom::HEX_EX_RADIUS;
-    let h = geom::MIN_LIFT_HEIGHT / 2.0;
-    let vertices = [
-        Vertex{pos: [-w, -l, h], uv: [0.0, 0.0]},
-        Vertex{pos: [-w, l, h], uv: [0.0, 1.0]},
-        Vertex{pos: [w, l, h], uv: [1.0, 1.0]},
-        Vertex{pos: [w, -l, h], uv: [1.0, 0.0]},
-    ];
-    let indices = [0, 1, 2, 2, 3, 0];
-    let texture_data = fs::load("road.png").into_inner();
-    let texture = load_texture(context, &texture_data);
-    Mesh::new(context, &vertices, &indices, texture)
-}
-
-fn get_marker<P: AsRef<Path>>(context: &mut Context, tex_path: P) -> Mesh {
-    let n = 0.2;
-    let vertices = [
-        Vertex{pos: [-n, 0.0, 0.1], uv: [0.0, 0.0]},
-        Vertex{pos: [0.0, n * 1.4, 0.1], uv: [1.0, 0.0]},
-        Vertex{pos: [n, 0.0, 0.1], uv: [0.5, 0.5]},
-    ];
-    let indices = [0, 1, 2];
-    let texture_data = fs::load(tex_path).into_inner();
-    let texture = load_texture(context, &texture_data);
-    Mesh::new(context, &vertices, &indices, texture)
-}
-
-fn get_smoke_mesh(context: &mut Context) -> Mesh {
-    let mut vertices = Vec::new();
-    for dir in dirs() {
-        let vertex = geom::index_to_hex_vertex(dir.to_int());
-        let uv = vertex.v.truncate() / (geom::HEX_EX_RADIUS * 2.0)
-            + Vector2::from_value(0.5);
-        vertices.push(Vertex {
-            pos: vertex.v.into(),
-            uv: uv.into(),
-        });
-    }
-    let indices = [
-        0, 1, 2,
-        0, 2, 3,
-        0, 3, 5,
-        3, 4, 5,
-    ];
-    let texture_data = fs::load("smoke.png").into_inner();
-    let texture = load_texture(context, &texture_data);
-    Mesh::new(context, &vertices, &indices, texture)
 }
 
 fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
@@ -401,20 +190,20 @@ impl MeshIdManager {
     ) -> MeshIdManager {
         let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());
         let chess_grid_tex = load_texture(context, &fs::load("chess_grid.png").into_inner());
-        let map_mesh_id = meshes.add(generate_map_mesh(
+        let map_mesh_id = meshes.add(gen::generate_map_mesh(
             context, state, floor_tex.clone()));
-        let water_mesh_id = meshes.add(generate_water_mesh(
+        let water_mesh_id = meshes.add(gen::generate_water_mesh(
             context, state, floor_tex.clone()));
-        let fow_mesh_id = meshes.add(generate_fogged_tiles_mesh(
+        let fow_mesh_id = meshes.add(gen::generate_fogged_tiles_mesh(
             context, state, floor_tex.clone()));
         let mut sector_mesh_ids = HashMap::new();
         for (&id, sector) in state.sectors() {
-            let mesh_id = meshes.add(generate_sector_mesh(
+            let mesh_id = meshes.add(gen::generate_sector_mesh(
                 context, sector, chess_grid_tex.clone()));
             sector_mesh_ids.insert(id, mesh_id);
         }
         let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
-        let smoke_mesh_id = meshes.add(get_smoke_mesh(context));
+        let smoke_mesh_id = meshes.add(gen::get_smoke_mesh(context));
         let big_building_mesh_id = meshes.add(
             load_object_mesh(context, "big_building"));
         let building_mesh_id = meshes.add(
@@ -424,13 +213,13 @@ impl MeshIdManager {
         let building_mesh_w_id = meshes.add(
             load_object_mesh(context, "building_wire"));
         let trees_mesh_id = meshes.add(load_object_mesh(context, "trees"));
-        let shell_mesh_id = meshes.add(get_shell_mesh(context));
-        let road_mesh_id = meshes.add(get_road_mesh(context));
+        let shell_mesh_id = meshes.add(gen::get_shell_mesh(context));
+        let road_mesh_id = meshes.add(gen::get_road_mesh(context));
         // TODO: use one mesh but with different node colors
-        let marker_1_mesh_id = meshes.add(get_marker(context, "flag1.png"));
-        let marker_2_mesh_id = meshes.add(get_marker(context, "flag2.png"));
-        let walkable_mesh_id = meshes.add(empty_mesh(context));
-        let targets_mesh_id = meshes.add(empty_mesh(context));
+        let marker_1_mesh_id = meshes.add(gen::get_marker(context, "flag1.png"));
+        let marker_2_mesh_id = meshes.add(gen::get_marker(context, "flag2.png"));
+        let walkable_mesh_id = meshes.add(gen::empty_mesh(context));
+        let targets_mesh_id = meshes.add(gen::empty_mesh(context));
         MeshIdManager {
             big_building_mesh_id: big_building_mesh_id,
             building_mesh_id: building_mesh_id,
@@ -768,15 +557,15 @@ impl TacticalScreen {
     fn regenerate_fow(&mut self, context: &mut Context) {
         let state = &self.player_info.get_mut(self.core.player_id()).game_state;
         let texture = self.meshes.get(self.mesh_ids.fow_mesh_id).texture.clone();
-        let new_fow_mesh = generate_fogged_tiles_mesh(context, state, texture);
+        let new_fow_mesh = gen::generate_fogged_tiles_mesh(context, state, texture);
         self.meshes.set(self.mesh_ids.fow_mesh_id, new_fow_mesh);
     }
 
     fn hide_selected_unit_meshes(&mut self, context: &mut Context) {
         let scene = &mut self.player_info.get_mut(self.core.player_id()).scene;
         self.selection_manager.deselect(scene);
-        self.meshes.set(self.mesh_ids.walkable_mesh_id, empty_mesh(context));
-        self.meshes.set(self.mesh_ids.targets_mesh_id, empty_mesh(context));
+        self.meshes.set(self.mesh_ids.walkable_mesh_id, gen::empty_mesh(context));
+        self.meshes.set(self.mesh_ids.targets_mesh_id, gen::empty_mesh(context));
     }
 
     fn deselect_unit(&mut self, context: &mut Context) {
@@ -964,10 +753,10 @@ impl TacticalScreen {
         let state = &player_info.game_state;
         let pf = &mut player_info.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
-        let new_walkable_mesh = build_walkable_mesh(
+        let new_walkable_mesh = gen::build_walkable_mesh(
             context, pf, state.map(), state.unit(unit_id).move_points);
         self.meshes.set(self.mesh_ids.walkable_mesh_id, new_walkable_mesh);
-        let new_targets_mesh = build_targets_mesh(self.core.db(), context, state, unit_id);
+        let new_targets_mesh = gen::build_targets_mesh(self.core.db(), context, state, unit_id);
         self.meshes.set(self.mesh_ids.targets_mesh_id, new_targets_mesh);
         let scene = &mut player_info.scene;
         self.selection_manager.create_selection_marker(
