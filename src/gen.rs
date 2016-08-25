@@ -199,7 +199,7 @@ pub fn get_marker<P: AsRef<Path>>(context: &mut Context, tex_path: P) -> Mesh {
     Mesh::new(context, &vertices, &indices, texture)
 }
 
-pub fn get_smoke_mesh(context: &mut Context) -> Mesh {
+pub fn get_one_tile_mesh(context: &mut Context, texture: Texture) -> Mesh {
     let mut vertices = Vec::new();
     for dir in dirs() {
         let vertex = geom::index_to_hex_vertex(dir.to_int());
@@ -216,7 +216,5 @@ pub fn get_smoke_mesh(context: &mut Context) -> Mesh {
         0, 3, 5,
         3, 4, 5,
     ];
-    let texture_data = fs::load("smoke.png").into_inner();
-    let texture = load_texture(context, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
 }

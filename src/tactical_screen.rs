@@ -188,6 +188,7 @@ impl MeshIdManager {
         meshes: &mut MeshManager,
         state: &PartialState,
     ) -> MeshIdManager {
+        let smoke_tex = load_texture(context, &fs::load("smoke.png").into_inner());
         let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());
         let chess_grid_tex = load_texture(context, &fs::load("chess_grid.png").into_inner());
         let map_mesh_id = meshes.add(gen::generate_map_mesh(
@@ -203,7 +204,7 @@ impl MeshIdManager {
             sector_mesh_ids.insert(id, mesh_id);
         }
         let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
-        let smoke_mesh_id = meshes.add(gen::get_smoke_mesh(context));
+        let smoke_mesh_id = meshes.add(gen::get_one_tile_mesh(context, smoke_tex));
         let big_building_mesh_id = meshes.add(
             load_object_mesh(context, "big_building"));
         let building_mesh_id = meshes.add(
