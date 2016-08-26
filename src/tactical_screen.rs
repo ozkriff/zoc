@@ -124,15 +124,6 @@ fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
     }
 }
 
-fn get_marker_mesh_id(mesh_ids: &MeshIdManager, player_id: PlayerId) -> MeshId {
-    // TODO: use one mesh, just different node colors
-    match player_id.id {
-        0 => mesh_ids.marker_1_mesh_id,
-        1 => mesh_ids.marker_2_mesh_id,
-        n => panic!("Wrong player id: {}", n),
-    }
-}
-
 #[derive(Clone, Debug)]
 struct MeshManager {
     meshes: Vec<Mesh>,
@@ -170,8 +161,7 @@ struct MeshIdManager {
     road_mesh_id: MeshId,
     trees_mesh_id: MeshId,
     shell_mesh_id: MeshId,
-    marker_1_mesh_id: MeshId,
-    marker_2_mesh_id: MeshId,
+    marker_mesh_id: MeshId,
     walkable_mesh_id: MeshId,
     targets_mesh_id: MeshId,
     map_mesh_id: MeshId,
@@ -216,9 +206,7 @@ impl MeshIdManager {
         let trees_mesh_id = meshes.add(load_object_mesh(context, "trees"));
         let shell_mesh_id = meshes.add(gen::get_shell_mesh(context));
         let road_mesh_id = meshes.add(gen::get_road_mesh(context));
-        // TODO: use one mesh but with different node colors
-        let marker_1_mesh_id = meshes.add(gen::get_marker(context, "flag1.png"));
-        let marker_2_mesh_id = meshes.add(gen::get_marker(context, "flag2.png"));
+        let marker_mesh_id = meshes.add(gen::get_marker(context, "white.png"));
         let walkable_mesh_id = meshes.add(gen::empty_mesh(context));
         let targets_mesh_id = meshes.add(gen::empty_mesh(context));
         MeshIdManager {
@@ -229,8 +217,7 @@ impl MeshIdManager {
             trees_mesh_id: trees_mesh_id,
             road_mesh_id: road_mesh_id,
             shell_mesh_id: shell_mesh_id,
-            marker_1_mesh_id: marker_1_mesh_id,
-            marker_2_mesh_id: marker_2_mesh_id,
+            marker_mesh_id: marker_mesh_id,
             walkable_mesh_id: walkable_mesh_id,
             targets_mesh_id: targets_mesh_id,
             map_mesh_id: map_mesh_id,
@@ -1050,10 +1037,13 @@ impl TacticalScreen {
             CoreEvent::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, unit_info.player_id);
                 EventCreateUnitVisualizer::new(
-                    self.core.db(), scene, unit_info, mesh_id, marker_mesh_id)
+                    self.core.db(),
+                    scene,
+                    unit_info,
+                    mesh_id,
+                    self.mesh_ids.marker_mesh_id,
+                )
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 EventAttackUnitVisualizer::new(
@@ -1067,14 +1057,12 @@ impl TacticalScreen {
             CoreEvent::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, unit_info.player_id);
                 EventShowUnitVisualizer::new(
                     self.core.db(),
                     scene,
                     unit_info,
                     mesh_id,
-                    marker_mesh_id,
+                    self.mesh_ids.marker_mesh_id,
                     &mut self.map_text_manager,
                 )
             },
@@ -1104,14 +1092,12 @@ impl TacticalScreen {
                     = self.unit_type_visual_info.get(unit_info.type_id);
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                let marker_mesh_id = get_marker_mesh_id(
-                    &self.mesh_ids, unit_info.player_id);
                 EventUnloadUnitVisualizer::new(
                     self.core.db(),
                     scene,
                     unit_info,
                     mesh_id,
-                    marker_mesh_id,
+                    self.mesh_ids.marker_mesh_id,
                     from,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
