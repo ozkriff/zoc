@@ -43,8 +43,7 @@ impl MoveHelper {
     }
 
     pub fn step_diff(&mut self, dtime: Time) -> Vector3<f32> {
-        let dt = dtime.n as f32 / 1000000000.0;
-        let step = self.dir * dt;
+        let step = self.dir * dtime.n;
         self.current_dist += step.magnitude();
         self.current.v += step;
         if self.is_finished() {

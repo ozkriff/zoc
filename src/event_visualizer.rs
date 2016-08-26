@@ -568,12 +568,9 @@ impl EventVictoryPointVisualizer {
     ) -> Box<EventVisualizer> {
         let text = format!("+{} VP!", count);
         map_text.add_text(pos, &text);
-        // TODO: Time: u64 -> f32
-        let limit_seconds = 1.0;
-        let limit = limit_seconds * 1000000000.0;
         Box::new(EventVictoryPointVisualizer{
-            time: Time{n: 0},
-            duration: Time{n: limit as u64},
+            time: Time{n: 0.0},
+            duration: Time{n: 1.0},
         })
     }
 }
@@ -625,11 +622,9 @@ impl EventSmokeVisualizer {
         node.pos.v.z += z_step;
         node.rot += rad(thread_rng().gen_range(0.0, PI * 2.0));
         scene.add_object(object_id, node);
-        let limit_seconds = 1.0;
-        let limit = limit_seconds * 1000000000.0;
         Box::new(EventSmokeVisualizer {
-            time: Time{n: 0},
-            duration: Time{n: limit as u64},
+            time: Time{n: 0.0},
+            duration: Time{n: 1.0},
             object_id: object_id,
         })
     }
@@ -667,11 +662,9 @@ impl EventRemoveSmokeVisualizer {
     ) -> Box<EventVisualizer> {
         let pos = state.objects()[&object_id].pos.map_pos;
         map_text.add_text(pos, "smoke cleared");
-        let limit_seconds = 1.0;
-        let limit = limit_seconds * 1000000000.0;
         Box::new(EventRemoveSmokeVisualizer {
-            time: Time{n: 0},
-            duration: Time{n: limit as u64},
+            time: Time{n: 0.0},
+            duration: Time{n: 1.0},
             object_id: object_id,
         })
     }

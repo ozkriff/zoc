@@ -2,7 +2,6 @@ use std::process;
 use std::sync::mpsc::{channel, Receiver};
 use std::fs::{metadata};
 use gfx::traits::{Device};
-use time;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
@@ -37,7 +36,7 @@ impl Visualizer {
             screens: screens,
             popups: Vec::new(),
             should_close: false,
-            last_time: Time{n: time::precise_time_ns()},
+            last_time: Time::now(),
             context: context,
             rx: rx,
         }
@@ -116,7 +115,7 @@ impl Visualizer {
     }
 
     fn update_time(&mut self) -> Time {
-        let time = Time{n: time::precise_time_ns()};
+        let time = Time::now();
         let dtime = Time{n: time.n - self.last_time.n};
         self.last_time = time;
         dtime
