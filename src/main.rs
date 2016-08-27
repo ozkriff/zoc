@@ -17,6 +17,7 @@ extern crate image;
 extern crate rusttype;
 
 mod visualizer;
+mod pick;
 mod gen;
 mod gui;
 mod obj;

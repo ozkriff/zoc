@@ -3,12 +3,11 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
-use cgmath::{self, Array, Vector2, Vector3, InnerSpace, rad, SquareMatrix, EuclideanSpace};
-use collision::{Plane, Ray, Intersect};
+use cgmath::{self, Array, Vector2, Vector3, rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use types::{Size2, Time};
-use core::map::{Terrain, spiral_iter};
+use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::pathfinder::{Pathfinder};
@@ -34,6 +33,7 @@ use end_turn_screen::{EndTurnScreen};
 use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
 use gen;
+use pick;
 
 fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -458,27 +458,6 @@ impl TacticalScreen {
             tx: tx,
             rx: rx,
         }
-    }
-
-    fn pick_world_pos(&self, context: &Context) -> WorldPos {
-        let camera = &self.current_player_info().camera;
-        let im = camera.mat().invert()
-            .expect("Can`t invert camera matrix");
-        let w = context.win_size.w as f32;
-        let h = context.win_size.h as f32;
-        let x = context.mouse().pos.v.x as f32;
-        let y = context.mouse().pos.v.y as f32;
-        let x = (2.0 * x) / w - 1.0;
-        let y = 1.0 - (2.0 * y) / h;
-        let p0_raw = im * cgmath::Vector4{x: x, y: y, z: 0.0, w: 1.0};
-        let p0 = (p0_raw / p0_raw.w).truncate();
-        let p1_raw = im * cgmath::Vector4{x: x, y: y, z: 1.0, w: 1.0};
-        let p1 = (p1_raw / p1_raw.w).truncate();
-        let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
-        let ray = Ray::new(cgmath::Point3::from_vec(p0), p1 - p0);
-        let p = (plane, ray).intersection()
-            .expect("Can`t find mouse ray/plane intersection");
-        WorldPos{v: p.to_vec()}
     }
 
     fn end_turn(&mut self, context: &mut Context) {
@@ -941,30 +920,10 @@ impl TacticalScreen {
         self.gui.button_manager.draw(context);
     }
 
-    fn pick_tile(&mut self, context: &Context) -> Option<MapPos> {
-        let p = self.pick_world_pos(context);
-        let origin = MapPos{v: Vector2 {
-            x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as i32,
-            y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as i32,
-        }};
-        let origin_world_pos = geom::map_pos_to_world_pos(origin);
-        let mut closest_map_pos = origin;
-        let mut min_dist = (origin_world_pos.v - p.v).magnitude();
-        for map_pos in spiral_iter(origin, 1) {
-            let pos = geom::map_pos_to_world_pos(map_pos);
-            let d = (pos.v - p.v).magnitude();
-            if d < min_dist {
-                min_dist = d;
-                closest_map_pos = map_pos;
-            }
-        }
-        let pos = closest_map_pos;
+    fn pick_tile(&self, context: &Context) -> Option<MapPos> {
+        let camera = &self.current_player_info().camera;
         let state = self.current_state();
-        if state.map().is_inboard(pos) {
-            Some(pos)
-        } else {
-            None
-        }
+        pick::pick_tile(context, state, camera)
     }
 
     fn make_event_visualizer(
