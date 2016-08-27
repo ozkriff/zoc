@@ -3,19 +3,7 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
-use cgmath::{
-    Array,
-    Vector2,
-    Vector3,
-    Vector4,
-    InnerSpace,
-    rad,
-    Matrix3,
-    Matrix4,
-    SquareMatrix,
-    EuclideanSpace,
-    Point3,
-};
+use cgmath::{self, Array, Vector2, Vector3, InnerSpace, rad, SquareMatrix, EuclideanSpace};
 use collision::{Plane, Ray, Intersect};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
@@ -24,53 +12,15 @@ use core::map::{Terrain, spiral_iter};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::pathfinder::{Pathfinder};
-use core::{
-    self,
-    Core,
-    CoreEvent,
-    Command,
-    MoveMode,
-    ReactionFireMode,
-    UnitId,
-    PlayerId,
-    MapPos,
-    ExactPos,
-    SlotId,
-    ObjectClass,
-    SectorId,
-    Score,
-    check_command,
-    get_unit_ids_at,
-    find_next_player_unit_id,
-    find_prev_player_unit_id,
-    get_free_exact_pos,
-};
+use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId};
 use core::db::{Db};
 use core::unit::{UnitTypeId};
 use obj;
 use camera::Camera;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, SceneNode};
-use event_visualizer::{
-    EventVisualizer,
-    EventMoveVisualizer,
-    EventEndTurnVisualizer,
-    EventCreateUnitVisualizer,
-    EventUnloadUnitVisualizer,
-    EventLoadUnitVisualizer,
-    EventAttackUnitVisualizer,
-    EventShowUnitVisualizer,
-    EventHideUnitVisualizer,
-    EventSetReactionFireModeVisualizer,
-    EventSectorOwnerChangedVisualizer,
-    EventVictoryPointVisualizer,
-    EventSmokeVisualizer,
-    EventRemoveSmokeVisualizer,
-};
-use unit_type_visual_info::{
-    UnitTypeVisualInfo,
-    UnitTypeVisualInfoManager,
-};
+use event_visualizer;
+use unit_type_visual_info::{UnitTypeVisualInfo, UnitTypeVisualInfoManager};
 use selection::{SelectionManager, get_selection_mesh};
 use map_text::{MapTextManager};
 use context::{Context};
@@ -97,8 +47,8 @@ fn get_max_camera_pos(map_size: Size2) -> WorldPos {
 }
 
 // TODO: get from Core
-fn target_score() -> Score {
-    Score{n: 5}
+fn target_score() -> core::Score {
+    core::Score{n: 5}
 }
 
 fn score_text(state: &PartialState) -> String {
@@ -169,7 +119,7 @@ struct MeshIdManager {
     fow_mesh_id: MeshId,
     selection_marker_mesh_id: MeshId,
     smoke_mesh_id: MeshId,
-    sector_mesh_ids: HashMap<SectorId, MeshId>,
+    sector_mesh_ids: HashMap<core::SectorId, MeshId>,
 }
 
 impl MeshIdManager {
@@ -419,7 +369,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
     }
     for (&object_id, object) in state.objects() {
         match object.class {
-            ObjectClass::Building => {
+            core::ObjectClass::Building => {
                 let pos = geom::exact_pos_to_world_pos(object.pos);
                 let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                 scene.add_object(object_id, SceneNode {
@@ -435,7 +385,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                     children: Vec::new(),
                 });
             }
-            ObjectClass::Road => {
+            core::ObjectClass::Road => {
                 let pos = geom::exact_pos_to_world_pos(object.pos);
                 let rot = match object.pos.slot_id {
                     SlotId::TwoTiles(dir) => {
@@ -451,7 +401,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                     children: Vec::new(),
                 });
             }
-            ObjectClass::Smoke => unimplemented!(),
+            core::ObjectClass::Smoke => unimplemented!(),
         }
     }
     scene
@@ -461,9 +411,9 @@ pub struct TacticalScreen {
     map_text_manager: MapTextManager,
     gui: Gui,
     player_info: PlayerInfoManager,
-    core: Core,
+    core: core::Core,
     event: Option<CoreEvent>,
-    event_visualizer: Option<Box<EventVisualizer>>,
+    event_visualizer: Option<Box<event_visualizer::EventVisualizer>>,
     mesh_ids: MeshIdManager,
     meshes: MeshManager,
     unit_type_visual_info: UnitTypeVisualInfoManager,
@@ -475,7 +425,7 @@ pub struct TacticalScreen {
 
 impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
-        let core = Core::new(core_options);
+        let core = core::Core::new(core_options);
         let map_size = core.map_size();
         let mut player_info = PlayerInfoManager::new(context, map_size, core_options);
         let mut meshes = MeshManager::new();
@@ -520,12 +470,12 @@ impl TacticalScreen {
         let y = context.mouse().pos.v.y as f32;
         let x = (2.0 * x) / w - 1.0;
         let y = 1.0 - (2.0 * y) / h;
-        let p0_raw = im * Vector4{x: x, y: y, z: 0.0, w: 1.0};
+        let p0_raw = im * cgmath::Vector4{x: x, y: y, z: 0.0, w: 1.0};
         let p0 = (p0_raw / p0_raw.w).truncate();
-        let p1_raw = im * Vector4{x: x, y: y, z: 1.0, w: 1.0};
+        let p1_raw = im * cgmath::Vector4{x: x, y: y, z: 1.0, w: 1.0};
         let p1 = (p1_raw / p1_raw.w).truncate();
         let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
-        let ray = Ray::new(Point3::from_vec(p0), p1 - p0);
+        let ray = Ray::new(cgmath::Point3::from_vec(p0), p1 - p0);
         let p = (plane, ray).intersection()
             .expect("Can`t find mouse ray/plane intersection");
         WorldPos{v: p.to_vec()}
@@ -583,7 +533,7 @@ impl TacticalScreen {
             Some(id) => id,
             None => return None,
         };
-        let exact_pos = match get_free_exact_pos(
+        let exact_pos = match core::get_free_exact_pos(
             self.core.db(),
             state,
             state.unit(passenger_id).type_id,
@@ -592,7 +542,7 @@ impl TacticalScreen {
             Some(pos) => pos,
             None => return None,
         };
-        if check_command(self.core.db(), state, &Command::UnloadUnit {
+        if core::check_command(self.core.db(), state, &Command::UnloadUnit {
             transporter_id: transporter_id,
             passenger_id: passenger_id,
             pos: exact_pos,
@@ -634,14 +584,14 @@ impl TacticalScreen {
         let state = &player_info.game_state;
         let db = self.core.db();
         let mut options = context_menu_popup::Options::new();
-        let unit_ids = get_unit_ids_at(db, state, pos);
+        let unit_ids = core::get_unit_ids_at(db, state, pos);
         if let Some(selected_unit_id) = self.selected_unit_id {
             for unit_id in unit_ids {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.core.player_id() {
                     if unit_id == selected_unit_id {
                         // TODO: do not show both options if unit has no weapons
-                        if unit.reaction_fire_mode == ReactionFireMode::HoldFire {
+                        if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
                             options.enable_reaction_fire = Some(selected_unit_id);
                         } else {
                             options.disable_reaction_fire = Some(selected_unit_id);
@@ -652,7 +602,7 @@ impl TacticalScreen {
                             transporter_id: selected_unit_id,
                             passenger_id: unit_id,
                         };
-                        if check_command(db, state, &load_command).is_ok() {
+                        if core::check_command(db, state, &load_command).is_ok() {
                             options.loads.push(unit_id);
                         }
                     }
@@ -664,12 +614,12 @@ impl TacticalScreen {
                         attacker_id: attacker.id,
                         defender_id: defender.id,
                     };
-                    if check_command(db, state, &attack_command).is_ok() {
+                    if core::check_command(db, state, &attack_command).is_ok() {
                         options.attacks.push((unit_id, hit_chance));
                     }
                 }
             }
-            if check_command(db, state, &Command::Smoke {
+            if core::check_command(db, state, &Command::Smoke {
                 unit_id: selected_unit_id,
                 pos: pos,
             }).is_ok() {
@@ -678,21 +628,21 @@ impl TacticalScreen {
             if let Some(pos) = self.can_unload_unit(selected_unit_id, pos) {
                 options.unload_pos = Some(pos);
             }
-            if let Some(destination) = get_free_exact_pos(
+            if let Some(destination) = core::get_free_exact_pos(
                 db, state, state.unit(selected_unit_id).type_id, pos,
             ) {
                 if let Some(path) = player_info.pathfinder.get_path(destination) {
-                    if check_command(db, state, &Command::Move {
+                    if core::check_command(db, state, &Command::Move {
                         unit_id: selected_unit_id,
                         path: path.clone(),
-                        mode: MoveMode::Fast,
+                        mode: core::MoveMode::Fast,
                     }).is_ok() {
                         options.move_pos = Some(destination);
                     }
-                    if check_command(db, state, &Command::Move {
+                    if core::check_command(db, state, &Command::Move {
                         unit_id: selected_unit_id,
                         path: path.clone(),
-                        mode: MoveMode::Hunt,
+                        mode: core::MoveMode::Hunt,
                     }).is_ok() {
                         options.hunt_pos = Some(destination);
                     }
@@ -715,7 +665,7 @@ impl TacticalScreen {
         }
         let pick_result = self.pick_tile(context);
         if let Some(pos) = pick_result {
-            if let Some(exact_pos) = get_free_exact_pos(
+            if let Some(exact_pos) = core::get_free_exact_pos(
                 self.core.db(),
                 self.current_state(),
                 type_id,
@@ -779,7 +729,7 @@ impl TacticalScreen {
         }
     }
 
-    fn move_unit(&mut self, pos: ExactPos, move_mode: MoveMode) {
+    fn move_unit(&mut self, pos: ExactPos, move_mode: core::MoveMode) {
         let unit_id = self.selected_unit_id.unwrap();
         let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
@@ -920,13 +870,13 @@ impl TacticalScreen {
             self.deselect_unit(context);
         } else if button_id == self.gui.button_prev_unit_id {
             if let Some(id) = self.selected_unit_id {
-                let prev_id = find_prev_player_unit_id(
+                let prev_id = core::find_prev_player_unit_id(
                     self.current_state(), self.core.player_id(), id);
                 self.select_unit(context, prev_id);
             }
         } else if button_id == self.gui.button_next_unit_id {
             if let Some(id) = self.selected_unit_id {
-                let next_id = find_next_player_unit_id(
+                let next_id = core::find_next_player_unit_id(
                     self.current_state(), self.core.player_id(), id);
                 self.select_unit(context, next_id);
             }
@@ -943,10 +893,10 @@ impl TacticalScreen {
         &self,
         context: &mut Context,
         node: &SceneNode,
-        m: Matrix4<f32>,
+        m: cgmath::Matrix4<f32>,
     ) {
-        let tr_mat = Matrix4::from_translation(node.pos.v);
-        let rot_mat = Matrix4::from(Matrix3::from_angle_z(node.rot));
+        let tr_mat = cgmath::Matrix4::from_translation(node.pos.v);
+        let rot_mat = cgmath::Matrix4::from(cgmath::Matrix3::from_angle_z(node.rot));
         let m = m * tr_mat * rot_mat;
         if let Some(mesh_id) = node.mesh_id {
             context.data.mvp = m.into(); // TODO: use separate model matrix
@@ -1020,7 +970,7 @@ impl TacticalScreen {
     fn make_event_visualizer(
         &mut self,
         event: &CoreEvent,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<event_visualizer::EventVisualizer> {
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
@@ -1029,15 +979,20 @@ impl TacticalScreen {
             CoreEvent::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
-                EventMoveVisualizer::new(scene, unit_id, visual_info, to)
+                event_visualizer::EventMoveVisualizer::new(
+                    scene,
+                    unit_id,
+                    visual_info,
+                    to,
+                )
             },
             CoreEvent::EndTurn{..} => {
-                EventEndTurnVisualizer::new()
+                event_visualizer::EventEndTurnVisualizer::new()
             },
             CoreEvent::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                EventCreateUnitVisualizer::new(
+                event_visualizer::EventCreateUnitVisualizer::new(
                     self.core.db(),
                     scene,
                     unit_info,
@@ -1046,7 +1001,7 @@ impl TacticalScreen {
                 )
             },
             CoreEvent::AttackUnit{ref attack_info} => {
-                EventAttackUnitVisualizer::new(
+                event_visualizer::EventAttackUnitVisualizer::new(
                     state,
                     scene,
                     attack_info,
@@ -1057,7 +1012,7 @@ impl TacticalScreen {
             CoreEvent::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                EventShowUnitVisualizer::new(
+                event_visualizer::EventShowUnitVisualizer::new(
                     self.core.db(),
                     scene,
                     unit_info,
@@ -1067,7 +1022,7 @@ impl TacticalScreen {
                 )
             },
             CoreEvent::HideUnit{unit_id} => {
-                EventHideUnitVisualizer::new(
+                event_visualizer::EventHideUnitVisualizer::new(
                     scene,
                     state,
                     unit_id,
@@ -1078,7 +1033,7 @@ impl TacticalScreen {
                 let type_id = state.unit(passenger_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(type_id);
-                EventLoadUnitVisualizer::new(
+                event_visualizer::EventLoadUnitVisualizer::new(
                     scene,
                     state,
                     passenger_id,
@@ -1092,7 +1047,7 @@ impl TacticalScreen {
                     = self.unit_type_visual_info.get(unit_info.type_id);
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                EventUnloadUnitVisualizer::new(
+                event_visualizer::EventUnloadUnitVisualizer::new(
                     self.core.db(),
                     scene,
                     unit_info,
@@ -1104,7 +1059,7 @@ impl TacticalScreen {
                 )
             },
             CoreEvent::SetReactionFireMode{unit_id, mode} => {
-                EventSetReactionFireModeVisualizer::new(
+                event_visualizer::EventSetReactionFireModeVisualizer::new(
                     state,
                     unit_id,
                     mode,
@@ -1112,7 +1067,7 @@ impl TacticalScreen {
                 )
             },
             CoreEvent::SectorOwnerChanged{sector_id, new_owner_id} => {
-                EventSectorOwnerChangedVisualizer::new(
+                event_visualizer::EventSectorOwnerChangedVisualizer::new(
                     scene,
                     state,
                     sector_id,
@@ -1121,14 +1076,14 @@ impl TacticalScreen {
                 )
             }
             CoreEvent::VictoryPoint{pos, count, ..} => {
-                EventVictoryPointVisualizer::new(
+                event_visualizer::EventVictoryPointVisualizer::new(
                     pos,
                     count,
                     &mut self.map_text_manager,
                 )
             }
             CoreEvent::Smoke{pos, unit_id, id} => {
-                EventSmokeVisualizer::new(
+                event_visualizer::EventSmokeVisualizer::new(
                     scene,
                     pos,
                     unit_id,
@@ -1138,7 +1093,7 @@ impl TacticalScreen {
                 )
             }
             CoreEvent::RemoveSmoke{id} => {
-                EventRemoveSmokeVisualizer::new(
+                event_visualizer::EventRemoveSmokeVisualizer::new(
                     state,
                     id,
                     &mut self.map_text_manager,
@@ -1207,7 +1162,7 @@ impl TacticalScreen {
         let scene = &mut player_info.scene;
         let state = &mut player_info.game_state;
         'object_loop: for (&object_id, object) in state.objects() {
-            if object.class != ObjectClass::Building {
+            if object.class != core::ObjectClass::Building {
                 continue;
             }
             let is_big = match object.pos.slot_id {
@@ -1295,10 +1250,10 @@ impl TacticalScreen {
                 self.select_unit(context, id);
             },
             context_menu_popup::Command::Move{pos} => {
-                self.move_unit(pos, MoveMode::Fast);
+                self.move_unit(pos, core::MoveMode::Fast);
             },
             context_menu_popup::Command::Hunt{pos} => {
-                self.move_unit(pos, MoveMode::Hunt);
+                self.move_unit(pos, core::MoveMode::Hunt);
             },
             context_menu_popup::Command::Attack{id} => {
                 self.core.do_command(Command::AttackUnit {
@@ -1327,13 +1282,13 @@ impl TacticalScreen {
             context_menu_popup::Command::EnableReactionFire{id} => {
                 self.core.do_command(Command::SetReactionFireMode {
                     unit_id: id,
-                    mode: ReactionFireMode::Normal,
+                    mode: core::ReactionFireMode::Normal,
                 });
             },
             context_menu_popup::Command::DisableReactionFire{id} => {
                 self.core.do_command(Command::SetReactionFireMode {
                     unit_id: id,
-                    mode: ReactionFireMode::HoldFire,
+                    mode: core::ReactionFireMode::HoldFire,
                 });
             },
             context_menu_popup::Command::Smoke{pos} => {
