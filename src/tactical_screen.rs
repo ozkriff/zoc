@@ -7,7 +7,7 @@ use cgmath::{self, Array, Vector2, Vector3, rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use types::{Size2, Time};
-use core::map::{Terrain};
+use core::map::{Terrain, Map};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::pathfinder::{Pathfinder};
@@ -17,7 +17,7 @@ use core::unit::{UnitTypeId};
 use obj;
 use camera::Camera;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
-use scene::{Scene, SceneNode};
+use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
 use unit_type_visual_info::{UnitTypeVisualInfo, UnitTypeVisualInfoManager};
 use selection::{SelectionManager, get_selection_mesh};
@@ -34,6 +34,8 @@ use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
 use gen;
 use pick;
+
+const FOW_FADING_TIME: f32 = 0.6;
 
 fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -116,9 +118,9 @@ struct MeshIdManager {
     targets_mesh_id: MeshId,
     map_mesh_id: MeshId,
     water_mesh_id: MeshId,
-    fow_mesh_id: MeshId,
     selection_marker_mesh_id: MeshId,
     smoke_mesh_id: MeshId,
+    fow_tile_mesh_id: MeshId,
     sector_mesh_ids: HashMap<core::SectorId, MeshId>,
 }
 
@@ -135,8 +137,6 @@ impl MeshIdManager {
             context, state, floor_tex.clone()));
         let water_mesh_id = meshes.add(gen::generate_water_mesh(
             context, state, floor_tex.clone()));
-        let fow_mesh_id = meshes.add(gen::generate_fogged_tiles_mesh(
-            context, state, floor_tex.clone()));
         let mut sector_mesh_ids = HashMap::new();
         for (&id, sector) in state.sectors() {
             let mesh_id = meshes.add(gen::generate_sector_mesh(
@@ -145,6 +145,7 @@ impl MeshIdManager {
         }
         let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
         let smoke_mesh_id = meshes.add(gen::get_one_tile_mesh(context, smoke_tex));
+        let fow_tile_mesh_id = meshes.add(gen::get_one_tile_mesh(context, floor_tex));
         let big_building_mesh_id = meshes.add(
             load_object_mesh(context, "big_building"));
         let building_mesh_id = meshes.add(
@@ -172,9 +173,9 @@ impl MeshIdManager {
             targets_mesh_id: targets_mesh_id,
             map_mesh_id: map_mesh_id,
             water_mesh_id: water_mesh_id,
-            fow_mesh_id: fow_mesh_id,
             selection_marker_mesh_id: selection_marker_mesh_id,
             smoke_mesh_id: smoke_mesh_id,
+            fow_tile_mesh_id: fow_tile_mesh_id,
             sector_mesh_ids: sector_mesh_ids,
         }
     }
@@ -209,11 +210,29 @@ fn get_unit_type_visual_info(
 }
 
 #[derive(Clone, Debug)]
+struct Fow {
+    map: Map<Option<NodeId>>,
+    vanishing_node_ids: HashMap<NodeId, Time>,
+    forthcoming_node_ids: HashMap<NodeId, Time>,
+}
+
+impl Fow {
+    fn new(map_size: Size2) -> Fow {
+        Fow {
+            map: Map::new(map_size),
+            vanishing_node_ids: HashMap::new(),
+            forthcoming_node_ids: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 struct PlayerInfo {
     game_state: PartialState,
     pathfinder: Pathfinder,
     scene: Scene,
     camera: Camera,
+    fow: Fow,
 }
 
 #[derive(Clone, Debug)]
@@ -232,6 +251,7 @@ impl PlayerInfoManager {
             pathfinder: Pathfinder::new(map_size),
             scene: Scene::new(),
             camera: camera.clone(),
+            fow: Fow::new(map_size),
         });
         if options.game_type == core::GameType::Hotseat {
             m.insert(PlayerId{id: 1}, PlayerInfo {
@@ -239,6 +259,7 @@ impl PlayerInfoManager {
                 pathfinder: Pathfinder::new(map_size),
                 scene: Scene::new(),
                 camera: camera,
+                fow: Fow::new(map_size),
             });
         }
         PlayerInfoManager{info: m}
@@ -347,13 +368,6 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
             children: Vec::new(),
         });
     }
-    scene.add_node(SceneNode {
-        pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.02}}, // TODO
-        rot: rad(0.0),
-        mesh_id: Some(mesh_ids.fow_mesh_id),
-        color: [0.0, 0.1, 0.0, 0.3],
-        children: Vec::new(),
-    });
     for tile_pos in map.get_iter() {
         if *map.tile(tile_pos) == Terrain::Trees {
             let pos = geom::map_pos_to_world_pos(tile_pos);
@@ -468,14 +482,65 @@ impl TacticalScreen {
         }
         self.deselect_unit(context);
         self.core.do_command(Command::EndTurn);
-        self.regenerate_fow(context);
+        self.regenerate_fow();
     }
 
-    fn regenerate_fow(&mut self, context: &mut Context) {
-        let state = &self.player_info.get_mut(self.core.player_id()).game_state;
-        let texture = self.meshes.get(self.mesh_ids.fow_mesh_id).texture.clone();
-        let new_fow_mesh = gen::generate_fogged_tiles_mesh(context, state, texture);
-        self.meshes.set(self.mesh_ids.fow_mesh_id, new_fow_mesh);
+    fn regenerate_fow(&mut self) {
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        let fow = &mut player_info.fow;
+        let state = &player_info.game_state;
+        for pos in state.map().get_iter() {
+            let is_visible = state.is_tile_visible(pos);
+            if is_visible {
+                if let Some(node_id) = fow.map.tile_mut(pos).take() {
+                    if let Some(time) = fow.forthcoming_node_ids.remove(&node_id) {
+                        fow.vanishing_node_ids.insert(
+                            node_id, Time{n: FOW_FADING_TIME - time.n});
+                    } else {
+                        fow.vanishing_node_ids.insert(
+                            node_id, Time{n: 0.0});
+                    }
+                }
+            }
+            if !is_visible && fow.map.tile(pos).is_none() {
+                let mut world_pos = geom::map_pos_to_world_pos(pos);
+                world_pos.v.z += 0.02; // TODO: magic
+                let node_id = player_info.scene.add_node(SceneNode {
+                    pos: world_pos,
+                    rot: rad(0.0),
+                    mesh_id: Some(self.mesh_ids.fow_tile_mesh_id),
+                    color: [0.0, 0.1, 0.0, 0.0],
+                    children: Vec::new(),
+                });
+                *fow.map.tile_mut(pos) = Some(node_id);
+                fow.forthcoming_node_ids.insert(node_id, Time{n: 0.0});
+            }
+        }
+    }
+
+    fn update_fow(&mut self, dtime: Time) {
+        let max_alpha = 0.4;
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        let scene = &mut player_info.scene;
+        let fow = &mut player_info.fow;
+        for (&node_id, time) in &mut fow.forthcoming_node_ids {
+            time.n += dtime.n;
+            let a = (time.n / FOW_FADING_TIME) * max_alpha;
+            scene.node_mut(node_id).color[3] = a;
+        }
+        fow.forthcoming_node_ids = fow.forthcoming_node_ids.clone()
+            .into_iter().filter(|&(_, time)| time.n < FOW_FADING_TIME).collect();
+        for (&node_id, time) in &mut fow.vanishing_node_ids {
+            time.n += dtime.n;
+            let a = (1.0 - time.n / FOW_FADING_TIME) * max_alpha;
+            scene.node_mut(node_id).color[3] = a;
+        }
+        let dead_node_ids: HashMap<NodeId, Time> = fow.vanishing_node_ids.clone()
+            .into_iter().filter(|&(_, time)| time.n > FOW_FADING_TIME).collect();
+        for &node_id in dead_node_ids.keys() {
+            scene.remove_node(node_id);
+            fow.vanishing_node_ids.remove(&node_id);
+        }
     }
 
     fn hide_selected_unit_meshes(&mut self, context: &mut Context) {
@@ -1174,7 +1239,7 @@ impl TacticalScreen {
             self.update_score_labels(context);
             self.check_game_end(context);
         }
-        self.regenerate_fow(context);
+        self.regenerate_fow();
         self.event_visualizer = None;
         self.event = None;
         if let Some(event) = self.core.get_event() {
@@ -1270,6 +1335,7 @@ impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: Time) {
         self.logic(context);
         self.draw(context, dtime);
+        self.update_fow(dtime);
         self.handle_context_menu_popup_commands(context);
     }
 

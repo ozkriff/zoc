@@ -68,16 +68,6 @@ pub fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Tex
     generate_tiles_mesh(context, tex, normal_positions)
 }
 
-pub fn generate_fogged_tiles_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
-    let mut fogged_positions = Vec::new();
-    for tile_pos in state.map().get_iter() {
-        if !state.is_tile_visible(tile_pos) {
-            fogged_positions.push(tile_pos);
-        }
-    }
-    generate_tiles_mesh(context, tex, fogged_positions)
-}
-
 pub fn empty_mesh(context: &mut Context) -> Mesh {
     Mesh::new_wireframe(context, &[], &[])
 }

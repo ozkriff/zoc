@@ -54,7 +54,7 @@ pub struct UnitId{pub id: i32}
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct SectorId{pub id: i32}
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct MapPos{pub v: Vector2<i32>}
 
 impl fmt::Display for MapPos {
