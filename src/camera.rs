@@ -85,9 +85,8 @@ impl Camera {
         self.x_angle
     }
 
-    // TODO: rename to 'move'
-    pub fn move_camera(&mut self, angle: Rad<f32>, speed: f32) {
-        let diff = (self.z_angle - angle).s;
+    pub fn move_in_direction(&mut self, direction: Rad<f32>, speed: f32) {
+        let diff = (self.z_angle - direction).s;
         let dx = diff.sin();
         let dy = diff.cos();
         // TODO: handle zoom

@@ -791,8 +791,8 @@ impl TacticalScreen {
         let per_x_pixel = camera_move_speed / (context.win_size.w as f32);
         let per_y_pixel = camera_move_speed / (context.win_size.h as f32);
         let camera = &mut self.current_player_info_mut().camera;
-        camera.move_camera(rad(PI), diff.x as f32 * per_x_pixel);
-        camera.move_camera(rad(PI * 1.5), diff.y as f32 * per_y_pixel);
+        camera.move_in_direction(rad(PI), diff.x as f32 * per_x_pixel);
+        camera.move_in_direction(rad(PI * 1.5), diff.y as f32 * per_y_pixel);
     }
 
     fn handle_camera_rotate(&mut self, context: &Context, pos: ScreenPos) {
@@ -860,16 +860,16 @@ impl TacticalScreen {
                 context.add_command(ScreenCommand::PopScreen);
             },
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                self.current_player_info_mut().camera.move_camera(rad(PI * 1.5), s);
+                self.current_player_info_mut().camera.move_in_direction(rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.current_player_info_mut().camera.move_camera(rad(PI * 0.5), s);
+                self.current_player_info_mut().camera.move_in_direction(rad(PI * 0.5), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.current_player_info_mut().camera.move_camera(rad(PI * 0.0), s);
+                self.current_player_info_mut().camera.move_in_direction(rad(PI * 0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.current_player_info_mut().camera.move_camera(rad(PI * 1.0), s);
+                self.current_player_info_mut().camera.move_in_direction(rad(PI * 1.0), s);
             },
             VirtualKeyCode::I => {
                 self.print_info(context);
