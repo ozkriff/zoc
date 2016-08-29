@@ -33,7 +33,7 @@ impl Ord for Z {
 pub struct Scene {
     unit_id_to_node_id_map: HashMap<UnitId, NodeId>,
     sector_id_to_node_id_map: HashMap<SectorId, NodeId>,
-    object_id_to_node_id_map: HashMap<ObjectId, HashSet<NodeId>>, // TODO: for https://github.com/ozkriff/zoc/issues/182
+    object_id_to_node_id_map: HashMap<ObjectId, HashSet<NodeId>>,
     nodes: HashMap<NodeId, SceneNode>,
     transparent_node_ids: BTreeMap<Z, HashSet<NodeId>>,
     next_id: NodeId,
