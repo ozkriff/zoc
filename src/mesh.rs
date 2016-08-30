@@ -9,12 +9,11 @@ use pipeline::{Vertex};
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct MeshId{pub id: i32}
 
-// TODO: TODO: make fields private
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    pub slice: gfx::Slice<gfx_gl::Resources>,
-    pub vertex_buffer: gfx::handle::Buffer<gfx_gl::Resources, Vertex>,
-    pub texture: Texture,
+    slice: gfx::Slice<gfx_gl::Resources>,
+    vertex_buffer: gfx::handle::Buffer<gfx_gl::Resources, Vertex>,
+    texture: Texture,
     is_wire: bool,
 }
 
@@ -39,6 +38,18 @@ impl Mesh {
             texture: texture,
             is_wire: true,
         }
+    }
+
+    pub fn slice(&self) -> &gfx::Slice<gfx_gl::Resources> {
+        &self.slice
+    }
+
+    pub fn vertex_buffer(&self) -> &gfx::handle::Buffer<gfx_gl::Resources, Vertex> {
+        &self.vertex_buffer
+    }
+
+    pub fn texture(&self) -> &Texture {
+        &self.texture
     }
 
     pub fn is_wire(&self) -> bool {

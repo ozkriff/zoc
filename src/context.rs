@@ -136,13 +136,14 @@ impl Context {
     }
 
     pub fn draw_mesh(&mut self, mesh: &Mesh) {
-        self.data.texture.0 = mesh.texture.clone();
-        self.data.vbuf = mesh.vertex_buffer.clone();
-        if mesh.is_wire() {
-            self.encoder.draw(&mesh.slice, &self.pso_wire, &self.data);
+        self.data.texture.0 = mesh.texture().clone();
+        self.data.vbuf = mesh.vertex_buffer().clone();
+        let pso = if mesh.is_wire() {
+            &self.pso_wire
         } else {
-            self.encoder.draw(&mesh.slice, &self.pso, &self.data);
-        }
+            &self.pso
+        };
+        self.encoder.draw(mesh.slice(), pso, &self.data);
     }
 
     pub fn add_command(&mut self, command: ScreenCommand) {
