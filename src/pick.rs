@@ -24,9 +24,9 @@ pub fn pick_world_pos(context: &Context, camera: &Camera) -> WorldPos {
     let p1 = (p1_raw / p1_raw.w).truncate();
     let plane = Plane::from_abcd(0.0, 0.0, 1.0, 0.0);
     let ray = Ray::new(cgmath::Point3::from_vec(p0), p1 - p0);
-    let p = (plane, ray).intersection()
+    let intersection_pos = (plane, ray).intersection()
         .expect("Can`t find mouse ray/plane intersection");
-    WorldPos{v: p.to_vec()}
+    WorldPos{v: intersection_pos.to_vec()}
 }
 
 pub fn pick_tile(
