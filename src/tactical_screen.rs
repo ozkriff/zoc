@@ -284,6 +284,8 @@ pub struct Gui {
     button_deselect_unit_id: ButtonId,
     button_next_unit_id: ButtonId,
     button_prev_unit_id: ButtonId,
+    button_zoom_in_id: ButtonId,
+    button_zoom_out_id: ButtonId,
     label_unit_info_id: Option<ButtonId>,
     label_score_id: ButtonId,
 }
@@ -294,7 +296,8 @@ impl Gui {
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
             Button::new(context, "[end turn]", pos));
-        pos.v.y += (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
+        let ystep = (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
+        pos.v.y += ystep;
         let button_deselect_unit_id = button_manager.add_button(
             Button::new(context, "[X]", pos));
         pos.v.x += button_manager.buttons()[&button_deselect_unit_id].size().w;
@@ -303,6 +306,13 @@ impl Gui {
         pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
         let button_next_unit_id = button_manager.add_button(
             Button::new(context, "[>]", pos));
+        pos.v.y += ystep;
+        pos.v.x = 10;
+        let button_zoom_in_id = button_manager.add_button(
+            Button::new(context, "[+]", pos));
+        pos.v.x += button_manager.buttons()[&button_prev_unit_id].size().w;
+        let button_zoom_out_id = button_manager.add_button(
+            Button::new(context, "[-]", pos));
         let label_score_id = {
             let vp_pos = ScreenPos{v: Vector2 {
                 x: context.win_size.w - 10,
@@ -322,6 +332,8 @@ impl Gui {
             button_deselect_unit_id: button_deselect_unit_id,
             button_prev_unit_id: button_prev_unit_id,
             button_next_unit_id: button_next_unit_id,
+            button_zoom_in_id: button_zoom_in_id,
+            button_zoom_out_id: button_zoom_out_id,
             label_unit_info_id: None,
             label_score_id: label_score_id,
         }
@@ -924,6 +936,10 @@ impl TacticalScreen {
                     self.current_state(), self.core.player_id(), id);
                 self.select_unit(context, next_id);
             }
+        } else if button_id == self.gui.button_zoom_in_id {
+            self.current_player_info_mut().camera.change_zoom(0.7);
+        } else if button_id == self.gui.button_zoom_out_id {
+            self.current_player_info_mut().camera.change_zoom(1.3);
         } else {
             panic!("BUTTON ID ERROR");
         }
