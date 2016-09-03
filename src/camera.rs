@@ -28,7 +28,7 @@ impl Camera {
             z_angle: rad(PI / 4.0),
             pos: WorldPos{v: Vector3::from_value(0.0)},
             max_pos: WorldPos{v: Vector3::from_value(0.0)},
-            zoom: 15.0,
+            zoom: 25.0,
             projection_mat: get_projection_mat(win_size),
         }
     }
