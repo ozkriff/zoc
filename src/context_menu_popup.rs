@@ -26,7 +26,6 @@ pub enum Command {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Options {
-    // TODO: display unit name and/or type, not just IDs
     pub selects: Vec<UnitId>,
     pub attacks: Vec<(UnitId, i32)>,
     pub loads: Vec<UnitId>,
