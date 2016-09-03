@@ -644,13 +644,17 @@ impl TacticalScreen {
         if let Some(selected_unit_id) = self.selected_unit_id {
             for unit_id in unit_ids {
                 let unit = state.unit(unit_id);
+                let unit_type = self.core.db().unit_type(unit.type_id);
                 if unit.player_id == self.core.player_id() {
                     if unit_id == selected_unit_id {
-                        // TODO: do not show both options if unit has no weapons
-                        if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
-                            options.enable_reaction_fire = Some(selected_unit_id);
-                        } else {
-                            options.disable_reaction_fire = Some(selected_unit_id);
+                        if unit_type.attack_points.n != 0
+                            || unit_type.reactive_attack_points.n != 0
+                        {
+                            if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
+                                options.enable_reaction_fire = Some(selected_unit_id);
+                            } else {
+                                options.disable_reaction_fire = Some(selected_unit_id);
+                            }
                         }
                     } else {
                         options.selects.push(unit_id);
