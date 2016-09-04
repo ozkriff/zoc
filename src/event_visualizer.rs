@@ -632,7 +632,7 @@ impl EventSmokeVisualizer {
 
 impl EventVisualizer for EventSmokeVisualizer {
     fn is_finished(&self) -> bool {
-        self.time.n as f32 / self.duration.n as f32 > SMOKE_ALPHA
+        self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: Time) {
@@ -640,7 +640,7 @@ impl EventVisualizer for EventSmokeVisualizer {
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
             let node = scene.node_mut(node_id);
-            node.color[3] = self.time.n as f32 / self.duration.n as f32;
+            node.color[3] = self.time.n / self.duration.n;
         }
     }
 
@@ -672,7 +672,7 @@ impl EventRemoveSmokeVisualizer {
 
 impl EventVisualizer for EventRemoveSmokeVisualizer {
     fn is_finished(&self) -> bool {
-        self.time.n as f32 / self.duration.n as f32 > SMOKE_ALPHA
+        self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
     fn draw(&mut self, scene: &mut Scene, dtime: Time) {
@@ -680,7 +680,7 @@ impl EventVisualizer for EventRemoveSmokeVisualizer {
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
             let node = scene.node_mut(node_id);
-            node.color[3] = SMOKE_ALPHA - self.time.n as f32 / self.duration.n as f32;
+            node.color[3] = SMOKE_ALPHA - self.time.n / self.duration.n;
         }
     }
 

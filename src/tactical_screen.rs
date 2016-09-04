@@ -35,7 +35,7 @@ use types::{ScreenPos, WorldPos};
 use gen;
 use pick;
 
-const FOW_FADING_TIME: f64 = 0.6;
+const FOW_FADING_TIME: f32 = 0.6;
 
 fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
     let pos = get_max_camera_pos(map_size);
@@ -539,14 +539,14 @@ impl TacticalScreen {
         for (&node_id, time) in &mut fow.forthcoming_node_ids {
             time.n += dtime.n;
             let a = (time.n / FOW_FADING_TIME) * max_alpha;
-            scene.node_mut(node_id).color[3] = a as f32;
+            scene.node_mut(node_id).color[3] = a;
         }
         fow.forthcoming_node_ids = fow.forthcoming_node_ids.clone()
             .into_iter().filter(|&(_, time)| time.n < FOW_FADING_TIME).collect();
         for (&node_id, time) in &mut fow.vanishing_node_ids {
             time.n += dtime.n;
             let a = (1.0 - time.n / FOW_FADING_TIME) * max_alpha;
-            scene.node_mut(node_id).color[3] = a as f32;
+            scene.node_mut(node_id).color[3] = a;
         }
         let dead_node_ids: HashMap<NodeId, Time> = fow.vanishing_node_ids.clone()
             .into_iter().filter(|&(_, time)| time.n > FOW_FADING_TIME).collect();

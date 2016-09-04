@@ -1,4 +1,5 @@
 use std::sync::mpsc::{Sender};
+use time::{precise_time_ns};
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
 use glutin::{self, Api, Event, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
@@ -9,7 +10,7 @@ use gfx;
 use gfx_gl;
 use gfx_glutin;
 use screen::{ScreenCommand};
-use types::{Size2, ScreenPos};
+use types::{Size2, ScreenPos, Time};
 use texture::{load_texture_raw};
 use pipeline::{pipe};
 use fs;
@@ -70,6 +71,7 @@ pub struct Context {
     pub factory: gfx_gl::Factory,
     pub font: rusttype::Font<'static>,
     pub data: pipe::Data<gfx_gl::Resources>,
+    pub start_time_ns: u64,
 }
 
 impl Context {
@@ -124,7 +126,13 @@ impl Context {
                 last_press_pos: ScreenPos{v: Vector2::from_value(0)},
                 pos: ScreenPos{v: Vector2::from_value(0)},
             },
+            start_time_ns: precise_time_ns(),
         }
+    }
+
+    pub fn current_time(&self) -> Time {
+        let ns = precise_time_ns() - self.start_time_ns;
+        Time{n: ns as f32 / 1_000_000_000.0}
     }
 
     pub fn should_close(&self) -> bool {

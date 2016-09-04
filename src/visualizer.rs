@@ -32,11 +32,12 @@ impl Visualizer {
         let screens = vec![
             Box::new(MainMenuScreen::new(&mut context)) as Box<Screen>,
         ];
+        let last_time = context.current_time();
         Visualizer {
             screens: screens,
             popups: Vec::new(),
             should_close: false,
-            last_time: Time::now(),
+            last_time: last_time,
             context: context,
             rx: rx,
         }
@@ -115,7 +116,7 @@ impl Visualizer {
     }
 
     fn update_time(&mut self) -> Time {
-        let time = Time::now();
+        let time = self.context.current_time();
         let dtime = Time{n: time.n - self.last_time.n};
         self.last_time = time;
         dtime
