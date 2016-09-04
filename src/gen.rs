@@ -95,8 +95,10 @@ pub fn build_walkable_mesh(
                 map_pos: tile_pos_to,
                 slot_id: pf.get_map().tile(tile_pos_to).slot_id(),
             };
-            let world_pos_from = geom::exact_pos_to_world_pos(exact_pos);
-            let world_pos_to = geom::exact_pos_to_world_pos(exact_pos_to);
+            let mut world_pos_from = geom::exact_pos_to_world_pos(exact_pos);
+            world_pos_from.v.z = 0.0;
+            let mut world_pos_to = geom::exact_pos_to_world_pos(exact_pos_to);
+            world_pos_to.v.z = 0.0;
             vertices.push(Vertex {
                 pos: geom::lift(world_pos_from.v).into(),
                 uv: [0.5, 0.5],

@@ -25,6 +25,9 @@ pub fn exact_pos_to_world_pos(p: ExactPos) -> WorldPos {
         SlotId::WholeTile => {
             WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, p.map_pos).v * 0.2}
         }
+        SlotId::Air => {
+            WorldPos{v: v + Vector3{x: 0.0, y: 0.0, z: 2.0} + index_to_circle_vertex_rnd(3, 0, p.map_pos).v * 0.2} // TODO
+        }
         SlotId::Id(n) => {
             WorldPos{v: v + index_to_circle_vertex_rnd(3, n as i32, p.map_pos).v * 0.5}
         }

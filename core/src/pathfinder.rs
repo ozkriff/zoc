@@ -77,6 +77,10 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
     let units = state.units_at(map_pos);
     let mut unit_cost = 0;
     let mut object_cost = 0;
+    let unit_type = db.unit_type(unit.type_id);
+    if unit_type.is_air {
+        return MovePoints{n: 2};
+    }
     'unit_loop: for unit in &units {
         for object in &objects {
             match object.pos.slot_id {
@@ -88,11 +92,11 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
                 SlotId::TwoTiles(_) | SlotId::WholeTile => {
                     break 'unit_loop;
                 },
+                SlotId::Air => {},
             }
         }
         unit_cost += 1;
     }
-    let unit_type = db.unit_type(unit.type_id);
     let tile = state.map().tile(pos);
     let mut terrain_cost = match unit_type.class {
         UnitClass::Infantry => match *tile {

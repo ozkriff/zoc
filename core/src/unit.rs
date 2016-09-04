@@ -32,6 +32,7 @@ pub struct WeaponType {
     pub accuracy: i32,
     pub max_distance: i32,
     pub min_distance: i32,
+    pub max_air_distance: Option<i32>,
     pub is_inderect: bool,
     pub reaction_fire: bool,
     pub smoke: Option<u8>,
@@ -57,4 +58,5 @@ pub struct UnitType {
     pub cover_los_range: i32,
     pub is_transporter: bool,
     pub is_big: bool,
+    pub is_air: bool,
 }

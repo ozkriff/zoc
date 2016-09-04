@@ -68,3 +68,17 @@ pub fn fov<S: GameState>(
         }
     }
 }
+
+pub fn simple_fov<S: GameState>(
+    state: &S,
+    origin: MapPos,
+    range: i32,
+    callback: &mut FnMut(MapPos),
+) {
+    callback(origin);
+    for pos in spiral_iter(origin, range) {
+        if state.map().is_inboard(pos) {
+            callback(pos);
+        }
+    }
+}

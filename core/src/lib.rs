@@ -29,11 +29,11 @@ use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{Terrain, distance};
 use pathfinder::{path_cost, tile_cost};
-use unit::{Unit, UnitType, UnitTypeId, UnitClass};
+use unit::{Unit, UnitTypeId, UnitClass};
 use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
-use fov::{fov};
+use fov::{fov, simple_fov};
 use dir::{Dir};
 
 #[derive(Clone, Copy, Debug)]
@@ -68,7 +68,7 @@ pub enum SlotId {
     Id(u8),
     WholeTile,
     TwoTiles(Dir),
-    // Air, // TODO: implement air units
+    Air,
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -97,7 +97,7 @@ impl Iterator for ExactPosIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         let next_pos = match self.p.slot_id {
-            SlotId::Id(_) | SlotId::WholeTile => {
+            SlotId::Air | SlotId::Id(_) | SlotId::WholeTile => {
                 if self.i == 0 {
                     Some(self.p.map_pos)
                 } else {
@@ -509,19 +509,26 @@ fn check_attack<S: GameState>(
         return Err(CommandError::BadMorale);
     }
     let attacker_type = db.unit_type(attacker.type_id);
+    let defender_type = db.unit_type(defender.type_id);
     let weapon_type = db.weapon_type(attacker_type.weapon_type_id);
-    if distance(attacker.pos.map_pos, defender.pos.map_pos) > weapon_type.max_distance {
-        return Err(CommandError::OutOfRange);
+    let distance =  distance(attacker.pos.map_pos, defender.pos.map_pos);
+    if defender_type.is_air {
+        if let Some(max_air_distance) = weapon_type.max_air_distance {
+            if distance > max_air_distance {
+                return Err(CommandError::OutOfRange);
+            }
+        } else {
+            return Err(CommandError::OutOfRange);
+        }
+    } else {
+        if distance > weapon_type.max_distance {
+            return Err(CommandError::OutOfRange);
+        }
+        if distance < weapon_type.min_distance {
+            return Err(CommandError::TooClose);
+        }
     }
-    if distance(attacker.pos.map_pos, defender.pos.map_pos) < weapon_type.min_distance {
-        return Err(CommandError::TooClose);
-    }
-    let is_los_ok = los(
-        state,
-        attacker_type,
-        attacker.pos.map_pos,
-        defender.pos.map_pos,
-    );
+    let is_los_ok = los(db, state, attacker, defender);
     if !weapon_type.is_inderect && !is_los_ok {
         return Err(CommandError::NoLos);
     }
@@ -656,13 +663,16 @@ pub fn check_command<S: GameState>(
     }
 }
 
-fn check_sectors(state: &InternalState) -> Vec<CoreEvent> {
+fn check_sectors(db: &Db, state: &InternalState) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     for (&sector_id, sector) in state.sectors() {
         let mut claimers = HashSet::new();
         for &pos in &sector.positions {
             for unit in state.units_at(pos) {
-                claimers.insert(unit.player_id);
+                let unit_type = db.unit_type(unit.type_id);
+                if !unit_type.is_air {
+                    claimers.insert(unit.player_id);
+                }
             }
         }
         let owner_id = if claimers.len() != 1 {
@@ -746,16 +756,25 @@ fn get_player_info_lists(map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
     map
 }
 
+// TODO: profile and optimize!
 fn los<S: GameState>(
+    db: &Db,
     state: &S,
-    unit_type: &UnitType,
-    from: MapPos,
-    to: MapPos,
+    attacker: &Unit,
+    defender: &Unit,
 ) -> bool {
-    // TODO: profile and optimize!
+    let attacker_type = db.unit_type(attacker.type_id);
+    let defender_type = db.unit_type(defender.type_id);
+    let from = attacker.pos.map_pos;
+    let to = defender.pos.map_pos;
+    let range = attacker_type.los_range;
     let mut v = false;
-    let range = unit_type.los_range;
-    fov(state, from, range, &mut |p| if p == to { v = true });
+    let f = if attacker_type.is_air || defender_type.is_air {
+        simple_fov
+    } else {
+        fov
+    };
+    f(state, from, range, &mut |p| if p == to { v = true });
     v
 }
 
@@ -802,6 +821,14 @@ pub fn get_free_slot_id<S: GameState>(
     let objects_at = state.objects_at(pos);
     let units_at = state.units_at(pos);
     let unit_type = db.unit_type(type_id);
+    if unit_type.is_air {
+        for unit in &units_at {
+            if unit.pos.slot_id == SlotId::Air {
+                return None;
+            }
+        }
+        return Some(SlotId::Air);
+    }
     if unit_type.is_big {
         for object in &objects_at {
             match object.class {
@@ -820,6 +847,7 @@ pub fn get_free_slot_id<S: GameState>(
         match unit.pos.slot_id {
             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
             SlotId::WholeTile | SlotId::TwoTiles(_) => return None,
+            SlotId::Air => {},
         }
     }
     if unit_type.class == UnitClass::Vehicle {
@@ -834,7 +862,7 @@ pub fn get_free_slot_id<S: GameState>(
                         ObjectClass::Smoke | ObjectClass::Road => {},
                     }
                 }
-                SlotId::TwoTiles(_) => {},
+                SlotId::TwoTiles(_) | SlotId::Air => {},
             }
         }
     }
@@ -854,17 +882,19 @@ pub fn is_exact_pos_free<S: GameState>(
     pos: ExactPos,
 ) -> bool {
     let units_at = state.units_at(pos.map_pos);
-    if db.unit_type(type_id).is_big {
+    let unit_type = db.unit_type(type_id);
+    if unit_type.is_big && !unit_type.is_air {
         return units_at.is_empty();
     }
     for unit in &units_at {
+        if unit.pos == pos {
+            return false;
+        }
         match unit.pos.slot_id {
-            slot_id @ SlotId::Id(_) => {
-                if slot_id == pos.slot_id {
-                    return false;
-                }
+            SlotId::WholeTile | SlotId::TwoTiles(_) => {
+                return false;
             }
-            SlotId::WholeTile | SlotId::TwoTiles(_) => return false,
+            _ => {}
         }
     }
     true
@@ -900,6 +930,7 @@ impl Core {
             (0, (1, 3), "truck"),
             (0, (1, 3), "mortar"),
             (0, (1, 4), "jeep"),
+            (0, (3, 3), "helicopter"),
             (0, (2, 2), "soldier"),
             (0, (2, 2), "scout"),
             (0, (2, 4), "smg"),
@@ -1106,7 +1137,8 @@ impl Core {
                     enemy_unit.id, unit_id, FireMode::Reactive);
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
                     let hit_chance = self.hit_chance(enemy_unit, unit);
-                    if hit_chance > 15 && stop_on_attack {
+                    let unit_type = self.db.unit_type(unit.type_id);
+                    if hit_chance > 15 && !unit_type.is_air && stop_on_attack {
                         attack_info.remove_move_points = true;
                     }
                     CoreEvent::AttackUnit{attack_info: attack_info}
@@ -1294,7 +1326,7 @@ impl Core {
                 self.reaction_fire(unit_id);
             },
         };
-        let sector_events = check_sectors(&self.state);
+        let sector_events = check_sectors(&self.db, &self.state);
         for event in sector_events {
             self.do_core_event(&event);
         }

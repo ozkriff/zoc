@@ -75,9 +75,19 @@ impl Ai {
             if target.player_id == self.id {
                 continue;
             }
+            let target_type = db.unit_type(target.type_id);
             let attacker_type = db.unit_type(unit.type_id);
             let weapon_type = db.weapon_type(attacker_type.weapon_type_id);
-            if distance(unit.pos.map_pos, target.pos.map_pos) <= weapon_type.max_distance {
+            let distance = distance(unit.pos.map_pos, target.pos.map_pos);
+            let max_distance = if target_type.is_air {
+                match weapon_type.max_air_distance {
+                    Some(max_air_distance) => max_air_distance,
+                    None => continue, // can not attack air unit, skipping.
+                }
+            } else {
+                weapon_type.max_distance
+            };
+            if distance <= max_distance {
                 return true;
             }
         }

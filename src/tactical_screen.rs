@@ -200,6 +200,7 @@ fn get_unit_type_visual_info(
         ("mammoth_tank", "mammoth", 1.5),
         ("truck", "truck", 3.0),
         ("jeep", "jeep", 3.5),
+        ("helicopter", "helicopter", 3.0),
     ] {
         manager.add_info(db.unit_type_id(unit_name), UnitTypeVisualInfo {
             mesh_id: meshes.add(load_object_mesh(context, model_name)),
@@ -405,7 +406,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                     mesh_id: Some(match object.pos.slot_id {
                         SlotId::Id(_) => mesh_ids.building_mesh_id,
                         SlotId::WholeTile => mesh_ids.big_building_mesh_id,
-                        SlotId::TwoTiles(_) => unimplemented!(),
+                        SlotId::TwoTiles(_) | SlotId::Air => unimplemented!(),
                     }),
                     color: [1.0, 1.0, 1.0, 1.0],
                     children: Vec::new(),
@@ -688,6 +689,8 @@ impl TacticalScreen {
             if let Some(pos) = self.can_unload_unit(selected_unit_id, pos) {
                 options.unload_pos = Some(pos);
             }
+            let selected_unit = state.unit(selected_unit_id);
+            let selected_unit_type = db.unit_type(selected_unit.type_id);
             if let Some(destination) = core::get_free_exact_pos(
                 db, state, state.unit(selected_unit_id).type_id, pos,
             ) {
@@ -699,11 +702,14 @@ impl TacticalScreen {
                     }).is_ok() {
                         options.move_pos = Some(destination);
                     }
-                    if core::check_command(db, state, &Command::Move {
+                    let hunt_command = Command::Move {
                         unit_id: selected_unit_id,
                         path: path.clone(),
                         mode: core::MoveMode::Hunt,
-                    }).is_ok() {
+                    };
+                    if !selected_unit_type.is_air
+                        && core::check_command(db, state, &hunt_command).is_ok()
+                    {
                         options.hunt_pos = Some(destination);
                     }
                 }
@@ -1212,7 +1218,7 @@ impl TacticalScreen {
             let is_big = match object.pos.slot_id {
                 SlotId::Id(_) => false,
                 SlotId::WholeTile => true,
-                SlotId::TwoTiles(..) => unimplemented!(),
+                SlotId::TwoTiles(..) | SlotId::Air => unimplemented!(),
             };
             let normal_mesh_id = if is_big {
                 self.mesh_ids.big_building_mesh_id

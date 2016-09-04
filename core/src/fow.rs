@@ -3,7 +3,7 @@ use types::{Size2};
 use internal_state::{InternalState};
 use game_state::{GameState};
 use map::{Map, Terrain, distance};
-use fov::{fov};
+use fov::{fov, simple_fov};
 use db::{Db};
 use unit::{Unit, UnitType, UnitClass};
 use ::{CoreEvent, PlayerId, MapPos, ExactPos, ObjectClass};
@@ -38,7 +38,12 @@ fn fov_unit_in_pos(
 ) {
     let unit_type = db.unit_type(unit.type_id);
     let range = unit_type.los_range;
-    fov(
+    let f = if unit_type.is_air {
+        simple_fov
+    } else {
+        fov
+    };
+    f(
         state,
         origin,
         range,
@@ -129,6 +134,18 @@ impl Fow {
             }
         }
         let unit_type = db.unit_type(unit.type_id);
+        if unit_type.is_air {
+            for enemy_unit in state.units().values() {
+                if enemy_unit.player_id == unit.player_id {
+                    continue;
+                }
+                let enemy_unit_type = db.unit_type(enemy_unit.type_id);
+                let distance = distance(pos.map_pos, enemy_unit.pos.map_pos);
+                if distance <= enemy_unit_type.los_range {
+                    return true;
+                }
+            }
+        }
         self.check_terrain_visibility(unit_type, pos.map_pos)
     }
 
