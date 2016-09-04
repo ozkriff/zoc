@@ -556,6 +556,21 @@ impl TacticalScreen {
         }
     }
 
+    fn booble_helicopters(&mut self, context: &Context) {
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        let state = &player_info.game_state;
+        let scene = &mut player_info.scene;
+        for unit in state.units().values() {
+            let unit_type = self.core.db().unit_type(unit.type_id);
+            if unit_type.is_air {
+                let node_id = scene.unit_id_to_node_id(unit.id);
+                let node = scene.node_mut(node_id);
+                let n = context.current_time().n + unit.id.id as f32;
+                node.pos.v.z += (n * 1.5).sin() * 0.005;
+            }
+        }
+    }
+
     fn hide_selected_unit_meshes(&mut self, context: &mut Context) {
         let scene = &mut self.player_info.get_mut(self.core.player_id()).scene;
         self.selection_manager.deselect(scene);
@@ -1361,6 +1376,7 @@ impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: Time) {
         self.logic(context);
         self.draw(context, dtime);
+        self.booble_helicopters(context);
         self.update_fow(dtime);
         self.handle_context_menu_popup_commands(context);
     }
