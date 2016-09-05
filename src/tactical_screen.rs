@@ -1252,6 +1252,10 @@ impl TacticalScreen {
                 scene.node_mut(node_id)
             };
             for unit in state.units().values() {
+                let unit_type = self.core.db().unit_type(unit.type_id);
+                if unit_type.is_air {
+                    continue;
+                }
                 if unit.pos == object.pos || (is_big && unit.pos.map_pos == object.pos.map_pos) {
                     node.mesh_id = Some(wire_mesh_id);
                     node.color = [0.0, 0.0, 0.0, 1.0];
