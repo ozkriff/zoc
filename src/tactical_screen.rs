@@ -556,7 +556,7 @@ impl TacticalScreen {
         }
     }
 
-    fn booble_helicopters(&mut self, context: &Context) {
+    fn bobble_helicopters(&mut self, context: &Context) {
         let player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let scene = &mut player_info.scene;
@@ -1376,7 +1376,7 @@ impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: Time) {
         self.logic(context);
         self.draw(context, dtime);
-        self.booble_helicopters(context);
+        self.bobble_helicopters(context);
         self.update_fow(dtime);
         self.handle_context_menu_popup_commands(context);
     }
