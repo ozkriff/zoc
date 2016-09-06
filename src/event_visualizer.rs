@@ -44,6 +44,7 @@ impl EventVisualizer for EventMoveVisualizer {
 
 impl EventMoveVisualizer {
     pub fn new(
+        state: &PartialState,
         scene: &mut Scene,
         unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
@@ -53,7 +54,7 @@ impl EventMoveVisualizer {
         let node_id = scene.unit_id_to_node_id(unit_id);
         let node = scene.node_mut(node_id);
         let from = node.pos;
-        let to = geom::exact_pos_to_world_pos(destination);
+        let to = geom::exact_pos_to_world_pos(state, destination);
         node.rot = geom::get_rot_angle(from, to);
         let move_helper = MoveHelper::new(from, to, speed);
         Box::new(EventMoveVisualizer {
@@ -92,12 +93,13 @@ fn get_player_color(player_id: PlayerId) -> [f32; 4] {
 
 fn show_unit_at(
     db: &Db,
+    state: &PartialState,
     scene: &mut Scene,
     unit_info: &UnitInfo,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
 ) {
-    let world_pos = geom::exact_pos_to_world_pos(unit_info.pos);
+    let world_pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let to = world_pos;
     let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
     let mut children = get_unit_scene_nodes(db, unit_info.type_id, mesh_id);
@@ -156,14 +158,15 @@ fn get_unit_scene_nodes(
 impl EventCreateUnitVisualizer {
     pub fn new(
         db: &Db,
+        state: &PartialState,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
     ) -> Box<EventVisualizer> {
-        let to = geom::exact_pos_to_world_pos(unit_info.pos);
+        let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
         let move_helper = MoveHelper::new(from, to, 2.0);
         let node_id = scene.unit_id_to_node_id(unit_info.unit_id);
         let new_node = scene.node_mut(node_id);
@@ -335,6 +338,7 @@ pub struct EventShowUnitVisualizer;
 impl EventShowUnitVisualizer {
     pub fn new(
         db: &Db,
+        state: &PartialState,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
@@ -342,7 +346,7 @@ impl EventShowUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(unit_info.pos.map_pos, "spotted");
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
         Box::new(EventShowUnitVisualizer)
     }
 }
@@ -393,6 +397,7 @@ pub struct EventUnloadUnitVisualizer {
 impl EventUnloadUnitVisualizer {
     pub fn new(
         db: &Db,
+        state: &PartialState,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
@@ -402,9 +407,9 @@ impl EventUnloadUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(unit_info.pos.map_pos, "unloaded");
-        let to = geom::exact_pos_to_world_pos(unit_info.pos);
-        let from = geom::exact_pos_to_world_pos(transporter_pos);
-        show_unit_at(db, scene, unit_info, mesh_id, marker_mesh_id);
+        let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
+        let from = geom::exact_pos_to_world_pos(state, transporter_pos);
+        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
         let node_id = scene.unit_id_to_node_id(unit_info.unit_id);
         let unit_node = scene.node_mut(node_id);
         unit_node.pos = from;
@@ -447,8 +452,8 @@ impl EventLoadUnitVisualizer {
     ) -> Box<EventVisualizer> {
         let unit_pos = state.unit(unit_id).pos;
         map_text.add_text(unit_pos.map_pos, "loaded");
-        let from = geom::exact_pos_to_world_pos(unit_pos);
-        let to = geom::exact_pos_to_world_pos(transporter_pos);
+        let from = geom::exact_pos_to_world_pos(state, unit_pos);
+        let to = geom::exact_pos_to_world_pos(state, transporter_pos);
         let passenger_node_id = scene.unit_id_to_node_id(unit_id);
         let unit_node = scene.node_mut(passenger_node_id);
         unit_node.rot = geom::get_rot_angle(from, to);

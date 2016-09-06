@@ -1,7 +1,8 @@
 use std::f32::consts::{PI};
 use cgmath::{Vector3, Rad, Angle, rad};
-use core::{ExactPos, MapPos, SlotId, geom};
+use core::{ExactPos, MapPos, SlotId, geom, get_slots_count};
 use core::dir::{Dir};
+use core::game_state::{GameState};
 use types::{VertexCoord, WorldPos};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
@@ -13,8 +14,9 @@ pub fn map_pos_to_world_pos(p: MapPos) -> WorldPos {
     WorldPos{v: v}
 }
 
-pub fn exact_pos_to_world_pos(p: ExactPos) -> WorldPos {
+pub fn exact_pos_to_world_pos<S: GameState>(state: &S, p: ExactPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(p.map_pos).extend(0.0);
+    let n = get_slots_count(state, p.map_pos);
     match p.slot_id {
         SlotId::TwoTiles(dir) => {
             // TODO: employ index_to_circle_vertex_rnd
@@ -23,13 +25,13 @@ pub fn exact_pos_to_world_pos(p: ExactPos) -> WorldPos {
             WorldPos{v: (v + v2) / 2.0}
         }
         SlotId::WholeTile => {
-            WorldPos{v: v + index_to_circle_vertex_rnd(3, 0, p.map_pos).v * 0.2}
+            WorldPos{v: v + index_to_circle_vertex_rnd(n, 0, p.map_pos).v * 0.2}
         }
         SlotId::Air => {
-            WorldPos{v: v + Vector3{x: 0.0, y: 0.0, z: 2.0} + index_to_circle_vertex_rnd(3, 0, p.map_pos).v * 0.2} // TODO
+            WorldPos{v: v + Vector3{x: 0.0, y: 0.0, z: 2.0} + index_to_circle_vertex_rnd(n, 0, p.map_pos).v * 0.2} // TODO
         }
-        SlotId::Id(n) => {
-            WorldPos{v: v + index_to_circle_vertex_rnd(3, n as i32, p.map_pos).v * 0.5}
+        SlotId::Id(id) => {
+            WorldPos{v: v + index_to_circle_vertex_rnd(n, id as i32, p.map_pos).v * 0.5}
         }
     }
 }
@@ -43,9 +45,8 @@ pub fn lift(v: Vector3<f32>) -> Vector3<f32> {
 pub fn index_to_circle_vertex_rnd(count: i32, i: i32, pos: MapPos) -> VertexCoord {
     let n = 2.0 * PI * (i as f32) / (count as f32);
     let n = n + ((pos.v.x as f32 + pos.v.y as f32) * 7.0) % 4.0; // TODO: remove magic numbers
-    VertexCoord {
-        v: Vector3{x: n.cos(), y: n.sin(), z: 0.0} * HEX_EX_RADIUS
-    }
+    let v = Vector3{x: n.cos(), y: n.sin(), z: 0.0};
+    VertexCoord{v: v * if count == 1 { 0.1 } else { HEX_EX_RADIUS }}
 }
 
 pub fn index_to_circle_vertex(count: i32, i: i32) -> VertexCoord {

@@ -293,8 +293,6 @@ pub enum CoreEvent {
     },
 }
 
-pub const MAX_GROUND_SLOTS_COUNT: usize = 3;
-
 pub fn move_cost_modifier(mode: MoveMode) -> i32 {
     match mode {
         MoveMode::Fast => 1,
@@ -795,7 +793,8 @@ pub fn get_free_slot_for_building<S: GameState>(
             return None;
         }
     }
-    for (i, slot) in slots.iter().enumerate().take(MAX_GROUND_SLOTS_COUNT) {
+    let slots_count = get_slots_count(state, pos) as usize;
+    for (i, slot) in slots.iter().enumerate().take(slots_count) {
         if !slot {
             return Some(SlotId::Id(i as u8));
         }
@@ -870,12 +869,22 @@ pub fn get_free_slot_id<S: GameState>(
             }
         }
     }
-    for (i, slot) in slots.iter().enumerate().take(MAX_GROUND_SLOTS_COUNT) {
+    let slots_count = get_slots_count(state, pos) as usize;
+    for (i, slot) in slots.iter().enumerate().take(slots_count) {
         if !slot {
             return Some(SlotId::Id(i as u8));
         }
     }
     None
+}
+
+pub fn get_slots_count<S: GameState>(state: &S, pos: MapPos) -> i32 {
+    match *state.map().tile(pos) {
+        Terrain::Water => 1,
+        Terrain::City |
+        Terrain::Plain |
+        Terrain::Trees => 3,
+    }
 }
 
 // TODO: join logic with get_free_slot_id

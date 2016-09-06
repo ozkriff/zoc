@@ -3,7 +3,7 @@ use cgmath::{Vector2, Array};
 use core::{self, MapPos, Sector, MovePoints, ExactPos, Command, UnitId};
 use core::db::{Db};
 use core::pathfinder::{Pathfinder};
-use core::map::{Map, Terrain};
+use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use context::{Context};
@@ -75,9 +75,10 @@ pub fn empty_mesh(context: &mut Context) -> Mesh {
 pub fn build_walkable_mesh(
     context: &mut Context,
     pf: &Pathfinder,
-    map: &Map<Terrain>,
+    state: &PartialState,
     move_points: MovePoints,
 ) -> Mesh {
+    let map = state.map();
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut i = 0;
@@ -95,9 +96,9 @@ pub fn build_walkable_mesh(
                 map_pos: tile_pos_to,
                 slot_id: pf.get_map().tile(tile_pos_to).slot_id(),
             };
-            let mut world_pos_from = geom::exact_pos_to_world_pos(exact_pos);
+            let mut world_pos_from = geom::exact_pos_to_world_pos(state, exact_pos);
             world_pos_from.v.z = 0.0;
-            let mut world_pos_to = geom::exact_pos_to_world_pos(exact_pos_to);
+            let mut world_pos_to = geom::exact_pos_to_world_pos(state, exact_pos_to);
             world_pos_to.v.z = 0.0;
             vertices.push(Vertex {
                 pos: geom::lift(world_pos_from.v).into(),
@@ -130,8 +131,8 @@ pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, 
         if !core::check_command(db, state, &command).is_ok() {
             continue;
         }
-        let world_pos_from = geom::exact_pos_to_world_pos(unit.pos);
-        let world_pos_to = geom::exact_pos_to_world_pos(enemy.pos);
+        let world_pos_from = geom::exact_pos_to_world_pos(state, unit.pos);
+        let world_pos_to = geom::exact_pos_to_world_pos(state, enemy.pos);
         vertices.push(Vertex {
             pos: geom::lift(world_pos_from.v).into(),
             uv: [0.5, 0.5],

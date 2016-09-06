@@ -33,7 +33,7 @@ impl SelectionManager {
         let unit_id = self.unit_id
             .expect("Can`t get pos if no unit is selected");
         let map_pos = state.units()[&unit_id].pos;
-        WorldPos{v: geom::lift(geom::exact_pos_to_world_pos(map_pos).v)}
+        WorldPos{v: geom::lift(geom::exact_pos_to_world_pos(state, map_pos).v)}
     }
 
     pub fn create_selection_marker(

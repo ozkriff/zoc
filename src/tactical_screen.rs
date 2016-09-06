@@ -397,7 +397,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
     for (&object_id, object) in state.objects() {
         match object.class {
             core::ObjectClass::Building => {
-                let pos = geom::exact_pos_to_world_pos(object.pos);
+                let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
                 scene.add_object(object_id, SceneNode {
                     pos: pos,
@@ -413,7 +413,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                 });
             }
             core::ObjectClass::Road => {
-                let pos = geom::exact_pos_to_world_pos(object.pos);
+                let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = match object.pos.slot_id {
                     SlotId::TwoTiles(dir) => {
                         rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
@@ -773,7 +773,7 @@ impl TacticalScreen {
         let pf = &mut player_info.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
         let new_walkable_mesh = gen::build_walkable_mesh(
-            context, pf, state.map(), state.unit(unit_id).move_points);
+            context, pf, state, state.unit(unit_id).move_points);
         self.meshes.set(self.mesh_ids.walkable_mesh_id, new_walkable_mesh);
         let new_targets_mesh = gen::build_targets_mesh(self.core.db(), context, state, unit_id);
         self.meshes.set(self.mesh_ids.targets_mesh_id, new_targets_mesh);
@@ -1045,6 +1045,7 @@ impl TacticalScreen {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
                 event_visualizer::EventMoveVisualizer::new(
+                    state,
                     scene,
                     unit_id,
                     visual_info,
@@ -1059,6 +1060,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventCreateUnitVisualizer::new(
                     self.core.db(),
+                    state,
                     scene,
                     unit_info,
                     mesh_id,
@@ -1079,6 +1081,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventShowUnitVisualizer::new(
                     self.core.db(),
+                    state,
                     scene,
                     unit_info,
                     mesh_id,
@@ -1114,6 +1117,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventUnloadUnitVisualizer::new(
                     self.core.db(),
+                    state,
                     scene,
                     unit_info,
                     mesh_id,
