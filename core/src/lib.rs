@@ -632,7 +632,11 @@ pub fn check_command<S: GameState>(
             if !is_exact_pos_free(db, state, passenger.type_id, pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
-            // TODO: check that tile is walkable for passenger
+            let passenger_type = db.unit_type(passenger.type_id);
+            let cost = tile_cost(db, state, passenger, transporter.pos, pos);
+            if cost.n > passenger_type.move_points.n {
+                return Err(CommandError::NotEnoughMovePoints);
+            }
             Ok(())
         },
         Command::SetReactionFireMode{unit_id, ..} => {
