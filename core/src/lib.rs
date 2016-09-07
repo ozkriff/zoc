@@ -724,7 +724,6 @@ pub struct Core {
     db: Db,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
-    next_unit_id: UnitId,
 }
 
 fn get_players_list(game_type: GameType) -> Vec<Player> {
@@ -923,7 +922,6 @@ impl Core {
             db: Db::new(),
             ai: Ai::new(PlayerId{id:1}, map_size),
             players_info: get_player_info_lists(map_size),
-            next_unit_id: UnitId{id: 0},
         };
         core.get_units();
         core
@@ -967,9 +965,12 @@ impl Core {
     }
 
     fn get_new_unit_id(&mut self) -> UnitId {
-        let new_unit_id = self.next_unit_id;
-        self.next_unit_id.id += 1;
-        new_unit_id
+        let mut next_id = match self.state.units().keys().max() {
+            Some(&id) => id,
+            None => UnitId{id: 0},
+        };
+        next_id.id += 1;
+        next_id
     }
 
     fn get_new_object_id(&mut self) -> ObjectId {
