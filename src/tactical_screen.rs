@@ -607,16 +607,13 @@ impl TacticalScreen {
             Some(id) => id,
             None => return None,
         };
-        let exact_pos = match core::get_free_exact_pos(
-            self.core.db(),
-            state,
-            state.unit(passenger_id).type_id,
-            pos,
-        ) {
+        let db = self.core.db();
+        let type_id = state.unit(passenger_id).type_id;
+        let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
             Some(pos) => pos,
             None => return None,
         };
-        if core::check_command(self.core.db(), state, &Command::UnloadUnit {
+        if core::check_command(db, state, &Command::UnloadUnit {
             transporter_id: transporter_id,
             passenger_id: passenger_id,
             pos: exact_pos,
