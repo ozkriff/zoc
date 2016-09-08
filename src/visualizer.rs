@@ -7,6 +7,7 @@ use context::{Context};
 use main_menu_screen::{MainMenuScreen};
 use types::{Time};
 
+#[cfg(not(target_os = "android"))]
 fn check_assets_dir() {
     if let Err(e) = metadata("assets") {
         println!("Can`t find 'assets' dir: {}", e);
@@ -14,6 +15,9 @@ fn check_assets_dir() {
         process::exit(1);
     }
 }
+
+#[cfg(target_os = "android")]
+fn check_assets_dir() {}
 
 pub struct Visualizer {
     screens: Vec<Box<Screen>>,
