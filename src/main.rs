@@ -24,6 +24,7 @@ mod obj;
 mod scene;
 mod event_visualizer;
 mod unit_type_visual_info;
+mod player_info;
 mod selection;
 mod types;
 mod pipeline;

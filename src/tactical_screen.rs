@@ -6,16 +6,14 @@ use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
-use types::{Size2, Time};
-use core::map::{Terrain, Map};
+use types::{Time};
+use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
-use core::pathfinder::{Pathfinder};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId};
 use core::db::{Db};
 use core::unit::{UnitTypeId};
 use obj;
-use camera::Camera;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
@@ -34,19 +32,9 @@ use game_results_screen::{GameResultsScreen};
 use types::{ScreenPos, WorldPos};
 use gen;
 use pick;
+use player_info::{PlayerInfoManager, PlayerInfo};
 
 const FOW_FADING_TIME: f32 = 0.6;
-
-fn get_initial_camera_pos(map_size: Size2) -> WorldPos {
-    let pos = get_max_camera_pos(map_size);
-    WorldPos{v: Vector3{x: pos.v.x / 2.0, y: pos.v.y / 2.0, z: 0.0}}
-}
-
-fn get_max_camera_pos(map_size: Size2) -> WorldPos {
-    let map_pos = MapPos{v: Vector2{x: map_size.w, y: map_size.h - 1}};
-    let pos = geom::map_pos_to_world_pos(map_pos);
-    WorldPos{v: Vector3{x: -pos.v.x, y: -pos.v.y, z: 0.0}}
-}
 
 // TODO: get from Core
 fn target_score() -> core::Score {
@@ -208,74 +196,6 @@ fn get_unit_type_visual_info(
         });
     }
     manager
-}
-
-#[derive(Clone, Debug)]
-struct Fow {
-    map: Map<Option<NodeId>>,
-    vanishing_node_ids: HashMap<NodeId, Time>,
-    forthcoming_node_ids: HashMap<NodeId, Time>,
-}
-
-impl Fow {
-    fn new(map_size: Size2) -> Fow {
-        Fow {
-            map: Map::new(map_size),
-            vanishing_node_ids: HashMap::new(),
-            forthcoming_node_ids: HashMap::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-struct PlayerInfo {
-    game_state: PartialState,
-    pathfinder: Pathfinder,
-    scene: Scene,
-    camera: Camera,
-    fow: Fow,
-}
-
-#[derive(Clone, Debug)]
-struct PlayerInfoManager {
-    info: HashMap<PlayerId, PlayerInfo>,
-}
-
-impl PlayerInfoManager {
-    fn new(context: &Context, map_size: Size2, options: &core::Options) -> PlayerInfoManager {
-        let mut m = HashMap::new();
-        let mut camera = Camera::new(context.win_size);
-        camera.set_max_pos(get_max_camera_pos(map_size));
-        camera.set_pos(get_initial_camera_pos(map_size));
-        m.insert(PlayerId{id: 0}, PlayerInfo {
-            game_state: PartialState::new(map_size, PlayerId{id: 0}),
-            pathfinder: Pathfinder::new(map_size),
-            scene: Scene::new(),
-            camera: camera.clone(),
-            fow: Fow::new(map_size),
-        });
-        if options.game_type == core::GameType::Hotseat {
-            m.insert(PlayerId{id: 1}, PlayerInfo {
-                game_state: PartialState::new(map_size, PlayerId{id: 1}),
-                pathfinder: Pathfinder::new(map_size),
-                scene: Scene::new(),
-                camera: camera,
-                fow: Fow::new(map_size),
-            });
-        }
-        PlayerInfoManager{info: m}
-    }
-
-    fn get(&self, player_id: PlayerId) -> &PlayerInfo {
-        &self.info[&player_id]
-    }
-
-    fn get_mut(&mut self, player_id: PlayerId) -> &mut PlayerInfo {
-        match self.info.get_mut(&player_id) {
-            Some(i) => i,
-            None => panic!("Can`t find player_info for id={}", player_id.id),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -600,37 +520,18 @@ impl TacticalScreen {
         self.player_info.get_mut(self.core.player_id())
     }
 
-    fn can_unload_unit(&self, transporter_id: UnitId, pos: MapPos) -> Option<ExactPos> {
-        let state = self.current_state();
-        let transporter = state.unit(transporter_id);
-        let passenger_id = match transporter.passenger_id {
-            Some(id) => id,
-            None => return None,
-        };
-        let db = self.core.db();
-        let type_id = state.unit(passenger_id).type_id;
-        let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
-            Some(pos) => pos,
-            None => return None,
-        };
-        if core::check_command(db, state, &Command::UnloadUnit {
-            transporter_id: transporter_id,
-            passenger_id: passenger_id,
-            pos: exact_pos,
-        }).is_ok() {
-            Some(exact_pos)
-        } else {
-            None
-        }
-    }
-
     // TODO: show commands preview
     fn try_create_context_menu_popup(
         &mut self,
         context: &mut Context,
         pos: MapPos,
     ) {
-        let options = self.get_context_menu_popup_options(pos);
+        let options = context_menu_popup::get_options(
+            &self.core,
+            self.current_player_info(),
+            self.selected_unit_id,
+            pos,
+        );
         if options == context_menu_popup::Options::new() {
             return;
         }
@@ -645,98 +546,6 @@ impl TacticalScreen {
             self.tx.clone(),
         );
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
-    }
-
-    fn get_context_menu_popup_options(
-        &self,
-        pos: MapPos,
-    ) -> context_menu_popup::Options {
-        let player_info = self.current_player_info();
-        let state = &player_info.game_state;
-        let db = self.core.db();
-        let mut options = context_menu_popup::Options::new();
-        let unit_ids = core::get_unit_ids_at(db, state, pos);
-        if let Some(selected_unit_id) = self.selected_unit_id {
-            for unit_id in unit_ids {
-                let unit = state.unit(unit_id);
-                let unit_type = self.core.db().unit_type(unit.type_id);
-                if unit.player_id == self.core.player_id() {
-                    if unit_id == selected_unit_id {
-                        if unit_type.attack_points.n != 0
-                            || unit_type.reactive_attack_points.n != 0
-                        {
-                            if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
-                                options.enable_reaction_fire = Some(selected_unit_id);
-                            } else {
-                                options.disable_reaction_fire = Some(selected_unit_id);
-                            }
-                        }
-                    } else {
-                        options.selects.push(unit_id);
-                        let load_command = Command::LoadUnit {
-                            transporter_id: selected_unit_id,
-                            passenger_id: unit_id,
-                        };
-                        if core::check_command(db, state, &load_command).is_ok() {
-                            options.loads.push(unit_id);
-                        }
-                    }
-                } else {
-                    let attacker = state.unit(selected_unit_id);
-                    let defender = state.unit(unit_id);
-                    let hit_chance = self.core.hit_chance(attacker, defender);
-                    let attack_command = Command::AttackUnit {
-                        attacker_id: attacker.id,
-                        defender_id: defender.id,
-                    };
-                    if core::check_command(db, state, &attack_command).is_ok() {
-                        options.attacks.push((unit_id, hit_chance));
-                    }
-                }
-            }
-            if core::check_command(db, state, &Command::Smoke {
-                unit_id: selected_unit_id,
-                pos: pos,
-            }).is_ok() {
-                options.smoke_pos = Some(pos);
-            }
-            if let Some(pos) = self.can_unload_unit(selected_unit_id, pos) {
-                options.unload_pos = Some(pos);
-            }
-            let selected_unit = state.unit(selected_unit_id);
-            let selected_unit_type = db.unit_type(selected_unit.type_id);
-            if let Some(destination) = core::get_free_exact_pos(
-                db, state, state.unit(selected_unit_id).type_id, pos,
-            ) {
-                if let Some(path) = player_info.pathfinder.get_path(destination) {
-                    if core::check_command(db, state, &Command::Move {
-                        unit_id: selected_unit_id,
-                        path: path.clone(),
-                        mode: core::MoveMode::Fast,
-                    }).is_ok() {
-                        options.move_pos = Some(destination);
-                    }
-                    let hunt_command = Command::Move {
-                        unit_id: selected_unit_id,
-                        path: path.clone(),
-                        mode: core::MoveMode::Hunt,
-                    };
-                    if !selected_unit_type.is_air
-                        && core::check_command(db, state, &hunt_command).is_ok()
-                    {
-                        options.hunt_pos = Some(destination);
-                    }
-                }
-            }
-        } else {
-            for unit_id in unit_ids {
-                let unit = state.unit(unit_id);
-                if unit.player_id == self.core.player_id() {
-                    options.selects.push(unit_id);
-                }
-            }
-        }
-        options
     }
 
     fn create_unit(&mut self, context: &Context, type_id: UnitTypeId) {

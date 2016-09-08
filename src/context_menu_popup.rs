@@ -2,7 +2,7 @@ use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{UnitId, MapPos, ExactPos};
+use core::{self, UnitId, MapPos, ExactPos};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::db::{Db};
@@ -10,6 +10,131 @@ use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
+use player_info::{PlayerInfo};
+
+fn can_unload_unit(
+    db: &Db,
+    state: &PartialState,
+    transporter_id: UnitId,
+    pos: MapPos,
+) -> Option<ExactPos> {
+    let transporter = state.unit(transporter_id);
+    let passenger_id = match transporter.passenger_id {
+        Some(id) => id,
+        None => return None,
+    };
+    let type_id = state.unit(passenger_id).type_id;
+    let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
+        Some(pos) => pos,
+        None => return None,
+    };
+    if core::check_command(db, state, &core::Command::UnloadUnit {
+        transporter_id: transporter_id,
+        passenger_id: passenger_id,
+        pos: exact_pos,
+    }).is_ok() {
+        Some(exact_pos)
+    } else {
+        None
+    }
+}
+
+pub fn get_options(
+    core: &core::Core,
+    player_info: &PlayerInfo,
+    selected_unit_id: Option<UnitId>,
+    pos: MapPos,
+) -> Options {
+    let state = &player_info.game_state;
+    let pathfinder = &player_info.pathfinder;
+    let db = core.db();
+    let mut options = Options::new();
+    let unit_ids = core::get_unit_ids_at(db, state, pos);
+    let selected_unit_id = match selected_unit_id {
+        Some(id) => id,
+        None => {
+            for unit_id in unit_ids {
+                let unit = state.unit(unit_id);
+                if unit.player_id == core.player_id() {
+                    options.selects.push(unit_id);
+                }
+            }
+            return options;
+        }
+    };
+    for unit_id in unit_ids {
+        let unit = state.unit(unit_id);
+        let unit_type = db.unit_type(unit.type_id);
+        if unit.player_id == core.player_id() {
+            if unit_id == selected_unit_id {
+                if unit_type.attack_points.n != 0
+                    || unit_type.reactive_attack_points.n != 0
+                {
+                    if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
+                        options.enable_reaction_fire = Some(selected_unit_id);
+                    } else {
+                        options.disable_reaction_fire = Some(selected_unit_id);
+                    }
+                }
+            } else {
+                options.selects.push(unit_id);
+                let load_command = core::Command::LoadUnit {
+                    transporter_id: selected_unit_id,
+                    passenger_id: unit_id,
+                };
+                if core::check_command(db, state, &load_command).is_ok() {
+                    options.loads.push(unit_id);
+                }
+            }
+        } else {
+            let attacker = state.unit(selected_unit_id);
+            let defender = state.unit(unit_id);
+            let hit_chance = core.hit_chance(attacker, defender);
+            let attack_command = core::Command::AttackUnit {
+                attacker_id: attacker.id,
+                defender_id: defender.id,
+            };
+            if core::check_command(db, state, &attack_command).is_ok() {
+                options.attacks.push((unit_id, hit_chance));
+            }
+        }
+    }
+    if core::check_command(db, state, &core::Command::Smoke {
+        unit_id: selected_unit_id,
+        pos: pos,
+    }).is_ok() {
+        options.smoke_pos = Some(pos);
+    }
+    if let Some(pos) = can_unload_unit(db, state, selected_unit_id, pos) {
+        options.unload_pos = Some(pos);
+    }
+    let selected_unit = state.unit(selected_unit_id);
+    let selected_unit_type = db.unit_type(selected_unit.type_id);
+    if let Some(destination) = core::get_free_exact_pos(
+        db, state, state.unit(selected_unit_id).type_id, pos,
+    ) {
+        if let Some(path) = pathfinder.get_path(destination) {
+            if core::check_command(db, state, &core::Command::Move {
+                unit_id: selected_unit_id,
+                path: path.clone(),
+                mode: core::MoveMode::Fast,
+            }).is_ok() {
+                options.move_pos = Some(destination);
+            }
+            let hunt_command = core::Command::Move {
+                unit_id: selected_unit_id,
+                path: path.clone(),
+                mode: core::MoveMode::Hunt,
+            };
+            if !selected_unit_type.is_air
+                && core::check_command(db, state, &hunt_command).is_ok()
+            {
+                options.hunt_pos = Some(destination);
+            }
+        }
+    }
+    options
+}
 
 #[derive(Clone, Debug)]
 pub enum Command {
