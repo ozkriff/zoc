@@ -470,7 +470,7 @@ impl TacticalScreen {
         for (_, player_info) in &mut player_info.info {
             player_info.scene = make_scene(&player_info.game_state, &mesh_ids);
         }
-        TacticalScreen {
+        let mut screen = TacticalScreen {
             gui: gui,
             player_info: player_info,
             core: core,
@@ -484,7 +484,9 @@ impl TacticalScreen {
             map_text_manager: map_text_manager,
             tx: tx,
             rx: rx,
-        }
+        };
+        screen.regenerate_fow();
+        screen
     }
 
     fn end_turn(&mut self, context: &mut Context) {
