@@ -1,4 +1,4 @@
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
@@ -33,6 +33,16 @@ use types::{ScreenPos, WorldPos};
 use gen;
 use pick;
 use player_info::{PlayerInfoManager, PlayerInfo};
+
+fn opt_rx_collect<T>(rx: &Option<Receiver<T>>) -> Vec<T> {
+    let mut context_menu_popup_commands = Vec::new();
+    if let &Some(ref rx) = rx {
+        while let Ok(command) = rx.try_recv() {
+            context_menu_popup_commands.push(command);
+        }
+    }
+    context_menu_popup_commands
+}
 
 const FOW_FADING_TIME: f32 = 0.6;
 
@@ -366,8 +376,7 @@ pub struct TacticalScreen {
     unit_type_visual_info: UnitTypeVisualInfoManager,
     selected_unit_id: Option<UnitId>,
     selection_manager: SelectionManager,
-    tx: Sender<context_menu_popup::Command>,
-    rx: Receiver<context_menu_popup::Command>,
+    context_menu_popup_rx: Option<Receiver<context_menu_popup::Command>>,
 }
 
 impl TacticalScreen {
@@ -384,7 +393,6 @@ impl TacticalScreen {
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), context, &mut meshes);
         let map_text_manager = MapTextManager::new();
-        let (tx, rx) = channel();
         let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
         let selection_manager = SelectionManager::new(mesh_ids.selection_marker_mesh_id);
         for (_, player_info) in &mut player_info.info {
@@ -402,8 +410,7 @@ impl TacticalScreen {
             selected_unit_id: None,
             selection_manager: selection_manager,
             map_text_manager: map_text_manager,
-            tx: tx,
-            rx: rx,
+            context_menu_popup_rx: None,
         };
         screen.regenerate_fow();
         screen
@@ -540,14 +547,16 @@ impl TacticalScreen {
         }
         let mut menu_pos = context.mouse().pos;
         menu_pos.v.y = context.win_size.h - menu_pos.v.y;
+        let (tx, rx) = channel();
         let screen = ContextMenuPopup::new(
             self.current_state(),
             self.core.db(),
             context,
             menu_pos,
             options,
-            self.tx.clone(),
+            tx,
         );
+        self.context_menu_popup_rx = Some(rx);
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
     }
 
@@ -1185,7 +1194,7 @@ impl TacticalScreen {
     }
 
     fn handle_context_menu_popup_commands(&mut self, context: &mut Context) {
-        while let Ok(command) = self.rx.try_recv() {
+        for command in opt_rx_collect(&self.context_menu_popup_rx) {
             self.handle_context_menu_popup_command(context, command);
         }
     }
