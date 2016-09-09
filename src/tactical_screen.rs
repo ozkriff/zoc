@@ -460,7 +460,10 @@ impl TacticalScreen {
         let fow = &mut player_info.fow;
         for (&node_id, time) in &mut fow.forthcoming_node_ids {
             time.n += dtime.n;
-            let a = (time.n / FOW_FADING_TIME) * max_alpha;
+            let mut a = (time.n / FOW_FADING_TIME) * max_alpha;
+            if a > max_alpha {
+                a = max_alpha;
+            }
             scene.node_mut(node_id).color[3] = a;
         }
         fow.forthcoming_node_ids = fow.forthcoming_node_ids.clone()
