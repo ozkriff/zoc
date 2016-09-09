@@ -380,6 +380,10 @@ impl Db {
         None
     }
 
+    pub fn unit_types(&self) -> &[UnitType] {
+        &self.unit_types
+    }
+
     pub fn unit_type(&self, unit_type_id: UnitTypeId) -> &UnitType {
         &self.unit_types[unit_type_id.id as usize]
     }
