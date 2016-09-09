@@ -17,7 +17,7 @@ pub fn is_tap(context: &Context) -> bool {
 
 pub fn basic_text_size(context: &Context) -> f32 {
     // TODO: use different value for android
-    let lines_per_screen_h = 12.0;
+    let lines_per_screen_h = 14.0;
     (context.win_size.h as f32) / lines_per_screen_h
 }
 
