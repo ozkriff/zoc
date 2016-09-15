@@ -1,5 +1,5 @@
 use std::f32::consts::{PI};
-use cgmath::{perspective, rad, Matrix4, Matrix3, Vector3, Rad, Array};
+use cgmath::{perspective, Rad, Matrix4, Matrix3, Vector3, Array, Angle};
 use core::misc::{clamp};
 use types::{WorldPos, Size2};
 
@@ -14,7 +14,7 @@ pub struct Camera {
 }
 
 fn get_projection_mat(win_size: Size2) -> Matrix4<f32> {
-    let fov = rad(PI / 4.0);
+    let fov = Rad(PI / 4.0);
     let ratio = win_size.w as f32 / win_size.h as f32;
     let display_range_min = 0.1;
     let display_range_max = 100.0;
@@ -24,8 +24,8 @@ fn get_projection_mat(win_size: Size2) -> Matrix4<f32> {
 impl Camera {
     pub fn new(win_size: Size2) -> Camera {
         Camera {
-            x_angle: rad(PI / 4.0),
-            z_angle: rad(PI / 4.0),
+            x_angle: Rad(PI / 4.0),
+            z_angle: Rad(PI / 4.0),
             pos: WorldPos{v: Vector3::from_value(0.0)},
             max_pos: WorldPos{v: Vector3::from_value(0.0)},
             zoom: 25.0,
@@ -43,18 +43,18 @@ impl Camera {
 
     pub fn add_horizontal_angle(&mut self, angle: Rad<f32>) {
         self.z_angle = self.z_angle + angle;
-        while self.z_angle < rad(0.0) {
-            self.z_angle = self.z_angle + rad(PI * 2.0);
+        while self.z_angle < Rad(0.0) {
+            self.z_angle = self.z_angle + Rad(PI * 2.0);
         }
-        while self.z_angle > rad(PI * 2.0) {
-            self.z_angle = self.z_angle - rad(PI * 2.0);
+        while self.z_angle > Rad(PI * 2.0) {
+            self.z_angle = self.z_angle - Rad(PI * 2.0);
         }
     }
 
     pub fn add_vertical_angle(&mut self, angle: Rad<f32>) {
         self.x_angle = self.x_angle + angle;
-        let min = rad(PI / 18.0);
-        let max = rad(PI / 4.0);
+        let min = Rad(PI / 18.0);
+        let max = Rad(PI / 4.0);
         self.x_angle = clamp(self.x_angle, min, max);
     }
 
@@ -86,7 +86,7 @@ impl Camera {
     }
 
     pub fn move_in_direction(&mut self, direction: Rad<f32>, speed: f32) {
-        let diff = (self.z_angle - direction).s;
+        let diff = self.z_angle - direction;
         let dx = diff.sin();
         let dy = diff.cos();
         // TODO: handle zoom

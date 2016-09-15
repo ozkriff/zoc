@@ -1,4 +1,4 @@
-use cgmath::{rad};
+use cgmath::{Rad};
 use core::{UnitId};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
@@ -50,7 +50,7 @@ impl SelectionManager {
         }
         let node = SceneNode {
             pos: self.get_pos(state),
-            rot: rad(0.0),
+            rot: Rad(0.0),
             mesh_id: Some(self.mesh_id),
             color: [1.0, 1.0, 1.0, 1.0],
             children: Vec::new(),

@@ -1,5 +1,5 @@
 use std::f32::consts::{PI};
-use cgmath::{Vector3, Rad, Angle, rad};
+use cgmath::{Vector3, Rad, Angle};
 use core::{ExactPos, MapPos, SlotId, geom, get_slots_count};
 use core::dir::{Dir};
 use core::game_state::{GameState};
@@ -76,7 +76,7 @@ pub fn dist(a: WorldPos, b: WorldPos) -> f32 {
 pub fn get_rot_angle(a: WorldPos, b: WorldPos) -> Rad<f32> {
     let diff = b.v - a.v;
     let angle = diff.x.atan2(diff.y);
-    rad(-angle).normalize()
+    Rad(-angle).normalize()
 }
 
 #[cfg(test)]

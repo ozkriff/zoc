@@ -3,7 +3,7 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
-use cgmath::{self, Array, Vector2, Vector3, rad};
+use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use types::{Time};
@@ -276,28 +276,28 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
     let map = state.map();
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: rad(0.0),
+        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.walkable_mesh_id),
         color: [0.0, 0.0, 1.0, 1.0],
         children: Vec::new(),
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: rad(0.0),
+        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.targets_mesh_id),
         color: [1.0, 0.0, 0.0, 1.0],
         children: Vec::new(),
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: rad(0.0),
+        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.map_mesh_id),
         color: [0.8, 0.9, 0.3, 1.0],
         children: Vec::new(),
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: rad(0.0),
+        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.water_mesh_id),
         color: [0.6, 0.6, 0.9, 1.0],
         children: Vec::new(),
@@ -305,7 +305,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
     for (&sector_id, &sector_mesh_id) in &mesh_ids.sector_mesh_ids {
         scene.add_sector(sector_id, SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
-            rot: rad(0.0),
+            rot: Rad(0.0),
             mesh_id: Some(sector_mesh_id),
             color: [1.0, 1.0, 1.0, 0.5],
             children: Vec::new(),
@@ -314,7 +314,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
     for tile_pos in map.get_iter() {
         if *map.tile(tile_pos) == Terrain::Trees {
             let pos = geom::map_pos_to_world_pos(tile_pos);
-            let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+            let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
             scene.add_node(SceneNode {
                 pos: pos,
                 rot: rot,
@@ -328,7 +328,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
         match object.class {
             core::ObjectClass::Building => {
                 let pos = geom::exact_pos_to_world_pos(state, object.pos);
-                let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+                let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
                 scene.add_object(object_id, SceneNode {
                     pos: pos,
                     rot: rot,
@@ -346,7 +346,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                 let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = match object.pos.slot_id {
                     SlotId::TwoTiles(dir) => {
-                        rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
+                        Rad(dir.to_int() as f32 * PI / 3.0 + PI / 6.0)
                     },
                     _ => panic!(),
                 };
@@ -449,7 +449,7 @@ impl TacticalScreen {
                 world_pos.v.z += 0.02; // TODO: magic
                 let node_id = player_info.scene.add_node(SceneNode {
                     pos: world_pos,
-                    rot: rad(0.0),
+                    rot: Rad(0.0),
                     mesh_id: Some(self.mesh_ids.fow_tile_mesh_id),
                     color: [0.0, 0.1, 0.0, 0.0],
                     children: Vec::new(),
@@ -648,8 +648,8 @@ impl TacticalScreen {
         let per_x_pixel = camera_move_speed / (context.win_size.w as f32);
         let per_y_pixel = camera_move_speed / (context.win_size.h as f32);
         let camera = &mut self.current_player_info_mut().camera;
-        camera.move_in_direction(rad(PI), diff.x as f32 * per_x_pixel);
-        camera.move_in_direction(rad(PI * 1.5), diff.y as f32 * per_y_pixel);
+        camera.move_in_direction(Rad(PI), diff.x as f32 * per_x_pixel);
+        camera.move_in_direction(Rad(PI * 1.5), diff.y as f32 * per_y_pixel);
     }
 
     fn handle_camera_rotate(&mut self, context: &Context, pos: ScreenPos) {
@@ -658,8 +658,8 @@ impl TacticalScreen {
         // TODO: get max angles from camera
         let per_y_pixel = (PI / 4.0) / (context.win_size.h as f32);
         let camera = &mut self.current_player_info_mut().camera;
-        camera.add_horizontal_angle(rad(diff.x as f32 * per_x_pixel));
-        camera.add_vertical_angle(rad(diff.y as f32 * per_y_pixel));
+        camera.add_horizontal_angle(Rad(diff.x as f32 * per_x_pixel));
+        camera.add_vertical_angle(Rad(diff.y as f32 * per_y_pixel));
     }
 
     fn handle_event_mouse_move(&mut self, context: &Context, pos: ScreenPos) {
@@ -717,16 +717,16 @@ impl TacticalScreen {
                 context.add_command(ScreenCommand::PopScreen);
             },
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                self.current_player_info_mut().camera.move_in_direction(rad(PI * 1.5), s);
+                self.current_player_info_mut().camera.move_in_direction(Rad(PI * 1.5), s);
             },
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                self.current_player_info_mut().camera.move_in_direction(rad(PI * 0.5), s);
+                self.current_player_info_mut().camera.move_in_direction(Rad(PI * 0.5), s);
             },
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                self.current_player_info_mut().camera.move_in_direction(rad(PI * 0.0), s);
+                self.current_player_info_mut().camera.move_in_direction(Rad(PI * 0.0), s);
             },
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                self.current_player_info_mut().camera.move_in_direction(rad(PI * 1.0), s);
+                self.current_player_info_mut().camera.move_in_direction(Rad(PI * 1.0), s);
             },
             VirtualKeyCode::I => {
                 self.print_info(context);

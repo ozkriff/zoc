@@ -1,6 +1,6 @@
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
-use cgmath::{Vector3, rad};
+use cgmath::{Vector3, Rad};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos, PlayerId, SectorId, MapPos, ObjectId};
@@ -101,11 +101,11 @@ fn show_unit_at(
 ) {
     let world_pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let to = world_pos;
-    let rot = rad(thread_rng().gen_range(0.0, PI * 2.0));
+    let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
     let mut children = get_unit_scene_nodes(db, unit_info.type_id, mesh_id);
     children.push(SceneNode {
         pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
-        rot: rad(0.0),
+        rot: Rad(0.0),
         mesh_id: Some(marker_mesh_id),
         color: get_player_color(unit_info.player_id),
         children: Vec::new(),
@@ -135,7 +135,7 @@ fn get_unit_scene_nodes(
     if count == 1 {
         vec![SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
-            rot: rad(0.0),
+            rot: Rad(0.0),
             mesh_id: Some(mesh_id),
             color: [1.0, 1.0, 1.0, 1.0],
             children: vec![],
@@ -145,7 +145,7 @@ fn get_unit_scene_nodes(
             let pos = geom::index_to_circle_vertex(count, i).v * 0.15;
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
-                rot: rad(0.0),
+                rot: Rad(0.0),
                 mesh_id: Some(mesh_id),
                 color: [1.0, 1.0, 1.0, 1.0],
                 children: vec![],
@@ -616,16 +616,16 @@ impl EventSmokeVisualizer {
         let z_step = 0.45; // TODO: magic
         let mut node = SceneNode {
             pos: geom::map_pos_to_world_pos(pos),
-            rot: rad(0.0),
+            rot: Rad(0.0),
             mesh_id: Some(smoke_mesh_id),
             color: [1.0, 1.0, 1.0, 0.0],
             children: Vec::new(),
         };
         node.pos.v.z += z_step;
-        node.rot += rad(thread_rng().gen_range(0.0, PI * 2.0));
+        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
         scene.add_object(object_id, node.clone());
         node.pos.v.z += z_step;
-        node.rot += rad(thread_rng().gen_range(0.0, PI * 2.0));
+        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
         scene.add_object(object_id, node);
         Box::new(EventSmokeVisualizer {
             time: Time{n: 0.0},
