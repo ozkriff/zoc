@@ -420,6 +420,7 @@ pub fn print_terrain_info<S: GameState>(state: &S, pos: MapPos) {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CommandError {
     TileIsOccupied,
+    CanNotCommandEnemyUnits,
     NotEnoughMovePoints,
     NotEnoughAttackPoints,
     NotEnoughReactiveAttackPoints,
@@ -448,6 +449,7 @@ impl CommandError {
     fn to_str(&self) -> &str {
         match *self {
             CommandError::TileIsOccupied => "Tile is occupied",
+            CommandError::CanNotCommandEnemyUnits => "Can not command enemy units",
             CommandError::NotEnoughMovePoints => "Not enough move points",
             CommandError::NotEnoughAttackPoints => "No attack points",
             CommandError::NotEnoughReactiveAttackPoints => "No reactive attack points",
@@ -535,6 +537,7 @@ fn check_attack<S: GameState>(
 
 pub fn check_command<S: GameState>(
     db: &Db,
+    player_id: PlayerId,
     state: &S,
     command: &Command,
 ) -> Result<(), CommandError> {
@@ -548,6 +551,10 @@ pub fn check_command<S: GameState>(
             }
         },
         Command::Move{unit_id, ref path, mode} => {
+            let unit = state.unit(unit_id);
+            if unit.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
             if path.len() < 2 {
                 return Err(CommandError::BadPath);
             }
@@ -576,6 +583,9 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::BadDefenderId);
             }
             let attacker = state.unit(attacker_id);
+            if attacker.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
             let defender = state.unit(defender_id);
             check_attack(db, state, attacker, defender, FireMode::Active)
         },
@@ -588,6 +598,12 @@ pub fn check_command<S: GameState>(
             }
             let passenger = state.unit(passenger_id);
             let transporter = state.unit(transporter_id);
+            if passenger.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            if transporter.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
             if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
@@ -618,6 +634,12 @@ pub fn check_command<S: GameState>(
                 None => return Err(CommandError::BadPassengerId),
             };
             let transporter = state.unit(transporter_id);
+            if passenger.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            if transporter.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
             if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterClass);
             }
@@ -638,17 +660,23 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::SetReactionFireMode{unit_id, ..} => {
-            if state.units().get(&unit_id).is_none() {
-                Err(CommandError::BadUnitId)
-            } else {
-                Ok(())
+            let unit = match state.units().get(&unit_id) {
+                Some(unit) => unit,
+                None => return Err(CommandError::BadUnitId),
+            };
+            if unit.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
             }
+            Ok(())
         },
         Command::Smoke{unit_id, pos} => {
             let unit = match state.units().get(&unit_id) {
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };
+            if unit.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
             let unit_type = db.unit_type(unit.type_id);
             let weapon_type = db.weapon_type(unit_type.weapon_type_id);
             if !weapon_type.smoke.is_some() {
@@ -1184,7 +1212,12 @@ impl Core {
     }
 
     fn simulation_step(&mut self, command: Command) {
-        if let Err(err) = check_command(&self.db, &self.state, &command) {
+        if let Err(err) = check_command(
+            &self.db,
+            self.current_player_id,
+            &self.state,
+            &command,
+        ) {
             println!("Bad command: {:?}", err);
             return;
         }

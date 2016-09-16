@@ -28,11 +28,13 @@ fn can_unload_unit(
         Some(pos) => pos,
         None => return None,
     };
-    if core::check_command(db, state, &core::Command::UnloadUnit {
+    let player_id = transporter.player_id;
+    let command = core::Command::UnloadUnit {
         transporter_id: transporter_id,
         passenger_id: passenger_id,
         pos: exact_pos,
-    }).is_ok() {
+    };
+    if core::check_command(db, player_id, state, &command).is_ok() {
         Some(exact_pos)
     } else {
         None
@@ -49,6 +51,7 @@ pub fn get_options(
     let pathfinder = &player_info.pathfinder;
     let db = core.db();
     let mut options = Options::new();
+    let player_id = core.player_id();
     let unit_ids = core::get_unit_ids_at(db, state, pos);
     let selected_unit_id = match selected_unit_id {
         Some(id) => id,
@@ -82,7 +85,7 @@ pub fn get_options(
                     transporter_id: selected_unit_id,
                     passenger_id: unit_id,
                 };
-                if core::check_command(db, state, &load_command).is_ok() {
+                if core::check_command(db, player_id, state, &load_command).is_ok() {
                     options.loads.push(unit_id);
                 }
             }
@@ -94,12 +97,12 @@ pub fn get_options(
                 attacker_id: attacker.id,
                 defender_id: defender.id,
             };
-            if core::check_command(db, state, &attack_command).is_ok() {
+            if core::check_command(db, player_id, state, &attack_command).is_ok() {
                 options.attacks.push((unit_id, hit_chance));
             }
         }
     }
-    if core::check_command(db, state, &core::Command::Smoke {
+    if core::check_command(db, player_id, state, &core::Command::Smoke {
         unit_id: selected_unit_id,
         pos: pos,
     }).is_ok() {
@@ -114,7 +117,7 @@ pub fn get_options(
         db, state, state.unit(selected_unit_id).type_id, pos,
     ) {
         if let Some(path) = pathfinder.get_path(destination) {
-            if core::check_command(db, state, &core::Command::Move {
+            if core::check_command(db, player_id, state, &core::Command::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
                 mode: core::MoveMode::Fast,
@@ -127,7 +130,7 @@ pub fn get_options(
                 mode: core::MoveMode::Hunt,
             };
             if !selected_unit_type.is_air
-                && core::check_command(db, state, &hunt_command).is_ok()
+                && core::check_command(db, player_id, state, &hunt_command).is_ok()
             {
                 options.hunt_pos = Some(destination);
             }

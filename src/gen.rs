@@ -136,7 +136,7 @@ pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, 
             attacker_id: unit_id,
             defender_id: enemy_id,
         };
-        if !core::check_command(db, state, &command).is_ok() {
+        if !core::check_command(db, unit.player_id, state, &command).is_ok() {
             continue;
         }
         let world_pos_from = geom::exact_pos_to_world_pos(state, unit.pos);
