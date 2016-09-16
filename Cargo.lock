@@ -2,7 +2,7 @@
 name = "zoc"
 version = "0.0.1"
 dependencies = [
- "android_glue 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "collision 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core 0.0.1",
@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "android_glue"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -289,7 +289,7 @@ name = "glutin"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "android_glue 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "cocoa 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -728,7 +728,7 @@ dependencies = [
 ]
 
 [metadata]
-"checksum android_glue 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "155b8329ec4be0063f1b581350514969fb3560a73e8e6b1b8150ce28bb1db6b4"
+"checksum android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e2b80445d331077679dfc6f3014f3e9ab7083e588423d35041d3fc017198189"
 "checksum approx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "08abcc3b4e9339e33a3d0a5ed15d84a687350c05689d825e0f6655eef9e76a94"
 "checksum arrayvec 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)" = "16e3bdb2f54b3ace0285975d59a97cf8ed3855294b2b6bc651fcf22a9c352975"
 "checksum bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "32866f4d103c4e438b1db1158aa1b1a80ee078e5d77a59a2f906fd62a577389c"
