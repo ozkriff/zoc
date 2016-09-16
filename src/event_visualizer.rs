@@ -9,6 +9,7 @@ use core::db::{Db};
 use types::{WorldPos, Time};
 use mesh::{MeshId};
 use geom;
+use gen;
 use scene::{Scene, SceneNode, NodeId};
 use unit_type_visual_info::{UnitTypeVisualInfo};
 use move_helper::{MoveHelper};
@@ -83,14 +84,6 @@ impl EventVisualizer for EventEndTurnVisualizer {
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
 }
 
-fn get_player_color(player_id: PlayerId) -> [f32; 4] {
-    match player_id.id {
-        0 => [0.1, 0.1, 1.0, 1.0],
-        1 => [0.0, 0.8, 0.0, 1.0],
-        n => panic!("Wrong player id: {}", n),
-    }
-}
-
 fn show_unit_at(
     db: &Db,
     state: &PartialState,
@@ -107,7 +100,7 @@ fn show_unit_at(
         pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
         rot: Rad(0.0),
         mesh_id: Some(marker_mesh_id),
-        color: get_player_color(unit_info.player_id),
+        color: gen::get_player_color(unit_info.player_id),
         children: Vec::new(),
     });
     scene.add_unit(unit_info.unit_id, SceneNode {

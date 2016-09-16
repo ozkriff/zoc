@@ -1,6 +1,6 @@
 use std::path::{Path};
 use cgmath::{Vector2, Array};
-use core::{self, MapPos, Sector, MovePoints, ExactPos, Command, UnitId};
+use core::{self, MapPos, Sector, MovePoints, ExactPos, Command, UnitId, PlayerId};
 use core::db::{Db};
 use core::pathfinder::{Pathfinder};
 use core::map::{Terrain};
@@ -13,6 +13,14 @@ use pipeline::{Vertex};
 use core::dir::{Dir, dirs};
 use geom;
 use fs;
+
+pub fn get_player_color(player_id: PlayerId) -> [f32; 4] {
+    match player_id.id {
+        0 => [0.1, 0.1, 1.0, 1.0],
+        1 => [0.0, 0.8, 0.0, 1.0],
+        n => panic!("Wrong player id: {}", n),
+    }
+}
 
 pub fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
     context: &mut Context,
