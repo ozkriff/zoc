@@ -144,12 +144,17 @@ impl Ai {
             if unit.move_points.n < cost.n {
                 continue;
             }
-            return Some(Command::Move {
+            let command = Command::Move {
                 unit_id: unit.id,
                 path: path,
                 mode: MoveMode::Fast,
-            });
+            };
+            if check_command(db, &self.state, &command).is_err() {
+                continue;
+            }
+            return Some(command);
         }
+        // TODO: if there are no visible enemies then try to capture some sector
         None
     }
 
