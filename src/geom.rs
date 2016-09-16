@@ -96,8 +96,8 @@ mod tests {
             let b = WorldPos{v: index_to_circle_vertex(count, i).v};
             let expected_angle = i as f32 * (PI * 2.0) / (count as f32);
             let angle = get_rot_angle(a, b);
-            let diff = (expected_angle - angle.s).abs();
-            assert!(diff < EPS, "{} != {}", expected_angle, angle.s);
+            let diff = (expected_angle - angle.0).abs();
+            assert!(diff < EPS, "{} != {}", expected_angle, angle.0);
         }
     }
 }
