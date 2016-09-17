@@ -154,15 +154,15 @@ pub enum Command {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Options {
-    pub selects: Vec<UnitId>,
-    pub attacks: Vec<(UnitId, i32)>,
-    pub loads: Vec<UnitId>,
-    pub move_pos: Option<ExactPos>,
-    pub hunt_pos: Option<ExactPos>,
-    pub unload_pos: Option<ExactPos>,
-    pub smoke_pos: Option<MapPos>,
-    pub enable_reaction_fire: Option<UnitId>,
-    pub disable_reaction_fire: Option<UnitId>,
+    selects: Vec<UnitId>,
+    attacks: Vec<(UnitId, i32)>,
+    loads: Vec<UnitId>,
+    move_pos: Option<ExactPos>,
+    hunt_pos: Option<ExactPos>,
+    unload_pos: Option<ExactPos>,
+    smoke_pos: Option<MapPos>,
+    enable_reaction_fire: Option<UnitId>,
+    disable_reaction_fire: Option<UnitId>,
 }
 
 impl Options {
