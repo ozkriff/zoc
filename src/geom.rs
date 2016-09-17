@@ -16,7 +16,7 @@ pub fn map_pos_to_world_pos(p: MapPos) -> WorldPos {
 
 pub fn exact_pos_to_world_pos<S: GameState>(state: &S, p: ExactPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(p.map_pos).extend(0.0);
-    let n = get_slots_count(state, p.map_pos);
+    let n = get_slots_count(state.map(), p.map_pos);
     match p.slot_id {
         SlotId::TwoTiles(dir) => {
             // TODO: employ index_to_circle_vertex_rnd

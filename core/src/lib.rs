@@ -27,7 +27,7 @@ use misc::{clamp};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
-use map::{Terrain, distance};
+use map::{Map, Terrain, distance};
 use pathfinder::{path_cost, tile_cost};
 use unit::{Unit, UnitTypeId, UnitClass};
 use db::{Db};
@@ -832,7 +832,7 @@ pub fn get_free_slot_for_building<S: GameState>(
             return None;
         }
     }
-    let slots_count = get_slots_count(state, pos) as usize;
+    let slots_count = get_slots_count(state.map(), pos) as usize;
     for (i, slot) in slots.iter().enumerate().take(slots_count) {
         if !slot {
             return Some(SlotId::Id(i as u8));
@@ -908,7 +908,7 @@ pub fn get_free_slot_id<S: GameState>(
             }
         }
     }
-    let slots_count = get_slots_count(state, pos) as usize;
+    let slots_count = get_slots_count(state.map(), pos) as usize;
     for (i, slot) in slots.iter().enumerate().take(slots_count) {
         if !slot {
             return Some(SlotId::Id(i as u8));
@@ -917,8 +917,8 @@ pub fn get_free_slot_id<S: GameState>(
     None
 }
 
-pub fn get_slots_count<S: GameState>(state: &S, pos: MapPos) -> i32 {
-    match *state.map().tile(pos) {
+pub fn get_slots_count(map: &Map<Terrain>, pos: MapPos) -> i32 {
+    match *map.tile(pos) {
         Terrain::Water => 1,
         Terrain::City |
         Terrain::Plain |
