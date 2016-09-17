@@ -99,7 +99,7 @@ impl Ai {
             if unit.player_id != self.id {
                 continue;
             }
-            if unit.attack_points.n <= 0 {
+            if unit.attack_points.unwrap().n <= 0 {
                 continue;
             }
             for target in self.state.units().values() {
@@ -141,7 +141,8 @@ impl Ai {
                 None => continue,
             };
             let cost = path_cost(db, &self.state, unit, &path);
-            if unit.move_points.n < cost.n {
+            let move_points = unit.move_points.unwrap();
+            if move_points.n < cost.n {
                 continue;
             }
             let command = Command::Move {

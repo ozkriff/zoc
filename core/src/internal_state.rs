@@ -200,9 +200,11 @@ impl InternalState {
             if let Some(ref mut reactive_attack_points)
                 = unit.reactive_attack_points
             {
-                reactive_attack_points.n += unit.attack_points.n;
+                reactive_attack_points.n += unit.attack_points.unwrap().n;
             }
-            unit.attack_points.n = 0;
+            if let Some(ref mut attack_points) = unit.attack_points {
+                attack_points.n = 0;
+            }
         }
     }
 
@@ -210,8 +212,12 @@ impl InternalState {
         for (_, unit) in &mut self.units {
             if unit.player_id == player_id {
                 let unit_type = db.unit_type(unit.type_id);
-                unit.move_points = unit_type.move_points;
-                unit.attack_points = unit_type.attack_points;
+                if let Some(ref mut move_points) = unit.move_points {
+                    *move_points = unit_type.move_points;
+                }
+                if let Some(ref mut attack_points) = unit.attack_points {
+                    *attack_points = unit_type.attack_points;
+                }
                 if let Some(ref mut reactive_attack_points) = unit.reactive_attack_points {
                     *reactive_attack_points = unit_type.reactive_attack_points;
                 }
@@ -232,8 +238,16 @@ impl InternalState {
             pos: unit_info.pos,
             player_id: unit_info.player_id,
             type_id: unit_info.type_id,
-            move_points: unit_type.move_points,
-            attack_points: unit_type.attack_points,
+            move_points: if info_level == InfoLevel::Full {
+                Some(unit_type.move_points)
+            } else {
+                None
+            },
+            attack_points: if info_level == InfoLevel::Full {
+                Some(unit_type.attack_points)
+            } else {
+                None
+            },
             reactive_attack_points: if info_level == InfoLevel::Full {
                 Some(unit_type.reactive_attack_points)
             } else {
@@ -280,9 +294,11 @@ impl GameStateMut for InternalState {
                 {
                     let unit = self.units.get_mut(&unit_id).unwrap();
                     unit.pos = to;
-                    assert!(unit.move_points.n > 0);
-                    unit.move_points.n -= cost.n;
-                    assert!(unit.move_points.n >= 0);
+                    if let Some(ref mut move_points) = unit.move_points {
+                        assert!(move_points.n > 0);
+                        move_points.n -= cost.n;
+                        assert!(move_points.n >= 0);
+                    }
                 }
                 if let Some(passenger_id) = self.units[&unit_id].passenger_id {
                     let passenger = self.units.get_mut(&passenger_id).unwrap();
@@ -309,7 +325,9 @@ impl GameStateMut for InternalState {
                     unit.count -= attack_info.killed;
                     unit.morale -= attack_info.suppression;
                     if attack_info.remove_move_points {
-                        unit.move_points.n = 0;
+                        if let Some(ref mut move_points) = unit.move_points {
+                            move_points.n = 0;
+                        }
                     }
                 }
                 let count = self.units[&attack_info.defender_id].count;
@@ -325,8 +343,10 @@ impl GameStateMut for InternalState {
                 if let Some(unit) = self.units.get_mut(&attacker_id) {
                     match attack_info.mode {
                         FireMode::Active => {
-                            assert!(unit.attack_points.n >= 1);
-                            unit.attack_points.n -= 1;
+                            if let Some(ref mut attack_points) = unit.attack_points {
+                                assert!(attack_points.n >= 1);
+                                attack_points.n -= 1;
+                            }
                         },
                         FireMode::Reactive => {
                             if let Some(ref mut reactive_attack_points)
@@ -356,7 +376,9 @@ impl GameStateMut for InternalState {
                 let passenger = self.units.get_mut(&passenger_id)
                     .expect("Bad passenger_id");
                 passenger.pos = to;
-                passenger.move_points.n = 0;
+                if let Some(ref mut move_points) = passenger.move_points {
+                    move_points.n = 0;
+                }
             },
             CoreEvent::UnloadUnit{transporter_id, ref unit_info, ..} => {
                 if let Some(transporter_id) = transporter_id {
@@ -385,7 +407,9 @@ impl GameStateMut for InternalState {
             CoreEvent::Smoke{pos, id, unit_id} => {
                 if let Some(unit_id) = unit_id {
                     if let Some(unit) = self.units.get_mut(&unit_id) {
-                        unit.attack_points.n = 0;
+                        if let Some(ref mut attack_points) = unit.attack_points {
+                            attack_points.n = 0;
+                        }
                     }
                 }
                 // TODO: if there is already smoke in tile then just restart its timer

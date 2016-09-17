@@ -592,8 +592,9 @@ impl TacticalScreen {
         let state = &player_info.game_state;
         let pf = &mut player_info.pathfinder;
         pf.fill_map(self.core.db(), state, state.unit(unit_id));
+        let move_points = state.unit(unit_id).move_points.unwrap();
         let new_walkable_mesh = gen::build_walkable_mesh(
-            context, pf, state, state.unit(unit_id).move_points);
+            context, pf, state, move_points);
         self.meshes.set(self.mesh_ids.walkable_mesh_id, new_walkable_mesh);
         let new_targets_mesh = gen::build_targets_mesh(self.core.db(), context, state, unit_id);
         self.meshes.set(self.mesh_ids.targets_mesh_id, new_targets_mesh);
@@ -607,9 +608,9 @@ impl TacticalScreen {
                 let unit_type = self.core.db().unit_type(unit.type_id);
                 // TODO: core.rs: print_unit_info
                 format!("MP={}/{}, AP={}/{}, RAP={}/{}, C={}, M={}",
-                    unit.move_points.n,
+                    if let Some(mp) = unit.move_points { mp.n } else { 0 },
                     unit_type.move_points.n,
-                    unit.attack_points.n,
+                    if let Some(ap) = unit.attack_points { ap.n } else { 0 },
                     unit_type.attack_points.n,
                     if let Some(rap) = unit.reactive_attack_points { rap.n } else { 0 },
                     unit_type.reactive_attack_points.n,

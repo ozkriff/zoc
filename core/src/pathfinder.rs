@@ -35,11 +35,12 @@ pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Un
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
     new_path.push(path[0]);
+    let move_points = unit.move_points.unwrap();
     for window in path.windows(2) {
         let from = window[0];
         let to = window[1];
         cost.n += tile_cost(db, state, unit, from, to).n;
-        if cost.n > unit.move_points.n {
+        if cost.n > move_points.n {
             break;
         }
         new_path.push(to);
