@@ -58,7 +58,7 @@ pub fn get_options(
         None => {
             for unit_id in unit_ids {
                 let unit = state.unit(unit_id);
-                if unit.player_id == core.player_id() {
+                if unit.player_id == player_id {
                     options.selects.push(unit_id);
                 }
             }
@@ -68,7 +68,7 @@ pub fn get_options(
     for unit_id in unit_ids {
         let unit = state.unit(unit_id);
         let unit_type = db.unit_type(unit.type_id);
-        if unit.player_id == core.player_id() {
+        if unit.player_id == player_id {
             if unit_id == selected_unit_id {
                 if unit_type.attack_points.n != 0
                     || unit_type.reactive_attack_points.n != 0
