@@ -1,4 +1,3 @@
-use types::{Size2};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
@@ -26,10 +25,12 @@ pub struct Ai {
 }
 
 impl Ai {
-    pub fn new(id: PlayerId, map_size: Size2) -> Ai {
+    pub fn new(id: PlayerId, map_name: &str) -> Ai {
+        let state = PartialState::new(map_name, id);
+        let map_size = state.map().size();
         Ai {
             id: id,
-            state: PartialState::new(map_size, id),
+            state: state,
             pathfinder: Pathfinder::new(map_size),
         }
     }

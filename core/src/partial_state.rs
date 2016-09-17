@@ -1,5 +1,4 @@
 use std::collections::{HashMap};
-use types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
@@ -15,9 +14,11 @@ pub struct PartialState {
 }
 
 impl PartialState {
-    pub fn new(map_size: Size2, player_id: PlayerId) -> PartialState {
+    pub fn new(map_name: &str, player_id: PlayerId) -> PartialState {
+        let state = InternalState::new(map_name);
+        let map_size = state.map().size();
         PartialState {
-            state: InternalState::new(map_size),
+            state: state,
             fow: Fow::new(map_size, player_id),
         }
     }

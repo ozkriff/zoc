@@ -44,183 +44,21 @@ pub struct InternalState {
 }
 
 impl InternalState {
-    pub fn new(map_size: Size2) -> InternalState {
-        let mut map = Map::new(map_size);
-        // TODO: read from scenario.json?
-        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 7}}) = Terrain::Water;
-        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 8}}) = Terrain::Water;
-        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 9}}) = Terrain::Water;
-        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 10}}) = Terrain::Water;
-        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 11}}) = Terrain::Water;
-        *map.tile_mut(MapPos{v: Vector2{x: 1, y: 2}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 1, y: 6}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 2, y: 6}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 3}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 4}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 4, y: 5}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 1}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 5, y: 10}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 0}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 1}}) = Terrain::Trees;
-        *map.tile_mut(MapPos{v: Vector2{x: 6, y: 2}}) = Terrain::Trees;
-        let mut sectors = HashMap::new();
-        sectors.insert(
-            SectorId{id: 0},
-            Sector {
-                positions: vec![
-                    MapPos{v: Vector2{x: 5, y: 0}},
-                    MapPos{v: Vector2{x: 6, y: 0}},
-                    MapPos{v: Vector2{x: 5, y: 1}},
-                    MapPos{v: Vector2{x: 6, y: 1}},
-                    MapPos{v: Vector2{x: 7, y: 1}},
-                    MapPos{v: Vector2{x: 5, y: 2}},
-                    MapPos{v: Vector2{x: 6, y: 2}},
-                ],
-                owner_id: None,
-            },
-        );
-        sectors.insert(
-            SectorId{id: 1},
-            Sector {
-                positions: vec![
-                    MapPos{v: Vector2{x: 5, y: 4}},
-                    MapPos{v: Vector2{x: 6, y: 4}},
-                    MapPos{v: Vector2{x: 5, y: 5}},
-                    MapPos{v: Vector2{x: 6, y: 5}},
-                    MapPos{v: Vector2{x: 7, y: 5}},
-                    MapPos{v: Vector2{x: 5, y: 6}},
-                    MapPos{v: Vector2{x: 6, y: 6}},
-                ],
-                owner_id: None,
-            },
-        );
+    pub fn new(map_name: &str) -> InternalState {
         let mut score = HashMap::new();
         score.insert(PlayerId{id: 0}, Score{n: 0});
         score.insert(PlayerId{id: 1}, Score{n: 0});
         let mut reinforcement_points = HashMap::new();
         reinforcement_points.insert(PlayerId{id: 0}, 10);
         reinforcement_points.insert(PlayerId{id: 1}, 10);
-        let mut state = InternalState {
+        let (map, objects, sectors) = load_map(map_name);
+        InternalState {
             units: HashMap::new(),
-            objects: HashMap::new(),
+            objects: objects,
             map: map,
             sectors: sectors,
             score: score,
             reinforcement_points: reinforcement_points,
-        };
-        state.add_buildings(MapPos{v: Vector2{x: 5, y: 4}}, 2);
-        state.add_buildings(MapPos{v: Vector2{x: 5, y: 5}}, 2);
-        state.add_buildings(MapPos{v: Vector2{x: 5, y: 6}}, 1);
-        state.add_big_building(MapPos{v: Vector2{x: 6, y: 4}});
-        state.add_buildings(MapPos{v: Vector2{x: 6, y: 5}}, 3);
-        state.add_buildings(MapPos{v: Vector2{x: 6, y: 6}}, 1);
-        state.add_buildings(MapPos{v: Vector2{x: 8, y: 11}}, 2);
-        state.add_buildings(MapPos{v: Vector2{x: 8, y: 10}}, 2);
-        state.add_buildings(MapPos{v: Vector2{x: 9, y: 11}}, 1);
-        for &((x, y), player_index) in &[
-            ((0, 0), 0),
-            ((0, 1), 0),
-            ((9, 2), 1),
-            ((9, 3), 1),
-        ] {
-            state.add_reinforcement_sector(
-                MapPos{v: Vector2{x: x, y: y}},
-                Some(PlayerId{id: player_index}),
-            );
-        }
-        state.add_road(&[
-            MapPos{v: Vector2{x: 0, y: 1}},
-            MapPos{v: Vector2{x: 1, y: 1}},
-            MapPos{v: Vector2{x: 2, y: 1}},
-            MapPos{v: Vector2{x: 2, y: 2}},
-            MapPos{v: Vector2{x: 3, y: 2}},
-            MapPos{v: Vector2{x: 4, y: 2}},
-            MapPos{v: Vector2{x: 5, y: 2}},
-            MapPos{v: Vector2{x: 6, y: 3}},
-            MapPos{v: Vector2{x: 7, y: 3}},
-            MapPos{v: Vector2{x: 8, y: 3}},
-            MapPos{v: Vector2{x: 9, y: 3}},
-        ]);
-        state.add_road(&[
-            MapPos{v: Vector2{x: 2, y: 2}},
-            MapPos{v: Vector2{x: 3, y: 3}},
-            MapPos{v: Vector2{x: 3, y: 4}},
-            MapPos{v: Vector2{x: 3, y: 5}},
-            MapPos{v: Vector2{x: 3, y: 6}},
-            MapPos{v: Vector2{x: 4, y: 6}},
-            MapPos{v: Vector2{x: 5, y: 7}},
-            MapPos{v: Vector2{x: 5, y: 8}},
-            MapPos{v: Vector2{x: 6, y: 9}},
-            MapPos{v: Vector2{x: 6, y: 10}},
-            MapPos{v: Vector2{x: 7, y: 11}},
-        ]);
-        state
-    }
-
-    fn add_road(&mut self, path: &[MapPos]) {
-        for window in path.windows(2) {
-            let from = window[0];
-            let to = window[1];
-            let dir = Dir::get_dir_from_to(from, to);
-            let object = Object {
-                class: ObjectClass::Road,
-                pos: ExactPos {
-                    map_pos: from,
-                    slot_id: SlotId::TwoTiles(dir),
-                },
-                timer: None,
-                owner_id: None,
-            };
-            self.add_object(object);
-        }
-    }
-
-    // TODO: create trees, buildings and roads like units - using event system
-    fn add_object(&mut self, object: Object) {
-        let id = ObjectId{id: self.objects.len() as i32 + 1};
-        self.objects.insert(id, object);
-    }
-
-    fn add_big_building(&mut self, pos: MapPos) {
-        *self.map.tile_mut(pos) = Terrain::City;
-        let object = Object {
-            class: ObjectClass::Building,
-            pos: ExactPos {
-                map_pos: pos,
-                slot_id: SlotId::WholeTile,
-            },
-            timer: None,
-            owner_id: None,
-        };
-        self.add_object(object);
-    }
-
-    fn add_reinforcement_sector(&mut self, pos: MapPos, player_id: Option<PlayerId>) {
-        *self.map.tile_mut(pos) = Terrain::City;
-        let object = Object {
-            class: ObjectClass::ReinforcementSector,
-            pos: ExactPos {
-                map_pos: pos,
-                slot_id: SlotId::WholeTile,
-            },
-            timer: None,
-            owner_id: player_id,
-        };
-        self.add_object(object);
-    }
-
-    fn add_buildings(&mut self, pos: MapPos, count: i32) {
-        *self.map.tile_mut(pos) = Terrain::City;
-        for _ in 0 .. count {
-            let slot_id = get_free_slot_for_building(&self.map, &self.objects, pos).unwrap();
-            let obj_pos = ExactPos{map_pos: pos, slot_id: slot_id};
-            let object = Object {
-                class: ObjectClass::Building,
-                pos: obj_pos,
-                timer: None,
-                owner_id: None,
-            };
-            self.add_object(object);
         }
     }
 
@@ -480,4 +318,253 @@ impl GameStateMut for InternalState {
             },
         }
     }
+}
+
+// TODO: create trees, buildings and roads like units - using event system
+fn add_object(objects: &mut HashMap<ObjectId, Object>, object: Object) {
+    let id = ObjectId{id: objects.len() as i32 + 1};
+    objects.insert(id, object);
+}
+
+fn add_road(objects: &mut HashMap<ObjectId, Object>, path: &[MapPos]) {
+    for window in path.windows(2) {
+        let from = window[0];
+        let to = window[1];
+        let dir = Dir::get_dir_from_to(from, to);
+        let object = Object {
+            class: ObjectClass::Road,
+            pos: ExactPos {
+                map_pos: from,
+                slot_id: SlotId::TwoTiles(dir),
+            },
+            timer: None,
+            owner_id: None,
+        };
+        add_object(objects, object);
+    }
+}
+
+fn add_reinforcement_sector(
+    objects: &mut HashMap<ObjectId, Object>,
+    pos: MapPos,
+    owner_id: Option<PlayerId>,
+) {
+    let object = Object {
+        class: ObjectClass::ReinforcementSector,
+        pos: ExactPos {
+            map_pos: pos,
+            slot_id: SlotId::WholeTile,
+        },
+        timer: None,
+        owner_id: owner_id,
+    };
+    add_object(objects, object);
+}
+
+fn add_buildings(
+    map: &mut Map<Terrain>,
+    objects: &mut HashMap<ObjectId, Object>,
+    pos: MapPos,
+    count: i32,
+) {
+    *map.tile_mut(pos) = Terrain::City;
+    for _ in 0 .. count {
+        let slot_id = get_free_slot_for_building(map, objects, pos).unwrap();
+        let obj_pos = ExactPos{map_pos: pos, slot_id: slot_id};
+        let object = Object {
+            class: ObjectClass::Building,
+            pos: obj_pos,
+            timer: None,
+            owner_id: None,
+        };
+        add_object(objects, object);
+    }
+}
+
+fn add_big_building(
+    map: &mut Map<Terrain>,
+    objects: &mut HashMap<ObjectId, Object>,
+    pos: MapPos,
+) {
+    *map.tile_mut(pos) = Terrain::City;
+    let object = Object {
+        class: ObjectClass::Building,
+        pos: ExactPos {
+            map_pos: pos,
+            slot_id: SlotId::WholeTile,
+        },
+        timer: None,
+        owner_id: None,
+    };
+    add_object(objects, object);
+}
+
+type MapInfo = (Map<Terrain>, HashMap<ObjectId, Object>, HashMap<SectorId, Sector>);
+
+// TODO: read from scenario.json?
+fn load_map(map_name: &str) -> MapInfo {
+    match map_name {
+        "map01" => load_map_01(),
+        "map02" => load_map_02(),
+        _ => unimplemented!(),
+    }
+}
+
+fn load_map_01() -> MapInfo {
+    let map_size = Size2{w: 10, h: 12};
+    let mut objects = HashMap::new();
+    let mut map = Map::new(map_size);
+    let mut sectors = HashMap::new();
+    for &((x, y), terrain) in &[
+        ((6, 7), Terrain::Water),
+        ((5, 8), Terrain::Water),
+        ((5, 9), Terrain::Water),
+        ((4, 10), Terrain::Water),
+        ((5, 11), Terrain::Water),
+        ((1, 2), Terrain::Trees),
+        ((1, 6), Terrain::Trees),
+        ((2, 6), Terrain::Trees),
+        ((4, 3), Terrain::Trees),
+        ((4, 4), Terrain::Trees),
+        ((4, 5), Terrain::Trees),
+        ((5, 1), Terrain::Trees),
+        ((5, 10), Terrain::Trees),
+        ((6, 0), Terrain::Trees),
+        ((6, 1), Terrain::Trees),
+        ((6, 2), Terrain::Trees),
+    ] {
+        *map.tile_mut(MapPos{v: Vector2{x: x, y: y}}) = terrain;
+    }
+    for &((x, y), count) in &[
+        ((5, 4), 2),
+        ((5, 5), 2),
+        ((5, 6), 1),
+        ((6, 5), 3),
+        ((6, 6), 1),
+        ((8, 11), 2),
+        ((8, 10), 2),
+        ((9, 11), 1),
+    ] {
+        let pos = MapPos{v: Vector2{x: x, y: y}};
+        add_buildings(&mut map, &mut objects, pos, count);
+    }
+    for &(x, y) in &[
+        (6, 4),
+    ] {
+        let pos = MapPos{v: Vector2{x: x, y: y}};
+        add_big_building(&mut map, &mut objects, pos);
+    }
+    add_road(&mut objects, &[
+        MapPos{v: Vector2{x: 0, y: 1}},
+        MapPos{v: Vector2{x: 1, y: 1}},
+        MapPos{v: Vector2{x: 2, y: 1}},
+        MapPos{v: Vector2{x: 2, y: 2}},
+        MapPos{v: Vector2{x: 3, y: 2}},
+        MapPos{v: Vector2{x: 4, y: 2}},
+        MapPos{v: Vector2{x: 5, y: 2}},
+        MapPos{v: Vector2{x: 6, y: 3}},
+        MapPos{v: Vector2{x: 7, y: 3}},
+        MapPos{v: Vector2{x: 8, y: 3}},
+        MapPos{v: Vector2{x: 9, y: 3}},
+    ]);
+    add_road(&mut objects, &[
+        MapPos{v: Vector2{x: 2, y: 2}},
+        MapPos{v: Vector2{x: 3, y: 3}},
+        MapPos{v: Vector2{x: 3, y: 4}},
+        MapPos{v: Vector2{x: 3, y: 5}},
+        MapPos{v: Vector2{x: 3, y: 6}},
+        MapPos{v: Vector2{x: 4, y: 6}},
+        MapPos{v: Vector2{x: 5, y: 7}},
+        MapPos{v: Vector2{x: 5, y: 8}},
+        MapPos{v: Vector2{x: 6, y: 9}},
+        MapPos{v: Vector2{x: 6, y: 10}},
+        MapPos{v: Vector2{x: 7, y: 11}},
+    ]);
+    for &((x, y), player_index) in &[
+        ((0, 0), 0),
+        ((0, 1), 0),
+        ((9, 2), 1),
+        ((9, 3), 1),
+    ] {
+        add_reinforcement_sector(
+            &mut objects,
+            MapPos{v: Vector2{x: x, y: y}},
+            Some(PlayerId{id: player_index}),
+        );
+    }
+    sectors.insert(
+        SectorId{id: 0},
+        Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 5, y: 0}},
+                MapPos{v: Vector2{x: 6, y: 0}},
+                MapPos{v: Vector2{x: 5, y: 1}},
+                MapPos{v: Vector2{x: 6, y: 1}},
+                MapPos{v: Vector2{x: 7, y: 1}},
+                MapPos{v: Vector2{x: 5, y: 2}},
+                MapPos{v: Vector2{x: 6, y: 2}},
+            ],
+            owner_id: None,
+        },
+    );
+    sectors.insert(
+        SectorId{id: 1},
+        Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 5, y: 4}},
+                MapPos{v: Vector2{x: 6, y: 4}},
+                MapPos{v: Vector2{x: 5, y: 5}},
+                MapPos{v: Vector2{x: 6, y: 5}},
+                MapPos{v: Vector2{x: 7, y: 5}},
+                MapPos{v: Vector2{x: 5, y: 6}},
+                MapPos{v: Vector2{x: 6, y: 6}},
+            ],
+            owner_id: None,
+        },
+    );
+    (map, objects, sectors)
+}
+
+fn load_map_02() -> MapInfo {
+    let map_size = Size2{w: 9, h: 12};
+    let mut objects = HashMap::new();
+    let mut map = Map::new(map_size);
+    let mut sectors = HashMap::new();
+    for &((x, y), terrain) in &[
+        ((3, 6), Terrain::Trees),
+        ((3, 7), Terrain::Trees),
+    ] {
+        *map.tile_mut(MapPos{v: Vector2{x: x, y: y}}) = terrain;
+    }
+    for &((x, y), player_index) in &[
+        ((0, 4), 0),
+        ((0, 10), 0),
+        ((8, 4), 1),
+        ((8, 10), 1),
+    ] {
+        add_reinforcement_sector(
+            &mut objects,
+            MapPos{v: Vector2{x: x, y: y}},
+            Some(PlayerId{id: player_index}),
+        );
+    }
+    sectors.insert(
+        SectorId{id: 0},
+        Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 4, y: 3}},
+            ],
+            owner_id: None,
+        },
+    );
+    sectors.insert(
+        SectorId{id: 1},
+        Sector {
+            positions: vec![
+                MapPos{v: Vector2{x: 5, y: 8}},
+            ],
+            owner_id: None,
+        },
+    );
+    (map, objects, sectors)
 }

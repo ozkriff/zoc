@@ -775,6 +775,7 @@ impl Default for GameType {
 #[derive(Clone, Debug)]
 pub struct Options {
     pub game_type: GameType,
+    pub map_name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -992,13 +993,14 @@ pub fn is_exact_pos_free<S: GameState>(
 
 impl Core {
     pub fn new(options: &Options) -> Core {
-        let map_size = Size2{w: 10, h: 12}; // TODO: read from config file
+        let state = InternalState::new(&options.map_name);
+        let map_size = state.map().size();
         Core {
-            state: InternalState::new(map_size),
+            state: state,
             players: get_players_list(options.game_type),
             current_player_id: PlayerId{id: 0},
             db: Db::new(),
-            ai: Ai::new(PlayerId{id:1}, map_size),
+            ai: Ai::new(PlayerId{id:1}, &options.map_name),
             players_info: get_player_info_lists(map_size),
         }
     }

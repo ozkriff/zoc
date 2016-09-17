@@ -428,8 +428,7 @@ pub struct TacticalScreen {
 impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = core::Core::new(core_options);
-        let map_size = core.map_size();
-        let mut player_info = PlayerInfoManager::new(context, map_size, core_options);
+        let mut player_info = PlayerInfoManager::new(context, core_options);
         let mut meshes = MeshManager::new();
         let mesh_ids = MeshIdManager::new(
             context,

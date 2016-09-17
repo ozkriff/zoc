@@ -12,11 +12,16 @@ use types::{ScreenPos, Time};
 pub struct MainMenuScreen {
     button_start_hotseat_id: ButtonId,
     button_start_vs_ai_id: ButtonId,
+    button_map_id: ButtonId,
     button_manager: ButtonManager,
+    map_names: Vec<&'static str>,
+    selected_map_index: usize,
 }
 
 impl MainMenuScreen {
     pub fn new(context: &mut Context) -> MainMenuScreen {
+        let map_names = vec!["map01", "map02"];
+        let selected_map_index = 0;
         let mut button_manager = ButtonManager::new();
         // TODO: Use relative coords in ScreenPos - x: [0.0, 1.0], y: [0.0, 1.0]
         // TODO: Add analog of Qt::Alignment
@@ -34,10 +39,19 @@ impl MainMenuScreen {
             "start human vs ai",
             button_pos,
         ));
+        button_pos.v.y += vstep * 2;
+        let button_map_id = button_manager.add_button(Button::new(
+            context,
+            &format!("map: {}", map_names[selected_map_index]),
+            button_pos,
+        ));
         MainMenuScreen {
             button_manager: button_manager,
             button_start_hotseat_id: button_start_hotseat_id,
             button_start_vs_ai_id: button_start_vs_ai_id,
+            button_map_id: button_map_id,
+            map_names: map_names,
+            selected_map_index: selected_map_index,
         }
     }
 
@@ -55,9 +69,11 @@ impl MainMenuScreen {
         context: &mut Context,
         button_id: ButtonId
     ) {
+        let map_name = self.map_names[self.selected_map_index];
         if button_id == self.button_start_hotseat_id {
             let core_options = core::Options {
                 game_type: core::GameType::Hotseat,
+                map_name: map_name.to_string(),
             };
             let tactical_screen = Box::new(
                 TacticalScreen::new(context, &core_options));
@@ -65,10 +81,21 @@ impl MainMenuScreen {
         } else if button_id == self.button_start_vs_ai_id {
             let core_options = core::Options {
                 game_type: core::GameType::SingleVsAi,
+                map_name: map_name.to_string(),
             };
             let tactical_screen = Box::new(
                 TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
+        } else if button_id == self.button_map_id {
+            self.selected_map_index += 1;
+            if self.selected_map_index == self.map_names.len() {
+                self.selected_map_index = 0;
+            }
+            let text = &format!("map: {}", self.map_names[self.selected_map_index]);
+            let pos = self.button_manager.buttons()[&self.button_map_id].pos();
+            let button_map = Button::new(context, text, pos);
+            self.button_manager.remove_button(self.button_map_id);
+            self.button_map_id = self.button_manager.add_button(button_map);
         } else {
             panic!("Bad button id: {}", button_id.id);
         }
