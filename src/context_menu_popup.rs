@@ -2,7 +2,7 @@ use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{self, UnitId, MapPos, ExactPos};
+use core::{self, ObjectClass, UnitId, MapPos, ExactPos};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::db::{Db};
@@ -11,6 +11,7 @@ use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
 use player_info::{PlayerInfo};
+use reinforcements_popup;
 
 fn can_unload_unit(
     db: &Db,
@@ -53,6 +54,24 @@ pub fn get_options(
     let mut options = Options::new();
     let player_id = core.player_id();
     let unit_ids = core::get_unit_ids_at(db, state, pos);
+    for object in state.objects_at(pos) {
+        if object.class != ObjectClass::ReinforcementSector {
+            continue;
+        }
+        let owner_id = match object.owner_id {
+            Some(id) => id,
+            None => continue,
+        };
+        if owner_id != player_id {
+            continue;
+        }
+        let reinforcement_options = reinforcements_popup::get_options(
+            db, state, player_id, pos);
+        if reinforcement_options == reinforcements_popup::Options::new() {
+            continue;
+        }
+        options.reinforcements_pos = Some(pos);
+    }
     let selected_unit_id = match selected_unit_id {
         Some(id) => id,
         None => {
@@ -150,6 +169,7 @@ pub enum Command {
     EnableReactionFire{id: UnitId},
     DisableReactionFire{id: UnitId},
     Smoke{pos: MapPos},
+    CallReiforcements{pos: MapPos},
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -163,6 +183,7 @@ pub struct Options {
     smoke_pos: Option<MapPos>,
     enable_reaction_fire: Option<UnitId>,
     disable_reaction_fire: Option<UnitId>,
+    reinforcements_pos: Option<MapPos>,
 }
 
 impl Options {
@@ -177,6 +198,7 @@ impl Options {
             smoke_pos: None,
             enable_reaction_fire: None,
             disable_reaction_fire: None,
+            reinforcements_pos: None,
         }
     }
 }
@@ -195,6 +217,7 @@ pub struct ContextMenuPopup {
     smoke_button_id: Option<ButtonId>,
     enable_reaction_fire_button_id: Option<ButtonId>,
     disable_reaction_fire_button_id: Option<ButtonId>,
+    call_reinforcements_button_id: Option<ButtonId>,
 }
 
 impl ContextMenuPopup {
@@ -216,11 +239,12 @@ impl ContextMenuPopup {
         let mut smoke_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
+        let mut call_reinforcements_button_id = None;
         let mut pos = pos;
         let text_size = basic_text_size(context);
         pos.v.y -= text_size as i32 / 2;
         pos.v.x -= text_size as i32 / 2;
-        let vstep = (text_size * 0.9) as i32;
+        let vstep = (text_size * 0.8) as i32;
         for &unit_id in &options.selects {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
@@ -263,6 +287,11 @@ impl ContextMenuPopup {
                 Button::new(context, "disable reaction fire", pos)));
             pos.v.y -= vstep;
         }
+        if options.reinforcements_pos.is_some() {
+            call_reinforcements_button_id = Some(button_manager.add_button(
+                Button::new(context, "reinforcements", pos)));
+            pos.v.y -= vstep;
+        }
         if options.unload_pos.is_some() {
             unload_unit_button_id = Some(button_manager.add_button(
                 Button::new(context, "unload", pos)));
@@ -285,6 +314,7 @@ impl ContextMenuPopup {
             smoke_button_id: smoke_button_id,
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
+            call_reinforcements_button_id: call_reinforcements_button_id,
             options: options,
         }
     }
@@ -352,6 +382,10 @@ impl ContextMenuPopup {
         } else if id == self.disable_reaction_fire_button_id {
             self.return_command(context, Command::DisableReactionFire {
                 id: self.options.disable_reaction_fire.unwrap(),
+            });
+        } else if id == self.call_reinforcements_button_id {
+            self.return_command(context, Command::CallReiforcements {
+                pos: self.options.reinforcements_pos.unwrap(),
             });
         } else {
             panic!("Bad button id: {}", button_id.id);

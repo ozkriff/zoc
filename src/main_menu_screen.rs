@@ -1,4 +1,3 @@
-use std::default::{Default};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
@@ -28,8 +27,8 @@ impl MainMenuScreen {
             button_pos,
         ));
         // TODO: Add something like QLayout
-        button_pos.v.y += button_manager.buttons()[&button_start_hotseat_id]
-            .size().h;
+        let vstep = button_manager.buttons()[&button_start_hotseat_id].size().h;
+        button_pos.v.y += vstep;
         let button_start_vs_ai_id = button_manager.add_button(Button::new(
             context,
             "start human vs ai",
@@ -57,14 +56,18 @@ impl MainMenuScreen {
         button_id: ButtonId
     ) {
         if button_id == self.button_start_hotseat_id {
-            let core_options = Default::default();
-            let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
+            let core_options = core::Options {
+                game_type: core::GameType::Hotseat,
+            };
+            let tactical_screen = Box::new(
+                TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
         } else if button_id == self.button_start_vs_ai_id {
             let core_options = core::Options {
                 game_type: core::GameType::SingleVsAi,
             };
-            let tactical_screen = Box::new(TacticalScreen::new(context, &core_options));
+            let tactical_screen = Box::new(
+                TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
         } else {
             panic!("Bad button id: {}", button_id.id);

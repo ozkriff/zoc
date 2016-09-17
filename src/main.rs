@@ -36,6 +36,7 @@ mod screen;
 mod texture;
 mod tactical_screen;
 mod context_menu_popup;
+mod reinforcements_popup;
 mod main_menu_screen;
 mod end_turn_screen;
 mod game_results_screen;

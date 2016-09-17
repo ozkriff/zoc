@@ -79,7 +79,8 @@ fn calc_visibility<S: GameState>(
             ObjectClass::Building | ObjectClass::Smoke => {
                 vis = TileVisibility::Normal;
             }
-            ObjectClass::Road => {},
+            ObjectClass::Road |
+            ObjectClass::ReinforcementSector => {},
         }
     }
     vis

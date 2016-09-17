@@ -35,7 +35,7 @@ pub struct WeaponType {
     pub max_air_distance: Option<i32>,
     pub is_inderect: bool,
     pub reaction_fire: bool,
-    pub smoke: Option<u8>,
+    pub smoke: Option<u8>, // TODO: u8 -> i32
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -59,4 +59,5 @@ pub struct UnitType {
     pub is_transporter: bool,
     pub is_big: bool,
     pub is_air: bool,
+    pub cost: i32,
 }

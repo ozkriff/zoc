@@ -134,6 +134,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: true,
             is_air: false,
+            cost: 16,
         },
         UnitType {
             name: "heavy_tank".to_owned(),
@@ -152,6 +153,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 10,
         },
         UnitType {
             name: "medium_tank".to_owned(),
@@ -170,6 +172,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 8,
         },
         UnitType {
             name: "light_tank".to_owned(),
@@ -188,6 +191,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 6,
         },
         UnitType {
             name: "light_spg".to_owned(),
@@ -206,6 +210,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 6,
         },
         UnitType {
             name: "field_gun".to_owned(),
@@ -225,6 +230,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 5,
         },
         UnitType {
             name: "jeep".to_owned(),
@@ -243,6 +249,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 4,
         },
         UnitType {
             name: "truck".to_owned(),
@@ -261,6 +268,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: true,
             is_big: false,
             is_air: false,
+            cost: 4,
         },
         UnitType {
             name: "helicopter".to_owned(),
@@ -279,6 +287,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: true,
             is_air: true,
+            cost: 10,
         },
         UnitType {
             name: "soldier".to_owned(),
@@ -297,6 +306,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 2,
         },
         UnitType {
             name: "smg".to_owned(),
@@ -315,6 +325,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 2,
         },
         UnitType {
             name: "scout".to_owned(),
@@ -333,6 +344,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 3,
         },
         UnitType {
             name: "mortar".to_owned(),
@@ -351,6 +363,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_transporter: false,
             is_big: false,
             is_air: false,
+            cost: 4,
         },
     ]
 }

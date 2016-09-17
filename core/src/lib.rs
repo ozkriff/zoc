@@ -154,6 +154,7 @@ pub enum ObjectClass {
     Building,
     Road,
     Smoke,
+    ReinforcementSector,
 }
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy)]
@@ -166,6 +167,7 @@ pub struct Object {
     pub pos: ExactPos,
     pub class: ObjectClass,
     pub timer: Option<i32>,
+    pub owner_id: Option<PlayerId>,
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -429,9 +431,11 @@ pub fn print_terrain_info<S: GameState>(state: &S, pos: MapPos) {
 pub enum CommandError {
     TileIsOccupied,
     CanNotCommandEnemyUnits,
+    NotInReinforcementSector,
     NotEnoughMovePoints,
     NotEnoughAttackPoints,
     NotEnoughReactiveAttackPoints,
+    NotEnoughReinforcementPoints,
     BadMorale,
     OutOfRange,
     TooClose,
@@ -458,9 +462,11 @@ impl CommandError {
         match *self {
             CommandError::TileIsOccupied => "Tile is occupied",
             CommandError::CanNotCommandEnemyUnits => "Can not command enemy units",
+            CommandError::NotInReinforcementSector => "Not in reinforcement sector",
             CommandError::NotEnoughMovePoints => "Not enough move points",
             CommandError::NotEnoughAttackPoints => "No attack points",
             CommandError::NotEnoughReactiveAttackPoints => "No reactive attack points",
+            CommandError::NotEnoughReinforcementPoints => "No reinforcement points",
             CommandError::BadMorale => "Can`t attack when suppresset",
             CommandError::OutOfRange => "Out of range",
             CommandError::TooClose => "Too close",
@@ -496,6 +502,7 @@ impl std::error::Error for CommandError {
     }
 }
 
+// TODO: move all `check_*` funcs to src/core/check.rs
 fn check_attack<S: GameState>(
     db: &Db,
     state: &S,
@@ -553,11 +560,25 @@ pub fn check_command<S: GameState>(
     match *command {
         Command::EndTurn => Ok(()),
         Command::CreateUnit{pos, type_id} => {
-            if is_exact_pos_free(db, state, type_id, pos) {
-                Ok(())
-            } else {
-                Err(CommandError::TileIsOccupied)
+            let mut is_sector = false;
+            for object in state.objects_at(pos.map_pos) {
+                if object.class == ObjectClass::ReinforcementSector {
+                    is_sector = true;
+                    break;
+                }
             }
+            if !is_sector {
+                return Err(CommandError::NotInReinforcementSector);
+            }
+            let unit_type = db.unit_type(type_id);
+            let reinforcement_points = state.reinforcement_points()[&player_id];
+            if unit_type.cost > reinforcement_points {
+                return Err(CommandError::NotEnoughReinforcementPoints);
+            }
+            if !is_exact_pos_free(db, state, type_id, pos) {
+                return Err(CommandError::TileIsOccupied);
+            }
+            Ok(())
         },
         Command::Move{unit_id, ref path, mode} => {
             let unit = state.unit(unit_id);
@@ -751,7 +772,7 @@ impl Default for GameType {
     }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Options {
     pub game_type: GameType,
 }
@@ -819,11 +840,24 @@ fn los<S: GameState>(
     v
 }
 
-pub fn get_free_slot_for_building<S: GameState>(
-    state: &S,
+pub fn objects_at(objects: &HashMap<ObjectId, Object>, pos: MapPos) -> Vec<&Object> {
+    let mut objects_at = Vec::new();
+    for object in objects.values() {
+        for map_pos in object.pos.map_pos_iter() {
+            if map_pos == pos {
+                objects_at.push(object);
+            }
+        }
+    }
+    objects_at
+}
+
+pub fn get_free_slot_for_building(
+    map: &Map<Terrain>,
+    objects: &HashMap<ObjectId, Object>,
     pos: MapPos,
 ) -> Option<SlotId> {
-    let objects_at = state.objects_at(pos);
+    let objects_at = objects_at(objects, pos);
     let mut slots = [false, false, false];
     for object in &objects_at {
         if let SlotId::Id(slot_id) = object.pos.slot_id {
@@ -832,7 +866,7 @@ pub fn get_free_slot_for_building<S: GameState>(
             return None;
         }
     }
-    let slots_count = get_slots_count(state.map(), pos) as usize;
+    let slots_count = get_slots_count(map, pos) as usize;
     for (i, slot) in slots.iter().enumerate().take(slots_count) {
         if !slot {
             return Some(SlotId::Id(i as u8));
@@ -875,7 +909,9 @@ pub fn get_free_slot_id<S: GameState>(
         for object in &objects_at {
             match object.class {
                 ObjectClass::Building => return None,
-                ObjectClass::Smoke | ObjectClass::Road => {},
+                ObjectClass::Smoke |
+                ObjectClass::ReinforcementSector |
+                ObjectClass::Road => {},
             }
         }
         if units_at.is_empty() {
@@ -901,7 +937,9 @@ pub fn get_free_slot_id<S: GameState>(
                 SlotId::WholeTile => {
                     match object.class {
                         ObjectClass::Building => return None,
-                        ObjectClass::Smoke | ObjectClass::Road => {},
+                        ObjectClass::Smoke |
+                        ObjectClass::ReinforcementSector |
+                        ObjectClass::Road => {},
                     }
                 }
                 SlotId::TwoTiles(_) | SlotId::Air => {},
@@ -955,53 +993,18 @@ pub fn is_exact_pos_free<S: GameState>(
 impl Core {
     pub fn new(options: &Options) -> Core {
         let map_size = Size2{w: 10, h: 12}; // TODO: read from config file
-        let mut core = Core {
+        Core {
             state: InternalState::new(map_size),
             players: get_players_list(options.game_type),
             current_player_id: PlayerId{id: 0},
             db: Db::new(),
             ai: Ai::new(PlayerId{id:1}, map_size),
             players_info: get_player_info_lists(map_size),
-        };
-        core.get_units();
-        core
+        }
     }
 
     pub fn db(&self) -> &Db {
         &self.db
-    }
-
-    // TODO: Move to scenario.json
-    fn get_units(&mut self) {
-        for &(player_id, (x, y), type_name) in &[
-            (0, (0, 1), "medium_tank"),
-            (0, (0, 4), "mammoth_tank"),
-            (0, (0, 5), "heavy_tank"),
-            (0, (0, 5), "medium_tank"),
-            (0, (1, 3), "truck"),
-            (0, (1, 3), "mortar"),
-            (0, (1, 4), "jeep"),
-            (0, (3, 3), "helicopter"),
-            (0, (2, 2), "soldier"),
-            (0, (2, 2), "scout"),
-            (0, (2, 4), "smg"),
-            (0, (2, 4), "smg"),
-            (1, (9, 1), "medium_tank"),
-            (1, (9, 2), "soldier"),
-            (1, (9, 2), "soldier"),
-            (1, (9, 4), "soldier"),
-            (1, (9, 5), "light_tank"),
-            (1, (9, 5), "light_tank"),
-            (1, (9, 6), "light_spg"),
-            (1, (8, 2), "field_gun"),
-            (1, (8, 4), "field_gun"),
-            (1, (5, 10), "field_gun"),
-            (1, (5, 10), "soldier"),
-        ] {
-            let pos = MapPos{v: Vector2{x: x, y: y}};
-            let unit_type_id = self.db.unit_type_id(type_name);
-            self.add_unit(pos, unit_type_id, PlayerId{id: player_id});
-        }
     }
 
     fn get_new_unit_id(&mut self) -> UnitId {
@@ -1020,21 +1023,6 @@ impl Core {
         };
         next_id.id += 1;
         next_id
-    }
-
-    fn add_unit(&mut self, pos: MapPos, type_id: UnitTypeId, player_id: PlayerId) {
-        let new_unit_id = self.get_new_unit_id();
-        let pos = get_free_exact_pos(&self.db, &self.state, type_id, pos).unwrap();
-        let event = CoreEvent::CreateUnit {
-            unit_info: UnitInfo {
-                unit_id: new_unit_id,
-                pos: pos,
-                type_id: type_id,
-                player_id: player_id,
-                passenger_id: None,
-            },
-        };
-        self.do_core_event(&event);
     }
 
     pub fn map_size(&self) -> Size2 {

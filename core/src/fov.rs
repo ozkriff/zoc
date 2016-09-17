@@ -28,7 +28,9 @@ fn is_obstacle<S: GameState>(state: &S, pos: MapPos) -> bool {
     }
     for object in state.objects_at(pos) {
         match object.class {
-            ObjectClass::Building | ObjectClass::Smoke => return true,
+            ObjectClass::Building |
+            ObjectClass::Smoke => return true,
+            ObjectClass::ReinforcementSector |
             ObjectClass::Road => {},
         }
     }

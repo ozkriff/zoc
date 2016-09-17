@@ -47,6 +47,10 @@ impl GameState for PartialState {
     fn score(&self) -> &HashMap<PlayerId, Score> {
         self.state.score()
     }
+
+    fn reinforcement_points(&self) -> &HashMap<PlayerId, i32> {
+        self.state.reinforcement_points()
+    }
 }
 
 impl GameStateMut for PartialState {

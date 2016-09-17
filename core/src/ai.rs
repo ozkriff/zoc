@@ -4,14 +4,16 @@ use partial_state::{PartialState};
 use map::{distance};
 use pathfinder::{self, Pathfinder, path_cost, truncate_path};
 use dir::{Dir};
-use unit::{Unit};
+use unit::{Unit, UnitTypeId};
 use db::{Db};
+use misc::{get_shuffled_indices};
 use ::{
     CoreEvent,
     Command,
     MoveMode,
     PlayerId,
     ExactPos,
+    ObjectClass,
     check_command,
     get_free_exact_pos,
 };
@@ -159,10 +161,53 @@ impl Ai {
         None
     }
 
+    pub fn try_get_create_unit_command(&self, db: &Db) -> Option<Command> {
+        let reinforcement_points = self.state.reinforcement_points()[&self.id];
+        for type_index in get_shuffled_indices(db.unit_types()) {
+            let unit_type_id = UnitTypeId{id: type_index as i32};
+            let unit_type = db.unit_type(unit_type_id);
+            if unit_type.cost > reinforcement_points {
+                continue;
+            }
+            for object in self.state.objects().values() {
+                let owner_id = match object.owner_id {
+                    Some(id) => id,
+                    None => continue,
+                };
+                if owner_id != self.id {
+                    continue;
+                }
+                if object.class != ObjectClass::ReinforcementSector {
+                    continue;
+                }
+                let exact_pos = match get_free_exact_pos(
+                    db,
+                    &self.state,
+                    unit_type_id,
+                    object.pos.map_pos,
+                ) {
+                    Some(pos) => pos,
+                    None => continue,
+                };
+                let command = Command::CreateUnit {
+                    type_id: unit_type_id,
+                    pos: exact_pos,
+                };
+                if check_command(db, self.id, &self.state, &command).is_err() {
+                    continue;
+                }
+                return Some(command);
+            }
+        }
+        None
+    }
+
     pub fn get_command(&mut self, db: &Db) -> Command {
         if let Some(cmd) = self.try_get_attack_command(db) {
             cmd
         } else if let Some(cmd) = self.try_get_move_command(db) {
+            cmd
+        } else if let Some(cmd) = self.try_get_create_unit_command(db) {
             cmd
         } else {
             Command::EndTurn

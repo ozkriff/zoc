@@ -22,6 +22,8 @@ use ::{
     Sector,
     SectorId,
     Score,
+    MovePoints,
+    AttackPoints,
     get_free_slot_for_building,
 };
 
@@ -38,6 +40,7 @@ pub struct InternalState {
     map: Map<Terrain>,
     sectors: HashMap<SectorId, Sector>,
     score: HashMap<PlayerId, Score>,
+    reinforcement_points: HashMap<PlayerId, i32>, // TODO: i32 -> ???
 }
 
 impl InternalState {
@@ -94,12 +97,16 @@ impl InternalState {
         let mut score = HashMap::new();
         score.insert(PlayerId{id: 0}, Score{n: 0});
         score.insert(PlayerId{id: 1}, Score{n: 0});
+        let mut reinforcement_points = HashMap::new();
+        reinforcement_points.insert(PlayerId{id: 0}, 10);
+        reinforcement_points.insert(PlayerId{id: 1}, 10);
         let mut state = InternalState {
             units: HashMap::new(),
             objects: HashMap::new(),
             map: map,
             sectors: sectors,
             score: score,
+            reinforcement_points: reinforcement_points,
         };
         state.add_buildings(MapPos{v: Vector2{x: 5, y: 4}}, 2);
         state.add_buildings(MapPos{v: Vector2{x: 5, y: 5}}, 2);
@@ -110,6 +117,17 @@ impl InternalState {
         state.add_buildings(MapPos{v: Vector2{x: 8, y: 11}}, 2);
         state.add_buildings(MapPos{v: Vector2{x: 8, y: 10}}, 2);
         state.add_buildings(MapPos{v: Vector2{x: 9, y: 11}}, 1);
+        for &((x, y), player_index) in &[
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((9, 2), 1),
+            ((9, 3), 1),
+        ] {
+            state.add_reinforcement_sector(
+                MapPos{v: Vector2{x: x, y: y}},
+                Some(PlayerId{id: player_index}),
+            );
+        }
         state.add_road(&[
             MapPos{v: Vector2{x: 0, y: 1}},
             MapPos{v: Vector2{x: 1, y: 1}},
@@ -151,6 +169,7 @@ impl InternalState {
                     slot_id: SlotId::TwoTiles(dir),
                 },
                 timer: None,
+                owner_id: None,
             };
             self.add_object(object);
         }
@@ -171,6 +190,21 @@ impl InternalState {
                 slot_id: SlotId::WholeTile,
             },
             timer: None,
+            owner_id: None,
+        };
+        self.add_object(object);
+    }
+
+    fn add_reinforcement_sector(&mut self, pos: MapPos, player_id: Option<PlayerId>) {
+        *self.map.tile_mut(pos) = Terrain::City;
+        let object = Object {
+            class: ObjectClass::ReinforcementSector,
+            pos: ExactPos {
+                map_pos: pos,
+                slot_id: SlotId::WholeTile,
+            },
+            timer: None,
+            owner_id: player_id,
         };
         self.add_object(object);
     }
@@ -178,12 +212,13 @@ impl InternalState {
     fn add_buildings(&mut self, pos: MapPos, count: i32) {
         *self.map.tile_mut(pos) = Terrain::City;
         for _ in 0 .. count {
-            let slot_id = get_free_slot_for_building(self, pos).unwrap();
+            let slot_id = get_free_slot_for_building(&self.map, &self.objects, pos).unwrap();
             let obj_pos = ExactPos{map_pos: pos, slot_id: slot_id};
             let object = Object {
                 class: ObjectClass::Building,
                 pos: obj_pos,
                 timer: None,
+                owner_id: None,
             };
             self.add_object(object);
         }
@@ -233,23 +268,30 @@ impl InternalState {
     fn add_unit(&mut self, db: &Db, unit_info: &UnitInfo, info_level: InfoLevel) {
         assert!(self.units.get(&unit_info.unit_id).is_none());
         let unit_type = db.unit_type(unit_info.type_id);
+        let cost = unit_type.cost;
+        let reinforcement_points = self.reinforcement_points
+            .get_mut(&unit_info.player_id).unwrap();
+        if *reinforcement_points < cost {
+            return;
+        }
+        *reinforcement_points -= cost;
         self.units.insert(unit_info.unit_id, Unit {
             id: unit_info.unit_id,
             pos: unit_info.pos,
             player_id: unit_info.player_id,
             type_id: unit_info.type_id,
             move_points: if info_level == InfoLevel::Full {
-                Some(unit_type.move_points)
+                Some(MovePoints{n: 0})
             } else {
                 None
             },
             attack_points: if info_level == InfoLevel::Full {
-                Some(unit_type.attack_points)
+                Some(AttackPoints{n: 0})
             } else {
                 None
             },
             reactive_attack_points: if info_level == InfoLevel::Full {
-                Some(unit_type.reactive_attack_points)
+                Some(AttackPoints{n: 0})
             } else {
                 None
             },
@@ -285,6 +327,10 @@ impl GameState for InternalState {
     fn score(&self) -> &HashMap<PlayerId, Score> {
         &self.score
     }
+
+    fn reinforcement_points(&self) -> &HashMap<PlayerId, i32> {
+        &self.reinforcement_points
+    }
 }
 
 impl GameStateMut for InternalState {
@@ -306,8 +352,14 @@ impl GameStateMut for InternalState {
                 }
             },
             CoreEvent::EndTurn{new_id, old_id} => {
+                {
+                    let reinforcement_points = self.reinforcement_points
+                        .get_mut(&old_id).unwrap();
+                    *reinforcement_points += 10;
+                }
                 self.refresh_units(db, new_id);
                 self.convert_ap(db, old_id);
+                // TODO: timer ticks on every player's turn! O.o
                 for (_, object) in &mut self.objects {
                     if let Some(ref mut timer) = object.timer {
                         *timer -= 1;
@@ -420,6 +472,7 @@ impl GameStateMut for InternalState {
                         slot_id: SlotId::WholeTile,
                     },
                     timer: Some(5),
+                    owner_id: None,
                 });
             },
             CoreEvent::RemoveSmoke{id} => {
