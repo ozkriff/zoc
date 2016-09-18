@@ -6,6 +6,7 @@ use dir::{Dir};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
+use check::{check_command};
 use ::{
     CoreEvent,
     Command,
@@ -13,7 +14,6 @@ use ::{
     PlayerId,
     ExactPos,
     ObjectClass,
-    check_command,
     get_free_exact_pos,
 };
 
