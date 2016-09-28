@@ -11,7 +11,7 @@ use types::{Time};
 fn check_assets_dir() {
     if let Err(e) = metadata("assets") {
         println!("Can`t find 'assets' dir: {}", e);
-        println!("Note: see 'Assets' section of Readme.rst");
+        println!("Note: see 'Assets' section of README.rst");
         process::exit(1);
     }
 }
