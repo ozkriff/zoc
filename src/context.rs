@@ -178,6 +178,10 @@ impl Context {
                 self.mouse.is_right_button_pressed = false;
             },
             Event::Resized(w, h) => {
+                if w == 0 || h == 0 {
+                    return
+                }
+
                 self.win_size = Size2{w: w as i32, h: h as i32};
                 gfx_glutin::update_views(
                     &self.window,
