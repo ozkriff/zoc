@@ -1,8 +1,53 @@
 use std::collections::{HashMap};
+use std::collections::hash_map;
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use ::{CoreEvent, UnitId, ObjectId, Object, MapPos, Sector, SectorId, PlayerId, Score, objects_at};
+use ::{CoreEvent, UnitId, ObjectId, Object, MapPos, Sector, SectorId, PlayerId, Score};
+
+#[derive(Clone)]
+pub struct ObjectsAtIter<'a> {
+    it: hash_map::Iter<'a, ObjectId, Object>,
+    pos: MapPos,
+}
+
+impl<'a> ObjectsAtIter<'a> {
+    pub fn new(objects: &HashMap<ObjectId, Object>, pos: MapPos) -> ObjectsAtIter {
+        ObjectsAtIter{it: objects.iter(), pos: pos}
+    }
+}
+
+impl<'a> Iterator for ObjectsAtIter<'a> {
+    type Item = &'a Object;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((_, unit)) = self.it.next() {
+            if self.pos == unit.pos.map_pos {
+                return Some(unit);
+            }
+        }
+        None
+    }
+}
+
+#[derive(Clone)]
+pub struct UnitsAtIter<'a> {
+    it: hash_map::Iter<'a, UnitId, Unit>,
+    pos: MapPos,
+}
+
+impl<'a> Iterator for UnitsAtIter<'a> {
+    type Item = &'a Unit;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((_, unit)) = self.it.next() {
+            if self.pos == unit.pos.map_pos {
+                return Some(unit);
+            }
+        }
+        None
+    }
+}
 
 pub trait GameState {
     fn map(&self) -> &Map<Terrain>;
@@ -16,21 +61,12 @@ pub trait GameState {
         &self.units()[&id]
     }
 
-    // TODO: Return iterator not vector
-    fn units_at(&self, pos: MapPos) -> Vec<&Unit> {
-        let mut units = Vec::new();
-        for unit in self.units().values() {
-            for map_pos in unit.pos.map_pos_iter() {
-                if map_pos == pos {
-                    units.push(unit);
-                }
-            }
-        }
-        units
+    fn units_at(&self, pos: MapPos) -> UnitsAtIter {
+        UnitsAtIter{it: self.units().iter(), pos: pos}
     }
 
-    fn objects_at(&self, pos: MapPos) -> Vec<&Object> {
-        objects_at(self.objects(), pos)
+    fn objects_at(&self, pos: MapPos) -> ObjectsAtIter {
+        ObjectsAtIter::new(self.objects(), pos)
     }
 }
 

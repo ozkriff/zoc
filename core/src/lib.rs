@@ -26,7 +26,7 @@ use cgmath::{Vector2};
 use types::{Size2};
 use misc::{clamp};
 use internal_state::{InternalState};
-use game_state::{GameState, GameStateMut};
+use game_state::{GameState, GameStateMut, ObjectsAtIter};
 use partial_state::{PartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
@@ -120,7 +120,6 @@ impl Iterator for ExactPosIter {
     }
 }
 
-// TODO: верни на место
 fn check_sectors(db: &Db, state: &InternalState) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     for (&sector_id, sector) in state.sectors() {
@@ -368,7 +367,7 @@ pub fn find_prev_player_unit_id<S: GameState>(
 pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId> {
     let units_at = state.units_at(pos);
     let mut hidden_ids = HashSet::new();
-    for unit in &units_at {
+    for unit in units_at.clone() {
         if db.unit_type(unit.type_id).is_transporter {
             if let Some(passenger_id) = unit.passenger_id {
                 hidden_ids.insert(passenger_id);
@@ -376,7 +375,7 @@ pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId
         }
     }
     let mut ids = Vec::new();
-    for unit in &units_at {
+    for unit in units_at {
         if !hidden_ids.contains(&unit.id) {
             ids.push(unit.id)
         }
@@ -522,16 +521,8 @@ fn get_player_info_lists(map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
     map
 }
 
-pub fn objects_at(objects: &HashMap<ObjectId, Object>, pos: MapPos) -> Vec<&Object> {
-    let mut objects_at = Vec::new();
-    for object in objects.values() {
-        for map_pos in object.pos.map_pos_iter() {
-            if map_pos == pos {
-                objects_at.push(object);
-            }
-        }
-    }
-    objects_at
+pub fn objects_at(objects: &HashMap<ObjectId, Object>, pos: MapPos) -> ObjectsAtIter {
+    ObjectsAtIter::new(objects, pos)
 }
 
 pub fn get_free_slot_for_building(
@@ -539,9 +530,8 @@ pub fn get_free_slot_for_building(
     objects: &HashMap<ObjectId, Object>,
     pos: MapPos,
 ) -> Option<SlotId> {
-    let objects_at = objects_at(objects, pos);
     let mut slots = [false, false, false];
-    for object in &objects_at {
+    for object in objects_at(objects, pos) {
         if let SlotId::Id(slot_id) = object.pos.slot_id {
             slots[slot_id as usize] = true;
         } else {
@@ -580,7 +570,7 @@ pub fn get_free_slot_id<S: GameState>(
     let units_at = state.units_at(pos);
     let unit_type = db.unit_type(type_id);
     if unit_type.is_air {
-        for unit in &units_at {
+        for unit in units_at.clone() {
             if unit.pos.slot_id == SlotId::Air {
                 return None;
             }
@@ -588,7 +578,7 @@ pub fn get_free_slot_id<S: GameState>(
         return Some(SlotId::Air);
     }
     if unit_type.is_big {
-        for object in &objects_at {
+        for object in objects_at {
             match object.class {
                 ObjectClass::Building => return None,
                 ObjectClass::Smoke |
@@ -596,14 +586,14 @@ pub fn get_free_slot_id<S: GameState>(
                 ObjectClass::Road => {},
             }
         }
-        if units_at.is_empty() {
+        if units_at.count() == 0 {
             return Some(SlotId::WholeTile);
         } else {
             return None;
         }
     }
     let mut slots = [false, false, false];
-    for unit in &units_at {
+    for unit in units_at {
         match unit.pos.slot_id {
             SlotId::Id(slot_id) => slots[slot_id as usize] = true,
             SlotId::WholeTile | SlotId::TwoTiles(_) => return None,
@@ -611,7 +601,7 @@ pub fn get_free_slot_id<S: GameState>(
         }
     }
     if unit_type.class == UnitClass::Vehicle {
-        for object in &objects_at {
+        for object in objects_at {
             match object.pos.slot_id {
                 SlotId::Id(slot_id) => {
                     slots[slot_id as usize] = true;
@@ -656,9 +646,9 @@ pub fn is_exact_pos_free<S: GameState>(
     let units_at = state.units_at(pos.map_pos);
     let unit_type = db.unit_type(type_id);
     if unit_type.is_big && !unit_type.is_air {
-        return units_at.is_empty();
+        return units_at.count() == 0;
     }
-    for unit in &units_at {
+    for unit in units_at {
         if unit.pos == pos {
             return false;
         }

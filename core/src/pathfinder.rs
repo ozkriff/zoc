@@ -74,16 +74,16 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
     -> MovePoints
 {
     let map_pos = pos.map_pos;
-    let objects = state.objects_at(map_pos);
-    let units = state.units_at(map_pos);
+    let objects_at = state.objects_at(map_pos);
+    let units_at = state.units_at(map_pos);
     let mut unit_cost = 0;
     let mut object_cost = 0;
     let unit_type = db.unit_type(unit.type_id);
     if unit_type.is_air {
         return MovePoints{n: 2};
     }
-    'unit_loop: for unit in &units {
-        for object in &objects {
+    'unit_loop: for unit in units_at {
+        for object in objects_at.clone() {
             match object.pos.slot_id {
                 SlotId::Id(_) => if unit.pos == object.pos {
                     let unit_class = db.unit_type(unit.type_id).class;
@@ -111,7 +111,7 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
             Terrain::Water => 99,
         },
     };
-    for object in &objects {
+    for object in objects_at.clone() {
         if object.class != ObjectClass::Road {
             continue;
         }
@@ -129,7 +129,7 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
             };
         }
     }
-    for object in &objects {
+    for object in objects_at {
         let cost = match unit_type.class {
             UnitClass::Infantry => match object.class {
                 ObjectClass::Building => 1,
