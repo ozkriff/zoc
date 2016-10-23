@@ -788,6 +788,8 @@ impl Core {
         }
         let attacker_type = self.db.unit_type(attacker.type_id);
         let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
+        let hit_chance = self.hit_chance(attacker, defender);
+        let suppression = hit_chance / 2;
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
@@ -796,14 +798,13 @@ impl Core {
         let ambush_chance = 70;
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
-        let base_suppression = 10;
         let per_death_suppression = 20;
         let attack_info = AttackInfo {
             attacker_id: Some(attacker_id),
             defender_id: defender_id,
             killed: killed,
             mode: fire_mode,
-            suppression: base_suppression + per_death_suppression * killed,
+            suppression: suppression + per_death_suppression * killed,
             remove_move_points: false,
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
