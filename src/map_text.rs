@@ -72,8 +72,8 @@ impl MapTextManager {
             let mut to = from;
             to.v.z += 2.0;
             let mesh = {
-                let (size, texture_data) = text::text_to_texture(&context.font, 80.0, &command.text);
-                let texture = load_texture_raw(&mut context.factory, size, &texture_data);
+                let (size, texture_data) = text::text_to_texture(context.font(), 80.0, &command.text);
+                let texture = load_texture_raw(context.factory_mut(), size, &texture_data);
                 let scale_factor = 200.0; // TODO: take camera zoom into account
                 let h_2 = (size.h as f32 / scale_factor) / 2.0;
                 let w_2 = (size.w as f32 / scale_factor) / 2.0;
@@ -127,11 +127,11 @@ impl MapTextManager {
             } else {
                 1.0
             };
-            context.data.basic_color = [0.0, 0.0, 0.0, alpha];
+            context.set_basic_color([0.0, 0.0, 0.0, alpha]);
             let pos = map_text.move_helper.step(dtime);
             let tr_mat = Matrix4::from_translation(pos.v);
             let mvp = camera.mat() * tr_mat * rot_z_mat * rot_x_mat;
-            context.data.mvp = mvp.into();
+            context.set_mvp(mvp);
             context.draw_mesh(&map_text.mesh);
         }
         self.delete_old();

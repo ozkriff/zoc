@@ -12,8 +12,9 @@ use types::{WorldPos};
 pub fn pick_world_pos(context: &Context, camera: &Camera) -> WorldPos {
     let im = camera.mat().invert()
         .expect("Can`t invert camera matrix");
-    let w = context.win_size.w as f32;
-    let h = context.win_size.h as f32;
+    let win_size = context.win_size();
+    let w = win_size.w as f32;
+    let h = win_size.h as f32;
     let x = context.mouse().pos.v.x as f32;
     let y = context.mouse().pos.v.y as f32;
     let x = (2.0 * x) / w - 1.0;

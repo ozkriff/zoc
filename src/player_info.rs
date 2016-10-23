@@ -58,7 +58,7 @@ impl PlayerInfoManager {
         let state = PartialState::new(&options.map_name, PlayerId{id: 0});
         let map_size = state.map().size();
         let mut m = HashMap::new();
-        let mut camera = Camera::new(context.win_size);
+        let mut camera = Camera::new(context.win_size());
         camera.set_max_pos(get_max_camera_pos(map_size));
         camera.set_pos(get_initial_camera_pos(map_size));
         m.insert(PlayerId{id: 0}, PlayerInfo {

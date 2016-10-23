@@ -18,7 +18,7 @@ pub fn is_tap(context: &Context) -> bool {
 pub fn basic_text_size(context: &Context) -> f32 {
     // TODO: use different value for android
     let lines_per_screen_h = 14.0;
-    (context.win_size.h as f32) / lines_per_screen_h
+    (context.win_size().h as f32) / lines_per_screen_h
 }
 
 pub fn small_text_size(context: &Context) -> f32 {
@@ -57,8 +57,8 @@ impl Button {
     }
 
     pub fn new_with_size(context: &mut Context, label: &str, size: f32, pos: ScreenPos) -> Button {
-        let (texture_size, texture_data) = text::text_to_texture(&context.font, size, label);
-        let texture = load_texture_raw(&mut context.factory, texture_size, &texture_data);
+        let (texture_size, texture_data) = text::text_to_texture(context.font(), size, label);
+        let texture = load_texture_raw(context.factory_mut(), texture_size, &texture_data);
         let h = texture_size.h as f32;
         let w = texture_size.w as f32;
         let vertices = &[
@@ -124,7 +124,7 @@ impl ButtonManager {
 
     pub fn get_clicked_button_id(&self, context: &Context) -> Option<ButtonId> {
         let x = context.mouse().pos.v.x;
-        let y = context.win_size.h - context.mouse().pos.v.y;
+        let y = context.win_size().h - context.mouse().pos.v.y;
         for (&id, button) in self.buttons() {
             if x >= button.pos().v.x
                 && x <= button.pos().v.x + button.size().w
@@ -138,14 +138,14 @@ impl ButtonManager {
     }
 
     pub fn draw(&self, context: &mut Context) {
-        let proj_mat = get_2d_screen_matrix(context.win_size);
+        let proj_mat = get_2d_screen_matrix(context.win_size());
         for button in self.buttons().values() {
             let tr_mat = Matrix4::from_translation(Vector3 {
                 x: button.pos().v.x as f32,
                 y: button.pos().v.y as f32,
                 z: 0.0,
             });
-            context.data.mvp = (proj_mat * tr_mat).into();
+            context.set_mvp(proj_mat * tr_mat);
             button.draw(context);
         }
     }

@@ -30,7 +30,7 @@ pub struct GameResultsScreen {
 impl GameResultsScreen {
     pub fn new(context: &mut Context, state: &PartialState) -> GameResultsScreen {
         let mut button_manager = ButtonManager::new();
-        let wh = context.win_size.h;
+        let wh = context.win_size().h;
         let mut pos = ScreenPos{v: Vector2{x: 10, y: wh -10}};
         pos.v.y -= wh / 10; // TODO: magic num
         let winner_index = winner_id(state);
@@ -67,7 +67,7 @@ impl GameResultsScreen {
 
 impl Screen for GameResultsScreen {
     fn tick(&mut self, context: &mut Context, _: Time) {
-        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
+        context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.button_manager.draw(context);
     }
 

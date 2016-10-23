@@ -19,7 +19,7 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new(context: &mut Context, vertices: &[Vertex], indices: &[u16], tex: Texture) -> Mesh {
-        let (v, s) = context.factory.create_vertex_buffer_with_slice(vertices, indices);
+        let (v, s) = context.factory_mut().create_vertex_buffer_with_slice(vertices, indices);
         Mesh {
             slice: s,
             vertex_buffer: v,
@@ -29,7 +29,7 @@ impl Mesh {
     }
 
     pub fn new_wireframe(context: &mut Context, vertices: &[Vertex], indices: &[u16]) -> Mesh {
-        let (v, s) = context.factory.create_vertex_buffer_with_slice(vertices, indices);
+        let (v, s) = context.factory_mut().create_vertex_buffer_with_slice(vertices, indices);
         let texture_data = fs::load("white.png").into_inner();
         let texture = load_texture(context, &texture_data);
         Mesh {

@@ -1,7 +1,6 @@
 use std::process;
 use std::sync::mpsc::{channel, Receiver};
 use std::fs::{metadata};
-use gfx::traits::{Device};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
@@ -55,9 +54,8 @@ impl Visualizer {
 
     fn draw(&mut self) {
         let dtime = self.update_time();
-        self.context.clear_color = [0.8, 0.8, 0.8, 1.0];
-        self.context.encoder.clear(&self.context.data.out, self.context.clear_color);
-        self.context.encoder.clear_depth(&self.context.data.out_depth, 1.0);
+        self.context.set_clear_color([0.8, 0.8, 0.8, 1.0]);
+        self.context.clear();
         {
             let screen = self.screens.last_mut().unwrap();
             screen.tick(&mut self.context, dtime);
@@ -65,14 +63,11 @@ impl Visualizer {
         for popup in &mut self.popups {
             popup.tick(&mut self.context, dtime);
         }
-        self.context.encoder.flush(&mut self.context.device);
-        self.context.window.swap_buffers()
-            .expect("Can`t swap buffers");
-        self.context.device.cleanup();
+        self.context.flush();
     }
 
     fn handle_events(&mut self) {
-        let events: Vec<_> = self.context.window.poll_events().collect();
+        let events = self.context.poll_events();
         for event in &events {
             self.context.handle_event_pre(event);
             let mut event_status = EventStatus::NotHandled;

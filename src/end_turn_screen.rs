@@ -45,7 +45,7 @@ impl EndTurnScreen {
 
 impl Screen for EndTurnScreen {
     fn tick(&mut self, context: &mut Context, _: Time) {
-        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
+        context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.button_manager.draw(context);
     }
 

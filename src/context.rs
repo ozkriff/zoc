@@ -4,7 +4,7 @@ use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
 use glutin::{self, Api, Event, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
 use rusttype;
-use gfx::traits::{FactoryExt};
+use gfx::traits::{FactoryExt, Device};
 use gfx::handle::{Program};
 use gfx;
 use gfx_gl;
@@ -55,23 +55,22 @@ pub struct MouseState {
     pub pos: ScreenPos,
 }
 
-// TODO: make more fields private?
 // TODO: use gfx-rs generics, not gfx_gl types
 pub struct Context {
-    pub win_size: Size2,
+    win_size: Size2,
     mouse: MouseState,
     should_close: bool,
     commands_tx: Sender<ScreenCommand>,
-    pub window: glutin::Window,
-    pub clear_color: [f32; 4],
-    pub device: gfx_gl::Device,
-    pub encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
+    window: glutin::Window,
+    clear_color: [f32; 4],
+    device: gfx_gl::Device,
+    encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
     pso: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
     pso_wire: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
-    pub factory: gfx_gl::Factory,
-    pub font: rusttype::Font<'static>,
-    pub data: pipe::Data<gfx_gl::Resources>,
-    pub start_time_ns: u64,
+    factory: gfx_gl::Factory,
+    font: rusttype::Font<'static>,
+    data: pipe::Data<gfx_gl::Resources>,
+    start_time_ns: u64,
 }
 
 impl Context {
@@ -130,6 +129,15 @@ impl Context {
         }
     }
 
+    pub fn set_clear_color(&mut self, color: [f32; 4]) {
+        self.clear_color = color;
+    }
+
+    pub fn clear(&mut self) {
+        self.encoder.clear(&self.data.out, self.clear_color);
+        self.encoder.clear_depth(&self.data.out_depth, 1.0);
+    }
+
     pub fn current_time(&self) -> Time {
         let ns = precise_time_ns() - self.start_time_ns;
         Time{n: ns as f32 / 1_000_000_000.0}
@@ -137,6 +145,36 @@ impl Context {
 
     pub fn should_close(&self) -> bool {
         self.should_close
+    }
+
+    pub fn flush(&mut self) {
+        self.encoder.flush(&mut self.device);
+        self.window.swap_buffers().expect("Can`t swap buffers");
+        self.device.cleanup();
+    }
+
+    pub fn poll_events(&mut self) -> Vec<glutin::Event> {
+        self.window.poll_events().collect()
+    }
+
+    pub fn font(&self) -> &rusttype::Font {
+        &self.font
+    }
+
+    pub fn win_size(&self) -> Size2 {
+        self.win_size
+    }
+
+    pub fn factory_mut(&mut self) -> &mut gfx_gl::Factory {
+        &mut self.factory
+    }
+
+    pub fn set_mvp(&mut self, mvp: Matrix4<f32>) {
+        self.data.mvp = mvp.into();
+    }
+
+    pub fn set_basic_color(&mut self, color: [f32; 4]) {
+        self.data.basic_color = color;
     }
 
     pub fn mouse(&self) -> &MouseState {

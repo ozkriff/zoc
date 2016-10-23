@@ -260,8 +260,8 @@ impl Gui {
             Button::new(context, "[-]", pos));
         let label_score_id = {
             let vp_pos = ScreenPos{v: Vector2 {
-                x: context.win_size.w - 10,
-                y: context.win_size.h - 10,
+                x: context.win_size().w - 10,
+                y: context.win_size().h - 10,
             }};
             let text = score_text(state);
             let mut label_score = Button::new_small(context, &text, vp_pos);
@@ -273,7 +273,7 @@ impl Gui {
         };
         let label_reinforcement_points_id = {
             let vp_pos = ScreenPos{v: Vector2 {
-                x: context.win_size.w - 10,
+                x: context.win_size().w - 10,
                 y: 10,
             }};
             let text = reinforcement_points_text(state, PlayerId{id: 0}); // TODO: magic lalal
@@ -475,7 +475,7 @@ impl TacticalScreen {
         let (tx, rx) = channel();
         // let mut menu_pos = context.mouse().pos;
         let mut menu_pos = ScreenPos{v: Vector2{x: 10, y: 10}};
-        menu_pos.v.y = context.win_size.h - menu_pos.v.y;
+        menu_pos.v.y = context.win_size().h - menu_pos.v.y;
         let screen = ReinforcementsPopup::new(
             self.core.db(), context, menu_pos, options, tx);
         self.reinforcements_popup_rx = Some(rx);
@@ -612,7 +612,7 @@ impl TacticalScreen {
             return;
         }
         let mut menu_pos = context.mouse().pos;
-        menu_pos.v.y = context.win_size.h - menu_pos.v.y;
+        menu_pos.v.y = context.win_size().h - menu_pos.v.y;
         let (tx, rx) = channel();
         let screen = ContextMenuPopup::new(
             self.current_state(),
@@ -646,7 +646,7 @@ impl TacticalScreen {
         self.selection_manager.create_selection_marker(
             state, scene, unit_id);
         {
-            let pos = ScreenPos{v: Vector2{x: 10, y: context.win_size.h - 10}};
+            let pos = ScreenPos{v: Vector2{x: 10, y: context.win_size().h - 10}};
             let text = {
                 let unit = state.unit(unit_id);
                 let unit_type = self.core.db().unit_type(unit.type_id);
@@ -690,8 +690,8 @@ impl TacticalScreen {
     fn handle_camera_move(&mut self, context: &Context, pos: ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
         let camera_move_speed = geom::HEX_EX_RADIUS * 12.0;
-        let per_x_pixel = camera_move_speed / (context.win_size.w as f32);
-        let per_y_pixel = camera_move_speed / (context.win_size.h as f32);
+        let per_x_pixel = camera_move_speed / (context.win_size().w as f32);
+        let per_y_pixel = camera_move_speed / (context.win_size().h as f32);
         let camera = &mut self.current_player_info_mut().camera;
         camera.move_in_direction(Rad(PI), diff.x as f32 * per_x_pixel);
         camera.move_in_direction(Rad(PI * 1.5), diff.y as f32 * per_y_pixel);
@@ -699,9 +699,9 @@ impl TacticalScreen {
 
     fn handle_camera_rotate(&mut self, context: &Context, pos: ScreenPos) {
         let diff = pos.v - context.mouse().pos.v;
-        let per_x_pixel = PI / (context.win_size.w as f32);
+        let per_x_pixel = PI / (context.win_size().w as f32);
         // TODO: get max angles from camera
-        let per_y_pixel = (PI / 4.0) / (context.win_size.h as f32);
+        let per_y_pixel = (PI / 4.0) / (context.win_size().h as f32);
         let camera = &mut self.current_player_info_mut().camera;
         camera.add_horizontal_angle(Rad(diff.x as f32 * per_x_pixel));
         camera.add_vertical_angle(Rad(diff.y as f32 * per_y_pixel));
@@ -734,10 +734,11 @@ impl TacticalScreen {
 
     #[cfg(target_os = "android")]
     fn must_rotate_camera(&self, context: &Context) -> bool {
-        if context.win_size.w > context.win_size.h {
-            context.mouse().last_press_pos.v.x > context.win_size.w / 2
+        let win_size = context.win_size();
+        if win_size.w > win_size.h {
+            context.mouse().last_press_pos.v.x > win_size.w / 2
         } else {
-            context.mouse().last_press_pos.v.y < context.win_size.h / 2
+            context.mouse().last_press_pos.v.y < win_size.h / 2
         }
     }
 
@@ -841,8 +842,8 @@ impl TacticalScreen {
         let rot_mat = cgmath::Matrix4::from(cgmath::Matrix3::from_angle_z(node.rot));
         let m = m * tr_mat * rot_mat;
         if let Some(mesh_id) = node.mesh_id {
-            context.data.mvp = m.into(); // TODO: use separate model matrix
-            context.data.basic_color = node.color;
+            context.set_mvp(m); // TODO: use separate model matrix
+            context.set_basic_color(node.color);
             context.draw_mesh(self.meshes.get(mesh_id));
         }
         for node in &node.children {
@@ -874,12 +875,12 @@ impl TacticalScreen {
     }
 
     fn draw(&mut self, context: &mut Context, dtime: Time) {
-        context.clear_color = [0.7, 0.7, 0.7, 1.0];
-        context.encoder.clear(&context.data.out, context.clear_color);
+        context.set_clear_color([0.7, 0.7, 0.7, 1.0]);
+        context.clear();
         self.draw_scene(context, dtime);
         let player_info = self.player_info.get(self.core.player_id());
         self.map_text_manager.draw(context, &player_info.camera, dtime);
-        context.data.basic_color = [0.0, 0.0, 0.0, 1.0];
+        context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.gui.button_manager.draw(context);
     }
 
@@ -1276,7 +1277,7 @@ impl Screen for TacticalScreen {
         match *event {
             Event::Resized(..) => {
                 for (_, player_info) in &mut self.player_info.info {
-                    player_info.camera.regenerate_projection_mat(context.win_size);
+                    player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },
             Event::MouseMoved(x, y) => {
