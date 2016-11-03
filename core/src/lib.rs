@@ -743,9 +743,7 @@ impl Core {
         let pierce_test_v = clamp(pierce_test_v, 0, 10);
         let wound_test_v = clamp(wound_test_v, 0, 10);
         let k = (hit_test_v * pierce_test_v * wound_test_v) / 10;
-        assert!(0 <= k);
-        assert!(100 > k);
-        k
+        clamp(k, 0, 100)
     }
 
     fn attack_test(&self, attacker: &Unit, defender: &Unit) -> bool {
