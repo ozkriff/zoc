@@ -12,7 +12,7 @@ use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::db::{Db};
-use core::unit::{Unit, UnitTypeId};
+use core::unit::{UnitTypeId};
 use obj;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
@@ -190,15 +190,6 @@ impl MeshIdManager {
             sector_mesh_ids: sector_mesh_ids,
         }
     }
-}
-
-// TODO: move to core
-fn is_unit_in_object(unit: &Unit, object: &Object) -> bool {
-    if unit.pos == object.pos {
-        return true;
-    }
-    let is_object_big = object.pos.slot_id == SlotId::WholeTile;
-    is_object_big && unit.pos.map_pos == object.pos.map_pos
 }
 
 fn building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> MeshId {
@@ -1133,7 +1124,7 @@ impl TacticalScreen {
                 if unit_type.is_air {
                     continue;
                 }
-                if is_unit_in_object(unit, object) {
+                if core::is_unit_in_object(unit, object) {
                     node.mesh_id = Some(wireframe_building_mesh_id(&self.mesh_ids, object));
                     node.color = [0.0, 0.0, 0.0, 1.0];
                     continue 'object_loop;

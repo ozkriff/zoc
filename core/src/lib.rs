@@ -330,6 +330,14 @@ pub fn move_cost_modifier(mode: MoveMode) -> i32 {
     }
 }
 
+pub fn is_unit_in_object(unit: &Unit, object: &Object) -> bool {
+    if unit.pos == object.pos {
+        return true;
+    }
+    let is_object_big = object.pos.slot_id == SlotId::WholeTile;
+    is_object_big && unit.pos.map_pos == object.pos.map_pos
+}
+
 // TODO: simplify/optimize
 pub fn find_next_player_unit_id<S: GameState>(
     state: &S,
