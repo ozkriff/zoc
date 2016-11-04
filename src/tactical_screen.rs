@@ -10,9 +10,9 @@ use types::{Time};
 use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
-use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId};
+use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::db::{Db};
-use core::unit::{UnitTypeId};
+use core::unit::{Unit, UnitTypeId};
 use obj;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
@@ -189,6 +189,33 @@ impl MeshIdManager {
             reinforcement_sector_tile_mesh_id: reinforcement_sector_tile_mesh_id,
             sector_mesh_ids: sector_mesh_ids,
         }
+    }
+}
+
+// TODO: move to core
+fn is_unit_in_object(unit: &Unit, object: &Object) -> bool {
+    if unit.pos == object.pos {
+        return true;
+    }
+    let is_object_big = object.pos.slot_id == SlotId::WholeTile;
+    is_object_big && unit.pos.map_pos == object.pos.map_pos
+}
+
+fn building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> MeshId {
+    let slot_id = object.pos.slot_id;
+    match slot_id {
+        SlotId::Id(_) => mesh_ids.building_mesh_id,
+        SlotId::WholeTile => mesh_ids.big_building_mesh_id,
+        _ => unimplemented!(),
+    }
+}
+
+fn wireframe_building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> MeshId {
+    let slot_id = object.pos.slot_id;
+    match slot_id {
+        SlotId::Id(_) => mesh_ids.building_mesh_w_id,
+        SlotId::WholeTile => mesh_ids.big_building_mesh_w_id,
+        _ => unimplemented!(),
     }
 }
 
@@ -377,12 +404,7 @@ fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
                 scene.add_object(object_id, SceneNode {
                     pos: pos,
                     rot: rot,
-                    // TODO: merge with switch_wireframe
-                    mesh_id: Some(match object.pos.slot_id {
-                        SlotId::Id(_) => mesh_ids.building_mesh_id,
-                        SlotId::WholeTile => mesh_ids.big_building_mesh_id,
-                        SlotId::TwoTiles(_) | SlotId::Air => unimplemented!(),
-                    }),
+                    mesh_id: Some(building_mesh_id(mesh_ids, object)),
                     color: [1.0, 1.0, 1.0, 1.0],
                     children: Vec::new(),
                 });
@@ -1092,7 +1114,6 @@ impl TacticalScreen {
         self.gui.label_reinforcement_points_id = self.gui.button_manager.add_button(label);
     }
 
-    // TODO: simplify
     fn switch_wireframe(&mut self) {
         let player_info = self.player_info.get_mut(self.core.player_id());
         let scene = &mut player_info.scene;
@@ -1101,21 +1122,6 @@ impl TacticalScreen {
             if object.class != core::ObjectClass::Building {
                 continue;
             }
-            let is_big = match object.pos.slot_id {
-                SlotId::Id(_) => false,
-                SlotId::WholeTile => true,
-                SlotId::TwoTiles(..) | SlotId::Air => unimplemented!(),
-            };
-            let normal_mesh_id = if is_big {
-                self.mesh_ids.big_building_mesh_id
-            } else {
-                self.mesh_ids.building_mesh_id
-            };
-            let wire_mesh_id = if is_big {
-                self.mesh_ids.big_building_mesh_w_id
-            } else {
-                self.mesh_ids.building_mesh_w_id
-            };
             let node = {
                 let node_ids = scene.object_id_to_node_id(object_id).clone();
                 assert_eq!(node_ids.len(), 1);
@@ -1127,13 +1133,13 @@ impl TacticalScreen {
                 if unit_type.is_air {
                     continue;
                 }
-                if unit.pos == object.pos || (is_big && unit.pos.map_pos == object.pos.map_pos) {
-                    node.mesh_id = Some(wire_mesh_id);
+                if is_unit_in_object(unit, object) {
+                    node.mesh_id = Some(wireframe_building_mesh_id(&self.mesh_ids, object));
                     node.color = [0.0, 0.0, 0.0, 1.0];
                     continue 'object_loop;
                 }
             }
-            node.mesh_id = Some(normal_mesh_id);
+            node.mesh_id = Some(building_mesh_id(&self.mesh_ids, object));
             node.color = [1.0, 1.0, 1.0, 1.0];
         }
     }
