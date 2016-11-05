@@ -1,3 +1,4 @@
+use rand::{thread_rng, Rng};
 use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
@@ -14,6 +15,7 @@ use ::{
     PlayerId,
     ExactPos,
     ObjectClass,
+    Object,
     get_free_exact_pos,
 };
 
@@ -162,7 +164,27 @@ impl Ai {
         None
     }
 
+    fn get_shuffled_reinforcement_sectors(&self, player_id: PlayerId) -> Vec<&Object> {
+        let mut reinforcement_sectors = Vec::new();
+        for object in self.state.objects().values() {
+            let owner_id = match object.owner_id {
+                Some(id) => id,
+                None => continue,
+            };
+            if owner_id != player_id {
+                continue;
+            }
+            if object.class != ObjectClass::ReinforcementSector {
+                continue;
+            }
+            reinforcement_sectors.push(object);
+        }
+        thread_rng().shuffle(&mut reinforcement_sectors);
+        reinforcement_sectors
+    }
+
     pub fn try_get_create_unit_command(&self, db: &Db) -> Option<Command> {
+        let reinforcement_sectors = self.get_shuffled_reinforcement_sectors(self.id);
         let reinforcement_points = self.state.reinforcement_points()[&self.id];
         for type_index in get_shuffled_indices(db.unit_types()) {
             let unit_type_id = UnitTypeId{id: type_index as i32};
@@ -170,22 +192,12 @@ impl Ai {
             if unit_type.cost > reinforcement_points {
                 continue;
             }
-            for object in self.state.objects().values() {
-                let owner_id = match object.owner_id {
-                    Some(id) => id,
-                    None => continue,
-                };
-                if owner_id != self.id {
-                    continue;
-                }
-                if object.class != ObjectClass::ReinforcementSector {
-                    continue;
-                }
+            for sector in &reinforcement_sectors {
                 let exact_pos = match get_free_exact_pos(
                     db,
                     &self.state,
                     unit_type_id,
-                    object.pos.map_pos,
+                    sector.pos.map_pos,
                 ) {
                     Some(pos) => pos,
                     None => continue,
