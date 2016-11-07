@@ -42,6 +42,13 @@ fn new_pso(
     pso.unwrap()
 }
 
+// TODO: read font name from config
+fn new_font() -> rusttype::Font<'static> {
+    let font_data = fs::load("DroidSerif-Regular.ttf").into_inner();
+    let collection = rusttype::FontCollection::from_bytes(font_data);
+    collection.into_font().unwrap()
+}
+
 fn get_win_size(window: &glutin::Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
     Size2{w: w as i32, h: h as i32}
@@ -75,10 +82,6 @@ pub struct Context {
 
 impl Context {
     pub fn new(tx: Sender<ScreenCommand>) -> Context {
-        // TODO: read font name from config
-        let font_data = fs::load("DroidSerif-Regular.ttf").into_inner();
-        let font = rusttype::FontCollection::from_bytes(font_data)
-            .into_font().unwrap();
         let gl_version = GlRequest::GlThenGles {
             opengles_version: (2, 0),
             opengl_version: (2, 1),
@@ -118,7 +121,7 @@ impl Context {
             pso_wire: pso_wire,
             should_close: false,
             commands_tx: tx,
-            font: font,
+            font: new_font(),
             mouse: MouseState {
                 is_left_button_pressed: false,
                 is_right_button_pressed: false,
