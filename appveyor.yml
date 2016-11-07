@@ -1,34 +1,85 @@
-platform:
-    - i686
-    - x86_64
-
 environment:
-    matrix:
-        - rust_version: 1.12.0
-        - rust_version: beta
-        - rust_version: nightly
-
-cache:
-    - target -> Cargo.lock
+  global:
+    PROJECT_NAME: zoc
+    MAKE: C:\MinGW\bin\mingw32-make.exe
+  matrix:
+    # Stable channel
+    - TARGET: i686-pc-windows-gnu
+      CHANNEL: stable
+      BITS: 32
+    - TARGET: i686-pc-windows-msvc
+      CHANNEL: stable
+      BITS: 32
+    - TARGET: x86_64-pc-windows-gnu
+      CHANNEL: stable
+      BITS: 64
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: stable
+      BITS: 64
+    # Beta channel
+    - TARGET: i686-pc-windows-gnu
+      CHANNEL: beta
+      BITS: 32
+    - TARGET: i686-pc-windows-msvc
+      CHANNEL: beta
+      BITS: 32
+    - TARGET: x86_64-pc-windows-gnu
+      CHANNEL: beta
+      BITS: 64
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: beta
+      BITS: 64
+    # Nightly channel
+    - TARGET: i686-pc-windows-gnu
+      CHANNEL: nightly
+      BITS: 32
+    - TARGET: i686-pc-windows-msvc
+      CHANNEL: nightly
+      BITS: 32
+    - TARGET: x86_64-pc-windows-gnu
+      CHANNEL: nightly
+      BITS: 64
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: nightly
+      BITS: 64
 
 install:
-    - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-$env:rust_version-$env:platform-pc-windows-gnu.exe" -FileName rust.exe
-    - cmd: rust.exe /VERYSILENT /NORESTART /DIR=C:\Rust
-    - ps: >-
-        if ($env:platform -eq "i686") {
-            $env:mingw = "C:\mingw"
-        } else {
-            Start-FileDownload "http://libgd.blob.core.windows.net/mingw/mingw-w64-dgn-x86_64-20141001.7z" -FileName mingw-w64.7z;
-            7z x -oC:\ mingw-w64.7z | Out-Null;
-            $env:mingw = "C:\mingw64"
-        }
-    - cmd: SET PATH=%mingw%\bin;C:\Rust\bin;%PATH%
-    - rustc -V
-    - cargo -V
+  - set PATH=C:\msys64\mingw%BITS%\bin;C:\msys64\usr\bin;%PATH%
+  - curl -sSf -o rustup-init.exe https://win.rustup.rs
+  - rustup-init.exe --default-host %TARGET% --default-toolchain %CHANNEL% -y
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustc -Vv
+  - cargo -V
 
-build_script:
-- cargo build
+build: false
 
 test_script:
-    - cargo test --package core
-    - cargo test
+  - cmd: '%MAKE% && %MAKE% test'
+
+cache:
+  - target
+  - C:\Users\appveyor\.cargo\registry
+
+before_deploy:
+  - mkdir staging
+  - mkdir staging\assets
+  - copy target\release\zoc.exe staging
+  - xcopy assets staging\assets /E /I
+  - cd staging
+  - 7z a ../%PROJECT_NAME%-%TARGET%.zip *
+  - appveyor PushArtifact ../%PROJECT_NAME%-%TARGET%.zip
+
+deploy:
+  artifact: /.*\.zip/
+
+  auth_token:
+    secure: j5GFNtJxn/0AS4FNTlVZV/cH24XGvwG9VhEUE/CrY7vJW2TaCHSklJWcPgOOlsbL
+  provider: GitHub
+
+  on:
+    CHANNEL: stable
+    appveyor_repo_tag: true
+
+branches:
+  only:
+    - master
