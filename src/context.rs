@@ -49,6 +49,17 @@ fn new_font() -> rusttype::Font<'static> {
     collection.into_font().unwrap()
 }
 
+fn new_window_builder() -> glutin::WindowBuilder<'static> {
+    let gl_version = GlRequest::GlThenGles {
+        opengles_version: (2, 0),
+        opengl_version: (2, 1),
+    };
+    glutin::WindowBuilder::new()
+        .with_title("Zone of Control".to_string())
+        .with_pixel_format(24, 8)
+        .with_gl(gl_version)
+}
+
 fn get_win_size(window: &glutin::Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
     Size2{w: w as i32, h: h as i32}
@@ -82,16 +93,8 @@ pub struct Context {
 
 impl Context {
     pub fn new(tx: Sender<ScreenCommand>) -> Context {
-        let gl_version = GlRequest::GlThenGles {
-            opengles_version: (2, 0),
-            opengl_version: (2, 1),
-        };
-        let builder = glutin::WindowBuilder::new()
-            .with_title("Zone of Control".to_string())
-            .with_pixel_format(24, 8)
-            .with_gl(gl_version);
         let (window, device, mut factory, main_color, main_depth)
-            = gfx_glutin::init(builder);
+            = gfx_glutin::init(new_window_builder());
         let encoder = factory.create_command_buffer().into();
         let program = new_shader(&window, &mut factory);
         let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
