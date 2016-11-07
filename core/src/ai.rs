@@ -3,7 +3,7 @@ use game_state::{GameState, GameStateMut};
 use partial_state::{PartialState};
 use map::{distance};
 use pathfinder::{self, Pathfinder, path_cost, truncate_path};
-use dir::{Dir};
+use dir::{Dir, dirs};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
@@ -16,6 +16,8 @@ use ::{
     ExactPos,
     ObjectClass,
     Object,
+    MovePoints,
+    MapPos,
     get_free_exact_pos,
 };
 
@@ -41,7 +43,6 @@ impl Ai {
         self.state.apply_event(db, event);
     }
 
-    // TODO: move fill_map here
     fn get_best_pos(&self, db: &Db, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
         let mut best_cost = pathfinder::max_cost();
@@ -49,30 +50,56 @@ impl Ai {
             if enemy.player_id == self.id {
                 continue;
             }
-            for i in 0 .. 6 {
-                let dir = Dir::from_int(i);
-                let destination = Dir::get_neighbour_pos(enemy.pos.map_pos, dir);
-                if !self.state.map().is_inboard(destination) {
+            for dir in dirs() {
+                let pos = Dir::get_neighbour_pos(enemy.pos.map_pos, dir);
+                if !self.state.map().is_inboard(pos) {
                     continue;
                 }
-                let exact_destination = match get_free_exact_pos(
-                    db, &self.state, unit.type_id, destination
-                ) {
-                    Some(pos) => pos,
-                    None => continue,
-                };
-                let path = match self.pathfinder.get_path(exact_destination) {
-                    Some(path) => path,
-                    None => continue,
-                };
-                let cost = path_cost(db, &self.state, unit, &path);
-                if best_cost.n > cost.n {
-                    best_cost.n = cost.n;
-                    best_pos = Some(exact_destination);
+                if let Some((cost, pos)) = self.estimate_path(db, unit, pos) {
+                    if best_cost.n > cost.n {
+                        best_cost = cost;
+                        best_pos = Some(pos);
+                    }
+                }
+            }
+        }
+        for sector in self.state.sectors().values() {
+            if sector.owner_id == Some(self.id) {
+                continue;
+            }
+            for &pos in &sector.positions {
+                if unit.pos.map_pos == pos {
+                    return None;
+                }
+                if let Some((cost, pos)) = self.estimate_path(db, unit, pos) {
+                    if best_cost.n > cost.n {
+                        best_cost = cost;
+                        best_pos = Some(pos);
+                    }
                 }
             }
         }
         best_pos
+    }
+
+    fn estimate_path(
+        &self,
+        db: &Db,
+        unit: &Unit,
+        destination: MapPos,
+    ) -> Option<(MovePoints, ExactPos)> {
+        let exact_destination = match get_free_exact_pos(
+            db, &self.state, unit.type_id, destination
+        ) {
+            Some(pos) => pos,
+            None => return None,
+        };
+        let path = match self.pathfinder.get_path(exact_destination) {
+            Some(path) => path,
+            None => return None,
+        };
+        let cost = path_cost(db, &self.state, unit, &path);
+        Some((cost, exact_destination))
     }
 
     fn is_close_to_enemies(&self, db: &Db, unit: &Unit) -> bool {
@@ -132,7 +159,6 @@ impl Ai {
                 continue;
             }
             self.pathfinder.fill_map(db, &self.state, unit);
-            // TODO: if no enemy is visible then move to random invisible tile
             let destination = match self.get_best_pos(db, unit) {
                 Some(destination) => destination,
                 None => continue,
@@ -160,7 +186,6 @@ impl Ai {
             }
             return Some(command);
         }
-        // TODO: if there are no visible enemies then try to capture some sector
         None
     }
 
