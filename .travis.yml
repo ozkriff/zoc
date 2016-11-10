@@ -1,5 +1,8 @@
 language: rust
 
+env:
+    - zipname="zoc-$TRAVIS_RUST_VERSION-$TRAVIS_OS_NAME.tar.gz"
+
 cache: cargo
 
 rust:
@@ -22,14 +25,14 @@ script:
 
 before_deploy:
     - mv target/release/zoc .
-    - tar -zcvf zoc_$(date +%Y-%m-%d)-$TRAVIS_RUST_VERSION-$TRAVIS_OS_NAME.tar.gz assets zoc
+    - tar -zcvf $zipname assets zoc
 
 deploy:
     provider: releases
     skip_cleanup: true
     overwrite: true
-    file: zoc_$(date +%Y-%m-%d)-$TRAVIS_RUST_VERSION-$TRAVIS_OS_NAME.tar.gz
+    file: $zipname
     api_key:
-        secure: kRmQ4Dbeo0kdvrDuMGA+F9ohWhky1DDz5YbnTxkC0Rz5ahxuxaQMq2XCWhsHJ4IiwBN1XouNRR8+qtdh4B2sjyMNk936nHE+jR86Hiz33JJcxKfK7LgDTeeMiX5ZhOFNIiuNt8J1tyjqQkiYBnHJnTZ4z+vmx95a+svRlH4gz9RqtSPh/DRTNr1M4jqvHN3dQtC+uggwGI89UZadhrJQE3VM7brASdIBJn3JQSrfVFE1D3zIDfxVUwpPpMFOF+nlQzFlBkTkqe76HjHea9Z3HyL7XdTrNA7c33L+5fpznsJqYm/IT1AnW0FJ1nrHfByLJHMxPDZgUekwZAdWVINUbzT4MUbIJ07u2clfbcqRuoSnUsCzb6niFFgD1DAXR6j37THTV9l/yQDIWjLmkoU4nihsvuhjTvEEKyeEx8FXTtu1gcX+HDGZ6EMs4BDxKhIGA7ATXEnZuwyLQ2L3Z63V38UciIWK58D9CAguHsKRpMPM5U7QkXiT6vt8ddk0/ERlS8DKo5n9O+1V63J6ua2OYWdwUw396BMPhM8xQyxf0NvD5QGw1P9H/YadZ6zp5ezctkqmhmFvlx+F9McESiwg8y7XJm7JcZV9BQDscCw6Otr2WGf2XvcJme+yiBVuslSkS4NFnIa9x1VgdVKfdLEcw7fSqWfzcZZ4RD+uNIMBs2I=
+        secure: IomsNtPkLF5KULhYX5Shgjpt14BSF+pY2aQOkk5c1BeMftnHXQBZV5Kt6FdZYB6ASFJGfOWqmkYy+pi81aN+hzzk0PXYDtK0bbpucbovoao9GJhorU3wEeBajloICkQ3PEjSJ5T+dtAmQLGKgx4YTTUyJSEsdJTULP5AIn5dNPU=
     on:
         tags: true

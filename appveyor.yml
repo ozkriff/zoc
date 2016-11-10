@@ -1,85 +1,58 @@
 environment:
-  global:
-    PROJECT_NAME: zoc
-    MAKE: C:\MinGW\bin\mingw32-make.exe
-  matrix:
-    # Stable channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: stable
-      BITS: 32
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: stable
-      BITS: 32
-    - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: stable
-      BITS: 64
-    - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: stable
-      BITS: 64
-    # Beta channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: beta
-      BITS: 32
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: beta
-      BITS: 32
-    - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: beta
-      BITS: 64
-    - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: beta
-      BITS: 64
-    # Nightly channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: nightly
-      BITS: 32
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: nightly
-      BITS: 32
-    - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: nightly
-      BITS: 64
-    - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: nightly
-      BITS: 64
+    global:
+        PROJECT_NAME: zoc
+        MAKE: C:\MinGW\bin\mingw32-make.exe
+    matrix:
+        - TARGET: i686-pc-windows-gnu
+          CHANNEL: stable
+        - TARGET: x86_64-pc-windows-msvc
+          CHANNEL: stable
+        - TARGET: x86_64-pc-windows-gnu
+          CHANNEL: stable
+        - TARGET: x86_64-pc-windows-gnu
+          CHANNEL: beta
+        - TARGET: x86_64-pc-windows-gnu
+          CHANNEL: nightly
+
+matrix:
+    allow_failures:
+        - CHANNEL: nightly
 
 install:
-  - set PATH=C:\msys64\mingw%BITS%\bin;C:\msys64\usr\bin;%PATH%
-  - curl -sSf -o rustup-init.exe https://win.rustup.rs
-  - rustup-init.exe --default-host %TARGET% --default-toolchain %CHANNEL% -y
-  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-  - rustc -Vv
-  - cargo -V
+    - set PATH=C:\msys64\usr\bin;%PATH%
+    - set PATH=C:\msys64\mingw32\bin;%PATH%
+    - if "%TARGET%" == "x86_64-pc-windows-gnu" set PATH=C:\msys64\mingw64\bin;%PATH%
+    - curl -sSf -o rustup-init.exe https://win.rustup.rs
+    - rustup-init.exe --default-host %TARGET% --default-toolchain %CHANNEL% -y
+    - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+    - rustc -Vv
+    - cargo -V
 
 build: false
 
 test_script:
-  - cmd: '%MAKE% && %MAKE% test'
+    - cmd: '%MAKE% && %MAKE% test'
 
 cache:
-  - target
-  - C:\Users\appveyor\.cargo\registry
+    - target
+    - C:\Users\appveyor\.cargo\registry
 
 before_deploy:
-  - mkdir staging
-  - mkdir staging\assets
-  - copy target\release\zoc.exe staging
-  - xcopy assets staging\assets /E /I
-  - cd staging
-  - 7z a ../%PROJECT_NAME%-%TARGET%.zip *
-  - appveyor PushArtifact ../%PROJECT_NAME%-%TARGET%.zip
+    - mkdir staging
+    - mkdir staging\assets
+    - copy target\release\zoc.exe staging
+    - xcopy assets staging\assets /E /I
+    - cd staging
+    - 7z a ../%PROJECT_NAME%-%TARGET%.zip *
+    - appveyor PushArtifact ../%PROJECT_NAME%-%TARGET%.zip
 
 deploy:
-  artifact: /.*\.zip/
-
-  auth_token:
-    secure: j5GFNtJxn/0AS4FNTlVZV/cH24XGvwG9VhEUE/CrY7vJW2TaCHSklJWcPgOOlsbL
-  provider: GitHub
-
-  on:
-    CHANNEL: stable
-    appveyor_repo_tag: true
-
-branches:
-  only:
-    - master
+    provider: GitHub
+    artifact: /.*\.zip/
+    auth_token:
+        secure: gZr9PnP3Sj6KVw4fd9HUosRkvMZMhkeC0dA1eIbWMmFJj3hANFfUTIS4DYhkaaJo
+    on:
+        CHANNEL: stable
+        appveyor_repo_tag: true
+        branch:
+            - master
