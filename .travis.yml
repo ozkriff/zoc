@@ -1,7 +1,7 @@
 language: rust
 
 env:
-    - zipname="zoc-$TRAVIS_RUST_VERSION-$TRAVIS_OS_NAME.tar.gz"
+    - zipname="zoc-$TRAVIS_OS_NAME.tar.gz"
 
 cache: cargo
 
