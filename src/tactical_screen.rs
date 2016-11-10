@@ -836,8 +836,6 @@ impl TacticalScreen {
             self.current_player_info_mut().camera.change_zoom(0.7);
         } else if button_id == self.gui.button_zoom_out_id {
             self.current_player_info_mut().camera.change_zoom(1.3);
-        } else {
-            panic!("BUTTON ID ERROR");
         }
     }
 
