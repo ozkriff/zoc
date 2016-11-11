@@ -10,6 +10,12 @@ Zone of Control
 |backhub|_
 
 
+Downloads
+---------
+
+Precompiled binaries for linux, win and osx: https://github.com/ozkriff/zoc/releases
+
+
 Overview
 --------
 
