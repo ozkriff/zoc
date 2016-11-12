@@ -567,7 +567,7 @@ impl TacticalScreen {
         }
     }
 
-    fn bobble_helicopters(&mut self, context: &Context) {
+    fn bobble_helicopters(&mut self, context: &Context, dtime: Time) {
         let player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let scene = &mut player_info.scene;
@@ -577,7 +577,7 @@ impl TacticalScreen {
                 let node_id = scene.unit_id_to_node_id(unit.id);
                 let node = scene.node_mut(node_id);
                 let n = context.current_time().n + unit.id.id as f32;
-                node.pos.v.z += (n * 1.5).sin() * 0.005;
+                node.pos.v.z += (n * 1.5).sin() * 0.4 * dtime.n;
             }
         }
     }
@@ -1263,7 +1263,7 @@ impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: Time) {
         self.logic(context);
         self.draw(context, dtime);
-        self.bobble_helicopters(context);
+        self.bobble_helicopters(context, dtime);
         self.update_fow(dtime);
         self.handle_context_menu_popup_commands(context);
     }
