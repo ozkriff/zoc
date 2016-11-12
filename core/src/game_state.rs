@@ -22,8 +22,10 @@ impl<'a> Iterator for ObjectsAtIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((_, object)) = self.it.next() {
-            if self.pos == object.pos.map_pos {
-                return Some(object);
+            for map_pos in object.pos.map_pos_iter() {
+                if self.pos == map_pos {
+                    return Some(object);
+                }
             }
         }
         None
