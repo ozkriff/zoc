@@ -115,7 +115,7 @@ impl Context {
         Context {
             data: data,
             win_size: win_size,
-            clear_color: [0.0, 0.0, 1.0, 1.0],
+            clear_color: [0.7, 0.7, 0.7, 1.0],
             window: window,
             device: device,
             factory: factory,
@@ -133,10 +133,6 @@ impl Context {
             },
             start_time_ns: precise_time_ns(),
         }
-    }
-
-    pub fn set_clear_color(&mut self, color: [f32; 4]) {
-        self.clear_color = color;
     }
 
     pub fn clear(&mut self) {

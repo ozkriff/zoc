@@ -115,7 +115,6 @@ impl MainMenuScreen {
 
 impl Screen for MainMenuScreen {
     fn tick(&mut self, context: &mut Context, _: Time) {
-        context.set_clear_color([0.7, 0.7, 0.7, 1.0]);
         context.clear();
         context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.button_manager.draw(context);

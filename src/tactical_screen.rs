@@ -886,7 +886,6 @@ impl TacticalScreen {
     }
 
     fn draw(&mut self, context: &mut Context, dtime: Time) {
-        context.set_clear_color([0.7, 0.7, 0.7, 1.0]);
         context.clear();
         self.draw_scene(context, dtime);
         let player_info = self.player_info.get(self.core.player_id());

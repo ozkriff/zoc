@@ -54,7 +54,6 @@ impl Visualizer {
 
     fn draw(&mut self) {
         let dtime = self.update_time();
-        self.context.set_clear_color([0.8, 0.8, 0.8, 1.0]);
         self.context.clear();
         {
             let screen = self.screens.last_mut().unwrap();
