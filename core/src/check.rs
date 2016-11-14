@@ -42,6 +42,7 @@ pub enum CommandError {
     BadDefenderId,
     BadPath,
     BadUnitType,
+    UnitIsDead,
 }
 
 impl CommandError {
@@ -73,6 +74,7 @@ impl CommandError {
             CommandError::BadDefenderId => "Bad defender id",
             CommandError::BadPath => "Bad path",
             CommandError::BadUnitType => "Bad unit type",
+            CommandError::UnitIsDead => "Unit is dead",
         }
     }
 }
@@ -120,6 +122,9 @@ pub fn check_command<S: GameState>(
         },
         Command::Move{unit_id, ref path, mode} => {
             let unit = state.unit(unit_id);
+            if !unit.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if unit.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
@@ -152,10 +157,16 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::BadDefenderId);
             }
             let attacker = state.unit(attacker_id);
+            if !attacker.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if attacker.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
             let defender = state.unit(defender_id);
+            if !defender.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             check_attack(db, state, attacker, defender, FireMode::Active)
         },
         Command::LoadUnit{transporter_id, passenger_id} => {
@@ -166,7 +177,13 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::BadPassengerId);
             }
             let passenger = state.unit(passenger_id);
+            if !passenger.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             let transporter = state.unit(transporter_id);
+            if !transporter.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if passenger.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
@@ -203,7 +220,13 @@ pub fn check_command<S: GameState>(
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
             };
+            if !passenger.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             let transporter = state.unit(transporter_id);
+            if !transporter.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if passenger.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
@@ -234,6 +257,9 @@ pub fn check_command<S: GameState>(
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };
+            if !unit.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if unit.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
@@ -244,6 +270,9 @@ pub fn check_command<S: GameState>(
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };
+            if !unit.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
             if unit.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
@@ -271,6 +300,12 @@ pub fn check_attack<S: GameState>(
     defender: &Unit,
     fire_mode: FireMode,
 ) -> Result<(), CommandError> {
+    if !attacker.is_alive {
+        return Err(CommandError::UnitIsDead);
+    }
+    if !defender.is_alive {
+        return Err(CommandError::UnitIsDead);
+    }
     let attack_points = attacker.attack_points.unwrap();
     let reactive_attack_points = attacker.reactive_attack_points.unwrap();
     match fire_mode {

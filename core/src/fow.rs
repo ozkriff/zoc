@@ -36,6 +36,7 @@ fn fov_unit_in_pos(
     unit: &Unit,
     origin: MapPos,
 ) {
+    assert!(unit.is_alive);
     let unit_type = db.unit_type(unit.type_id);
     let range = unit_type.los_range;
     let f = if unit_type.is_air {
@@ -159,7 +160,7 @@ impl Fow {
     fn reset(&mut self, db: &Db, state: &InternalState) {
         self.clear();
         for unit in state.units().values() {
-            if unit.player_id == self.player_id {
+            if unit.player_id == self.player_id && unit.is_alive {
                 fov_unit(db, state, &mut self.map, unit);
             }
         }

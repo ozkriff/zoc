@@ -48,7 +48,7 @@ impl Ai {
         let mut best_pos = None;
         let mut best_cost = pathfinder::max_cost();
         for enemy in self.state.units().values() {
-            if enemy.player_id == self.id {
+            if enemy.player_id == self.id || !enemy.is_alive {
                 continue;
             }
             for dir in dirs() {

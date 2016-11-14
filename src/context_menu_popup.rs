@@ -78,7 +78,7 @@ pub fn get_options(
         None => {
             for unit_id in unit_ids {
                 let unit = state.unit(unit_id);
-                if unit.player_id == player_id {
+                if unit.is_alive && unit.player_id == player_id {
                     options.selects.push(unit_id);
                 }
             }
@@ -99,7 +99,7 @@ pub fn get_options(
                         options.disable_reaction_fire = Some(selected_unit_id);
                     }
                 }
-            } else {
+            } else if unit.is_alive {
                 options.selects.push(unit_id);
                 let load_command = core::Command::LoadUnit {
                     transporter_id: selected_unit_id,

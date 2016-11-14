@@ -22,6 +22,7 @@ pub struct Unit {
     pub count: i32,
     pub morale: i32,
     pub passenger_id: Option<UnitId>,
+    pub is_alive: bool,
 }
 
 #[derive(Clone, Debug)]

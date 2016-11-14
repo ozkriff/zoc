@@ -127,7 +127,7 @@ fn check_sectors(db: &Db, state: &InternalState) -> Vec<CoreEvent> {
         for &pos in &sector.positions {
             for unit in state.units_at(pos) {
                 let unit_type = db.unit_type(unit.type_id);
-                if !unit_type.is_air {
+                if !unit_type.is_air && unit.is_alive {
                     claimers.insert(unit.player_id);
                 }
             }
@@ -247,6 +247,7 @@ pub struct UnitInfo {
     pub type_id: UnitTypeId,
     pub player_id: PlayerId,
     pub passenger_id: Option<UnitId>,
+    pub is_alive: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -259,6 +260,7 @@ pub struct AttackInfo {
     pub remove_move_points: bool,
     pub is_ambush: bool,
     pub is_inderect: bool,
+    pub leave_wrecks: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -345,7 +347,7 @@ pub fn find_next_player_unit_id<S: GameState>(
     unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().iter().cycle().filter(
-        |&(_, unit)| unit.player_id == player_id);
+        |&(_, unit)| unit.is_alive && unit.player_id == player_id);
     while let Some((&id, _)) = i.next() {
         if id == unit_id {
             let (&id, _) = i.next().unwrap();
@@ -362,7 +364,7 @@ pub fn find_prev_player_unit_id<S: GameState>(
     unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().iter().cycle().filter(
-        |&(_, unit)| unit.player_id == player_id).peekable();
+        |&(_, unit)| unit.is_alive && unit.player_id == player_id).peekable();
     while let Some((&id, _)) = i.next() {
         let &(&next_id, _) = i.peek().unwrap();
         if next_id == unit_id {
@@ -398,6 +400,7 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
         type_id: unit.type_id,
         player_id: unit.player_id,
         passenger_id: unit.passenger_id,
+        is_alive: unit.is_alive,
     }
 }
 
@@ -807,6 +810,11 @@ impl Core {
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
         let per_death_suppression = 20;
+        let defender_type = self.db.unit_type(defender.type_id);
+        // TODO: destroyed helicopters must kill everyone
+        // on the ground in their tile
+        let leave_wrecks = defender_type.class != UnitClass::Infantry
+            && !defender_type.is_air;
         let attack_info = AttackInfo {
             attacker_id: Some(attacker_id),
             defender_id: defender_id,
@@ -816,6 +824,7 @@ impl Core {
             remove_move_points: false,
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
+            leave_wrecks: leave_wrecks,
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }
@@ -946,6 +955,7 @@ impl Core {
                         type_id: type_id,
                         player_id: self.current_player_id,
                         passenger_id: None,
+                        is_alive: true,
                     },
                 };
                 self.do_core_event(&event);

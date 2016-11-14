@@ -4,7 +4,6 @@ use cgmath::{Vector3, Rad};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos, PlayerId, SectorId, MapPos, ObjectId};
-use core::unit::{UnitTypeId};
 use core::db::{Db};
 use types::{WorldPos, Time};
 use mesh::{MeshId};
@@ -14,6 +13,8 @@ use scene::{Scene, SceneNode, NodeId};
 use unit_type_visual_info::{UnitTypeVisualInfo};
 use move_helper::{MoveHelper};
 use map_text::{MapTextManager};
+
+static WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
@@ -95,14 +96,16 @@ fn show_unit_at(
     let world_pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let to = world_pos;
     let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-    let mut children = get_unit_scene_nodes(db, unit_info.type_id, mesh_id);
-    children.push(SceneNode {
-        pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
-        rot: Rad(0.0),
-        mesh_id: Some(marker_mesh_id),
-        color: gen::get_player_color(unit_info.player_id),
-        children: Vec::new(),
-    });
+    let mut children = get_unit_scene_nodes(db, unit_info, mesh_id);
+    if unit_info.is_alive {
+        children.push(SceneNode {
+            pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
+            rot: Rad(0.0),
+            mesh_id: Some(marker_mesh_id),
+            color: gen::get_player_color(unit_info.player_id),
+            children: Vec::new(),
+        });
+    }
     scene.add_unit(unit_info.unit_id, SceneNode {
         pos: to,
         rot: rot,
@@ -120,17 +123,22 @@ pub struct EventCreateUnitVisualizer {
 
 fn get_unit_scene_nodes(
     db: &Db,
-    type_id: UnitTypeId,
+    unit_info: &UnitInfo,
     mesh_id: MeshId,
 ) -> Vec<SceneNode> {
-    let count = db.unit_type(type_id).count;
+    let color = if unit_info.is_alive {
+        [1.0, 1.0, 1.0, 1.0]
+    } else {
+        WRECKS_COLOR
+    };
+    let count = db.unit_type(unit_info.type_id).count;
     let mut vec = Vec::new();
     if count == 1 {
         vec![SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
             rot: Rad(0.0),
             mesh_id: Some(mesh_id),
-            color: [1.0, 1.0, 1.0, 1.0],
+            color: color,
             children: vec![],
         }]
     } else {
@@ -140,7 +148,7 @@ fn get_unit_scene_nodes(
                 pos: WorldPos{v: pos},
                 rot: Rad(0.0),
                 mesh_id: Some(mesh_id),
-                color: [1.0, 1.0, 1.0, 1.0],
+                color: color,
                 children: vec![],
             });
         }
@@ -191,12 +199,11 @@ fn vec3_z(z: f32) -> Vector3<f32> {
 #[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
     defender_node_id: NodeId,
-    killed: i32,
     is_target_destroyed: bool,
     move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
-    is_inderect: bool,
+    attack_info: AttackInfo,
 }
 
 impl EventAttackUnitVisualizer {
@@ -207,6 +214,7 @@ impl EventAttackUnitVisualizer {
         shell_mesh_id: MeshId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
+        let attack_info = attack_info.clone();
         let defender = state.unit(attack_info.defender_id);
         let defender_node_id = scene.unit_id_to_node_id(attack_info.defender_id);
         let defender_pos = scene.node(defender_node_id).pos;
@@ -258,8 +266,7 @@ impl EventAttackUnitVisualizer {
         }
         Box::new(EventAttackUnitVisualizer {
             defender_node_id: defender_node_id,
-            killed: attack_info.killed,
-            is_inderect: attack_info.is_inderect,
+            attack_info: attack_info,
             is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
@@ -270,7 +277,7 @@ impl EventAttackUnitVisualizer {
 
 impl EventVisualizer for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
-        if self.killed > 0 {
+        if self.attack_info.killed > 0 && !self.attack_info.leave_wrecks {
             self.move_helper.is_finished()
         } else if let Some(ref shell_move) = self.shell_move {
             shell_move.is_finished()
@@ -283,7 +290,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         if let Some(ref mut shell_move) = self.shell_move {
             let shell_node_id = self.shell_node_id.unwrap();
             let mut pos = shell_move.step(dtime);
-            if self.is_inderect {
+            if self.attack_info.is_inderect {
                 pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
             }
             scene.node_mut(shell_node_id).pos = pos;
@@ -300,27 +307,42 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             self.shell_move = None;
             self.shell_node_id = None;
         }
-        if is_shell_ok && self.killed > 0 {
+        if is_shell_ok && self.attack_info.killed > 0 {
             let step = self.move_helper.step_diff(dtime);
             let children = &mut scene.node_mut(self.defender_node_id).children;
-            for i in 0 .. self.killed as usize {
+            for i in 0 .. self.attack_info.killed as usize {
                 let child = children.get_mut(i)
                     .expect("draw: no child");
-                child.pos.v += step;
+                if !self.attack_info.leave_wrecks {
+                    child.pos.v += step;
+                }
             }
         }
     }
 
     fn end(&mut self, scene: &mut Scene, _: &PartialState) {
-        if self.killed > 0 {
+        if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
-            assert!(self.killed as usize <= children.len());
-            for _ in 0 .. self.killed {
-                let _ = children.remove(0);
+            assert!(self.attack_info.killed as usize <= children.len());
+            for i in 0 .. self.attack_info.killed as usize {
+                if self.attack_info.leave_wrecks {
+                    let child = children.get_mut(i).unwrap();
+                    child.color = WRECKS_COLOR;
+                } else {
+                    let _ = children.remove(0);
+                }
             }
         }
         if self.is_target_destroyed {
-            scene.remove_node(self.defender_node_id);
+            // delete unit's marker
+            scene.node_mut(self.defender_node_id).children.pop().unwrap();
+            if !self.attack_info.leave_wrecks {
+                let len = scene.node(self.defender_node_id).children.len();
+                if len != 0 {
+                    println!("warning: deleting node with {} children", len); // TODO
+                }
+                scene.remove_node(self.defender_node_id);
+            }
         }
     }
 }
