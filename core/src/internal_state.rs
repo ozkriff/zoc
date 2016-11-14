@@ -24,6 +24,7 @@ use ::{
     Score,
     MovePoints,
     AttackPoints,
+    Options,
     get_free_slot_for_building,
 };
 
@@ -41,17 +42,18 @@ pub struct InternalState {
     sectors: HashMap<SectorId, Sector>,
     score: HashMap<PlayerId, Score>,
     reinforcement_points: HashMap<PlayerId, i32>, // TODO: i32 -> ???
+    players_count: i32,
 }
 
 impl InternalState {
-    pub fn new(map_name: &str) -> InternalState {
+    pub fn new(options: &Options) -> InternalState {
         let mut score = HashMap::new();
         score.insert(PlayerId{id: 0}, Score{n: 0});
         score.insert(PlayerId{id: 1}, Score{n: 0});
         let mut reinforcement_points = HashMap::new();
         reinforcement_points.insert(PlayerId{id: 0}, 10);
         reinforcement_points.insert(PlayerId{id: 1}, 10);
-        let (map, objects, sectors) = load_map(map_name);
+        let (map, objects, sectors) = load_map(&options.map_name);
         InternalState {
             units: HashMap::new(),
             objects: objects,
@@ -59,6 +61,7 @@ impl InternalState {
             sectors: sectors,
             score: score,
             reinforcement_points: reinforcement_points,
+            players_count: options.players_count,
         }
     }
 
@@ -302,14 +305,15 @@ impl GameStateMut for InternalState {
                         }
                     }
                 }
-                // TODO: if there is already smoke in tile then just restart its timer
+                let smoke_duration_in_turns = 3; // TODO: get from config
+                let timer = smoke_duration_in_turns * self.players_count - 1;
                 self.objects.insert(id, Object {
                     class: ObjectClass::Smoke,
                     pos: ExactPos {
                         map_pos: pos,
                         slot_id: SlotId::WholeTile,
                     },
-                    timer: Some(5),
+                    timer: Some(timer),
                     owner_id: None,
                 });
             },

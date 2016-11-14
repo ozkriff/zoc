@@ -69,20 +69,18 @@ impl MainMenuScreen {
         context: &mut Context,
         button_id: ButtonId
     ) {
-        let map_name = self.map_names[self.selected_map_index];
+        let map_name = self.map_names[self.selected_map_index].to_string();
+        let mut core_options = core::Options {
+            game_type: core::GameType::Hotseat,
+            map_name: map_name,
+            players_count: 2,
+        };
         if button_id == self.button_start_hotseat_id {
-            let core_options = core::Options {
-                game_type: core::GameType::Hotseat,
-                map_name: map_name.to_string(),
-            };
             let tactical_screen = Box::new(
                 TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
         } else if button_id == self.button_start_vs_ai_id {
-            let core_options = core::Options {
-                game_type: core::GameType::SingleVsAi,
-                map_name: map_name.to_string(),
-            };
+            core_options.game_type = core::GameType::SingleVsAi;
             let tactical_screen = Box::new(
                 TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));

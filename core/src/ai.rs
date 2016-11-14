@@ -18,6 +18,7 @@ use ::{
     Object,
     MovePoints,
     MapPos,
+    Options,
     get_free_exact_pos,
 };
 
@@ -29,8 +30,8 @@ pub struct Ai {
 }
 
 impl Ai {
-    pub fn new(id: PlayerId, map_name: &str) -> Ai {
-        let state = PartialState::new(map_name, id);
+    pub fn new(options: &Options, id: PlayerId) -> Ai {
+        let state = PartialState::new(options, id);
         let map_size = state.map().size();
         Ai {
             id: id,

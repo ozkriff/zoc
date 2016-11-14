@@ -5,7 +5,7 @@ use map::{Map, Terrain};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use fow::{Fow};
-use ::{CoreEvent, PlayerId, UnitId, ObjectId, Object, MapPos, Score, Sector, SectorId};
+use ::{CoreEvent, PlayerId, UnitId, ObjectId, Object, MapPos, Score, Sector, SectorId, Options};
 
 #[derive(Clone, Debug)]
 pub struct PartialState {
@@ -14,8 +14,8 @@ pub struct PartialState {
 }
 
 impl PartialState {
-    pub fn new(map_name: &str, player_id: PlayerId) -> PartialState {
-        let state = InternalState::new(map_name);
+    pub fn new(options: &Options, player_id: PlayerId) -> PartialState {
+        let state = InternalState::new(options);
         let map_size = state.map().size();
         PartialState {
             state: state,

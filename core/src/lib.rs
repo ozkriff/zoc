@@ -486,6 +486,7 @@ impl Default for GameType {
 pub struct Options {
     pub game_type: GameType,
     pub map_name: String,
+    pub players_count: i32, // TODO: must it be defined by map/scenario?
 }
 
 #[derive(Clone, Debug)]
@@ -498,7 +499,8 @@ pub struct Core {
     players_info: HashMap<PlayerId, PlayerInfo>,
 }
 
-fn get_players_list(game_type: GameType) -> Vec<Player> {
+fn get_players_list(options: &Options) -> Vec<Player> {
+    assert_eq!(options.players_count, 2);
     vec!(
         Player {
             id: PlayerId{id: 0},
@@ -506,7 +508,7 @@ fn get_players_list(game_type: GameType) -> Vec<Player> {
         },
         Player {
             id: PlayerId{id: 1},
-            class: match game_type {
+            class: match options.game_type {
                 GameType::SingleVsAi => PlayerClass::Ai,
                 GameType::Hotseat => PlayerClass::Human,
             },
@@ -672,14 +674,14 @@ pub fn is_exact_pos_free<S: GameState>(
 
 impl Core {
     pub fn new(options: &Options) -> Core {
-        let state = InternalState::new(&options.map_name);
+        let state = InternalState::new(options);
         let map_size = state.map().size();
         Core {
             state: state,
-            players: get_players_list(options.game_type),
+            players: get_players_list(options),
             current_player_id: PlayerId{id: 0},
             db: Db::new(),
-            ai: Ai::new(PlayerId{id:1}, &options.map_name),
+            ai: Ai::new(options, PlayerId{id:1}),
             players_info: get_player_info_lists(map_size),
         }
     }
@@ -921,7 +923,7 @@ impl Core {
                 }
                 for (&object_id, object) in self.state.objects() {
                     if let Some(timer) = object.timer {
-                        if timer == 0 {
+                        if timer <= 0 {
                             end_turn_events.push(CoreEvent::RemoveSmoke {
                                 id: object_id,
                             });
