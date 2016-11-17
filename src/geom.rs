@@ -9,6 +9,10 @@ pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 
 pub const MIN_LIFT_HEIGHT: f32 = 0.01;
 
+pub fn vec3_z(z: f32) -> Vector3<f32> {
+    Vector3{x: 0.0, y: 0.0, z: z}
+}
+
 pub fn map_pos_to_world_pos(p: MapPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(p).extend(0.0);
     WorldPos{v: v}
@@ -28,7 +32,8 @@ pub fn exact_pos_to_world_pos<S: GameState>(state: &S, p: ExactPos) -> WorldPos 
             WorldPos{v: v + index_to_circle_vertex_rnd(n, 0, p.map_pos).v * 0.2}
         }
         SlotId::Air => {
-            WorldPos{v: v + Vector3{x: 0.0, y: 0.0, z: 2.0} + index_to_circle_vertex_rnd(n, 0, p.map_pos).v * 0.2} // TODO
+            let v = v + vec3_z(2.0);
+            WorldPos{v: v + index_to_circle_vertex_rnd(n, 0, p.map_pos).v * 0.2} // TODO
         }
         SlotId::Id(id) => {
             WorldPos{v: v + index_to_circle_vertex_rnd(n, id as i32, p.map_pos).v * 0.5}

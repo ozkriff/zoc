@@ -7,7 +7,7 @@ use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos, Playe
 use core::db::{Db};
 use types::{WorldPos, Time};
 use mesh::{MeshId};
-use geom;
+use geom::{self, vec3_z};
 use gen;
 use scene::{Scene, SceneNode, NodeId};
 use unit_type_visual_info::{UnitTypeVisualInfo};
@@ -190,10 +190,6 @@ impl EventVisualizer for EventCreateUnitVisualizer {
     }
 
     fn end(&mut self, _: &mut Scene, _: &PartialState) {}
-}
-
-fn vec3_z(z: f32) -> Vector3<f32> {
-    Vector3{x: 0.0, y: 0.0, z: z}
 }
 
 #[derive(Clone, Debug)]
