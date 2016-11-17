@@ -1,4 +1,5 @@
 use std::cmp;
+use std::sync::mpsc::{Receiver};
 use rand::{thread_rng, Rng};
 
 pub fn clamp<T>(n: T, min: T, max: T) -> T
@@ -18,9 +19,26 @@ pub fn get_shuffled_indices<T>(v: &[T]) -> Vec<usize> {
     indices
 }
 
+pub fn rx_collect<T>(rx: &Receiver<T>) -> Vec<T> {
+    let mut v = Vec::new();
+    while let Ok(data) = rx.try_recv() {
+        v.push(data);
+    }
+    v
+}
+
+pub fn opt_rx_collect<T>(rx: &Option<Receiver<T>>) -> Vec<T> {
+    if let &Some(ref rx) = rx {
+        rx_collect(rx)
+    } else {
+        Vec::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use misc::{clamp, get_shuffled_indices};
+    use std::sync::mpsc::{channel};
+    use misc::{clamp, get_shuffled_indices, rx_collect, opt_rx_collect};
 
     #[test]
     fn test_clamp() {
@@ -41,5 +59,23 @@ mod tests {
         for n in &v {
             assert_eq!(*n, true);
         }
+    }
+
+    #[test]
+    fn test_rx_collect() {
+        let (tx, rx) = channel();
+        tx.send(1).unwrap();
+        tx.send(2).unwrap();
+        tx.send(3).unwrap();
+        assert_eq!(rx_collect(&rx), [1, 2, 3]);
+    }
+
+    #[test]
+    fn test_opt_rx_collect() {
+        let (tx, rx) = channel();
+        tx.send(1).unwrap();
+        tx.send(2).unwrap();
+        tx.send(3).unwrap();
+        assert_eq!(opt_rx_collect(&Some(rx)), [1, 2, 3]);
     }
 }

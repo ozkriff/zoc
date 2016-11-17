@@ -13,6 +13,7 @@ use core::game_state::{GameState, GameStateMut};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::db::{Db};
 use core::unit::{UnitTypeId};
+use core::misc::{opt_rx_collect};
 use obj;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
@@ -34,16 +35,6 @@ use types::{ScreenPos, WorldPos};
 use gen;
 use pick;
 use player_info::{PlayerInfoManager, PlayerInfo};
-
-fn opt_rx_collect<T>(rx: &Option<Receiver<T>>) -> Vec<T> {
-    let mut context_menu_popup_commands = Vec::new();
-    if let Some(ref rx) = *rx {
-        while let Ok(command) = rx.try_recv() {
-            context_menu_popup_commands.push(command);
-        }
-    }
-    context_menu_popup_commands
-}
 
 const FOW_FADING_TIME: f32 = 0.6;
 
