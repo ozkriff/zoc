@@ -37,6 +37,9 @@ use fow::{Fow};
 use dir::{Dir};
 use check::{check_command, check_attack};
 
+#[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct HitChance{pub n: i32}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Score{pub n: i32}
 
@@ -742,8 +745,7 @@ impl Core {
         }
     }
 
-    // TODO: i32 -> HitChance
-    pub fn hit_chance(&self, attacker: &Unit, defender: &Unit) -> i32 {
+    pub fn hit_chance(&self, attacker: &Unit, defender: &Unit) -> HitChance {
         let attacker_type = self.db.unit_type(attacker.type_id);
         let defender_type = self.db.unit_type(defender.type_id);
         let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
@@ -756,11 +758,11 @@ impl Core {
         let pierce_test_v = clamp(pierce_test_v, 0, 10);
         let wound_test_v = clamp(wound_test_v, 0, 10);
         let k = (hit_test_v * pierce_test_v * wound_test_v) / 10;
-        clamp(k, 0, 100)
+        HitChance{n: clamp(k, 0, 100)}
     }
 
     fn attack_test(&self, attacker: &Unit, defender: &Unit) -> bool {
-        let k = self.hit_chance(attacker, defender);
+        let k = self.hit_chance(attacker, defender).n;
         let r = thread_rng().gen_range(0, 100);
         r < k
     }
@@ -800,7 +802,7 @@ impl Core {
         let attacker_type = self.db.unit_type(attacker.type_id);
         let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
         let hit_chance = self.hit_chance(attacker, defender);
-        let suppression = hit_chance / 2;
+        let suppression = hit_chance.n / 2;
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
@@ -871,7 +873,7 @@ impl Core {
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
                     let hit_chance = self.hit_chance(enemy_unit, unit);
                     let unit_type = self.db.unit_type(unit.type_id);
-                    if hit_chance > 15 && !unit_type.is_air && stop_on_attack {
+                    if hit_chance.n > 15 && !unit_type.is_air && stop_on_attack {
                         attack_info.remove_move_points = true;
                     }
                     CoreEvent::AttackUnit{attack_info: attack_info}

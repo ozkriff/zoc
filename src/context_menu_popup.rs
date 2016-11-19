@@ -3,7 +3,7 @@ use std::collections::{HashMap};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{self, ObjectClass, UnitId, MapPos, ExactPos};
+use core::{self, ObjectClass, UnitId, MapPos, ExactPos, HitChance};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::db::{Db};
@@ -177,7 +177,7 @@ pub enum Command {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Options {
     selects: Vec<UnitId>,
-    attacks: Vec<(UnitId, i32)>,
+    attacks: Vec<(UnitId, HitChance)>,
     loads: Vec<UnitId>,
     move_pos: Option<ExactPos>,
     hunt_pos: Option<ExactPos>,
@@ -266,7 +266,7 @@ impl ContextMenuPopup {
         }
         for &(unit_id, hit_chance) in &options.attacks {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
-            let text = format!("attack <{}> ({}%)", unit_type.name, hit_chance);
+            let text = format!("attack <{}> ({}%)", unit_type.name, hit_chance.n);
             let button_id = button_manager.add_button(
                 Button::new(context, &text, pos));
             attack_button_ids.insert(button_id, unit_id);
