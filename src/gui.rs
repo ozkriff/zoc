@@ -111,6 +111,10 @@ impl ButtonManager {
         &self.buttons
     }
 
+    pub fn buttons_mut(&mut self) -> &mut HashMap<ButtonId, Button> {
+        &mut self.buttons
+    }
+
     pub fn add_button(&mut self, button: Button) -> ButtonId {
         let id = self.last_id;
         self.buttons.insert(id, button);

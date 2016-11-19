@@ -1,5 +1,6 @@
 use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
+use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{self, ObjectClass, UnitId, MapPos, ExactPos};
@@ -204,6 +205,16 @@ impl Options {
     }
 }
 
+fn max_width(button_manager: &ButtonManager) -> i32 {
+    let mut width = 0;
+    for button in button_manager.buttons().values() {
+        if width < button.size().w {
+            width = button.size().w;
+        }
+    }
+    width
+}
+
 #[derive(Clone, Debug)]
 pub struct ContextMenuPopup {
     game_screen_tx: Sender<Command>,
@@ -302,6 +313,18 @@ impl ContextMenuPopup {
             smoke_button_id = Some(button_manager.add_button(
                 Button::new(context, "smoke", pos)));
             pos.v.y -= vstep;
+        }
+        let diff = Vector2 {
+            x: pos.v.x + max_width(&button_manager) - context.win_size().w,
+            y: pos.v.y + vstep,
+        };
+        let diff = Vector2 {
+            x: if diff.x > 0 { diff.x } else { 0 },
+            y: if diff.y < 0 { diff.y } else { 0 },
+        };
+        for button in button_manager.buttons_mut().values_mut() {
+            let new_pos = ScreenPos{v: button.pos().v - diff};
+            button.set_pos(new_pos);
         }
         ContextMenuPopup {
             game_screen_tx: tx,
