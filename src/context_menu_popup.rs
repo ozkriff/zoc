@@ -206,13 +206,9 @@ impl Options {
 }
 
 fn max_width(button_manager: &ButtonManager) -> i32 {
-    let mut width = 0;
-    for button in button_manager.buttons().values() {
-        if width < button.size().w {
-            width = button.size().w;
-        }
-    }
-    width
+    button_manager.buttons().values()
+        .max_by_key(|b| b.size().w)
+        .unwrap().size().w
 }
 
 #[derive(Clone, Debug)]
