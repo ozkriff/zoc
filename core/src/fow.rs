@@ -5,7 +5,7 @@ use game_state::{GameState};
 use map::{Map, Terrain, distance};
 use fov::{fov, simple_fov};
 use db::{Db};
-use unit::{Unit, UnitType, UnitClass};
+use unit::{Unit, UnitType};
 use ::{CoreEvent, PlayerId, MapPos, ExactPos, ObjectClass};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
@@ -113,10 +113,7 @@ impl Fow {
     fn check_terrain_visibility(&self, unit_type: &UnitType, pos: MapPos) -> bool {
         match *self.map.tile(pos) {
             TileVisibility::Excellent => true,
-            TileVisibility::Normal => match unit_type.class {
-                UnitClass::Infantry => false,
-                UnitClass::Vehicle => true,
-            },
+            TileVisibility::Normal => !unit_type.is_infantry,
             TileVisibility::No => false,
         }
     }

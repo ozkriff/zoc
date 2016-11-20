@@ -1,7 +1,7 @@
 use std::default::{Default};
 use types::{Size2};
 use db::{Db};
-use unit::{Unit, UnitClass};
+use unit::{Unit};
 use map::{Map, Terrain};
 use partial_state::{PartialState};
 use game_state::{GameState};
@@ -86,8 +86,7 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
         for object in objects_at.clone() {
             match object.pos.slot_id {
                 SlotId::Id(_) => if unit.pos == object.pos {
-                    let unit_class = db.unit_type(unit.type_id).class;
-                    assert_eq!(unit_class, UnitClass::Infantry);
+                    assert!(db.unit_type(unit.type_id).is_infantry);
                     break 'unit_loop;
                 },
                 SlotId::TwoTiles(_) | SlotId::WholeTile => {
@@ -99,17 +98,18 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
         unit_cost += 1;
     }
     let tile = state.map().tile(pos);
-    let mut terrain_cost = match unit_type.class {
-        UnitClass::Infantry => match *tile {
+    let mut terrain_cost = if unit_type.is_infantry {
+        match *tile {
             Terrain::Plain | Terrain::City => 4,
             Terrain::Trees => 5,
             Terrain::Water => 99,
-        },
-        UnitClass::Vehicle => match *tile {
+        }
+    } else {
+        match *tile {
             Terrain::Plain | Terrain::City => 4,
             Terrain::Trees => 8,
             Terrain::Water => 99,
-        },
+        }
     };
     for object in objects_at.clone() {
         if object.class != ObjectClass::Road {
@@ -123,26 +123,24 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
         let is_road_pos_rev_ok = road_to == from.map_pos && road_from == pos.map_pos;
         if (is_road_pos_ok || is_road_pos_rev_ok) && !unit_type.is_big {
             // TODO: ultrahardcoded value :(
-            terrain_cost = match unit_type.class {
-                UnitClass::Vehicle => 2,
-                UnitClass::Infantry => 4,
-            };
+            terrain_cost = if unit_type.is_infantry { 4 } else { 2 };
         }
     }
     for object in objects_at {
-        let cost = match unit_type.class {
-            UnitClass::Infantry => match object.class {
+        let cost = if unit_type.is_infantry {
+            match object.class {
                 ObjectClass::Building => 1,
                 ObjectClass::ReinforcementSector |
                 ObjectClass::Road |
                 ObjectClass::Smoke => 0,
-            },
-            UnitClass::Vehicle => match object.class {
+            }
+        } else {
+            match object.class {
                 ObjectClass::Building => 2,
                 ObjectClass::ReinforcementSector |
                 ObjectClass::Road |
                 ObjectClass::Smoke => 0,
-            },
+            }
         };
         object_cost += cost;
     }

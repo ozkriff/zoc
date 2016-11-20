@@ -30,7 +30,7 @@ use game_state::{GameState, GameStateMut, ObjectsAtIter};
 use partial_state::{PartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
-use unit::{Unit, UnitTypeId, UnitClass};
+use unit::{Unit, UnitTypeId};
 use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
@@ -438,10 +438,7 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     println!("  morale: {}", unit.morale);
     println!("type:");
     println!("  name: {}", unit_type.name);
-    match unit_type.class {
-        UnitClass::Infantry => println!("  class: Infantry"),
-        UnitClass::Vehicle => println!("  class: Vehicle"),
-    }
+    println!("  is_infantry: {}", unit_type.is_infantry);
     println!("  count: {}", unit_type.count);
     println!("  size: {}", unit_type.size);
     println!("  armor: {}", unit_type.armor);
@@ -616,7 +613,7 @@ pub fn get_free_slot_id<S: GameState>(
             SlotId::Air => {},
         }
     }
-    if unit_type.class == UnitClass::Vehicle {
+    if !unit_type.is_infantry {
         for object in objects_at {
             match object.pos.slot_id {
                 SlotId::Id(slot_id) => {
@@ -724,17 +721,16 @@ impl Core {
             return 0;
         }
         let defender_type = self.db.unit_type(defender.type_id);
-        match defender_type.class {
-            UnitClass::Infantry => {
-                clamp(thread_rng().gen_range(1, 5), 1, defender.count)
-            },
-            UnitClass::Vehicle => 1,
+        if defender_type.is_infantry {
+            clamp(thread_rng().gen_range(1, 5), 1, defender.count)
+        } else {
+            1
         }
     }
 
     fn cover_bonus(&self, defender: &Unit) -> i32 {
         let defender_type = self.db.unit_type(defender.type_id);
-        if defender_type.class == UnitClass::Infantry {
+        if defender_type.is_infantry {
             match *self.state.map().tile(defender.pos) {
                 Terrain::Plain | Terrain::Water => 0,
                 Terrain::Trees => 2,
@@ -815,8 +811,7 @@ impl Core {
         let defender_type = self.db.unit_type(defender.type_id);
         // TODO: destroyed helicopters must kill everyone
         // on the ground in their tile
-        let leave_wrecks = defender_type.class != UnitClass::Infantry
-            && !defender_type.is_air;
+        let leave_wrecks = !defender_type.is_infantry && !defender_type.is_air;
         let attack_info = AttackInfo {
             attacker_id: Some(attacker_id),
             defender_id: defender_id,

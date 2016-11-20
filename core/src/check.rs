@@ -2,7 +2,7 @@ use std::{fmt, error};
 use game_state::{GameState};
 use map::{distance};
 use pathfinder::{path_cost, tile_cost};
-use unit::{Unit, UnitClass};
+use unit::{Unit};
 use db::{Db};
 use fov::{fov, simple_fov};
 use ::{
@@ -27,8 +27,8 @@ pub enum CommandError {
     OutOfRange,
     TooClose,
     NoLos,
-    BadTransporterClass,
-    BadPassengerClass,
+    BadTransporterType,
+    BadPassengerType,
     TransporterIsNotEmpty,
     TransporterIsEmpty,
     TransporterIsTooFarAway,
@@ -59,8 +59,8 @@ impl CommandError {
             CommandError::OutOfRange => "Out of range",
             CommandError::TooClose => "Too close",
             CommandError::NoLos => "No Line of Sight",
-            CommandError::BadTransporterClass => "Bad transporter class",
-            CommandError::BadPassengerClass => "Bad passenger class",
+            CommandError::BadTransporterType => "Bad transporter type",
+            CommandError::BadPassengerType => "Bad passenger type",
             CommandError::TransporterIsNotEmpty => "Transporter is not empty",
             CommandError::TransporterIsEmpty => "Transporter is empty",
             CommandError::TransporterIsTooFarAway => "Transporter is too far away",
@@ -191,13 +191,10 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
             if !db.unit_type(transporter.type_id).is_transporter {
-                return Err(CommandError::BadTransporterClass);
+                return Err(CommandError::BadTransporterType);
             }
-            match db.unit_type(passenger.type_id).class {
-                UnitClass::Infantry => {},
-                _ => {
-                    return Err(CommandError::BadPassengerClass);
-                }
+            if !db.unit_type(passenger.type_id).is_infantry {
+                return Err(CommandError::BadPassengerType);
             }
             if transporter.passenger_id.is_some() {
                 return Err(CommandError::TransporterIsNotEmpty);
@@ -234,7 +231,7 @@ pub fn check_command<S: GameState>(
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
             if !db.unit_type(transporter.type_id).is_transporter {
-                return Err(CommandError::BadTransporterClass);
+                return Err(CommandError::BadTransporterType);
             }
             if distance(transporter.pos.map_pos, pos.map_pos) > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);

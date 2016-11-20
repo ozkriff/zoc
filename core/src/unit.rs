@@ -3,12 +3,6 @@ use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitTypeId{pub id: i32}
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum UnitClass {
-    Infantry,
-    Vehicle,
-}
-
 #[derive(Clone, Debug)]
 pub struct Unit {
     pub id: UnitId,
@@ -45,7 +39,6 @@ pub struct WeaponTypeId{pub id: i32}
 #[derive(Clone, Debug)]
 pub struct UnitType {
     pub name: String,
-    pub class: UnitClass,
     pub count: i32,
     pub size: i32,
     pub armor: i32,
@@ -60,5 +53,6 @@ pub struct UnitType {
     pub is_transporter: bool,
     pub is_big: bool,
     pub is_air: bool,
+    pub is_infantry: bool,
     pub cost: i32,
 }
