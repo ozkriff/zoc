@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use cgmath::{Matrix4, Matrix3};
 use core::{MapPos};
-use types::{Time};
+use types::{Time, Speed};
 use camera::Camera;
 use geom;
 use move_helper::{MoveHelper};
@@ -86,7 +86,7 @@ impl MapTextManager {
                 let indices = &[0,  1,  2,  1,  2,  3];
                 Mesh::new(context, vertices, indices, texture)
             };
-            let move_speed = 1.0;
+            let move_speed = Speed{n: 1.0};
             self.visible_labels_list.insert(self.last_label_id, MapText {
                 pos: command.pos,
                 mesh: mesh,

@@ -13,3 +13,6 @@ pub struct ScreenPos{pub v: Vector2<i32>}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Time{pub n: f32}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Speed{pub n: f32}

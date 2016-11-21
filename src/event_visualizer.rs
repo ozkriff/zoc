@@ -5,7 +5,7 @@ use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::{self, UnitInfo, AttackInfo, ReactionFireMode, UnitId, ExactPos, PlayerId, SectorId, MapPos, ObjectId};
 use core::db::{Db};
-use types::{WorldPos, Time};
+use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
 use gen;
@@ -168,7 +168,8 @@ impl EventCreateUnitVisualizer {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
-        let move_helper = MoveHelper::new(from, to, 2.0);
+        let speed = Speed{n: 2.0};
+        let move_helper = MoveHelper::new(from, to, speed);
         let node_id = scene.unit_id_to_node_id(unit_info.unit_id);
         let new_node = scene.node_mut(node_id);
         new_node.pos = from;
@@ -216,7 +217,8 @@ impl EventAttackUnitVisualizer {
         let defender_pos = scene.node(defender_node_id).pos;
         let from = defender_pos;
         let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        let move_helper = MoveHelper::new(from, to, 1.0);
+        let speed = Speed{n: 1.0};
+        let move_helper = MoveHelper::new(from, to, speed);
         let mut shell_move = None;
         let mut shell_node_id = None;
         if let Some(attacker_id) = attack_info.attacker_id {
@@ -233,7 +235,7 @@ impl EventAttackUnitVisualizer {
                 color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             }));
-            let shell_speed = 10.0;
+            let shell_speed = Speed{n: 10.0};
             shell_move = Some(MoveHelper::new(
                 attacker_pos, defender_pos, shell_speed));
         }

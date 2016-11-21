@@ -6,7 +6,6 @@ use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
-use types::{Time};
 use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
@@ -31,7 +30,7 @@ use context_menu_popup::{self, ContextMenuPopup};
 use reinforcements_popup::{self, ReinforcementsPopup};
 use end_turn_screen::{EndTurnScreen};
 use game_results_screen::{GameResultsScreen};
-use types::{ScreenPos, WorldPos};
+use types::{Time, ScreenPos, WorldPos, Speed};
 use gen;
 use pick;
 use player_info::{PlayerInfoManager, PlayerInfo};
@@ -224,7 +223,7 @@ fn get_unit_type_visual_info(
     ] {
         manager.add_info(db.unit_type_id(unit_name), UnitTypeVisualInfo {
             mesh_id: meshes.add(load_object_mesh(context, model_name)),
-            move_speed: move_speed,
+            move_speed: Speed{n: move_speed},
         });
     }
     manager

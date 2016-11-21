@@ -1,6 +1,6 @@
 use cgmath::{Vector3, InnerSpace};
 use geom;
-use types::{WorldPos, Time};
+use types::{WorldPos, Time, Speed};
 
 #[derive(Clone, Debug)]
 pub struct MoveHelper {
@@ -12,8 +12,7 @@ pub struct MoveHelper {
 }
 
 impl MoveHelper {
-    // TODO: speed: f32 -> Speed (add 'Speed' to src/visualizer/types.rs
-    pub fn new(from: WorldPos, to: WorldPos, speed: f32) -> MoveHelper {
+    pub fn new(from: WorldPos, to: WorldPos, speed: Speed) -> MoveHelper {
         let dir = (to.v - from.v).normalize();
         let dist = geom::dist(from, to);
         MoveHelper {
@@ -21,7 +20,7 @@ impl MoveHelper {
             current: from,
             dist: dist,
             current_dist: 0.0,
-            dir: dir * speed,
+            dir: dir * speed.n,
         }
     }
 
