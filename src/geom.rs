@@ -3,7 +3,7 @@ use cgmath::{Vector3, Rad, Angle};
 use core::{ExactPos, MapPos, SlotId, geom, get_slots_count};
 use core::dir::{Dir};
 use core::game_state::{GameState};
-use types::{VertexCoord, WorldPos};
+use types::{VertexCoord, WorldPos, WorldDistance};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
 
@@ -70,12 +70,11 @@ pub fn index_to_hex_vertex_s(scale: f32, i: i32) -> VertexCoord {
     VertexCoord{v: v}
 }
 
-// TODO: f32 -> WorldDistance
-pub fn dist(a: WorldPos, b: WorldPos) -> f32 {
+pub fn dist(a: WorldPos, b: WorldPos) -> WorldDistance {
     let dx = (b.v.x - a.v.x).abs();
     let dy = (b.v.y - a.v.y).abs();
     let dz = (b.v.z - a.v.z).abs();
-    ((dx.powi(2) + dy.powi(2) + dz.powi(2)) as f32).sqrt()
+    WorldDistance{n: ((dx.powi(2) + dy.powi(2) + dz.powi(2)) as f32).sqrt()}
 }
 
 pub fn get_rot_angle(a: WorldPos, b: WorldPos) -> Rad<f32> {

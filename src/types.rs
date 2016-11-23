@@ -16,3 +16,6 @@ pub struct Time{pub n: f32}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Speed{pub n: f32}
+
+#[derive(Copy, Clone, Debug)]
+pub struct WorldDistance{pub n: f32}
