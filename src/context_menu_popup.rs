@@ -113,7 +113,7 @@ pub fn get_options(
         } else {
             let attacker = state.unit(selected_unit_id);
             let defender = state.unit(unit_id);
-            let hit_chance = core.hit_chance(attacker, defender);
+            let hit_chance = core::hit_chance(db, state, attacker, defender);
             let attack_command = core::Command::AttackUnit {
                 attacker_id: attacker.id,
                 defender_id: defender.id,

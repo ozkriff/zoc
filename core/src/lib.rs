@@ -677,6 +677,40 @@ pub fn is_exact_pos_free<S: GameState>(
     true
 }
 
+fn cover_bonus<S: GameState>(db: &Db, state: &S, defender: &Unit) -> i32 {
+    let defender_type = db.unit_type(defender.type_id);
+    if defender_type.is_infantry {
+        match *state.map().tile(defender.pos) {
+            Terrain::Plain | Terrain::Water => 0,
+            Terrain::Trees => 2,
+            Terrain::City => 3,
+        }
+    } else {
+        0
+    }
+}
+
+pub fn hit_chance<S: GameState>(
+    db: &Db,
+    state: &S,
+    attacker: &Unit,
+    defender: &Unit,
+) -> HitChance {
+    let attacker_type = db.unit_type(attacker.type_id);
+    let defender_type = db.unit_type(defender.type_id);
+    let weapon_type = db.weapon_type(attacker_type.weapon_type_id);
+    let cover_bonus = cover_bonus(db, state, defender);
+    let hit_test_v = -7 - cover_bonus + defender_type.size
+        + weapon_type.accuracy + attacker_type.weapon_skill;
+    let pierce_test_v = 10 + -defender_type.armor + weapon_type.ap;
+    let wound_test_v = 5 -defender_type.toughness + weapon_type.damage;
+    let hit_test_v = clamp(hit_test_v, 0, 10);
+    let pierce_test_v = clamp(pierce_test_v, 0, 10);
+    let wound_test_v = clamp(wound_test_v, 0, 10);
+    let k = (hit_test_v * pierce_test_v * wound_test_v) / 10;
+    HitChance{n: clamp(k, 0, 100)}
+}
+
 impl Core {
     pub fn new(options: &Options) -> Core {
         let state = InternalState::new(options);
@@ -726,37 +760,8 @@ impl Core {
         }
     }
 
-    fn cover_bonus(&self, defender: &Unit) -> i32 {
-        let defender_type = self.db.unit_type(defender.type_id);
-        if defender_type.is_infantry {
-            match *self.state.map().tile(defender.pos) {
-                Terrain::Plain | Terrain::Water => 0,
-                Terrain::Trees => 2,
-                Terrain::City => 3,
-            }
-        } else {
-            0
-        }
-    }
-
-    pub fn hit_chance(&self, attacker: &Unit, defender: &Unit) -> HitChance {
-        let attacker_type = self.db.unit_type(attacker.type_id);
-        let defender_type = self.db.unit_type(defender.type_id);
-        let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
-        let cover_bonus = self.cover_bonus(defender);
-        let hit_test_v = -7 - cover_bonus + defender_type.size
-            + weapon_type.accuracy + attacker_type.weapon_skill;
-        let pierce_test_v = 10 + -defender_type.armor + weapon_type.ap;
-        let wound_test_v = 5 -defender_type.toughness + weapon_type.damage;
-        let hit_test_v = clamp(hit_test_v, 0, 10);
-        let pierce_test_v = clamp(pierce_test_v, 0, 10);
-        let wound_test_v = clamp(wound_test_v, 0, 10);
-        let k = (hit_test_v * pierce_test_v * wound_test_v) / 10;
-        HitChance{n: clamp(k, 0, 100)}
-    }
-
     fn attack_test(&self, attacker: &Unit, defender: &Unit) -> bool {
-        let k = self.hit_chance(attacker, defender).n;
+        let k = hit_chance(&self.db, &self.state, attacker, defender).n;
         let r = thread_rng().gen_range(0, 100);
         r < k
     }
@@ -795,7 +800,7 @@ impl Core {
         }
         let attacker_type = self.db.unit_type(attacker.type_id);
         let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
-        let hit_chance = self.hit_chance(attacker, defender);
+        let hit_chance = hit_chance(&self.db, &self.state, attacker, defender);
         let suppression = hit_chance.n / 2;
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
@@ -864,7 +869,7 @@ impl Core {
                 let event = self.command_attack_unit_to_event(
                     enemy_unit.id, unit_id, FireMode::Reactive);
                 if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
-                    let hit_chance = self.hit_chance(enemy_unit, unit);
+                    let hit_chance = hit_chance(&self.db, &self.state, enemy_unit, unit);
                     let unit_type = self.db.unit_type(unit.type_id);
                     if hit_chance.n > 15 && !unit_type.is_air && stop_on_attack {
                         attack_info.remove_move_points = true;
