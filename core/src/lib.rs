@@ -377,19 +377,28 @@ pub fn find_prev_player_unit_id<S: GameState>(
     unreachable!()
 }
 
-pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId> {
-    let units_at = state.units_at(pos);
-    let mut hidden_ids = HashSet::new();
-    for unit in units_at.clone() {
-        if db.unit_type(unit.type_id).is_transporter {
-            if let Some(passenger_id) = unit.passenger_id {
-                hidden_ids.insert(passenger_id);
+pub fn is_unit_passenger<S: GameState>(
+    db: &Db,
+    state: &S,
+    unit_id: UnitId,
+) -> bool {
+    let unit = state.unit(unit_id);
+    for transporter in state.units_at(unit.pos.map_pos)
+        .filter(|unit| db.unit_type(unit.type_id).is_transporter)
+    {
+        if let Some(passenger_id) = transporter.passenger_id {
+            if passenger_id == unit_id {
+                return true;
             }
         }
     }
+    false
+}
+
+pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId> {
     let mut ids = Vec::new();
-    for unit in units_at {
-        if !hidden_ids.contains(&unit.id) {
+    for unit in state.units_at(pos) {
+        if !is_unit_passenger(db, state, unit.id) {
             ids.push(unit.id)
         }
     }
@@ -857,6 +866,9 @@ impl Core {
         let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
+            if is_unit_passenger(&self.db, &self.state, enemy_unit_id) {
+                continue;
+            }
             let event = {
                 let enemy_unit = self.state.unit(enemy_unit_id);
                 let unit = self.state.unit(unit_id);
