@@ -713,10 +713,6 @@ impl Core {
         next_id
     }
 
-    pub fn map_size(&self) -> Size2 {
-        self.state.map().size()
-    }
-
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> i32 {
         let hit = self.attack_test(attacker, defender);
         if !hit {
@@ -765,7 +761,7 @@ impl Core {
         r < k
     }
 
-    pub fn player(&self) -> &Player {
+    fn player(&self) -> &Player {
         &self.players[self.player_id().id as usize]
     }
 
