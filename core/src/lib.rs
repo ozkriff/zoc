@@ -436,6 +436,8 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     }
     println!("  count: {}", unit.count);
     println!("  morale: {}", unit.morale);
+    println!("  passenger_id: {:?}", unit.passenger_id);
+    println!("  is_alive: {:?}", unit.is_alive);
     println!("type:");
     println!("  name: {}", unit_type.name);
     println!("  is_infantry: {}", unit_type.is_infantry);
