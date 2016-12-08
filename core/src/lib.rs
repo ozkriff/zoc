@@ -40,13 +40,13 @@ use check::{check_command, check_attack};
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct HitChance{pub n: i32}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Score{pub n: i32}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MovePoints{pub n: i32}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AttackPoints{pub n: i32}
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -243,7 +243,7 @@ pub enum Command {
     Smoke{unit_id: UnitId, pos: MapPos},
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UnitInfo {
     pub unit_id: UnitId,
     pub pos: ExactPos,
@@ -253,7 +253,7 @@ pub struct UnitInfo {
     pub is_alive: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AttackInfo {
     pub attacker_id: Option<UnitId>,
     pub defender_id: UnitId,
@@ -266,7 +266,7 @@ pub struct AttackInfo {
     pub leave_wrecks: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
