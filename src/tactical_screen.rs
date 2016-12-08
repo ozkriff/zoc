@@ -10,30 +10,30 @@ use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
-use core::db::{Db};
 use core::unit::{UnitTypeId};
 use core::misc::{opt_rx_collect};
-use obj;
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
-use unit_type_visual_info::{UnitTypeVisualInfo, UnitTypeVisualInfoManager};
-use selection::{SelectionManager, get_selection_mesh};
+use unit_type_visual_info::{
+    UnitTypeVisualInfoManager,
+    get_unit_type_visual_info
+};
+use selection::{SelectionManager};
 use map_text::{MapTextManager};
 use context::{Context};
-use texture::{load_texture};
-use mesh::{Mesh, MeshId};
-use fs;
+use mesh::{MeshId};
 use geom;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context_menu_popup::{self, ContextMenuPopup};
 use reinforcements_popup::{self, ReinforcementsPopup};
 use end_turn_screen::{EndTurnScreen};
 use game_results_screen::{GameResultsScreen};
-use types::{Time, ScreenPos, WorldPos, Speed};
+use types::{Time, ScreenPos, WorldPos};
 use gen;
 use pick;
 use player_info::{PlayerInfoManager, PlayerInfo};
+use mesh_manager::{MeshIdManager, MeshManager};
 
 const FOW_FADING_TIME: f32 = 0.6;
 
@@ -59,129 +59,6 @@ fn reinforcement_points_text(state: &PartialState, player_id: PlayerId) -> Strin
     format!("reinforcements: {} (+{})", rp, rp_per_turn)
 }
 
-fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
-    let model = obj::Model::new(&format!("{}.obj", name));
-    let (vertices, indices) = obj::build(&model);
-    if model.is_wire() {
-        Mesh::new_wireframe(context, &vertices, &indices)
-    } else {
-        let texture_data = fs::load(format!("{}.png", name)).into_inner();
-        let texture = load_texture(context, &texture_data);
-        Mesh::new(context, &vertices, &indices, texture)
-    }
-}
-
-#[derive(Clone, Debug)]
-struct MeshManager {
-    meshes: Vec<Mesh>,
-}
-
-impl MeshManager {
-    fn new() -> MeshManager {
-        MeshManager {
-            meshes: Vec::new(),
-        }
-    }
-
-    fn add(&mut self, mesh: Mesh) -> MeshId {
-        self.meshes.push(mesh);
-        MeshId{id: (self.meshes.len() as i32) - 1}
-    }
-
-    fn set(&mut self, id: MeshId, mesh: Mesh) {
-        let index = id.id as usize;
-        self.meshes[index] = mesh;
-    }
-
-    fn get(&self, id: MeshId) -> &Mesh {
-        let index = id.id as usize;
-        &self.meshes[index]
-    }
-}
-
-#[derive(Clone, Debug)]
-struct MeshIdManager {
-    big_building_mesh_id: MeshId,
-    building_mesh_id: MeshId,
-    big_building_mesh_w_id: MeshId,
-    building_mesh_w_id: MeshId,
-    road_mesh_id: MeshId,
-    trees_mesh_id: MeshId,
-    shell_mesh_id: MeshId,
-    marker_mesh_id: MeshId,
-    walkable_mesh_id: MeshId,
-    targets_mesh_id: MeshId,
-    map_mesh_id: MeshId,
-    water_mesh_id: MeshId,
-    selection_marker_mesh_id: MeshId,
-    smoke_mesh_id: MeshId,
-    fow_tile_mesh_id: MeshId,
-    reinforcement_sector_tile_mesh_id: MeshId,
-    sector_mesh_ids: HashMap<core::SectorId, MeshId>,
-}
-
-impl MeshIdManager {
-    fn new(
-        context: &mut Context,
-        meshes: &mut MeshManager,
-        state: &PartialState,
-    ) -> MeshIdManager {
-        let smoke_tex = load_texture(context, &fs::load("smoke.png").into_inner());
-        let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());
-        let reinforcement_sector_tex = load_texture(
-            context, &fs::load("reinforcement_sector.png").into_inner());
-        let chess_grid_tex = load_texture(context, &fs::load("chess_grid.png").into_inner());
-        let map_mesh_id = meshes.add(gen::generate_map_mesh(
-            context, state, floor_tex.clone()));
-        let water_mesh_id = meshes.add(gen::generate_water_mesh(
-            context, state, floor_tex.clone()));
-        let mut sector_mesh_ids = HashMap::new();
-        for (&id, sector) in state.sectors() {
-            let mesh_id = meshes.add(gen::generate_sector_mesh(
-                context, sector, chess_grid_tex.clone()));
-            sector_mesh_ids.insert(id, mesh_id);
-        }
-        let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
-        let smoke_mesh_id = meshes.add(gen::get_one_tile_mesh(context, smoke_tex));
-        let fow_tile_mesh_id = meshes.add(gen::get_one_tile_mesh(context, floor_tex));
-        let reinforcement_sector_tile_mesh_id = meshes.add(
-            gen::get_one_tile_mesh(context, reinforcement_sector_tex));
-        let big_building_mesh_id = meshes.add(
-            load_object_mesh(context, "big_building"));
-        let building_mesh_id = meshes.add(
-            load_object_mesh(context, "building"));
-        let big_building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "big_building_wire"));
-        let building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "building_wire"));
-        let trees_mesh_id = meshes.add(load_object_mesh(context, "trees"));
-        let shell_mesh_id = meshes.add(gen::get_shell_mesh(context));
-        let road_mesh_id = meshes.add(gen::get_road_mesh(context));
-        let marker_mesh_id = meshes.add(gen::get_marker(context, "white.png"));
-        let walkable_mesh_id = meshes.add(gen::empty_mesh(context));
-        let targets_mesh_id = meshes.add(gen::empty_mesh(context));
-        MeshIdManager {
-            big_building_mesh_id: big_building_mesh_id,
-            building_mesh_id: building_mesh_id,
-            big_building_mesh_w_id: big_building_mesh_w_id,
-            building_mesh_w_id: building_mesh_w_id,
-            trees_mesh_id: trees_mesh_id,
-            road_mesh_id: road_mesh_id,
-            shell_mesh_id: shell_mesh_id,
-            marker_mesh_id: marker_mesh_id,
-            walkable_mesh_id: walkable_mesh_id,
-            targets_mesh_id: targets_mesh_id,
-            map_mesh_id: map_mesh_id,
-            water_mesh_id: water_mesh_id,
-            selection_marker_mesh_id: selection_marker_mesh_id,
-            smoke_mesh_id: smoke_mesh_id,
-            fow_tile_mesh_id: fow_tile_mesh_id,
-            reinforcement_sector_tile_mesh_id: reinforcement_sector_tile_mesh_id,
-            sector_mesh_ids: sector_mesh_ids,
-        }
-    }
-}
-
 fn building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> MeshId {
     let slot_id = object.pos.slot_id;
     match slot_id {
@@ -198,35 +75,6 @@ fn wireframe_building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> Mesh
         SlotId::WholeTile => mesh_ids.big_building_mesh_w_id,
         _ => unimplemented!(),
     }
-}
-
-fn get_unit_type_visual_info(
-    db: &Db,
-    context: &mut Context,
-    meshes: &mut MeshManager,
-) -> UnitTypeVisualInfoManager {
-    let mut manager = UnitTypeVisualInfoManager::new();
-    for &(unit_name, model_name, move_speed) in &[
-        ("soldier", "soldier", 2.0),
-        ("smg", "submachine", 2.0),
-        ("scout", "scout", 2.5),
-        ("mortar", "mortar", 1.5),
-        ("field_gun", "field_gun", 1.5),
-        ("light_spg", "light_spg", 3.0),
-        ("light_tank", "light_tank", 3.0),
-        ("medium_tank", "medium_tank", 2.5),
-        ("heavy_tank", "tank", 2.0),
-        ("mammoth_tank", "mammoth", 1.5),
-        ("truck", "truck", 3.0),
-        ("jeep", "jeep", 3.5),
-        ("helicopter", "helicopter", 3.0),
-    ] {
-        manager.add_info(db.unit_type_id(unit_name), UnitTypeVisualInfo {
-            mesh_id: meshes.add(load_object_mesh(context, model_name)),
-            move_speed: Speed{n: move_speed},
-        });
-    }
-    manager
 }
 
 #[derive(Clone, Debug)]
