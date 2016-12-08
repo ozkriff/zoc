@@ -93,8 +93,7 @@ fn show_unit_at(
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
 ) {
-    let world_pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
-    let to = world_pos;
+    let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
     let mut children = get_unit_scene_nodes(db, unit_info, mesh_id);
     if unit_info.is_alive {
