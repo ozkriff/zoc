@@ -170,17 +170,17 @@ pub fn check_command<S: GameState>(
             check_attack(db, state, attacker, defender, FireMode::Active)
         },
         Command::LoadUnit{transporter_id, passenger_id} => {
-            if state.units().get(&transporter_id).is_none() {
-                return Err(CommandError::BadTransporterId);
-            }
-            if state.units().get(&passenger_id).is_none() {
-                return Err(CommandError::BadPassengerId);
-            }
-            let passenger = state.unit(passenger_id);
+            let passenger = match state.units().get(&passenger_id) {
+                Some(passenger) => passenger,
+                None => return Err(CommandError::BadPassengerId),
+            };
             if !passenger.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
-            let transporter = state.unit(transporter_id);
+            let transporter = match state.units().get(&transporter_id) {
+                Some(transporter) => transporter,
+                None => return Err(CommandError::BadTransporterId),
+            };
             if !transporter.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
@@ -223,9 +223,6 @@ pub fn check_command<S: GameState>(
             let transporter = state.unit(transporter_id);
             if !transporter.is_alive {
                 return Err(CommandError::UnitIsDead);
-            }
-            if passenger.player_id != player_id {
-                return Err(CommandError::CanNotCommandEnemyUnits);
             }
             if transporter.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
