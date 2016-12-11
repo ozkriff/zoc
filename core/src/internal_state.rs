@@ -23,6 +23,7 @@ use ::{
     SectorId,
     Score,
     MovePoints,
+    ReinforcementPoints,
     AttackPoints,
     Options,
     get_free_slot_for_building,
@@ -41,7 +42,7 @@ pub struct InternalState {
     map: Map<Terrain>,
     sectors: HashMap<SectorId, Sector>,
     score: HashMap<PlayerId, Score>,
-    reinforcement_points: HashMap<PlayerId, i32>, // TODO: i32 -> ???
+    reinforcement_points: HashMap<PlayerId, ReinforcementPoints>,
     players_count: i32,
 }
 
@@ -51,8 +52,8 @@ impl InternalState {
         score.insert(PlayerId{id: 0}, Score{n: 0});
         score.insert(PlayerId{id: 1}, Score{n: 0});
         let mut reinforcement_points = HashMap::new();
-        reinforcement_points.insert(PlayerId{id: 0}, 10);
-        reinforcement_points.insert(PlayerId{id: 1}, 10);
+        reinforcement_points.insert(PlayerId{id: 0}, ReinforcementPoints{n: 10});
+        reinforcement_points.insert(PlayerId{id: 1}, ReinforcementPoints{n: 10});
         let (map, objects, sectors) = load_map(&options.map_name);
         InternalState {
             units: HashMap::new(),
@@ -109,13 +110,12 @@ impl InternalState {
     fn add_unit(&mut self, db: &Db, unit_info: &UnitInfo, info_level: InfoLevel) {
         assert!(self.units.get(&unit_info.unit_id).is_none());
         let unit_type = db.unit_type(unit_info.type_id);
-        let cost = unit_type.cost;
         let reinforcement_points = self.reinforcement_points
             .get_mut(&unit_info.player_id).unwrap();
-        if *reinforcement_points < cost {
+        if *reinforcement_points < unit_type.cost {
             return;
         }
-        *reinforcement_points -= cost;
+        reinforcement_points.n -= unit_type.cost.n;
         self.units.insert(unit_info.unit_id, Unit {
             is_alive: unit_info.is_alive,
             id: unit_info.unit_id,
@@ -171,7 +171,7 @@ impl GameState for InternalState {
         &self.score
     }
 
-    fn reinforcement_points(&self) -> &HashMap<PlayerId, i32> {
+    fn reinforcement_points(&self) -> &HashMap<PlayerId, ReinforcementPoints> {
         &self.reinforcement_points
     }
 }
@@ -202,7 +202,7 @@ impl GameStateMut for InternalState {
                 {
                     let reinforcement_points = self.reinforcement_points
                         .get_mut(&old_id).unwrap();
-                    *reinforcement_points += 10;
+                    reinforcement_points.n += 10;
                 }
                 self.refresh_units(db, new_id);
                 self.convert_ap(db, old_id);

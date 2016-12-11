@@ -1,5 +1,5 @@
 use unit::{UnitType, WeaponType, UnitTypeId, WeaponTypeId};
-use ::{MovePoints, AttackPoints};
+use ::{MovePoints, AttackPoints, ReinforcementPoints};
 
 fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
     -> WeaponTypeId
@@ -135,7 +135,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: false,
-            cost: 16,
+            cost: ReinforcementPoints{n: 16},
         },
         UnitType {
             name: "heavy_tank".to_owned(),
@@ -155,7 +155,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 10,
+            cost: ReinforcementPoints{n: 10},
         },
         UnitType {
             name: "medium_tank".to_owned(),
@@ -175,7 +175,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 8,
+            cost: ReinforcementPoints{n: 8},
         },
         UnitType {
             name: "light_tank".to_owned(),
@@ -195,7 +195,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 6,
+            cost: ReinforcementPoints{n: 6},
         },
         UnitType {
             name: "light_spg".to_owned(),
@@ -215,7 +215,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 6,
+            cost: ReinforcementPoints{n: 6},
         },
         UnitType {
             name: "field_gun".to_owned(),
@@ -236,7 +236,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: true,
             can_be_towed: true,
-            cost: 5,
+            cost: ReinforcementPoints{n: 5},
         },
         UnitType {
             name: "jeep".to_owned(),
@@ -256,7 +256,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 4,
+            cost: ReinforcementPoints{n: 4},
         },
         UnitType {
             name: "truck".to_owned(),
@@ -276,7 +276,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: false,
             can_be_towed: true,
-            cost: 4,
+            cost: ReinforcementPoints{n: 4},
         },
         UnitType {
             name: "helicopter".to_owned(),
@@ -296,7 +296,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: true,
             is_infantry: false,
             can_be_towed: false,
-            cost: 10,
+            cost: ReinforcementPoints{n: 10},
         },
         UnitType {
             name: "soldier".to_owned(),
@@ -316,7 +316,27 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: true,
             can_be_towed: false,
-            cost: 2,
+            cost: ReinforcementPoints{n: 2},
+        },
+        UnitType {
+            name: "soldier".to_owned(),
+            size: 4,
+            count: 4,
+            armor: 1,
+            toughness: 2,
+            weapon_skill: 5,
+            weapon_type_id: weapon_type_id(weapon_types, "rifle"),
+            move_points: MovePoints{n: 9},
+            attack_points: AttackPoints{n: 2},
+            reactive_attack_points: AttackPoints{n: 1},
+            los_range: 6,
+            cover_los_range: 1,
+            is_transporter: false,
+            is_big: false,
+            is_air: false,
+            is_infantry: true,
+            can_be_towed: false,
+            cost: ReinforcementPoints{n: 2},
         },
         UnitType {
             name: "smg".to_owned(),
@@ -336,7 +356,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: true,
             can_be_towed: false,
-            cost: 2,
+            cost: ReinforcementPoints{n: 2},
         },
         UnitType {
             name: "scout".to_owned(),
@@ -356,7 +376,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: true,
             can_be_towed: false,
-            cost: 3,
+            cost: ReinforcementPoints{n: 3},
         },
         UnitType {
             name: "mortar".to_owned(),
@@ -376,7 +396,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_air: false,
             is_infantry: true,
             can_be_towed: false,
-            cost: 4,
+            cost: ReinforcementPoints{n: 4},
         },
     ]
 }

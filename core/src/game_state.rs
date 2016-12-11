@@ -3,7 +3,18 @@ use std::collections::hash_map;
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
-use ::{CoreEvent, UnitId, ObjectId, Object, MapPos, Sector, SectorId, PlayerId, Score};
+use ::{
+    CoreEvent,
+    UnitId,
+    ObjectId,
+    Object,
+    MapPos,
+    Sector,
+    SectorId,
+    PlayerId,
+    Score,
+    ReinforcementPoints,
+};
 
 #[derive(Clone)]
 pub struct ObjectsAtIter<'a> {
@@ -57,7 +68,7 @@ pub trait GameState {
     fn objects(&self) -> &HashMap<ObjectId, Object>;
     fn sectors(&self) -> &HashMap<SectorId, Sector>;
     fn score(&self) -> &HashMap<PlayerId, Score>;
-    fn reinforcement_points(&self) -> &HashMap<PlayerId, i32>;
+    fn reinforcement_points(&self) -> &HashMap<PlayerId, ReinforcementPoints>;
 
     fn unit(&self, id: UnitId) -> &Unit {
         &self.units()[&id]

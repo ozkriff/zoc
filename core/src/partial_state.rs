@@ -5,7 +5,19 @@ use map::{Map, Terrain};
 use internal_state::{InternalState};
 use game_state::{GameState, GameStateMut};
 use fow::{Fow};
-use ::{CoreEvent, PlayerId, UnitId, ObjectId, Object, MapPos, Score, Sector, SectorId, Options};
+use ::{
+    CoreEvent,
+    PlayerId,
+    UnitId,
+    ObjectId,
+    Object,
+    MapPos,
+    Score,
+    Sector,
+    SectorId,
+    Options,
+    ReinforcementPoints,
+};
 
 #[derive(Clone, Debug)]
 pub struct PartialState {
@@ -49,7 +61,7 @@ impl GameState for PartialState {
         self.state.score()
     }
 
-    fn reinforcement_points(&self) -> &HashMap<PlayerId, i32> {
+    fn reinforcement_points(&self) -> &HashMap<PlayerId, ReinforcementPoints> {
         self.state.reinforcement_points()
     }
 }

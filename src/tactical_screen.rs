@@ -54,7 +54,7 @@ fn score_text(state: &PartialState) -> String {
 }
 
 fn reinforcement_points_text(state: &PartialState, player_id: PlayerId) -> String {
-    let rp = state.reinforcement_points()[&player_id];
+    let rp = state.reinforcement_points()[&player_id].n;
     let rp_per_turn = 10; // TODO: magic num
     format!("reinforcements: {} (+{})", rp, rp_per_turn)
 }

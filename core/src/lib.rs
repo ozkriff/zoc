@@ -49,6 +49,9 @@ pub struct MovePoints{pub n: i32}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AttackPoints{pub n: i32}
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ReinforcementPoints{pub n: i32}
+
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct PlayerId{pub id: i32}
 

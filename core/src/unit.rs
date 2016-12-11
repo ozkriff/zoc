@@ -1,4 +1,12 @@
-use ::{ReactionFireMode, MovePoints, AttackPoints, UnitId, PlayerId, ExactPos};
+use ::{
+    ReactionFireMode,
+    MovePoints,
+    ReinforcementPoints,
+    AttackPoints,
+    UnitId,
+    PlayerId,
+    ExactPos,
+};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitTypeId{pub id: i32}
@@ -56,5 +64,5 @@ pub struct UnitType {
     pub is_air: bool,
     pub is_infantry: bool,
     pub can_be_towed: bool,
-    pub cost: i32,
+    pub cost: ReinforcementPoints,
 }

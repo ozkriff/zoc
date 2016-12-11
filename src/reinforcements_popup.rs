@@ -75,7 +75,7 @@ impl ReinforcementsPopup {
         let vstep = (text_size * 0.8) as i32;
         for &(type_id, exact_pos) in &options.unit_types {
             let unit_type = db.unit_type(type_id);
-            let text = &format!("{} ({})", unit_type.name, unit_type.cost);
+            let text = &format!("{} ({})", unit_type.name, unit_type.cost.n);
             let button_id = button_manager.add_button(
                 Button::new(context, text, pos));
             button_ids.insert(button_id, (type_id, exact_pos));
