@@ -210,7 +210,7 @@ pub fn check_command<S: GameState>(
             if transporter.passenger_id.is_some() {
                 return Err(CommandError::TransporterIsNotEmpty);
             }
-            if distance(transporter.pos.map_pos, passenger.pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, passenger.pos.map_pos).n > 1 {
                 return Err(CommandError::TransporterIsTooFarAway);
             }
             // TODO: 0 -> real move cost of transport tile for passenger
@@ -241,7 +241,7 @@ pub fn check_command<S: GameState>(
             if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterType);
             }
-            if distance(transporter.pos.map_pos, pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, pos.map_pos).n > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
             if transporter.passenger_id.is_none() {
@@ -289,7 +289,7 @@ pub fn check_command<S: GameState>(
             if !attached_unit_type.can_be_towed {
                 return Err(CommandError::BadAttachedUnitType);
             }
-            if distance(transporter.pos.map_pos, attached_unit.pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, attached_unit.pos.map_pos).n > 1 {
                 return Err(CommandError::TransporterIsTooFarAway);
             }
             let transporter_move_points = transporter.move_points.unwrap();
@@ -325,7 +325,7 @@ pub fn check_command<S: GameState>(
             if transporter.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
-            if distance(transporter.pos.map_pos, pos.map_pos) > 1 {
+            if distance(transporter.pos.map_pos, pos.map_pos).n > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
             if !is_exact_pos_free(db, state, transporter.type_id, pos) {

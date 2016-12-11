@@ -1,11 +1,11 @@
-/// Fielf of View
+/// Field of View
 
 use std::f32::consts::{PI};
 use cgmath::{InnerSpace};
 use game_state::{GameState};
 use map::{Terrain, spiral_iter};
 use geom;
-use ::{MapPos, ObjectClass};
+use ::{MapPos, ObjectClass, Distance};
 
 struct Shadow {
     left: f32,
@@ -41,7 +41,7 @@ fn is_obstacle<S: GameState>(state: &S, pos: MapPos) -> bool {
 pub fn fov<S: GameState>(
     state: &S,
     origin: MapPos,
-    range: i32,
+    range: Distance,
     callback: &mut FnMut(MapPos),
 ) {
     callback(origin);
@@ -74,7 +74,7 @@ pub fn fov<S: GameState>(
 pub fn simple_fov<S: GameState>(
     state: &S,
     origin: MapPos,
-    range: i32,
+    range: Distance,
     callback: &mut FnMut(MapPos),
 ) {
     callback(origin);

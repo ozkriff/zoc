@@ -50,6 +50,9 @@ pub struct MovePoints{pub n: i32}
 pub struct AttackPoints{pub n: i32}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Distance{pub n: i32}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReinforcementPoints{pub n: i32}
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -482,14 +485,16 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     println!("  mp: {}", unit_type.move_points.n);
     println!("  ap: {}", unit_type.attack_points.n);
     println!("  reactive_ap: {}", unit_type.reactive_attack_points.n);
-    println!("  los_range: {}", unit_type.los_range);
-    println!("  cover_los_range: {}", unit_type.cover_los_range);
+    println!("  los_range: {}", unit_type.los_range.n);
+    println!("  cover_los_range: {}", unit_type.cover_los_range.n);
     println!("weapon:");
     println!("  name: {}", weapon_type.name);
     println!("  damage: {}", weapon_type.damage);
     println!("  ap: {}", weapon_type.ap);
     println!("  accuracy: {}", weapon_type.accuracy);
-    println!("  max_distance: {}", weapon_type.max_distance);
+    println!("  min_distance: {}", weapon_type.min_distance.n);
+    println!("  max_distance: {}", weapon_type.max_distance.n);
+    println!("  smoke: {:?}", weapon_type.smoke);
 }
 
 pub fn print_terrain_info<S: GameState>(state: &S, pos: MapPos) {

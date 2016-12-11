@@ -3,7 +3,7 @@ use std::iter::{repeat};
 use cgmath::{Vector2, Array};
 use types::{Size2};
 use dir::{Dir, DirIter, dirs};
-use ::{MapPos};
+use ::{MapPos, Distance};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Terrain {
@@ -101,13 +101,13 @@ pub struct RingIter {
     cursor: MapPos,
     segment_index: i32,
     dir_iter: DirIter,
-    radius: i32,
+    radius: Distance,
     dir: Dir,
 }
 
-pub fn ring_iter(pos: MapPos, radius: i32) -> RingIter {
+pub fn ring_iter(pos: MapPos, radius: Distance) -> RingIter {
     let mut pos = pos;
-    pos.v.x -= radius;
+    pos.v.x -= radius.n;
     let mut dir_iter = dirs();
     let dir = dir_iter.next()
         .expect("Can`t get first direction");
@@ -141,10 +141,10 @@ impl Iterator for RingIter {
     type Item = MapPos;
 
     fn next(&mut self) -> Option<MapPos> {
-        if self.segment_index >= self.radius - 1 {
+        if self.segment_index >= self.radius.n - 1 {
             if let Some(dir) = self.dir_iter.next() {
                 self.rotate(dir)
-            } else if self.segment_index == self.radius {
+            } else if self.segment_index == self.radius.n {
                 None
             } else {
                 // last pos
@@ -159,16 +159,16 @@ impl Iterator for RingIter {
 #[derive(Clone, Debug)]
 pub struct SpiralIter {
     ring_iter: RingIter,
-    radius: i32,
-    last_radius: i32,
+    radius: Distance,
+    last_radius: Distance,
     origin: MapPos,
 }
 
-pub fn spiral_iter(pos: MapPos, radius: i32) -> SpiralIter {
-    assert!(radius >= 1);
+pub fn spiral_iter(pos: MapPos, radius: Distance) -> SpiralIter {
+    assert!(radius.n >= 1);
     SpiralIter {
-        ring_iter: ring_iter(pos, 1),
-        radius: 1,
+        ring_iter: ring_iter(pos, Distance{n: 1}),
+        radius: Distance{n: 1},
         last_radius: radius,
         origin: pos,
     }
@@ -182,7 +182,7 @@ impl Iterator for SpiralIter {
         if pos.is_some() {
             pos
         } else {
-            self.radius += 1;
+            self.radius.n += 1;
             if self.radius > self.last_radius {
                 None
             } else {
@@ -194,23 +194,23 @@ impl Iterator for SpiralIter {
     }
 }
 
-pub fn distance(from: MapPos, to: MapPos) -> i32 {
+pub fn distance(from: MapPos, to: MapPos) -> Distance {
     let to = to.v;
     let from = from.v;
     let dx = (to.x + to.y / 2) - (from.x + from.y / 2);
     let dy = to.y - from.y;
-    (dx.abs() + dy.abs() + (dx - dy).abs()) / 2
+    Distance{n: (dx.abs() + dy.abs() + (dx - dy).abs()) / 2}
 }
 
 #[cfg(test)]
 mod tests {
     use cgmath::{Vector2};
     use super::{ring_iter, spiral_iter};
-    use ::{MapPos};
+    use ::{MapPos, Distance};
 
     #[test]
     fn test_ring_1() {
-        let radius = 1;
+        let radius = Distance{n: 1};
         let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
         let expected = [
             (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 0) ];
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_ring_2() {
-        let radius = 2;
+        let radius = Distance{n: 2};
         let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
         let expected = [
             (-1, -1),
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_spiral_1() {
-        let radius = 2;
+        let radius = Distance{n: 2};
         let start_pos = MapPos{v: Vector2{x: 0, y: 0}};
         let expected = [
             // ring 1
