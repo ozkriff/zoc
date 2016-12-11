@@ -134,6 +134,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: true,
             is_air: false,
             is_infantry: false,
+            can_be_towed: false,
             cost: 16,
         },
         UnitType {
@@ -153,6 +154,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 10,
         },
         UnitType {
@@ -172,6 +174,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 8,
         },
         UnitType {
@@ -191,6 +194,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 6,
         },
         UnitType {
@@ -210,6 +214,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 6,
         },
         UnitType {
@@ -230,6 +235,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: true,
+            can_be_towed: true,
             cost: 5,
         },
         UnitType {
@@ -249,6 +255,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 4,
         },
         UnitType {
@@ -268,6 +275,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: false,
+            can_be_towed: true,
             cost: 4,
         },
         UnitType {
@@ -287,6 +295,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: true,
             is_air: true,
             is_infantry: false,
+            can_be_towed: false,
             cost: 10,
         },
         UnitType {
@@ -306,6 +315,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: true,
+            can_be_towed: false,
             cost: 2,
         },
         UnitType {
@@ -325,6 +335,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: true,
+            can_be_towed: false,
             cost: 2,
         },
         UnitType {
@@ -344,6 +355,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: true,
+            can_be_towed: false,
             cost: 3,
         },
         UnitType {
@@ -363,6 +375,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
             is_big: false,
             is_air: false,
             is_infantry: true,
+            can_be_towed: false,
             cost: 4,
         },
     ]

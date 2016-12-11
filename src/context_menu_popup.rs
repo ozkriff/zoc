@@ -44,6 +44,32 @@ fn can_unload_unit(
     }
 }
 
+fn can_detach_unit(
+    db: &Db,
+    state: &PartialState,
+    transporter_id: UnitId,
+    pos: MapPos,
+) -> Option<ExactPos> {
+    let transporter = state.unit(transporter_id);
+    if transporter.attached_unit_id.is_none() {
+        return None;
+    }
+    let type_id = transporter.type_id;
+    let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
+        Some(pos) => pos,
+        None => return None,
+    };
+    let command = core::Command::Detach {
+        transporter_id: transporter_id,
+        pos: exact_pos,
+    };
+    if check_command(db, transporter.player_id, state, &command).is_ok() {
+        Some(exact_pos)
+    } else {
+        None
+    }
+}
+
 pub fn get_options(
     core: &core::Core,
     player_info: &PlayerInfo,
@@ -100,14 +126,24 @@ pub fn get_options(
                         options.disable_reaction_fire = Some(selected_unit_id);
                     }
                 }
-            } else if unit.is_alive {
-                options.selects.push(unit_id);
-                let load_command = core::Command::LoadUnit {
+            } else {
+                // TODO: attach dead enemies
+                if unit.is_alive {
+                    options.selects.push(unit_id);
+                    let load_command = core::Command::LoadUnit {
+                        transporter_id: selected_unit_id,
+                        passenger_id: unit_id,
+                    };
+                    if check_command(db, player_id, state, &load_command).is_ok() {
+                        options.loads.push(unit_id);
+                    }
+                }
+                let attach_command = core::Command::Attach {
                     transporter_id: selected_unit_id,
-                    passenger_id: unit_id,
+                    attached_unit_id: unit_id,
                 };
-                if check_command(db, player_id, state, &load_command).is_ok() {
-                    options.loads.push(unit_id);
+                if check_command(db, player_id, state, &attach_command).is_ok() {
+                    options.attaches.push(unit_id);
                 }
             }
         } else {
@@ -131,6 +167,9 @@ pub fn get_options(
     }
     if let Some(pos) = can_unload_unit(db, state, selected_unit_id, pos) {
         options.unload_pos = Some(pos);
+    }
+    if let Some(pos) = can_detach_unit(db, state, selected_unit_id, pos) {
+        options.detach_pos = Some(pos);
     }
     let selected_unit = state.unit(selected_unit_id);
     let selected_unit_type = db.unit_type(selected_unit.type_id);
@@ -167,7 +206,9 @@ pub enum Command {
     Hunt{pos: ExactPos},
     Attack{id: UnitId},
     LoadUnit{passenger_id: UnitId},
+    Attach{attached_unit_id: UnitId},
     UnloadUnit{pos: ExactPos},
+    Detach{pos: ExactPos},
     EnableReactionFire{id: UnitId},
     DisableReactionFire{id: UnitId},
     Smoke{pos: MapPos},
@@ -179,9 +220,11 @@ pub struct Options {
     selects: Vec<UnitId>,
     attacks: Vec<(UnitId, HitChance)>,
     loads: Vec<UnitId>,
+    attaches: Vec<UnitId>,
     move_pos: Option<ExactPos>,
     hunt_pos: Option<ExactPos>,
     unload_pos: Option<ExactPos>,
+    detach_pos: Option<ExactPos>,
     smoke_pos: Option<MapPos>,
     enable_reaction_fire: Option<UnitId>,
     disable_reaction_fire: Option<UnitId>,
@@ -194,9 +237,11 @@ impl Options {
             selects: Vec::new(),
             attacks: Vec::new(),
             loads: Vec::new(),
+            attaches: Vec::new(),
             move_pos: None,
             hunt_pos: None,
             unload_pos: None,
+            detach_pos: None,
             smoke_pos: None,
             enable_reaction_fire: None,
             disable_reaction_fire: None,
@@ -219,9 +264,11 @@ pub struct ContextMenuPopup {
     select_button_ids: HashMap<ButtonId, UnitId>,
     attack_button_ids: HashMap<ButtonId, UnitId>,
     load_button_ids: HashMap<ButtonId, UnitId>,
+    attach_button_ids: HashMap<ButtonId, UnitId>,
     move_button_id: Option<ButtonId>,
     hunt_button_id: Option<ButtonId>,
     unload_unit_button_id: Option<ButtonId>,
+    detach_button_id: Option<ButtonId>,
     smoke_button_id: Option<ButtonId>,
     enable_reaction_fire_button_id: Option<ButtonId>,
     disable_reaction_fire_button_id: Option<ButtonId>,
@@ -241,9 +288,11 @@ impl ContextMenuPopup {
         let mut select_button_ids = HashMap::new();
         let mut attack_button_ids = HashMap::new();
         let mut load_button_ids = HashMap::new();
+        let mut attach_button_ids = HashMap::new();
         let mut move_button_id = None;
         let mut hunt_button_id = None;
         let mut unload_unit_button_id = None;
+        let mut detach_button_id = None;
         let mut smoke_button_id = None;
         let mut enable_reaction_fire_button_id = None;
         let mut disable_reaction_fire_button_id = None;
@@ -273,6 +322,13 @@ impl ContextMenuPopup {
             let button_id = button_manager.add_button(
                 Button::new(context, &format!("load <{}>", unit_type.name), pos));
             load_button_ids.insert(button_id, unit_id);
+            pos.v.y -= vstep;
+        }
+        for &unit_id in &options.attaches {
+            let unit_type = db.unit_type(state.unit(unit_id).type_id);
+            let button_id = button_manager.add_button(
+                Button::new(context, &format!("attach <{}>", unit_type.name), pos));
+            attach_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         if options.move_pos.is_some() {
@@ -305,6 +361,11 @@ impl ContextMenuPopup {
                 Button::new(context, "unload", pos)));
             pos.v.y -= vstep;
         }
+        if options.detach_pos.is_some() {
+            detach_button_id = Some(button_manager.add_button(
+                Button::new(context, "detach", pos)));
+            pos.v.y -= vstep;
+        }
         if options.smoke_pos.is_some() {
             smoke_button_id = Some(button_manager.add_button(
                 Button::new(context, "smoke", pos)));
@@ -328,9 +389,11 @@ impl ContextMenuPopup {
             select_button_ids: select_button_ids,
             attack_button_ids: attack_button_ids,
             load_button_ids: load_button_ids,
+            attach_button_ids: attach_button_ids,
             move_button_id: move_button_id,
             hunt_button_id: hunt_button_id,
             unload_unit_button_id: unload_unit_button_id,
+            detach_button_id: detach_button_id,
             smoke_button_id: smoke_button_id,
             enable_reaction_fire_button_id: enable_reaction_fire_button_id,
             disable_reaction_fire_button_id: disable_reaction_fire_button_id,
@@ -378,6 +441,12 @@ impl ContextMenuPopup {
             });
             return;
         }
+        if let Some(&unit_id) = self.attach_button_ids.get(&button_id) {
+            self.return_command(context, Command::Attach {
+                attached_unit_id: unit_id,
+            });
+            return;
+        }
         let id = Some(button_id);
         if id == self.move_button_id {
             self.return_command(context, Command::Move {
@@ -390,6 +459,10 @@ impl ContextMenuPopup {
         } else if id == self.unload_unit_button_id {
             self.return_command(context, Command::UnloadUnit {
                 pos: self.options.unload_pos.unwrap(),
+            });
+        } else if id == self.detach_button_id {
+            self.return_command(context, Command::Detach {
+                pos: self.options.detach_pos.unwrap(),
             });
         } else if id == self.smoke_button_id {
             self.return_command(context, Command::Smoke {

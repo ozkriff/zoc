@@ -43,6 +43,11 @@ pub enum CommandError {
     BadPath,
     BadUnitType,
     UnitIsDead,
+    AttachedUnitIsTooBig,
+    BadAttachedUnitId,
+    BadAttachedUnitType,
+    NoAttachedUnit,
+    TooManyAttachedUnits,
 }
 
 impl CommandError {
@@ -75,6 +80,11 @@ impl CommandError {
             CommandError::BadPath => "Bad path",
             CommandError::BadUnitType => "Bad unit type",
             CommandError::UnitIsDead => "Unit is dead",
+            CommandError::AttachedUnitIsTooBig => "Attached unit is too big",
+            CommandError::BadAttachedUnitId => "Bad attached unit id",
+            CommandError::BadAttachedUnitType => "Bad attached unit type",
+            CommandError::NoAttachedUnit => "No attached unit",
+            CommandError::TooManyAttachedUnits => "too many attached units",
         }
     }
 }
@@ -242,6 +252,87 @@ pub fn check_command<S: GameState>(
             let passenger_type = db.unit_type(passenger.type_id);
             let cost = tile_cost(db, state, passenger, transporter.pos, pos);
             if cost.n > passenger_type.move_points.n {
+                return Err(CommandError::NotEnoughMovePoints);
+            }
+            Ok(())
+        },
+        Command::Attach{transporter_id, attached_unit_id} => {
+            let transporter = match state.units().get(&transporter_id) {
+                Some(transporter) => transporter,
+                None => return Err(CommandError::BadTransporterId),
+            };
+            if !transporter.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
+            if transporter.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            let transporter_type = db.unit_type(transporter.type_id);
+            if transporter_type.is_infantry || transporter_type.is_air {
+                return Err(CommandError::BadTransporterType);
+            }
+            if transporter.attached_unit_id.is_some() {
+                return Err(CommandError::TooManyAttachedUnits);
+            }
+            let attached_unit = match state.units().get(&attached_unit_id) {
+                Some(attached_unit) => attached_unit,
+                None => return Err(CommandError::BadAttachedUnitId),
+            };
+            if attached_unit.is_alive && attached_unit.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            let attached_unit_type = db.unit_type(attached_unit.type_id);
+            if attached_unit_type.size > transporter_type.size {
+                return Err(CommandError::AttachedUnitIsTooBig);
+            }
+            if !attached_unit_type.can_be_towed {
+                return Err(CommandError::BadAttachedUnitType);
+            }
+            if distance(transporter.pos.map_pos, attached_unit.pos.map_pos) > 1 {
+                return Err(CommandError::TransporterIsTooFarAway);
+            }
+            let transporter_move_points = transporter.move_points.unwrap();
+            let from = transporter.pos;
+            let to = attached_unit.pos;
+            let cost = tile_cost(db, state, transporter, from, to);
+            if cost > transporter_move_points {
+                return Err(CommandError::NotEnoughMovePoints);
+            }
+            if attached_unit.is_alive {
+                let attached_unit_move_points = attached_unit.move_points.unwrap();
+                if attached_unit_move_points.n <= 0 {
+                    return Err(CommandError::NotEnoughMovePoints);
+                }
+            }
+            Ok(())
+        },
+        Command::Detach{transporter_id, pos} => {
+            let transporter = match state.units().get(&transporter_id) {
+                Some(transporter) => transporter,
+                None => return Err(CommandError::BadTransporterId),
+            };
+            if !transporter.is_alive {
+                return Err(CommandError::UnitIsDead);
+            }
+            let attached_unit_id = match transporter.attached_unit_id {
+                Some(id) => id,
+                None => return Err(CommandError::NoAttachedUnit),
+            };
+            if state.units().get(&attached_unit_id).is_none() {
+                return Err(CommandError::BadAttachedUnitId);
+            }
+            if transporter.player_id != player_id {
+                return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            if distance(transporter.pos.map_pos, pos.map_pos) > 1 {
+                return Err(CommandError::UnloadDistanceIsTooBig);
+            }
+            if !is_exact_pos_free(db, state, transporter.type_id, pos) {
+                return Err(CommandError::DestinationTileIsNotEmpty);
+            }
+            let transporter_move_points = transporter.move_points.unwrap();
+            let cost = tile_cost(db, state, transporter, transporter.pos, pos);
+            if cost > transporter_move_points {
                 return Err(CommandError::NotEnoughMovePoints);
             }
             Ok(())

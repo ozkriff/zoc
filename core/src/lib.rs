@@ -239,6 +239,8 @@ pub enum Command {
     AttackUnit{attacker_id: UnitId, defender_id: UnitId},
     LoadUnit{transporter_id: UnitId, passenger_id: UnitId},
     UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos},
+    Attach{transporter_id: UnitId, attached_unit_id: UnitId},
+    Detach{transporter_id: UnitId, pos: ExactPos},
     SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
     Smoke{unit_id: UnitId, pos: MapPos},
 }
@@ -250,6 +252,7 @@ pub struct UnitInfo {
     pub type_id: UnitTypeId,
     pub player_id: PlayerId,
     pub passenger_id: Option<UnitId>,
+    pub attached_unit_id: Option<UnitId>,
     pub is_alive: bool,
 }
 
@@ -300,6 +303,17 @@ pub enum CoreEvent {
     UnloadUnit {
         unit_info: UnitInfo,
         transporter_id: Option<UnitId>,
+        from: ExactPos,
+        to: ExactPos,
+    },
+    Attach {
+        transporter_id: UnitId,
+        attached_unit_id: UnitId,
+        from: ExactPos,
+        to: ExactPos,
+    },
+    Detach {
+        transporter_id: UnitId,
         from: ExactPos,
         to: ExactPos,
     },
@@ -377,7 +391,7 @@ pub fn find_prev_player_unit_id<S: GameState>(
     unreachable!()
 }
 
-pub fn is_unit_passenger<S: GameState>(
+pub fn is_unit_passenger_or_attached<S: GameState>(
     db: &Db,
     state: &S,
     unit_id: UnitId,
@@ -391,6 +405,11 @@ pub fn is_unit_passenger<S: GameState>(
                 return true;
             }
         }
+        if let Some(attached_unit_id) = transporter.attached_unit_id {
+            if attached_unit_id == unit_id {
+                return true;
+            }
+        }
     }
     false
 }
@@ -398,7 +417,7 @@ pub fn is_unit_passenger<S: GameState>(
 pub fn get_unit_ids_at(db: &Db, state: &PartialState, pos: MapPos) -> Vec<UnitId> {
     let mut ids = Vec::new();
     for unit in state.units_at(pos) {
-        if !is_unit_passenger(db, state, unit.id) {
+        if !is_unit_passenger_or_attached(db, state, unit.id) {
             ids.push(unit.id)
         }
     }
@@ -412,6 +431,7 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
         type_id: unit.type_id,
         player_id: unit.player_id,
         passenger_id: unit.passenger_id,
+        attached_unit_id: unit.attached_unit_id,
         is_alive: unit.is_alive,
     }
 }
@@ -446,6 +466,7 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     println!("  count: {}", unit.count);
     println!("  morale: {}", unit.morale);
     println!("  passenger_id: {:?}", unit.passenger_id);
+    println!("  attached_unit_id: {:?}", unit.attached_unit_id);
     println!("  is_alive: {:?}", unit.is_alive);
     println!("type:");
     println!("  name: {}", unit_type.name);
@@ -866,7 +887,7 @@ impl Core {
         let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
-            if is_unit_passenger(&self.db, &self.state, enemy_unit_id) {
+            if is_unit_passenger_or_attached(&self.db, &self.state, enemy_unit_id) {
                 continue;
             }
             let event = {
@@ -967,6 +988,7 @@ impl Core {
                         type_id: type_id,
                         player_id: self.current_player_id,
                         passenger_id: None,
+                        attached_unit_id: None,
                         is_alive: true,
                     },
                 };
@@ -1039,6 +1061,26 @@ impl Core {
                 };
                 self.do_core_event(&event);
                 self.reaction_fire(passenger_id);
+            },
+            Command::Attach{transporter_id, attached_unit_id} => {
+                let from = self.state.unit(transporter_id).pos;
+                let to = self.state.unit(attached_unit_id).pos;
+                self.do_core_event(&CoreEvent::Attach {
+                    transporter_id: transporter_id,
+                    attached_unit_id: attached_unit_id,
+                    from: from,
+                    to: to,
+                });
+                self.reaction_fire(transporter_id);
+            },
+            Command::Detach{transporter_id, pos} => {
+                let from = self.state.unit(transporter_id).pos;
+                self.do_core_event(&CoreEvent::Detach {
+                    transporter_id: transporter_id,
+                    from: from,
+                    to: pos,
+                });
+                self.reaction_fire(transporter_id);
             },
             Command::SetReactionFireMode{unit_id, mode} => {
                 self.do_core_event(&CoreEvent::SetReactionFireMode {

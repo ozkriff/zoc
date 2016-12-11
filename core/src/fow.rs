@@ -207,6 +207,8 @@ impl Fow {
             CoreEvent::ShowUnit{..} |
             CoreEvent::HideUnit{..} |
             CoreEvent::LoadUnit{..} |
+            CoreEvent::Attach{..} |
+            CoreEvent::Detach{..} |
             CoreEvent::SetReactionFireMode{..} |
             CoreEvent::SectorOwnerChanged{..} |
             CoreEvent::Smoke{..} |

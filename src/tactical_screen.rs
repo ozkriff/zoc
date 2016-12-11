@@ -775,10 +775,12 @@ impl TacticalScreen {
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 event_visualizer::EventAttackUnitVisualizer::new(
+                    self.core.db(),
                     state,
                     scene,
                     attack_info,
-                    self.mesh_ids.shell_mesh_id,
+                    &self.mesh_ids,
+                    &self.unit_type_visual_info,
                     &mut self.map_text_manager,
                 )
             },
@@ -830,6 +832,31 @@ impl TacticalScreen {
                     self.mesh_ids.marker_mesh_id,
                     from,
                     unit_type_visual_info,
+                    &mut self.map_text_manager,
+                )
+            },
+            CoreEvent::Attach{transporter_id, attached_unit_id, ..} => {
+                let transporter_type_id = state.unit(transporter_id).type_id;
+                let unit_type_visual_info
+                    = self.unit_type_visual_info.get(transporter_type_id);
+                event_visualizer::EventAttachVisualizer::new(
+                    state,
+                    scene,
+                    transporter_id,
+                    attached_unit_id,
+                    unit_type_visual_info,
+                    &mut self.map_text_manager,
+                )
+            },
+            CoreEvent::Detach{transporter_id, to, ..} => {
+                event_visualizer::EventDetachVisualizer::new(
+                    self.core.db(),
+                    state,
+                    scene,
+                    transporter_id,
+                    to,
+                    &self.mesh_ids,
+                    &self.unit_type_visual_info,
                     &mut self.map_text_manager,
                 )
             },
@@ -1051,6 +1078,19 @@ impl TacticalScreen {
                 self.core.do_command(Command::UnloadUnit {
                     transporter_id: selected_unit_id,
                     passenger_id: passenger_id,
+                    pos: pos,
+                });
+            },
+            context_menu_popup::Command::Attach{attached_unit_id} => {
+                let selected_unit_id = self.selected_unit_id.unwrap();
+                self.core.do_command(Command::Attach {
+                    transporter_id: selected_unit_id,
+                    attached_unit_id: attached_unit_id,
+                });
+            },
+            context_menu_popup::Command::Detach{pos} => {
+                self.core.do_command(Command::Detach {
+                    transporter_id: self.selected_unit_id.unwrap(),
                     pos: pos,
                 });
             },

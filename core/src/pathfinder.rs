@@ -70,6 +70,7 @@ pub fn max_cost() -> MovePoints {
     MovePoints{n: i32::max_value()}
 }
 
+// TODO: increase cost for attached units
 pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, pos: ExactPos)
     -> MovePoints
 {

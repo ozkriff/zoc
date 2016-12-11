@@ -145,6 +145,7 @@ impl InternalState {
             } else {
                 None
             },
+            attached_unit_id: unit_info.attached_unit_id,
         });
     }
 }
@@ -192,6 +193,10 @@ impl GameStateMut for InternalState {
                     let passenger = self.units.get_mut(&passenger_id).unwrap();
                     passenger.pos = to;
                 }
+                if let Some(attached_unit_id) = self.units[&unit_id].attached_unit_id {
+                    let attached_unit = self.units.get_mut(&attached_unit_id).unwrap();
+                    attached_unit.pos = to;
+                }
             },
             CoreEvent::EndTurn{new_id, old_id} => {
                 {
@@ -230,10 +235,25 @@ impl GameStateMut for InternalState {
                     if attack_info.leave_wrecks {
                         // TODO: kill\unload passengers
                         let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
+                        unit.attached_unit_id = None;
+                        unit.passenger_id = None;
                         unit.is_alive = false;
                     } else {
                         assert!(self.units.get(&attack_info.defender_id).is_some());
                         self.units.remove(&attack_info.defender_id);
+                    }
+                    if let Some(passenger_id)
+                        = self.unit(attack_info.defender_id).passenger_id
+                    {
+                        self.units.remove(&passenger_id).unwrap();
+                    }
+                    if let Some(attached_unit_id)
+                        = self.unit(attack_info.defender_id).attached_unit_id
+                    {
+                        let attached_unit = self.units.get_mut(&attached_unit_id).unwrap();
+                        attached_unit.attack_points = Some(AttackPoints{n: 0});
+                        attached_unit.reactive_attack_points = Some(AttackPoints{n: 0});
+                        attached_unit.move_points = Some(MovePoints{n: 0});
                     }
                 }
                 let attacker_id = match attack_info.attacker_id {
@@ -291,6 +311,36 @@ impl GameStateMut for InternalState {
                     return;
                 }
                 self.add_unit(db, unit_info, InfoLevel::Partial);
+            },
+            CoreEvent::Attach{transporter_id, attached_unit_id, to, ..} => {
+                if let Some(passenger_id) = self.unit(transporter_id).passenger_id {
+                    let passenger = self.units.get_mut(&passenger_id).unwrap();
+                    passenger.pos = to;
+                }
+                let transporter = self.units.get_mut(&transporter_id).unwrap();
+                transporter.pos = to;
+                if let Some(ref mut move_points) = transporter.move_points {
+                    move_points.n = 0;
+                }
+                transporter.attached_unit_id = Some(attached_unit_id);
+            },
+            CoreEvent::Detach{transporter_id, to, ..} => {
+                if let Some(passenger_id) = self.unit(transporter_id).passenger_id {
+                    let passenger = self.units.get_mut(&passenger_id).unwrap();
+                    passenger.pos = to;
+                }
+                if let Some(attached_unit_id) = self.unit(transporter_id).attached_unit_id {
+                    let attached_unit = self.units.get_mut(&attached_unit_id).unwrap();
+                    if let Some(ref mut move_points) = attached_unit.move_points {
+                        move_points.n = 0;
+                    }
+                }
+                let transporter = self.units.get_mut(&transporter_id).unwrap();
+                transporter.attached_unit_id = None;
+                transporter.pos = to;
+                if let Some(ref mut move_points) = transporter.move_points {
+                    move_points.n = 0;
+                }
             },
             CoreEvent::SetReactionFireMode{unit_id, mode} => {
                 self.units.get_mut(&unit_id)

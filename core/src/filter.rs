@@ -4,7 +4,16 @@ use game_state::{GameState};
 use unit::{Unit};
 use db::{Db};
 use fow::{Fow};
-use ::{CoreEvent, AttackInfo, UnitInfo, UnitId, PlayerId, unit_to_info};
+use ::{
+    CoreEvent,
+    AttackInfo,
+    UnitInfo,
+    UnitId,
+    PlayerId,
+    MoveMode,
+    MovePoints,
+    unit_to_info,
+};
 
 pub fn get_visible_enemies(
     db: &Db,
@@ -64,7 +73,7 @@ pub fn filter_events(
         CoreEvent::Move{unit_id, from, to, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == player_id {
-                events.push(event.clone())
+                events.push(event.clone());
             } else {
                 let prev_vis = fow.is_visible(db, state, unit, from);
                 let next_vis = fow.is_visible(db, state, unit, to);
@@ -75,6 +84,16 @@ pub fn filter_events(
                             .. unit_to_info(unit)
                         },
                     });
+                    if let Some(attached_unit_id) = unit.attached_unit_id {
+                        active_unit_ids.insert(attached_unit_id);
+                        let attached_unit = state.unit(attached_unit_id);
+                        events.push(CoreEvent::ShowUnit {
+                            unit_info: UnitInfo {
+                                pos: from,
+                                .. unit_to_info(attached_unit)
+                            },
+                        });
+                    }
                 }
                 if prev_vis || next_vis {
                     events.push(event.clone());
@@ -183,6 +202,81 @@ pub fn filter_events(
                     events.push(CoreEvent::HideUnit {
                         unit_id: passenger.id,
                     });
+                }
+            }
+        },
+        CoreEvent::Attach{transporter_id, attached_unit_id, from, to} => {
+            let transporter = state.unit(transporter_id);
+            if transporter.player_id == player_id {
+                events.push(event.clone())
+            } else {
+                active_unit_ids.insert(transporter_id);
+                let attached_unit = state.unit(attached_unit_id);
+                let is_attached_unit_vis = fow.is_visible(
+                    db, state, attached_unit, to);
+                let is_transporter_vis = fow.is_visible(
+                    db, state, transporter, from);
+                if is_attached_unit_vis {
+                    if !is_transporter_vis {
+                        events.push(CoreEvent::ShowUnit {
+                            unit_info: UnitInfo {
+                                pos: from,
+                                attached_unit_id: None,
+                                .. unit_to_info(transporter)
+                            },
+                        });
+                    }
+                    events.push(event.clone())
+                } else {
+                    if is_transporter_vis {
+                        events.push(CoreEvent::Move {
+                            unit_id: transporter_id,
+                            mode: MoveMode::Fast,
+                            cost: MovePoints{n: 0},
+                            from: from,
+                            to: to,
+                        });
+                        events.push(CoreEvent::HideUnit {
+                            unit_id: transporter_id,
+                        });
+                    }
+                }
+            }
+        },
+        CoreEvent::Detach{transporter_id, from, to} => {
+            let transporter = state.unit(transporter_id);
+            if transporter.player_id == player_id {
+                events.push(event.clone())
+            } else {
+                active_unit_ids.insert(transporter_id);
+                let is_from_vis = fow.is_visible(
+                    db, state, transporter, from);
+                let is_to_vis = fow.is_visible(
+                    db, state, transporter, to);
+                if is_from_vis {
+                    events.push(event.clone());
+                    if !is_to_vis {
+                        events.push(CoreEvent::HideUnit {
+                            unit_id: transporter_id,
+                        });
+                    }
+               } else {
+                    if is_to_vis {
+                        events.push(CoreEvent::ShowUnit {
+                            unit_info: UnitInfo {
+                                pos: from,
+                                attached_unit_id: None,
+                                .. unit_to_info(transporter)
+                            },
+                        });
+                        events.push(CoreEvent::Move {
+                            unit_id: transporter_id,
+                            mode: MoveMode::Fast,
+                            cost: MovePoints{n: 0},
+                            from: from,
+                            to: to,
+                        });
+                    }
                 }
             }
         },
