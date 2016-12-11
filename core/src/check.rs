@@ -203,7 +203,8 @@ pub fn check_command<S: GameState>(
             if !db.unit_type(transporter.type_id).is_transporter {
                 return Err(CommandError::BadTransporterType);
             }
-            if !db.unit_type(passenger.type_id).is_infantry {
+            let passenger_type = db.unit_type(passenger.type_id);
+            if !passenger_type.is_infantry || passenger_type.can_be_towed {
                 return Err(CommandError::BadPassengerType);
             }
             if transporter.passenger_id.is_some() {
