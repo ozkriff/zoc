@@ -467,6 +467,7 @@ fn load_map(map_name: &str) -> MapInfo {
     match map_name {
         "map01" => load_map_01(),
         "map02" => load_map_02(),
+        "map03" => load_map_03(),
         _ => unimplemented!(),
     }
 }
@@ -627,5 +628,28 @@ fn load_map_02() -> MapInfo {
             owner_id: None,
         },
     );
+    (map, objects, sectors)
+}
+
+fn load_map_03() -> MapInfo {
+    let map_size = Size2{w: 3, h: 1};
+    let mut objects = HashMap::new();
+    let mut map = Map::new(map_size);
+    let sectors = HashMap::new();
+    for &((x, y), terrain) in &[
+        ((1, 0), Terrain::Trees),
+    ] {
+        *map.tile_mut(MapPos{v: Vector2{x: x, y: y}}) = terrain;
+    }
+    for &((x, y), player_index) in &[
+        ((0, 0), 0),
+        ((2, 0), 1),
+    ] {
+        add_reinforcement_sector(
+            &mut objects,
+            MapPos{v: Vector2{x: x, y: y}},
+            Some(PlayerId{id: player_index}),
+        );
+    }
     (map, objects, sectors)
 }

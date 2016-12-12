@@ -142,10 +142,10 @@ impl Simulator for Core {
     }
 }
 
-fn basic_core() -> Core {
+fn basic_core(mapname: &str) -> Core {
     Core::new(&core::Options {
         game_type: core::GameType::Hotseat,
-        map_name: "map01".to_owned(),
+        map_name: mapname.to_owned(),
         players_count: 2,
     })
 }
@@ -156,7 +156,7 @@ fn test_transporter_with_attached_unit_comes_out_of_fow() {
     let pos_a2 = MapPos{v: Vector2{x: 1, y: 1}};
     let pos_a3 = MapPos{v: Vector2{x: 2, y: 1}};
     let pos_b = MapPos{v: Vector2{x: 9, y: 2}};
-    let mut core = basic_core();
+    let mut core = basic_core("map01");
 
     assert_eq!(core.player_id(), PlayerId{id: 0});
     core.command_create_ground_unit((pos_a1, 0), "truck");
@@ -189,4 +189,32 @@ fn test_transporter_with_attached_unit_comes_out_of_fow() {
     core.wait_show_unit(pos_a2, truck1_id);
     core.wait_attach(truck1_id, truck2_id);
     core.wait_end_turn(0, 1);
+}
+
+#[test]
+fn test_move_into_invisible_enemy() {
+    let pos1 = MapPos{v: Vector2{x: 0, y: 0}};
+    let pos2 = MapPos{v: Vector2{x: 1, y: 0}};
+    let pos3 = MapPos{v: Vector2{x: 2, y: 0}};
+    let mut core = basic_core("map03");
+
+    assert_eq!(core.player_id(), PlayerId{id: 0});
+    core.command_create_ground_unit((pos1, 0), "jeep");
+    let jeep1_id = core.wait_create_unit(pos1, "jeep");
+    core.command_end_turn();
+
+    assert_eq!(core.player_id(), PlayerId{id: 1});
+    core.wait_end_turn(0, 1);
+    core.command_create_ground_unit((pos3, 0), "jeep");
+    let _ = core.wait_create_unit(pos3, "jeep");
+    core.command_end_turn();
+
+    assert_eq!(core.player_id(), PlayerId{id: 0});
+    core.wait_end_turn(0, 1);
+    core.wait_end_turn(1, 0);
+    let path1 = [(pos1, 0), (pos2, 0), (pos3, 0)];
+    core.command_move(jeep1_id, &path1);
+    core.wait_move(jeep1_id, &path1);
+    core.command_end_turn();
+    // println!("core {:#?}", core); panic!();
 }
