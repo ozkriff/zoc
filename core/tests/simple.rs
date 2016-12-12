@@ -17,7 +17,7 @@ use core::{
 
 trait Simulator {
     fn do_command(&mut self, command: Command);
-    fn get_event(&mut self) -> Option<CoreEvent>;
+    fn wait_event(&mut self) -> CoreEvent;
     fn db(&self) -> &Db;
 
     fn command_end_turn(&mut self) {
@@ -25,8 +25,7 @@ trait Simulator {
     }
 
     fn wait_create_unit(&mut self, pos: MapPos, typename: &str) -> UnitId {
-        let event = self.get_event().unwrap();
-        let info = match event {
+        let info = match self.wait_event() {
             CoreEvent::CreateUnit{unit_info} => unit_info,
             _ => panic!(),
         };
@@ -56,10 +55,10 @@ trait Simulator {
     }
 
     fn wait_end_turn(&mut self, old_player_id: i32, new_player_id: i32) {
-        assert_eq!(self.get_event(), Some(CoreEvent::EndTurn {
+        assert_eq!(self.wait_event(), CoreEvent::EndTurn {
             old_id: PlayerId{id: old_player_id},
             new_id: PlayerId{id: new_player_id},
-        }));
+        });
     }
 
     fn command_move(&mut self, unit_id: UnitId, path: &[(MapPos, u8)]) {
@@ -86,7 +85,7 @@ trait Simulator {
                 map_pos: window[1].0,
                 slot_id: SlotId::Id(window[1].1),
             };
-            match self.get_event().unwrap() {
+            match self.wait_event() {
                 CoreEvent::Move{unit_id, from, to, ..} => {
                     assert_eq!(unit_id, expected_unit_id);
                     assert_eq!(from, expected_from);
@@ -98,8 +97,7 @@ trait Simulator {
     }
 
     fn wait_show_unit(&mut self, pos: MapPos, id: UnitId) {
-        let event = self.get_event().unwrap();
-        match event {
+        match self.wait_event() {
             CoreEvent::ShowUnit{unit_info} => {
                 assert_eq!(unit_info.unit_id, id);
                 assert_eq!(unit_info.pos.map_pos, pos);
@@ -120,8 +118,7 @@ trait Simulator {
     }
 
     fn wait_attach(&mut self, id1: UnitId, id2: UnitId) {
-        let event = self.get_event().unwrap();
-        match event {
+        match self.wait_event() {
             CoreEvent::Attach{transporter_id, attached_unit_id, ..} => {
                 assert_eq!(transporter_id, id1);
                 assert_eq!(attached_unit_id, id2);
@@ -136,8 +133,8 @@ impl Simulator for Core {
         self.do_command(command)
     }
 
-    fn get_event(&mut self) -> Option<CoreEvent> {
-        self.get_event()
+    fn wait_event(&mut self) -> CoreEvent {
+        self.get_event().unwrap()
     }
 
     fn db(&self) -> &Db {
