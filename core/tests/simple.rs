@@ -161,8 +161,8 @@ fn test_transporter_with_attached_unit_comes_out_of_fow() {
     assert_eq!(core.player_id(), PlayerId{id: 0});
     core.command_create_ground_unit((pos_a1, 0), "truck");
     let truck_id = core.wait_create_unit(pos_a1, "truck");
-    core.command_create_ground_unit((pos_a1, 1), "truck");
-    let jeep_id = core.wait_create_unit(pos_a1, "truck");
+    core.command_create_ground_unit((pos_a1, 1), "jeep");
+    let jeep_id = core.wait_create_unit(pos_a1, "jeep");
     core.command_end_turn();
 
     assert_eq!(core.player_id(), PlayerId{id: 1});
