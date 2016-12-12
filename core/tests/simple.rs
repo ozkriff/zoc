@@ -160,9 +160,9 @@ fn test_transporter_with_attached_unit_comes_out_of_fow() {
 
     assert_eq!(core.player_id(), PlayerId{id: 0});
     core.command_create_ground_unit((pos_a1, 0), "truck");
-    let truck_id = core.wait_create_unit(pos_a1, "truck");
-    core.command_create_ground_unit((pos_a1, 1), "jeep");
-    let jeep_id = core.wait_create_unit(pos_a1, "jeep");
+    let truck1_id = core.wait_create_unit(pos_a1, "truck");
+    core.command_create_ground_unit((pos_a1, 1), "truck");
+    let truck2_id = core.wait_create_unit(pos_a1, "truck");
     core.command_end_turn();
 
     assert_eq!(core.player_id(), PlayerId{id: 1});
@@ -174,19 +174,19 @@ fn test_transporter_with_attached_unit_comes_out_of_fow() {
     assert_eq!(core.player_id(), PlayerId{id: 0});
     core.wait_end_turn(0, 1);
     core.wait_end_turn(1, 0);
-    core.command_move(truck_id, &[(pos_a1, 0), (pos_a2, 0)]);
-    core.wait_move(truck_id, &[(pos_a1, 0), (pos_a2, 0)]);
-    core.command_move(jeep_id, &[(pos_a1, 1), (pos_a2, 1), (pos_a3, 0)]);
-    core.wait_move(jeep_id, &[(pos_a1, 1), (pos_a2, 1), (pos_a3, 0)]);
-    core.command_attach(truck_id, jeep_id);
-    core.wait_attach(truck_id, jeep_id);
+    core.command_move(truck1_id, &[(pos_a1, 0), (pos_a2, 0)]);
+    core.wait_move(truck1_id, &[(pos_a1, 0), (pos_a2, 0)]);
+    core.command_move(truck2_id, &[(pos_a1, 1), (pos_a2, 1), (pos_a3, 0)]);
+    core.wait_move(truck2_id, &[(pos_a1, 1), (pos_a2, 1), (pos_a3, 0)]);
+    core.command_attach(truck1_id, truck2_id);
+    core.wait_attach(truck1_id, truck2_id);
     core.command_end_turn();
 
     assert_eq!(core.player_id(), PlayerId{id: 1});
     core.wait_end_turn(1, 0);
-    core.wait_show_unit(pos_a2, jeep_id);
-    core.wait_move(jeep_id, &[(pos_a2, 1), (pos_a3, 0)]);
-    core.wait_show_unit(pos_a2, truck_id);
-    core.wait_attach(truck_id, jeep_id);
+    core.wait_show_unit(pos_a2, truck2_id);
+    core.wait_move(truck2_id, &[(pos_a2, 1), (pos_a3, 0)]);
+    core.wait_show_unit(pos_a2, truck1_id);
+    core.wait_attach(truck1_id, truck2_id);
     core.wait_end_turn(0, 1);
 }
