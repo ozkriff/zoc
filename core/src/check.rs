@@ -131,7 +131,10 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::Move{unit_id, ref path, mode} => {
-            let unit = state.unit(unit_id);
+            let unit = match state.units().get(&unit_id) {
+                Some(transporter) => transporter,
+                None => return Err(CommandError::BadUnitId),
+            };
             if !unit.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
@@ -141,10 +144,6 @@ pub fn check_command<S: GameState>(
             if path.len() < 2 {
                 return Err(CommandError::BadPath);
             }
-            if state.units().get(&unit_id).is_none() {
-                return Err(CommandError::BadUnitId);
-            }
-            let unit = state.unit(unit_id);
             for window in path.windows(2) {
                 let pos = window[1];
                 if !is_exact_pos_free(db, state, unit.type_id, pos) {
@@ -221,9 +220,10 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::UnloadUnit{transporter_id, passenger_id, pos} => {
-            if state.units().get(&transporter_id).is_none() {
-                return Err(CommandError::BadTransporterId);
-            }
+            let transporter = match state.units().get(&transporter_id) {
+                Some(transporter) => transporter,
+                None => return Err(CommandError::BadTransporterId),
+            };
             let passenger = match state.units().get(&passenger_id) {
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
@@ -231,14 +231,14 @@ pub fn check_command<S: GameState>(
             if !passenger.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
-            let transporter = state.unit(transporter_id);
             if !transporter.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
             if transporter.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
-            if !db.unit_type(transporter.type_id).is_transporter {
+            let transporter_type = db.unit_type(transporter.type_id);
+            if !transporter_type.is_transporter {
                 return Err(CommandError::BadTransporterType);
             }
             if distance(transporter.pos.map_pos, pos.map_pos).n > 1 {
