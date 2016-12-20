@@ -52,7 +52,7 @@ impl Scene {
     }
 
     pub fn unit_id_to_node_id_opt(&self, unit_id: UnitId) -> Option<NodeId> {
-        self.unit_id_to_node_id_map.get(&unit_id).map(|v| v.clone())
+        self.unit_id_to_node_id_map.get(&unit_id).cloned()
     }
 
     pub fn unit_id_to_node_id(&self, unit_id: UnitId) -> NodeId {
