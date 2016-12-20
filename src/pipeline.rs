@@ -2,8 +2,6 @@ use gfx;
 
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
-pub type SurfaceFormat = gfx::format::R8_G8_B8_A8;
-pub type FullFormat = (SurfaceFormat, gfx::format::Unorm);
 
 gfx_defines! {
     vertex Vertex {
