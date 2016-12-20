@@ -292,7 +292,7 @@ impl EventAttackUnitVisualizer {
         if is_target_destroyed {
             if let Some(attached_unit_id) = defender.attached_unit_id {
                 let attached_unit = state.unit(attached_unit_id);
-                let attached_unit_info = core::unit_to_info(&attached_unit);
+                let attached_unit_info = core::unit_to_info(attached_unit);
                 let attached_unit_mesh_id = unit_type_visual_info
                     .get(attached_unit.type_id).mesh_id;
                 show_unit_at(
@@ -374,11 +374,11 @@ impl EventVisualizer for EventAttackUnitVisualizer {
     fn end(&mut self, scene: &mut Scene, _: &PartialState) {
         if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
-            assert!(self.attack_info.killed as usize <= children.len());
-            for i in 0 .. self.attack_info.killed as usize {
+            let killed = self.attack_info.killed as usize;
+            assert!(killed <= children.len());
+            for i in 0 .. killed {
                 if self.attack_info.leave_wrecks {
-                    let child = children.get_mut(i).unwrap();
-                    child.color = WRECKS_COLOR;
+                    children[i].color = WRECKS_COLOR;
                 } else {
                     let _ = children.remove(0);
                 }
@@ -840,7 +840,7 @@ impl EventDetachVisualizer {
         let transporter = state.unit(transporter_id);
         let attached_unit_id = transporter.attached_unit_id.unwrap();
         let attached_unit = state.unit(attached_unit_id);
-        let attached_unit_info = core::unit_to_info(&attached_unit);
+        let attached_unit_info = core::unit_to_info(attached_unit);
         let transporter_visual_info
             = unit_type_visual_info.get(transporter.type_id);
         let attached_unit_mesh_id = unit_type_visual_info
