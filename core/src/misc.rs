@@ -28,7 +28,7 @@ pub fn rx_collect<T>(rx: &Receiver<T>) -> Vec<T> {
 }
 
 pub fn opt_rx_collect<T>(rx: &Option<Receiver<T>>) -> Vec<T> {
-    if let &Some(ref rx) = rx {
+    if let Some(ref rx) = *rx {
         rx_collect(rx)
     } else {
         Vec::new()
