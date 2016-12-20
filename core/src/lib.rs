@@ -540,6 +540,8 @@ pub struct Core {
     db: Db,
     ai: Ai,
     players_info: HashMap<PlayerId, PlayerInfo>,
+    next_unit_id: UnitId,
+    next_object_id: ObjectId,
 }
 
 fn get_players_list(options: &Options) -> Vec<Player> {
@@ -760,6 +762,8 @@ impl Core {
             db: Db::new(),
             ai: Ai::new(options, PlayerId{id:1}),
             players_info: get_player_info_lists(map_size),
+            next_unit_id: UnitId{id: 0},
+            next_object_id: ObjectId{id: 0},
         }
     }
 
@@ -768,21 +772,13 @@ impl Core {
     }
 
     fn get_new_unit_id(&mut self) -> UnitId {
-        let mut next_id = match self.state.units().keys().max() {
-            Some(&id) => id,
-            None => UnitId{id: 0},
-        };
-        next_id.id += 1;
-        next_id
+        self.next_unit_id.id += 1;
+        self.next_unit_id
     }
 
     fn get_new_object_id(&mut self) -> ObjectId {
-        let mut next_id = match self.state.objects().keys().max() {
-            Some(&id) => id,
-            None => ObjectId{id: 0},
-        };
-        next_id.id += 1;
-        next_id
+        self.next_object_id.id += 1;
+        self.next_object_id
     }
 
     fn get_killed_count(&self, attacker: &Unit, defender: &Unit) -> i32 {
