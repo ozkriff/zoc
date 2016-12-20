@@ -32,7 +32,7 @@ impl<'a> Iterator for ObjectsAtIter<'a> {
     type Item = &'a Object;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((_, object)) = self.it.next() {
+        for (_, object) in &mut self.it {
             for map_pos in object.pos.map_pos_iter() {
                 if self.pos == map_pos {
                     return Some(object);
@@ -53,7 +53,7 @@ impl<'a> Iterator for UnitsAtIter<'a> {
     type Item = &'a Unit;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((_, unit)) = self.it.next() {
+        for (_, unit) in &mut self.it {
             if self.pos == unit.pos.map_pos {
                 return Some(unit);
             }
