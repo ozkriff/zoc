@@ -950,8 +950,7 @@ impl Core {
             &self.state,
             &command,
         ) {
-            println!("Bad command: {:?}", err);
-            return;
+            panic!("Bad command: {:?} ({:?})", err, command);
         }
         match command {
             Command::EndTurn => {
