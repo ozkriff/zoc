@@ -193,11 +193,16 @@ impl Fow {
                     fov_unit(&self.db, state, &mut self.map, unit);
                 }
             },
+            CoreEvent::Detach{transporter_id, ..} => {
+                let transporter = state.unit(transporter_id);
+                if self.player_id == transporter.player_id {
+                    fov_unit(&self.db, state, &mut self.map, transporter);
+                }
+            },
             CoreEvent::ShowUnit{..} |
             CoreEvent::HideUnit{..} |
             CoreEvent::LoadUnit{..} |
             CoreEvent::Attach{..} |
-            CoreEvent::Detach{..} |
             CoreEvent::SetReactionFireMode{..} |
             CoreEvent::SectorOwnerChanged{..} |
             CoreEvent::Smoke{..} |
