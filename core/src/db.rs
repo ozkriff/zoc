@@ -381,7 +381,7 @@ fn get_unit_types(weapon_types: &[WeaponType]) -> Vec<UnitType> {
     ]
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Db {
     unit_types: Vec<UnitType>,
     weapon_types: Vec<WeaponType>,
