@@ -1,7 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use full_state::{FullState};
 use game_state::{GameState};
-use unit::{Unit};
 use fow::{Fow};
 use ::{
     CoreEvent,
@@ -31,18 +30,18 @@ pub fn get_visible_enemies(
 }
 
 pub fn show_or_hide_passive_enemies(
-    units: &HashMap<UnitId, Unit>,
+    state: &FullState,
     active_unit_ids: &HashSet<UnitId>,
     old: &HashSet<UnitId>,
     new: &HashSet<UnitId>,
 ) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     let located_units = new.difference(old);
-    for id in located_units {
-        if active_unit_ids.contains(id) {
+    for &id in located_units {
+        if active_unit_ids.contains(&id) {
             continue;
         }
-        let unit = units.get(id).expect("Can`t find unit");
+        let unit = state.unit_opt(id).expect("Can`t find unit");
         events.push(CoreEvent::ShowUnit {
             unit_info: unit_to_info(unit),
         });

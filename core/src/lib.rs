@@ -1183,7 +1183,7 @@ impl Core {
                 let new_visible_enemies = filter::get_visible_enemies(
                     &self.state, &i.fow, player.id);
                 let show_hide_events = filter::show_or_hide_passive_enemies(
-                    self.state.units(),
+                    &self.state,
                     &active_unit_ids,
                     &i.visible_enemies,
                     &new_visible_enemies,
