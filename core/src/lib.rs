@@ -922,7 +922,7 @@ impl Core {
             };
             self.do_core_event(&event);
             result = ReactionFireResult::Attacked;
-            if self.state.units().get(&unit_id).is_none() {
+            if self.state.unit_opt(unit_id).is_none() {
                 return ReactionFireResult::Killed;
             }
         }

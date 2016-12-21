@@ -131,7 +131,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::Move{unit_id, ref path, mode} => {
-            let unit = match state.units().get(&unit_id) {
+            let unit = match state.unit_opt(unit_id) {
                 Some(transporter) => transporter,
                 None => return Err(CommandError::BadUnitId),
             };
@@ -159,34 +159,34 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::AttackUnit{attacker_id, defender_id} => {
-            if state.units().get(&attacker_id).is_none() {
-                return Err(CommandError::BadAttackerId);
-            }
-            if state.units().get(&defender_id).is_none() {
-                return Err(CommandError::BadDefenderId);
-            }
-            let attacker = state.unit(attacker_id);
+            let attacker = match state.unit_opt(attacker_id) {
+                Some(attacker) => attacker,
+                None => return Err(CommandError::BadAttackerId),
+            };
+            let defender = match state.unit_opt(defender_id) {
+                Some(defender) => defender,
+                None => return Err(CommandError::BadDefenderId),
+            };
             if !attacker.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
             if attacker.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
             }
-            let defender = state.unit(defender_id);
             if !defender.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
             check_attack(db, state, attacker, defender, FireMode::Active)
         },
         Command::LoadUnit{transporter_id, passenger_id} => {
-            let passenger = match state.units().get(&passenger_id) {
+            let passenger = match state.unit_opt(passenger_id) {
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
             };
             if !passenger.is_alive {
                 return Err(CommandError::UnitIsDead);
             }
-            let transporter = match state.units().get(&transporter_id) {
+            let transporter = match state.unit_opt(transporter_id) {
                 Some(transporter) => transporter,
                 None => return Err(CommandError::BadTransporterId),
             };
@@ -220,11 +220,11 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::UnloadUnit{transporter_id, passenger_id, pos} => {
-            let transporter = match state.units().get(&transporter_id) {
+            let transporter = match state.unit_opt(transporter_id) {
                 Some(transporter) => transporter,
                 None => return Err(CommandError::BadTransporterId),
             };
-            let passenger = match state.units().get(&passenger_id) {
+            let passenger = match state.unit_opt(passenger_id) {
                 Some(passenger) => passenger,
                 None => return Err(CommandError::BadPassengerId),
             };
@@ -258,7 +258,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::Attach{transporter_id, attached_unit_id} => {
-            let transporter = match state.units().get(&transporter_id) {
+            let transporter = match state.unit_opt(transporter_id) {
                 Some(transporter) => transporter,
                 None => return Err(CommandError::BadTransporterId),
             };
@@ -275,7 +275,7 @@ pub fn check_command<S: GameState>(
             if transporter.attached_unit_id.is_some() {
                 return Err(CommandError::TooManyAttachedUnits);
             }
-            let attached_unit = match state.units().get(&attached_unit_id) {
+            let attached_unit = match state.unit_opt(attached_unit_id) {
                 Some(attached_unit) => attached_unit,
                 None => return Err(CommandError::BadAttachedUnitId),
             };
@@ -308,7 +308,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::Detach{transporter_id, pos} => {
-            let transporter = match state.units().get(&transporter_id) {
+            let transporter = match state.unit_opt(transporter_id) {
                 Some(transporter) => transporter,
                 None => return Err(CommandError::BadTransporterId),
             };
@@ -319,7 +319,7 @@ pub fn check_command<S: GameState>(
                 Some(id) => id,
                 None => return Err(CommandError::NoAttachedUnit),
             };
-            if state.units().get(&attached_unit_id).is_none() {
+            if state.unit_opt(attached_unit_id).is_none() {
                 return Err(CommandError::BadAttachedUnitId);
             }
             if transporter.player_id != player_id {
@@ -339,7 +339,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::SetReactionFireMode{unit_id, ..} => {
-            let unit = match state.units().get(&unit_id) {
+            let unit = match state.unit_opt(unit_id) {
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };
@@ -352,7 +352,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
         Command::Smoke{unit_id, pos} => {
-            let unit = match state.units().get(&unit_id) {
+            let unit = match state.unit_opt(unit_id) {
                 Some(unit) => unit,
                 None => return Err(CommandError::BadUnitId),
             };

@@ -42,6 +42,10 @@ impl GameState for FullState {
         self.state.units()
     }
 
+    fn unit_opt(&self, id: UnitId) -> Option<&Unit> {
+        self.state.unit_opt(id)
+    }
+
     fn objects(&self) -> &HashMap<ObjectId, Object> {
         self.state.objects()
     }

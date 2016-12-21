@@ -70,8 +70,10 @@ pub trait GameState {
     fn reinforcement_points(&self) -> &HashMap<PlayerId, ReinforcementPoints>;
 
     fn unit(&self, id: UnitId) -> &Unit {
-        &self.units()[&id]
+        self.unit_opt(id).unwrap()
     }
+
+    fn unit_opt(&self, id: UnitId) -> Option<&Unit>;
 
     fn units_at(&self, pos: MapPos) -> UnitsAtIter {
         UnitsAtIter{it: self.units().iter(), pos: pos}

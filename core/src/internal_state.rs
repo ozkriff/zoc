@@ -158,6 +158,10 @@ impl GameState for InternalState {
         &self.units
     }
 
+    fn unit_opt(&self, id: UnitId) -> Option<&Unit> {
+        self.units.get(&id)
+    }
+
     fn objects(&self) -> &HashMap<ObjectId, Object> {
         &self.objects
     }
