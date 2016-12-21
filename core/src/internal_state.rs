@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use std::rc::{Rc};
 use cgmath::{Vector2};
 use types::{Size2};
 use unit::{Unit};
@@ -44,10 +45,11 @@ pub struct InternalState {
     score: HashMap<PlayerId, Score>,
     reinforcement_points: HashMap<PlayerId, ReinforcementPoints>,
     players_count: i32,
+    db: Rc<Db>,
 }
 
 impl InternalState {
-    pub fn new(options: &Options) -> InternalState {
+    pub fn new(db: Rc<Db>, options: &Options) -> InternalState {
         let mut score = HashMap::new();
         score.insert(PlayerId{id: 0}, Score{n: 0});
         score.insert(PlayerId{id: 1}, Score{n: 0});
@@ -63,14 +65,15 @@ impl InternalState {
             score: score,
             reinforcement_points: reinforcement_points,
             players_count: options.players_count,
+            db: db,
         }
     }
 
     /// Converts active ap (attack points) to reactive
-    fn convert_ap(&mut self, db: &Db, player_id: PlayerId) {
+    fn convert_ap(&mut self, player_id: PlayerId) {
         for (_, unit) in &mut self.units {
-            let unit_type = db.unit_type(unit.type_id);
-            let weapon_type = db.weapon_type(unit_type.weapon_type_id);
+            let unit_type = self.db.unit_type(unit.type_id);
+            let weapon_type = self.db.weapon_type(unit_type.weapon_type_id);
             if unit.player_id != player_id || !weapon_type.reaction_fire {
                 continue;
             }
@@ -85,10 +88,10 @@ impl InternalState {
         }
     }
 
-    fn refresh_units(&mut self, db: &Db, player_id: PlayerId) {
+    fn refresh_units(&mut self, player_id: PlayerId) {
         for (_, unit) in &mut self.units {
             if unit.player_id == player_id {
-                let unit_type = db.unit_type(unit.type_id);
+                let unit_type = self.db.unit_type(unit.type_id);
                 if let Some(ref mut move_points) = unit.move_points {
                     *move_points = unit_type.move_points;
                 }
@@ -107,9 +110,9 @@ impl InternalState {
         }
     }
 
-    fn add_unit(&mut self, db: &Db, unit_info: &UnitInfo, info_level: InfoLevel) {
+    fn add_unit(&mut self, unit_info: &UnitInfo, info_level: InfoLevel) {
         assert!(self.units.get(&unit_info.unit_id).is_none());
-        let unit_type = db.unit_type(unit_info.type_id);
+        let unit_type = self.db.unit_type(unit_info.type_id);
         let reinforcement_points = self.reinforcement_points
             .get_mut(&unit_info.player_id).unwrap();
         if *reinforcement_points < unit_type.cost {
@@ -177,7 +180,7 @@ impl GameState for InternalState {
 }
 
 impl GameStateMut for InternalState {
-    fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
+    fn apply_event(&mut self, event: &CoreEvent) {
         match *event {
             CoreEvent::Move{unit_id, to, cost, ..} => {
                 {
@@ -204,8 +207,8 @@ impl GameStateMut for InternalState {
                         .get_mut(&old_id).unwrap();
                     reinforcement_points.n += 10;
                 }
-                self.refresh_units(db, new_id);
-                self.convert_ap(db, old_id);
+                self.refresh_units(new_id);
+                self.convert_ap(old_id);
                 // TODO: timer ticks on every player's turn! O.o
                 for (_, object) in &mut self.objects {
                     if let Some(ref mut timer) = object.timer {
@@ -215,7 +218,7 @@ impl GameStateMut for InternalState {
                 }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
-                self.add_unit(db, unit_info, InfoLevel::Full);
+                self.add_unit(unit_info, InfoLevel::Full);
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 let count;
@@ -280,7 +283,7 @@ impl GameStateMut for InternalState {
                 }
             },
             CoreEvent::ShowUnit{ref unit_info} => {
-                self.add_unit(db, unit_info, InfoLevel::Partial);
+                self.add_unit(unit_info, InfoLevel::Partial);
             },
             CoreEvent::HideUnit{unit_id} => {
                 assert!(self.units.get(&unit_id).is_some());
@@ -310,7 +313,7 @@ impl GameStateMut for InternalState {
                     unit.pos = unit_info.pos;
                     return;
                 }
-                self.add_unit(db, unit_info, InfoLevel::Partial);
+                self.add_unit(unit_info, InfoLevel::Partial);
             },
             CoreEvent::Attach{transporter_id, attached_unit_id, to, ..} => {
                 if let Some(passenger_id) = self.unit(transporter_id).passenger_id {

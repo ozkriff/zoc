@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use std::rc::{Rc};
 use db::{Db};
 use unit::{Unit};
 use map::{Map, Terrain};
@@ -20,12 +21,14 @@ use ::{
 #[derive(Clone, Debug)]
 pub struct FullState {
     state: InternalState,
+    db: Rc<Db>,
 }
 
 impl FullState {
-    pub fn new(options: &Options) -> FullState {
+    pub fn new(db: Rc<Db>, options: &Options) -> FullState {
         FullState {
-            state: InternalState::new(options),
+            state: InternalState::new(db.clone(), options),
+            db: db,
         }
     }
 
@@ -61,7 +64,7 @@ impl GameState for FullState {
 }
 
 impl GameStateMut for FullState {
-    fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
-        self.state.apply_event(db, event);
+    fn apply_event(&mut self, event: &CoreEvent) {
+        self.state.apply_event(event);
     }
 }

@@ -1,4 +1,5 @@
 use std::default::{Default};
+use std::rc::{Rc};
 use types::{Size2};
 use db::{Db};
 use unit::{Unit};
@@ -62,7 +63,6 @@ pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos
         cost.n += tile_cost(db, state, unit, from, to).n;
     }
     cost
-
 }
 
 // TODO: const (see https://github.com/rust-lang/rust/issues/24111 )
@@ -152,13 +152,15 @@ pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, 
 pub struct Pathfinder {
     queue: Vec<ExactPos>,
     map: Map<Tile>,
+    db: Rc<Db>,
 }
 
 impl Pathfinder {
-    pub fn new(map_size: Size2) -> Pathfinder {
+    pub fn new(db: Rc<Db>, map_size: Size2) -> Pathfinder {
         Pathfinder {
             queue: Vec::new(),
             map: Map::new(map_size),
+            db: db,
         }
     }
 
@@ -168,14 +170,13 @@ impl Pathfinder {
 
     fn process_neighbour_pos(
         &mut self,
-        db: &Db,
         state: &PartialState,
         unit: &Unit,
         original_pos: ExactPos,
         neighbour_pos: ExactPos
     ) {
         let old_cost = self.map.tile(original_pos).cost;
-        let tile_cost = tile_cost(db, state, unit, original_pos, neighbour_pos);
+        let tile_cost = tile_cost(&self.db, state, unit, original_pos, neighbour_pos);
         let tile = self.map.tile_mut(neighbour_pos);
         let new_cost = MovePoints{n: old_cost.n + tile_cost.n};
         if tile.cost.n > new_cost.n {
@@ -198,7 +199,6 @@ impl Pathfinder {
 
     fn try_to_push_neighbours(
         &mut self,
-        db: &Db,
         state: &PartialState,
         unit: &Unit,
         pos: ExactPos,
@@ -208,13 +208,13 @@ impl Pathfinder {
             let neighbour_pos = Dir::get_neighbour_pos(pos.map_pos, dir);
             if self.map.is_inboard(neighbour_pos) {
                 let exact_neighbour_pos = match get_free_exact_pos(
-                    db, state, unit.type_id, neighbour_pos
+                    &self.db, state, unit.type_id, neighbour_pos
                 ) {
                     Some(pos) => pos,
                     None => continue,
                 };
                 self.process_neighbour_pos(
-                    db, state, unit, pos, exact_neighbour_pos);
+                    state, unit, pos, exact_neighbour_pos);
             }
         }
     }
@@ -227,13 +227,13 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, db: &Db, state: &PartialState, unit: &Unit) {
+    pub fn fill_map(&mut self, state: &PartialState, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos);
         while !self.queue.is_empty() {
             let pos = self.queue.remove(0);
-            self.try_to_push_neighbours(db, state, unit, pos);
+            self.try_to_push_neighbours(state, unit, pos);
         }
     }
 

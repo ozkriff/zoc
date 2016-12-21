@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use std::rc::{Rc};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
@@ -23,15 +24,17 @@ use ::{
 pub struct PartialState {
     state: InternalState,
     fow: Fow,
+    db: Rc<Db>,
 }
 
 impl PartialState {
-    pub fn new(options: &Options, player_id: PlayerId) -> PartialState {
-        let state = InternalState::new(options);
+    pub fn new(db: Rc<Db>, options: &Options, player_id: PlayerId) -> PartialState {
+        let state = InternalState::new(db.clone(), options);
         let map_size = state.map().size();
         PartialState {
             state: state,
-            fow: Fow::new(map_size, player_id),
+            fow: Fow::new(db.clone(), map_size, player_id),
+            db: db,
         }
     }
 
@@ -67,8 +70,8 @@ impl GameState for PartialState {
 }
 
 impl GameStateMut for PartialState {
-    fn apply_event(&mut self, db: &Db, event: &CoreEvent) {
-        self.state.apply_event(db, event);
-        self.fow.apply_event(db, &self.state, event);
+    fn apply_event(&mut self, event: &CoreEvent) {
+        self.state.apply_event(event);
+        self.fow.apply_event( &self.state, event);
     }
 }

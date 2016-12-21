@@ -1,4 +1,5 @@
 use std::default::{Default};
+use std::rc::{Rc};
 use types::{Size2};
 use game_state::{GameState};
 use map::{Map, Terrain, distance};
@@ -91,13 +92,15 @@ fn calc_visibility<S: GameState>(
 pub struct Fow {
     map: Map<TileVisibility>,
     player_id: PlayerId,
+    db: Rc<Db>,
 }
 
 impl Fow {
-    pub fn new(map_size: Size2, player_id: PlayerId) -> Fow {
+    pub fn new(db: Rc<Db>, map_size: Size2, player_id: PlayerId) -> Fow {
         Fow {
             map: Map::new(map_size),
             player_id: player_id,
+            db: db,
         }
     }
 
@@ -119,7 +122,6 @@ impl Fow {
 
     pub fn is_visible<S: GameState>(
         &self,
-        db: &Db,
         state: &S,
         unit: &Unit,
         pos: ExactPos,
@@ -131,13 +133,13 @@ impl Fow {
                 }
             }
         }
-        let unit_type = db.unit_type(unit.type_id);
+        let unit_type = self.db.unit_type(unit.type_id);
         if unit_type.is_air {
             for enemy_unit in state.units().values() {
                 if enemy_unit.player_id == unit.player_id {
                     continue;
                 }
-                let enemy_unit_type = db.unit_type(enemy_unit.type_id);
+                let enemy_unit_type = self.db.unit_type(enemy_unit.type_id);
                 let distance = distance(pos.map_pos, enemy_unit.pos.map_pos);
                 if distance <= enemy_unit_type.los_range {
                     return true;
@@ -153,18 +155,17 @@ impl Fow {
         }
     }
 
-    fn reset<S: GameState>(&mut self, db: &Db, state: &S) {
+    fn reset<S: GameState>(&mut self, state: &S) {
         self.clear();
         for unit in state.units().values() {
             if unit.player_id == self.player_id && unit.is_alive {
-                fov_unit(db, state, &mut self.map, unit);
+                fov_unit(&self.db, state, &mut self.map, unit);
             }
         }
     }
 
     pub fn apply_event<S: GameState>(
         &mut self,
-        db: &Db,
         state: &S,
         event: &CoreEvent,
     ) {
@@ -173,18 +174,18 @@ impl Fow {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     fov_unit_in_pos(
-                        db, state, &mut self.map, unit, to.map_pos);
+                        &self.db, state, &mut self.map, unit, to.map_pos);
                 }
             },
             CoreEvent::EndTurn{new_id, ..} => {
                 if self.player_id == new_id {
-                    self.reset(db, state);
+                    self.reset(state);
                 }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
                 let unit = state.unit(unit_info.unit_id);
                 if self.player_id == unit_info.player_id {
-                    fov_unit(db, state, &mut self.map, unit);
+                    fov_unit(&self.db, state, &mut self.map, unit);
                 }
             },
             CoreEvent::AttackUnit{ref attack_info} => {
@@ -200,7 +201,7 @@ impl Fow {
                 if self.player_id == unit_info.player_id {
                     let unit = state.unit(unit_info.unit_id);
                     let pos = unit_info.pos.map_pos;
-                    fov_unit_in_pos(db, state, &mut self.map, unit, pos);
+                    fov_unit_in_pos(&self.db, state, &mut self.map, unit, pos);
                 }
             },
             CoreEvent::ShowUnit{..} |

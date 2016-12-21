@@ -279,7 +279,8 @@ pub struct TacticalScreen {
 impl TacticalScreen {
     pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
         let core = core::Core::new(core_options);
-        let mut player_info = PlayerInfoManager::new(context, core_options);
+        let mut player_info = PlayerInfoManager::new(
+            core.db().clone(), context, core_options);
         let mut meshes = MeshManager::new();
         let mesh_ids = MeshIdManager::new(
             context,
@@ -486,7 +487,7 @@ impl TacticalScreen {
         let mut player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let pf = &mut player_info.pathfinder;
-        pf.fill_map(self.core.db(), state, state.unit(unit_id));
+        pf.fill_map(state, state.unit(unit_id));
         let move_points = state.unit(unit_id).move_points.unwrap();
         let new_walkable_mesh = gen::build_walkable_mesh(
             context, pf, state, move_points);
@@ -1004,7 +1005,7 @@ impl TacticalScreen {
             let scene = &mut player_info.scene;
             let state = &mut player_info.game_state;
             self.event_visualizer.as_mut().unwrap().end(scene, state);
-            state.apply_event(self.core.db(), self.event.as_ref().unwrap());
+            state.apply_event(self.event.as_ref().unwrap());
         }
         self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {

@@ -1,9 +1,11 @@
 use std::collections::{HashMap};
+use std::rc::{Rc};
 use cgmath::{Vector2, Vector3};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::pathfinder::{Pathfinder};
 use core::map::{Map};
+use core::db::{Db};
 use core::{self, PlayerId, MapPos};
 use context::{Context};
 use types::{Size2, Time, WorldPos};
@@ -54,8 +56,8 @@ pub struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    pub fn new(context: &Context, options: &core::Options) -> PlayerInfoManager {
-        let state = PartialState::new(options, PlayerId{id: 0});
+    pub fn new(db: Rc<Db>, context: &Context, options: &core::Options) -> PlayerInfoManager {
+        let state = PartialState::new(db.clone(), options, PlayerId{id: 0});
         let map_size = state.map().size();
         let mut m = HashMap::new();
         let mut camera = Camera::new(context.win_size());
@@ -63,16 +65,16 @@ impl PlayerInfoManager {
         camera.set_pos(get_initial_camera_pos(map_size));
         m.insert(PlayerId{id: 0}, PlayerInfo {
             game_state: state,
-            pathfinder: Pathfinder::new(map_size),
+            pathfinder: Pathfinder::new(db.clone(), map_size),
             scene: Scene::new(),
             camera: camera.clone(),
             fow: Fow::new(map_size),
         });
         if options.game_type == core::GameType::Hotseat {
-            let state2 = PartialState::new(options, PlayerId{id: 1});
+            let state2 = PartialState::new(db.clone(), options, PlayerId{id: 1});
             m.insert(PlayerId{id: 1}, PlayerInfo {
                 game_state: state2,
-                pathfinder: Pathfinder::new(map_size),
+                pathfinder: Pathfinder::new(db, map_size),
                 scene: Scene::new(),
                 camera: camera,
                 fow: Fow::new(map_size),

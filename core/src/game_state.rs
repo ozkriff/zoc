@@ -1,7 +1,6 @@
 use std::collections::{HashMap};
 use std::collections::hash_map;
 use unit::{Unit};
-use db::{Db};
 use map::{Map, Terrain};
 use ::{
     CoreEvent,
@@ -84,5 +83,5 @@ pub trait GameState {
 }
 
 pub trait GameStateMut: GameState {
-    fn apply_event(&mut self, db: &Db, event: &CoreEvent);
+    fn apply_event(&mut self, event: &CoreEvent);
 }
