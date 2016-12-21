@@ -227,19 +227,17 @@ pub fn filter_events(
                         });
                     }
                     events.push(event.clone())
-                } else {
-                    if is_transporter_vis {
-                        events.push(CoreEvent::Move {
-                            unit_id: transporter_id,
-                            mode: MoveMode::Fast,
-                            cost: MovePoints{n: 0},
-                            from: from,
-                            to: to,
-                        });
-                        events.push(CoreEvent::HideUnit {
-                            unit_id: transporter_id,
-                        });
-                    }
+                } else if is_transporter_vis {
+                    events.push(CoreEvent::Move {
+                        unit_id: transporter_id,
+                        mode: MoveMode::Fast,
+                        cost: MovePoints{n: 0},
+                        from: from,
+                        to: to,
+                    });
+                    events.push(CoreEvent::HideUnit {
+                        unit_id: transporter_id,
+                    });
                 }
             }
         },
@@ -260,23 +258,21 @@ pub fn filter_events(
                             unit_id: transporter_id,
                         });
                     }
-               } else {
-                    if is_to_vis {
-                        events.push(CoreEvent::ShowUnit {
-                            unit_info: UnitInfo {
-                                pos: from,
-                                attached_unit_id: None,
-                                .. unit_to_info(transporter)
-                            },
-                        });
-                        events.push(CoreEvent::Move {
-                            unit_id: transporter_id,
-                            mode: MoveMode::Fast,
-                            cost: MovePoints{n: 0},
-                            from: from,
-                            to: to,
-                        });
-                    }
+               } else if is_to_vis {
+                    events.push(CoreEvent::ShowUnit {
+                        unit_info: UnitInfo {
+                            pos: from,
+                            attached_unit_id: None,
+                            .. unit_to_info(transporter)
+                        },
+                    });
+                    events.push(CoreEvent::Move {
+                        unit_id: transporter_id,
+                        mode: MoveMode::Fast,
+                        cost: MovePoints{n: 0},
+                        from: from,
+                        to: to,
+                    });
                 }
             }
         },
