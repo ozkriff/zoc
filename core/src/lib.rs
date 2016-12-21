@@ -7,6 +7,7 @@ pub mod db;
 pub mod unit;
 pub mod dir;
 pub mod partial_state;
+pub mod full_state;
 pub mod game_state;
 pub mod pathfinder;
 pub mod misc;
@@ -25,7 +26,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use cgmath::{Vector2};
 use types::{Size2};
 use misc::{clamp};
-use internal_state::{InternalState};
+use full_state::{FullState};
 use game_state::{GameState, GameStateMut, ObjectsAtIter};
 use partial_state::{PartialState};
 use map::{Map, Terrain};
@@ -129,7 +130,7 @@ impl Iterator for ExactPosIter {
     }
 }
 
-fn check_sectors(db: &Db, state: &InternalState) -> Vec<CoreEvent> {
+fn check_sectors(db: &Db, state: &FullState) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     for (&sector_id, sector) in state.sectors() {
         let mut claimers = HashSet::new();
@@ -534,7 +535,7 @@ pub struct Options {
 
 #[derive(Clone, Debug)]
 pub struct Core {
-    state: InternalState,
+    state: FullState,
     players: Vec<Player>,
     current_player_id: PlayerId,
     db: Db,
@@ -753,7 +754,7 @@ pub fn hit_chance<S: GameState>(
 
 impl Core {
     pub fn new(options: &Options) -> Core {
-        let state = InternalState::new(options);
+        let state = FullState::new(options);
         let map_size = state.map().size();
         Core {
             state: state,

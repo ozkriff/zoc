@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use internal_state::{InternalState};
+use full_state::{FullState};
 use game_state::{GameState};
 use unit::{Unit};
 use db::{Db};
@@ -17,7 +17,7 @@ use ::{
 
 pub fn get_visible_enemies(
     db: &Db,
-    state: &InternalState,
+    state: &FullState,
     fow: &Fow,
     player_id: PlayerId,
 ) -> HashSet<UnitId> {
@@ -62,7 +62,7 @@ pub fn show_or_hide_passive_enemies(
 // TODO: join state and fow into TmpPartialState
 pub fn filter_events(
     db: &Db,
-    state: &InternalState,
+    state: &FullState,
     player_id: PlayerId,
     fow: &Fow,
     event: &CoreEvent,
