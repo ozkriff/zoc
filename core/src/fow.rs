@@ -26,17 +26,8 @@ fn fov_unit<S: GameState>(
     fow: &mut Map<TileVisibility>,
     unit: &Unit,
 ) {
-    fov_unit_in_pos(db, state, fow, unit, unit.pos.map_pos);
-}
-
-fn fov_unit_in_pos<S: GameState>(
-    db: &Db,
-    state: &S,
-    fow: &mut Map<TileVisibility>,
-    unit: &Unit,
-    origin: MapPos,
-) {
     assert!(unit.is_alive);
+    let origin = unit.pos.map_pos;
     let unit_type = db.unit_type(unit.type_id);
     let range = unit_type.los_range;
     let f = if unit_type.is_air {
@@ -170,11 +161,10 @@ impl Fow {
         event: &CoreEvent,
     ) {
         match *event {
-            CoreEvent::Move{unit_id, to, ..} => {
+            CoreEvent::Move{unit_id, ..} => {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
-                    fov_unit_in_pos(
-                        &self.db, state, &mut self.map, unit, to.map_pos);
+                    fov_unit(&self.db, state, &mut self.map, unit);
                 }
             },
             CoreEvent::EndTurn{new_id, ..} => {
@@ -200,8 +190,7 @@ impl Fow {
             CoreEvent::UnloadUnit{ref unit_info, ..} => {
                 if self.player_id == unit_info.player_id {
                     let unit = state.unit(unit_info.unit_id);
-                    let pos = unit_info.pos.map_pos;
-                    fov_unit_in_pos(&self.db, state, &mut self.map, unit, pos);
+                    fov_unit(&self.db, state, &mut self.map, unit);
                 }
             },
             CoreEvent::ShowUnit{..} |
