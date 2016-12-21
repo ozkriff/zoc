@@ -239,16 +239,6 @@ impl GameStateMut for InternalState {
                     count = unit.count;
                 }
                 if count <= 0 {
-                    if attack_info.leave_wrecks {
-                        // TODO: kill\unload passengers
-                        let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
-                        unit.attached_unit_id = None;
-                        unit.passenger_id = None;
-                        unit.is_alive = false;
-                    } else {
-                        assert!(self.units.get(&attack_info.defender_id).is_some());
-                        self.units.remove(&attack_info.defender_id);
-                    }
                     if let Some(passenger_id)
                         = self.unit(attack_info.defender_id).passenger_id
                     {
@@ -261,6 +251,15 @@ impl GameStateMut for InternalState {
                         attached_unit.attack_points = Some(AttackPoints{n: 0});
                         attached_unit.reactive_attack_points = Some(AttackPoints{n: 0});
                         attached_unit.move_points = Some(MovePoints{n: 0});
+                    }
+                    if attack_info.leave_wrecks {
+                        let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
+                        unit.attached_unit_id = None;
+                        unit.passenger_id = None;
+                        unit.is_alive = false;
+                    } else {
+                        assert!(self.units.get(&attack_info.defender_id).is_some());
+                        self.units.remove(&attack_info.defender_id);
                     }
                 }
                 let attacker_id = match attack_info.attacker_id {
