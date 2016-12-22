@@ -138,6 +138,13 @@ pub fn filter_events(
             };
             events.push(CoreEvent::AttackUnit{attack_info: attack_info});
         },
+        CoreEvent::Reveal{ref unit_info} => {
+            if unit_info.player_id != player_id {
+                events.push(CoreEvent::ShowUnit {
+                    unit_info: unit_info.clone(),
+                });
+            }
+        },
         CoreEvent::ShowUnit{..} => panic!(),
         CoreEvent::HideUnit{..} => panic!(),
         CoreEvent::LoadUnit{passenger_id, from, to, transporter_id} => {

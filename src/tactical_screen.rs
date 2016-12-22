@@ -902,6 +902,7 @@ impl TacticalScreen {
                     &mut self.map_text_manager,
                 )
             }
+            CoreEvent::Reveal{..} => unreachable!(),
         }
     }
 

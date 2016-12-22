@@ -8,6 +8,7 @@ use ::{
     ObjectId,
     Object,
     MapPos,
+    ExactPos,
     Sector,
     SectorId,
     PlayerId,
@@ -80,6 +81,19 @@ pub trait GameState: Sized + Clone {
 
     fn units_at(&self, pos: MapPos) -> UnitsAtIter<Self::Fow> {
         UnitsAtIter{it: self.units(), pos: pos}
+    }
+
+    fn unit_at_opt(&self, pos: ExactPos) -> Option<&Unit> {
+        for unit in self.units_at(pos.map_pos) {
+            if unit.pos == pos {
+                return Some(unit);
+            }
+        }
+        None
+    }
+
+    fn unit_at(&self, pos: ExactPos) -> &Unit {
+        self.unit_at_opt(pos).unwrap()
     }
 
     fn objects_at(&self, pos: MapPos) -> ObjectsAtIter {

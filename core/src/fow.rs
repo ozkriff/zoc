@@ -175,6 +175,7 @@ impl Fow {
                     self.fov_unit(state, transporter);
                 }
             },
+            CoreEvent::Reveal{..} |
             CoreEvent::ShowUnit{..} |
             CoreEvent::HideUnit{..} |
             CoreEvent::LoadUnit{..} |

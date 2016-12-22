@@ -299,6 +299,10 @@ pub enum CoreEvent {
     AttackUnit {
         attack_info: AttackInfo,
     },
+    // Reveal is like ShowUnit but is generated directly by Core
+    Reveal {
+        unit_info: UnitInfo,
+    },
     ShowUnit {
         unit_info: UnitInfo,
     },
@@ -997,7 +1001,16 @@ impl Core {
                 for window in path.windows(2) {
                     let from = window[0];
                     let to = window[1];
-                    let event = {
+                    let show_event = self.state.unit_at_opt(to).and_then(|unit| {
+                        Some(CoreEvent::Reveal {
+                            unit_info: unit_to_info(unit),
+                        })
+                    });
+                    if let Some(event) = show_event {
+                        self.do_core_event(&event);
+                        continue;
+                    }
+                    let move_event = {
                         let unit = self.state.unit(unit_id);
                         let cost = MovePoints {
                             n: tile_cost(&self.db, &self.state, unit, from, to).n
@@ -1013,7 +1026,7 @@ impl Core {
                     };
                     let pre_visible_enemies = self.players_info[&player_id]
                         .visible_enemies.clone();
-                    self.do_core_event(&event);
+                    self.do_core_event(&move_event);
                     let reaction_fire_result = self.reaction_fire_internal(
                         unit_id, mode == MoveMode::Fast);
                     if reaction_fire_result != ReactionFireResult::None {
