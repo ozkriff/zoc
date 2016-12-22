@@ -829,7 +829,7 @@ impl Core {
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
         let fow = &self.players_info[&defender.player_id].fow;
-        let is_visible = fow.is_visible(&self.state, attacker, attacker.pos);
+        let is_visible = fow.is_visible(attacker, attacker.pos);
         let ambush_chance = 70;
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
@@ -863,7 +863,7 @@ impl Core {
         }
         // TODO: move to `check_attack`
         let fow = &self.players_info[&attacker.player_id].fow;
-        if !fow.is_visible(&self.state, defender, defender.pos) {
+        if !fow.is_visible(defender, defender.pos) {
             return false;
         }
         let check_attack_result = check_attack(

@@ -350,7 +350,7 @@ impl TacticalScreen {
         let fow = &mut player_info.fow;
         let state = &player_info.game_state;
         for pos in state.map().get_iter() {
-            let is_visible = state.is_tile_visible(pos);
+            let is_visible = state.is_ground_tile_visible(pos);
             if is_visible {
                 if let Some(node_id) = fow.map.tile_mut(pos).take() {
                     if let Some(time) = fow.forthcoming_node_ids.remove(&node_id) {

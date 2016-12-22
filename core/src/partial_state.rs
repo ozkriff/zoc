@@ -38,8 +38,8 @@ impl PartialState {
         }
     }
 
-    pub fn is_tile_visible(&self, pos: MapPos) -> bool {
-        self.fow.is_tile_visible(pos)
+    pub fn is_ground_tile_visible(&self, pos: MapPos) -> bool {
+        self.fow.is_ground_tile_visible(pos)
     }
 }
 
