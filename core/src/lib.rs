@@ -29,7 +29,6 @@ use types::{Size2};
 use misc::{clamp};
 use full_state::{FullState};
 use game_state::{GameState, GameStateMut, ObjectsAtIter};
-use partial_state::{PartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -131,7 +130,7 @@ impl Iterator for ExactPosIter {
     }
 }
 
-fn check_sectors(db: &Db, state: &FullState) -> Vec<CoreEvent> {
+fn check_sectors<S: GameState>(db: &Db, state: &S) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     for (&sector_id, sector) in state.sectors() {
         let mut claimers = HashSet::new();
@@ -405,7 +404,7 @@ pub fn is_loaded_or_attached(unit: &Unit) -> bool {
     unit.is_loaded || unit.is_attached
 }
 
-pub fn get_unit_ids_at(state: &PartialState, pos: MapPos) -> Vec<UnitId> {
+pub fn get_unit_ids_at<S: GameState>(state: &S, pos: MapPos) -> Vec<UnitId> {
     let mut ids = Vec::new();
     for unit in state.units_at(pos) {
         if !is_loaded_or_attached(unit) {
