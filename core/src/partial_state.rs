@@ -76,6 +76,6 @@ impl GameState for PartialState {
 impl GameStateMut for PartialState {
     fn apply_event(&mut self, event: &CoreEvent) {
         self.state.apply_event(event);
-        self.fow.apply_event( &self.state, event);
+        self.fow.apply_event(&self.state, event);
     }
 }

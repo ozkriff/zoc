@@ -401,14 +401,14 @@ pub fn find_prev_player_unit_id<S: GameState>(
     unreachable!()
 }
 
-pub fn is_unit_passenger_or_attached(unit: &Unit) -> bool {
+pub fn is_loaded_or_attached(unit: &Unit) -> bool {
     unit.is_loaded || unit.is_attached
 }
 
 pub fn get_unit_ids_at(state: &PartialState, pos: MapPos) -> Vec<UnitId> {
     let mut ids = Vec::new();
     for unit in state.units_at(pos) {
-        if !is_unit_passenger_or_attached(unit) {
+        if !is_loaded_or_attached(unit) {
             ids.push(unit.id)
         }
     }
@@ -880,7 +880,7 @@ impl Core {
         let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
-            if is_unit_passenger_or_attached(self.state.unit(enemy_unit_id)) {
+            if is_loaded_or_attached(self.state.unit(enemy_unit_id)) {
                 continue;
             }
             let event = {
