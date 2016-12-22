@@ -3,6 +3,7 @@ Zone of Control
 ===============
 
 |license|_
+|loc|_
 |travis-ci|_
 |appveyor-ci|_
 |dependency-ci|_
@@ -101,6 +102,7 @@ See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 
 
 .. |license| image:: https://img.shields.io/badge/license-MIT_or_Apache_2.0-blue.svg
+.. |loc| image:: https://tokei.rs/b1/github/ozkriff/zoc
 .. |travis-ci| image:: https://travis-ci.org/ozkriff/zoc.svg?branch=master
 .. |appveyor-ci| image:: https://ci.appveyor.com/api/projects/status/49kqaol7dlt2xrec/branch/master?svg=true
 .. |dependency-ci| image:: https://dependencyci.com/github/ozkriff/zoc/badge
@@ -109,6 +111,7 @@ See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 .. _Rust: https://rust-lang.org
 .. _LICENSE-MIT: LICENSE-MIT
 .. _LICENSE-APACHE: LICENSE-APACHE
+.. _loc: https://github.com/Aaronepower/tokei
 .. _travis-ci: https://travis-ci.org/ozkriff/zoc
 .. _appveyor-ci: https://ci.appveyor.com/project/ozkriff/zoc
 .. _dependency-ci: https://dependencyci.com/github/ozkriff/zoc
