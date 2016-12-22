@@ -1,13 +1,10 @@
 use std::collections::{HashMap};
-use std::rc::{Rc};
-use db::{Db};
 use unit::{Unit};
 use map::{Map, Terrain};
-use internal_state::{InternalState};
-use game_state::{GameState, GameStateMut, UnitIter};
-use fow::{FakeFow, fake_fow};
+use full_state::{FullState};
+use game_state::{GameState, UnitIter};
+use fow::{Fow};
 use ::{
-    CoreEvent,
     PlayerId,
     UnitId,
     ObjectId,
@@ -15,41 +12,45 @@ use ::{
     Score,
     Sector,
     SectorId,
-    Options,
     ReinforcementPoints,
 };
 
 #[derive(Clone, Debug)]
-pub struct FullState {
-    state: InternalState,
-    db: Rc<Db>,
+pub struct TmpPartialState<'a> {
+    state: &'a FullState,
+    fow: &'a Fow,
 }
 
-impl FullState {
-    pub fn new(db: Rc<Db>, options: &Options) -> FullState {
-        FullState {
-            state: InternalState::new(db.clone(), options),
-            db: db,
+impl<'a> TmpPartialState<'a> {
+    pub fn new(
+        state: &'a FullState,
+        fow: &'a Fow,
+    ) -> TmpPartialState<'a> {
+        TmpPartialState {
+            state: state,
+            fow: fow,
         }
     }
-
-    pub fn inner(&self) -> &InternalState {
-        &self.state
-    }
 }
 
-impl GameState for FullState {
-    type Fow = FakeFow;
+impl<'a> GameState for TmpPartialState<'a> {
+    type Fow = Fow;
 
     fn units(&self) -> UnitIter<Self::Fow> {
         UnitIter {
-            iter: self.state.raw_units(),
-            fow: fake_fow(),
+            iter: self.state.inner().raw_units(),
+            fow: self.fow,
         }
     }
 
     fn unit_opt(&self, id: UnitId) -> Option<&Unit> {
-        self.state.unit_opt(id)
+        self.state.unit_opt(id).and_then(|unit| {
+            if self.fow.is_visible(unit, unit.pos) {
+                Some(unit)
+            } else {
+                None
+            }
+        })
     }
 
     fn objects(&self) -> &HashMap<ObjectId, Object> {
@@ -70,11 +71,5 @@ impl GameState for FullState {
 
     fn reinforcement_points(&self) -> &HashMap<PlayerId, ReinforcementPoints> {
         self.state.reinforcement_points()
-    }
-}
-
-impl GameStateMut for FullState {
-    fn apply_event(&mut self, event: &CoreEvent) {
-        self.state.apply_event(event);
     }
 }

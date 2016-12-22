@@ -124,7 +124,7 @@ impl Fow {
 
     fn reset<S: GameState>(&mut self, state: &S) {
         self.clear();
-        for unit in state.units().values() {
+        for (_, unit) in state.units() {
             if unit.player_id == self.player_id && unit.is_alive {
                 self.fov_unit(state, unit);
             }
@@ -185,5 +185,29 @@ impl Fow {
             CoreEvent::RemoveSmoke{..} |
             CoreEvent::VictoryPoint{..} => {},
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FakeFow;
+
+pub fn fake_fow() -> &'static FakeFow {
+    static FAKE_FOW: FakeFow = FakeFow;
+    &FAKE_FOW
+}
+
+pub trait FogOfWar: Clone {
+    fn is_visible(&self, unit: &Unit, pos: ExactPos) -> bool;
+}
+
+impl FogOfWar for FakeFow {
+    fn is_visible(&self, _: &Unit, _: ExactPos) -> bool {
+        true
+    }
+}
+
+impl FogOfWar for Fow {
+    fn is_visible(&self, unit: &Unit, pos: ExactPos) -> bool {
+        self.is_visible(unit, pos)
     }
 }

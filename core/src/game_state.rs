@@ -1,7 +1,7 @@
-use std::collections::{HashMap};
-use std::collections::hash_map;
+use std::collections::hash_map::{self, HashMap};
 use unit::{Unit};
 use map::{Map, Terrain};
+use fow::{FogOfWar};
 use ::{
     CoreEvent,
     UnitId,
@@ -43,12 +43,12 @@ impl<'a> Iterator for ObjectsAtIter<'a> {
 }
 
 #[derive(Clone)]
-pub struct UnitsAtIter<'a> {
-    it: hash_map::Iter<'a, UnitId, Unit>,
+pub struct UnitsAtIter<'a, Fow: FogOfWar + 'a> {
+    it: UnitIter<'a, Fow>,
     pos: MapPos,
 }
 
-impl<'a> Iterator for UnitsAtIter<'a> {
+impl<'a, Fow: FogOfWar + 'a> Iterator for UnitsAtIter<'a, Fow> {
     type Item = &'a Unit;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -61,9 +61,12 @@ impl<'a> Iterator for UnitsAtIter<'a> {
     }
 }
 
-pub trait GameState {
+pub trait GameState: Sized + Clone {
+    type Fow: FogOfWar;
     fn map(&self) -> &Map<Terrain>;
-    fn units(&self) -> &HashMap<UnitId, Unit>;
+
+    fn units(&self) -> UnitIter<Self::Fow>;
+
     fn objects(&self) -> &HashMap<ObjectId, Object>;
     fn sectors(&self) -> &HashMap<SectorId, Sector>;
     fn score(&self) -> &HashMap<PlayerId, Score>;
@@ -75,8 +78,8 @@ pub trait GameState {
 
     fn unit_opt(&self, id: UnitId) -> Option<&Unit>;
 
-    fn units_at(&self, pos: MapPos) -> UnitsAtIter {
-        UnitsAtIter{it: self.units().iter(), pos: pos}
+    fn units_at(&self, pos: MapPos) -> UnitsAtIter<Self::Fow> {
+        UnitsAtIter{it: self.units(), pos: pos}
     }
 
     fn objects_at(&self, pos: MapPos) -> ObjectsAtIter {
@@ -86,4 +89,24 @@ pub trait GameState {
 
 pub trait GameStateMut: GameState {
     fn apply_event(&mut self, event: &CoreEvent);
+}
+
+#[derive(Clone)]
+pub struct UnitIter<'a, Fow: FogOfWar + 'a> {
+    pub iter: hash_map::Iter<'a, UnitId, Unit>,
+    pub fow: &'a Fow,
+}
+
+impl<'a, Fow: FogOfWar> Iterator for UnitIter<'a, Fow> {
+    type Item = (&'a UnitId, &'a Unit);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for pair in &mut self.iter {
+            let (_, unit) = pair;
+            if self.fow.is_visible(unit, unit.pos) {
+                return Some(pair);
+            }
+        }
+        None
+    }
 }

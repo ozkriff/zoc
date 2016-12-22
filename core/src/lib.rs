@@ -7,6 +7,7 @@ pub mod db;
 pub mod unit;
 pub mod dir;
 pub mod partial_state;
+pub mod tmp_partial_state;
 pub mod full_state;
 pub mod game_state;
 pub mod pathfinder;
@@ -29,6 +30,7 @@ use types::{Size2};
 use misc::{clamp};
 use full_state::{FullState};
 use game_state::{GameState, GameStateMut, ObjectsAtIter};
+use tmp_partial_state::{TmpPartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -372,7 +374,7 @@ pub fn find_next_player_unit_id<S: GameState>(
     player_id: PlayerId,
     unit_id: UnitId,
 ) -> UnitId {
-    let mut i = state.units().iter().cycle().filter(
+    let mut i = state.units().cycle().filter(
         |&(_, unit)| unit.is_alive && unit.player_id == player_id);
     while let Some((&id, _)) = i.next() {
         if id == unit_id {
@@ -389,7 +391,7 @@ pub fn find_prev_player_unit_id<S: GameState>(
     player_id: PlayerId,
     unit_id: UnitId,
 ) -> UnitId {
-    let mut i = state.units().iter().cycle().filter(
+    let mut i = state.units().cycle().filter(
         |&(_, unit)| unit.is_alive && unit.player_id == player_id).peekable();
     while let Some((&id, _)) = i.next() {
         let &(&next_id, _) = i.peek().unwrap();
@@ -876,7 +878,7 @@ impl Core {
     }
 
     fn reaction_fire_internal(&mut self, unit_id: UnitId, stop_on_attack: bool) -> ReactionFireResult {
-        let unit_ids: Vec<_> = self.state.units().keys().cloned().collect();
+        let unit_ids: Vec<_> = self.state.units().map(|(&id, _)| id).collect();
         let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
             if is_loaded_or_attached(self.state.unit(enemy_unit_id)) {
@@ -931,7 +933,10 @@ impl Core {
         if let Err(err) = check_command(
             &self.db,
             self.current_player_id,
-            &self.state,
+            &TmpPartialState::new(
+                &self.state,
+                &self.players_info[&self.current_player_id].fow,
+            ),
             &command,
         ) {
             panic!("Bad command: {:?} ({:?})", err, command);

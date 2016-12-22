@@ -1,11 +1,12 @@
-use std::collections::{HashMap};
+use std::collections::hash_map::{self, HashMap};
 use std::rc::{Rc};
 use cgmath::{Vector2};
 use types::{Size2};
 use unit::{Unit};
+use fow::{FakeFow, fake_fow};
 use db::{Db};
 use map::{Map, Terrain};
-use game_state::{GameState, GameStateMut};
+use game_state::{GameState, GameStateMut, UnitIter};
 use dir::{Dir};
 use ::{
     CoreEvent,
@@ -67,6 +68,10 @@ impl InternalState {
             players_count: options.players_count,
             db: db,
         }
+    }
+
+    pub fn raw_units(&self) -> hash_map::Iter<UnitId, Unit> {
+        self.units.iter()
     }
 
     /// Converts active ap (attack points) to reactive
@@ -156,8 +161,13 @@ impl InternalState {
 }
 
 impl GameState for InternalState {
-    fn units(&self) -> &HashMap<UnitId, Unit> {
-        &self.units
+    type Fow = FakeFow;
+
+    fn units(&self) -> UnitIter<Self::Fow> {
+        UnitIter {
+            iter: self.units.iter(),
+            fow: fake_fow(),
+        }
     }
 
     fn unit_opt(&self, id: UnitId) -> Option<&Unit> {

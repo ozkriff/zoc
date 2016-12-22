@@ -4,8 +4,8 @@ use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
 use internal_state::{InternalState};
-use game_state::{GameState, GameStateMut};
-use fow::{Fow};
+use game_state::{GameState, GameStateMut, UnitIter};
+use fow::{Fow, FakeFow, fake_fow};
 use ::{
     CoreEvent,
     PlayerId,
@@ -44,8 +44,15 @@ impl PartialState {
 }
 
 impl GameState for PartialState {
-    fn units(&self) -> &HashMap<UnitId, Unit> {
-        self.state.units()
+    type Fow = FakeFow;
+
+    fn units(&self) -> UnitIter<Self::Fow> {
+        // self.state doesn't have any 'unknown' information
+        // so we don't have to filter it
+        UnitIter {
+            iter: self.state.raw_units(),
+            fow: fake_fow(),
+        }
     }
 
     fn unit_opt(&self, id: UnitId) -> Option<&Unit> {
