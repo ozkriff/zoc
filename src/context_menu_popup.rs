@@ -81,7 +81,7 @@ pub fn get_options(
     let db = core.db();
     let mut options = Options::new();
     let player_id = core.player_id();
-    let unit_ids = core::get_unit_ids_at(db, state, pos);
+    let unit_ids = core::get_unit_ids_at(state, pos);
     for object in state.objects_at(pos) {
         if object.class != ObjectClass::ReinforcementSector {
             continue;

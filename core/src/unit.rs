@@ -27,6 +27,8 @@ pub struct Unit {
     pub passenger_id: Option<UnitId>,
     pub attached_unit_id: Option<UnitId>,
     pub is_alive: bool,
+    pub is_loaded: bool,
+    pub is_attached: bool,
 }
 
 #[derive(Clone, Debug)]

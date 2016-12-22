@@ -117,12 +117,8 @@ impl Fow {
         unit: &Unit,
         pos: ExactPos,
     ) -> bool {
-        for other_unit in state.units().values() {
-            if let Some(passenger_id) = other_unit.passenger_id {
-                if passenger_id == unit.id && other_unit.pos == pos {
-                    return false;
-                }
-            }
+        if unit.is_loaded {
+            return false;
         }
         let unit_type = self.db.unit_type(unit.type_id);
         if unit_type.is_air {
