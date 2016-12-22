@@ -145,7 +145,7 @@ pub fn filter_events(
                 });
             }
         },
-        CoreEvent::ShowUnit{..} => panic!(),
+        CoreEvent::ShowUnit{..} |
         CoreEvent::HideUnit{..} => panic!(),
         CoreEvent::LoadUnit{passenger_id, from, to, transporter_id} => {
             let passenger = state.unit(passenger_id);
