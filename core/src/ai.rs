@@ -214,7 +214,7 @@ impl Ai {
     pub fn try_get_create_unit_command(&self) -> Option<Command> {
         let reinforcement_sectors = self.get_shuffled_reinforcement_sectors(self.id);
         let reinforcement_points = self.state.reinforcement_points()[&self.id];
-        for type_index in get_shuffled_indices(&self.db.unit_types()) {
+        for type_index in get_shuffled_indices(self.db.unit_types()) {
             let unit_type_id = UnitTypeId{id: type_index as i32};
             let unit_type = self.db.unit_type(unit_type_id);
             if unit_type.cost > reinforcement_points {
