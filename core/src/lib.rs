@@ -240,18 +240,39 @@ pub enum MoveMode {
     Hunt,
 }
 
+// TODO: вынести в command.rs
 #[derive(PartialEq, Clone, Debug)]
-pub enum Command {
-    Move{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode},
-    EndTurn,
-    CreateUnit{pos: ExactPos, type_id: UnitTypeId},
-    AttackUnit{attacker_id: UnitId, defender_id: UnitId},
-    LoadUnit{transporter_id: UnitId, passenger_id: UnitId},
-    UnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos},
-    Attach{transporter_id: UnitId, attached_unit_id: UnitId},
-    Detach{transporter_id: UnitId, pos: ExactPos},
-    SetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode},
-    Smoke{unit_id: UnitId, pos: MapPos},
+struct CommandMove{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandEndTurn;
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandCreateUnit{pos: ExactPos, type_id: UnitTypeId}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandAttackUnit{attacker_id: UnitId, defender_id: UnitId}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandLoadUnit{transporter_id: UnitId, passenger_id: UnitId}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandUnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandAttach{transporter_id: UnitId, attached_unit_id: UnitId}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandDetach{transporter_id: UnitId, pos: ExactPos}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandSetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode}
+
+#[derive(PartialEq, Clone, Debug)]
+struct CommandSmoke{unit_id: UnitId, pos: MapPos}
+
+pub trait SimulateCommand {
+    fn simulate(&self, core: &mut Core);
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -933,7 +954,8 @@ impl Core {
         }}
     }
 
-    fn simulation_step(&mut self, command: Command) {
+    fn simulation_step(&mut self, command: &SimulateCommand) {
+        /*
         if let Err(err) = check_command(
             &self.db,
             self.current_player_id,
@@ -945,6 +967,9 @@ impl Core {
         ) {
             panic!("Bad command: {:?} ({:?})", err, command);
         }
+        */
+        command.simulate(self);
+        /*
         match command {
             Command::EndTurn => {
                 let old_id = self.current_player_id;
@@ -1130,13 +1155,14 @@ impl Core {
                 self.reaction_fire(unit_id);
             },
         };
+        */
         let sector_events = check_sectors(&self.db, &self.state);
         for event in sector_events {
             self.do_core_event(&event);
         }
     }
 
-    pub fn do_command(&mut self, command: Command) {
+    pub fn do_command(&mut self, command: &SimulateCommand) {
         self.simulation_step(command);
     }
 
@@ -1145,11 +1171,14 @@ impl Core {
             while let Some(event) = self.get_event() {
                 self.ai.apply_event(&event);
             }
+            let _ = self.ai.get_command(); // TODO
+            /*
             let command = self.ai.get_command();
-            self.do_command(command.clone());
+            self.do_command(&command);
             if command == Command::EndTurn {
                 return;
             }
+            */
         }
     }
 

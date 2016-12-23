@@ -6,13 +6,33 @@ use unit::{Unit};
 use db::{Db};
 use fov::{fov, simple_fov};
 use ::{
-    Command,
+    // TODO: потом импортировать только `command`
+    CommandMove,
+    CommandEndTurn,
+    CommandCreateUnit,
+    CommandAttackUnit,
+    CommandLoadUnit,
+    CommandUnloadUnit,
+    CommandAttach,
+    CommandDetach,
+    CommandSetReactionFireMode,
+    CommandSmoke,
+
     FireMode,
     PlayerId,
     ObjectClass,
     is_exact_pos_free,
     move_cost_modifier,
 };
+
+pub trait CheckCommand {
+    fn check<S: GameState>(
+        &self,
+        db: &Db,
+        player_id: PlayerId,
+        state: &S,
+    ) -> Result<(), CommandError>;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CommandError {
@@ -101,12 +121,16 @@ impl error::Error for CommandError {
     }
 }
 
+// pub fn check_command<S: GameState, C: CheckCommand>(
 pub fn check_command<S: GameState>(
     db: &Db,
     player_id: PlayerId,
     state: &S,
-    command: &Command,
+    command: &CheckCommand,
+    // command: &C,
 ) -> Result<(), CommandError> {
+    command.check(db, player_id, state)
+    /*
     match *command {
         Command::EndTurn => Ok(()),
         Command::CreateUnit{pos, type_id} => {
@@ -377,6 +401,7 @@ pub fn check_command<S: GameState>(
             Ok(())
         },
     }
+    */
 }
 
 pub fn check_attack<S: GameState>(
