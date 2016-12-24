@@ -30,7 +30,7 @@ use types::{Size2};
 use misc::{clamp};
 use full_state::{FullState};
 use game_state::{GameState, GameStateMut, ObjectsAtIter};
-use tmp_partial_state::{TmpPartialState};
+// use tmp_partial_state::{TmpPartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -38,7 +38,8 @@ use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
 use dir::{Dir};
-use check::{check_command, check_attack, CheckCommand};
+// use check::{check_command, check_attack, CheckCommand};
+use check::{check_attack};
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct HitChance{pub n: i32}
@@ -241,42 +242,75 @@ pub enum MoveMode {
 }
 
 // TODO: вынести в command.rs
-#[derive(PartialEq, Clone, Debug)]
-struct CommandMove{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode}
+pub mod command {
+    use ::{UnitId, UnitTypeId, ExactPos, MapPos, MoveMode, ReactionFireMode};
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandEndTurn;
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct Move {
+        pub unit_id: UnitId,
+        pub path: Vec<ExactPos>,
+        pub mode: MoveMode,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandCreateUnit{pos: ExactPos, type_id: UnitTypeId}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct EndTurn;
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandAttackUnit{attacker_id: UnitId, defender_id: UnitId}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct CreateUnit {
+        pub pos: ExactPos,
+        pub type_id: UnitTypeId,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandLoadUnit{transporter_id: UnitId, passenger_id: UnitId}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct AttackUnit {
+        pub attacker_id: UnitId,
+        pub defender_id: UnitId,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandUnloadUnit{transporter_id: UnitId, passenger_id: UnitId, pos: ExactPos}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct LoadUnit {
+        pub transporter_id: UnitId,
+        pub passenger_id: UnitId,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandAttach{transporter_id: UnitId, attached_unit_id: UnitId}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct UnloadUnit {
+        pub transporter_id: UnitId,
+        pub passenger_id: UnitId,
+        pub pos: ExactPos,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandDetach{transporter_id: UnitId, pos: ExactPos}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct Attach {
+        pub transporter_id: UnitId,
+        pub attached_unit_id: UnitId,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandSetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct Detach {
+        pub transporter_id: UnitId,
+        pub pos: ExactPos,
+    }
 
-#[derive(PartialEq, Clone, Debug)]
-struct CommandSmoke{unit_id: UnitId, pos: MapPos}
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct SetReactionFireMode {
+        pub unit_id: UnitId,
+        pub mode: ReactionFireMode,
+    }
 
-// pub trait SimulateCommand<'a>: CheckCommand<TmpPartialState<'a>> {
-pub trait SimulateCommand {
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct Smoke {
+        pub unit_id: UnitId,
+        pub pos: MapPos,
+    }
+}
+
+// pub trait Command<'a>: CheckCommand<TmpPartialState<'a>> {
+pub trait Command {
     fn simulate(&self, core: &mut Core);
 }
 
-impl SimulateCommand for CommandEndTurn {
+impl Command for command::EndTurn {
     fn simulate(&self, core: &mut Core) {
         let old_id = core.current_player_id;
         let new_id = core.next_player_id(old_id);
@@ -313,7 +347,7 @@ impl SimulateCommand for CommandEndTurn {
     }
 }
 
-impl SimulateCommand for CommandCreateUnit {
+impl Command for command::CreateUnit {
     fn simulate(&self, core: &mut Core) {
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
@@ -332,7 +366,7 @@ impl SimulateCommand for CommandCreateUnit {
     }
 }
 
-impl SimulateCommand for CommandMove {
+impl Command for command::Move {
     fn simulate(&self, core: &mut Core) {
         let unit_id = self.unit_id;
         let mode = self.mode;
@@ -379,7 +413,7 @@ impl SimulateCommand for CommandMove {
     }
 }
 
-impl SimulateCommand for CommandAttackUnit {
+impl Command for command::AttackUnit {
     fn simulate(&self, core: &mut Core) {
         if let Some(ref event) = core.command_attack_unit_to_event(
             self.attacker_id, self.defender_id, FireMode::Active)
@@ -390,7 +424,7 @@ impl SimulateCommand for CommandAttackUnit {
     }
 }
 
-impl SimulateCommand for CommandLoadUnit {
+impl Command for command::LoadUnit {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.passenger_id).pos;
         let to = core.state.unit(self.transporter_id).pos;
@@ -403,7 +437,7 @@ impl SimulateCommand for CommandLoadUnit {
     }
 }
 
-impl SimulateCommand for CommandUnloadUnit {
+impl Command for command::UnloadUnit {
     fn simulate(&self, core: &mut Core) {
         let event = {
             let passenger = core.state.unit(self.passenger_id);
@@ -423,7 +457,7 @@ impl SimulateCommand for CommandUnloadUnit {
     }
 }
 
-impl SimulateCommand for CommandAttach {
+impl Command for command::Attach {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.transporter_id).pos;
         let to = core.state.unit(self.attached_unit_id).pos;
@@ -437,7 +471,7 @@ impl SimulateCommand for CommandAttach {
     }
 }
 
-impl SimulateCommand for CommandDetach {
+impl Command for command::Detach {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.transporter_id).pos;
         core.do_core_event(&CoreEvent::Detach {
@@ -449,7 +483,7 @@ impl SimulateCommand for CommandDetach {
     }
 }
 
-impl SimulateCommand for CommandSetReactionFireMode {
+impl Command for command::SetReactionFireMode {
     fn simulate(&self, core: &mut Core) {
         core.do_core_event(&CoreEvent::SetReactionFireMode {
             unit_id: self.unit_id,
@@ -458,7 +492,7 @@ impl SimulateCommand for CommandSetReactionFireMode {
     }
 }
 
-impl SimulateCommand for CommandSmoke {
+impl Command for command::Smoke {
     fn simulate(&self, core: &mut Core) {
         let pos = self.pos;
         let unit_id = self.unit_id;
@@ -1172,7 +1206,7 @@ impl Core {
         }}
     }
 
-    fn simulation_step(&mut self, command: &SimulateCommand) {
+    fn simulation_step(&mut self, command: &Command) {
         /*
         if let Err(err) = check_command(
             &self.db,
@@ -1193,7 +1227,7 @@ impl Core {
         }
     }
 
-    pub fn do_command(&mut self, command: &SimulateCommand) {
+    pub fn do_command(&mut self, command: &Command) {
         self.simulation_step(command);
     }
 

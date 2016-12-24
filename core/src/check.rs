@@ -5,19 +5,8 @@ use pathfinder::{path_cost, tile_cost};
 use unit::{Unit};
 use db::{Db};
 use fov::{fov, simple_fov};
+use command;
 use ::{
-    // TODO: потом импортировать только `command`
-    CommandMove,
-    CommandEndTurn,
-    CommandCreateUnit,
-    CommandAttackUnit,
-    CommandLoadUnit,
-    CommandUnloadUnit,
-    CommandAttach,
-    CommandDetach,
-    CommandSetReactionFireMode,
-    CommandSmoke,
-
     FireMode,
     PlayerId,
     ObjectClass,
@@ -31,13 +20,13 @@ pub trait CheckCommand<S: GameState> {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult;
 }
 
-impl<S: GameState> CheckCommand<S> for CommandEndTurn {
+impl<S: GameState> CheckCommand<S> for command::EndTurn {
     fn check(&self, _: &Db, _: PlayerId, _: &S) -> CheckResult {
         Ok(())
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandCreateUnit {
+impl<S: GameState> CheckCommand<S> for command::CreateUnit {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let mut is_sector = false;
         for object in state.objects_at(self.pos.map_pos) {
@@ -61,7 +50,7 @@ impl<S: GameState> CheckCommand<S> for CommandCreateUnit {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandMove {
+impl<S: GameState> CheckCommand<S> for command::Move {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let unit = match state.unit_opt(self.unit_id) {
             Some(transporter) => transporter,
@@ -92,7 +81,7 @@ impl<S: GameState> CheckCommand<S> for CommandMove {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandAttackUnit {
+impl<S: GameState> CheckCommand<S> for command::AttackUnit {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let attacker = match state.unit_opt(self.attacker_id) {
             Some(attacker) => attacker,
@@ -115,7 +104,7 @@ impl<S: GameState> CheckCommand<S> for CommandAttackUnit {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandLoadUnit {
+impl<S: GameState> CheckCommand<S> for command::LoadUnit {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let passenger = match state.unit_opt(self.passenger_id) {
             Some(passenger) => passenger,
@@ -159,7 +148,7 @@ impl<S: GameState> CheckCommand<S> for CommandLoadUnit {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandUnloadUnit {
+impl<S: GameState> CheckCommand<S> for command::UnloadUnit {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let transporter = match state.unit_opt(self.transporter_id) {
             Some(transporter) => transporter,
@@ -200,7 +189,7 @@ impl<S: GameState> CheckCommand<S> for CommandUnloadUnit {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandAttach {
+impl<S: GameState> CheckCommand<S> for command::Attach {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let transporter = match state.unit_opt(self.transporter_id) {
             Some(transporter) => transporter,
@@ -253,7 +242,7 @@ impl<S: GameState> CheckCommand<S> for CommandAttach {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandDetach {
+impl<S: GameState> CheckCommand<S> for command::Detach {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let transporter = match state.unit_opt(self.transporter_id) {
             Some(transporter) => transporter,
@@ -287,7 +276,7 @@ impl<S: GameState> CheckCommand<S> for CommandDetach {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandSetReactionFireMode {
+impl<S: GameState> CheckCommand<S> for command::SetReactionFireMode {
     fn check(&self, _: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let unit = match state.unit_opt(self.unit_id) {
             Some(unit) => unit,
@@ -303,7 +292,7 @@ impl<S: GameState> CheckCommand<S> for CommandSetReactionFireMode {
     }
 }
 
-impl<S: GameState> CheckCommand<S> for CommandSmoke {
+impl<S: GameState> CheckCommand<S> for command::Smoke {
     fn check(&self, db: &Db, player_id: PlayerId, state: &S) -> CheckResult {
         let unit = match state.unit_opt(self.unit_id) {
             Some(unit) => unit,

@@ -9,13 +9,9 @@ use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
 use check::{check_command};
+use command;
 use ::{
-    // TODO: потом импортировать только `command`
-    CommandMove,
-    CommandAttackUnit,
-    CommandCreateUnit,
-    CommandEndTurn,
-
+    Command,
     CoreEvent,
     MoveMode,
     PlayerId,
@@ -51,8 +47,6 @@ impl Ai {
     pub fn apply_event(&mut self, event: &CoreEvent) {
         self.state.apply_event(event);
     }
-
-    /*
 
     fn get_best_pos(&self, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
@@ -136,7 +130,7 @@ impl Ai {
         false
     }
 
-    pub fn try_get_attack_command(&self) -> Option<CommandAttackUnit> {
+    pub fn try_get_attack_command(&self) -> Option<command::AttackUnit> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
@@ -148,7 +142,7 @@ impl Ai {
                 if target.player_id == self.id {
                     continue;
                 }
-                let command = CommandAttackUnit {
+                let command = command::AttackUnit {
                     attacker_id: unit.id,
                     defender_id: target.id,
                 };
@@ -160,7 +154,7 @@ impl Ai {
         None
     }
 
-    pub fn try_get_move_command(&mut self) -> Option<CommandMove> {
+    pub fn try_get_move_command(&mut self) -> Option<command::Move> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
@@ -186,7 +180,7 @@ impl Ai {
             if move_points.n < cost.n {
                 continue;
             }
-            let command = CommandMove {
+            let command = command::Move {
                 unit_id: unit.id,
                 path: path,
                 mode: MoveMode::Fast,
@@ -218,7 +212,7 @@ impl Ai {
         reinforcement_sectors
     }
 
-    pub fn try_get_create_unit_command(&self) -> Option<CommandCreateUnit> {
+    pub fn try_get_create_unit_command(&self) -> Option<command::CreateUnit> {
         let reinforcement_sectors = self.get_shuffled_reinforcement_sectors(self.id);
         let reinforcement_points = self.state.reinforcement_points()[&self.id];
         for type_index in get_shuffled_indices(self.db.unit_types()) {
@@ -237,7 +231,7 @@ impl Ai {
                     Some(pos) => pos,
                     None => continue,
                 };
-                let command = CommandCreateUnit {
+                let command = command::CreateUnit {
                     type_id: unit_type_id,
                     pos: exact_pos,
                 };
@@ -249,21 +243,17 @@ impl Ai {
         }
         None
     }
-    */
 
-    // pub fn get_command(&mut self) -> Command {
-    pub fn get_command(&mut self) -> CommandEndTurn {
-        /*
-        let _ = if let Some(cmd) = self.try_get_attack_command() {
-            cmd
+    // TODO: вернуть какой-то бокс?
+    pub fn get_command(&mut self) -> Box<Command> {
+        if let Some(cmd) = self.try_get_attack_command() {
+            Box::new(cmd)
         } else if let Some(cmd) = self.try_get_move_command() {
-            cmd
+            Box::new(cmd)
         } else if let Some(cmd) = self.try_get_create_unit_command() {
-            cmd
+            Box::new(cmd)
         } else {
-            CommandEndTurn
-        };
-        */
-        unimplemented!()
+            Box::new(command::EndTurn)
+        }
     }
 }
