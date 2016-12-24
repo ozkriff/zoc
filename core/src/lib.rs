@@ -38,7 +38,7 @@ use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
 use dir::{Dir};
-use check::{check_command, check_attack};
+use check::{check_command, check_attack, CheckCommand};
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct HitChance{pub n: i32}
@@ -271,8 +271,226 @@ struct CommandSetReactionFireMode{unit_id: UnitId, mode: ReactionFireMode}
 #[derive(PartialEq, Clone, Debug)]
 struct CommandSmoke{unit_id: UnitId, pos: MapPos}
 
+// pub trait SimulateCommand<'a>: CheckCommand<TmpPartialState<'a>> {
 pub trait SimulateCommand {
     fn simulate(&self, core: &mut Core);
+}
+
+impl SimulateCommand for CommandEndTurn {
+    fn simulate(&self, core: &mut Core) {
+        let old_id = core.current_player_id;
+        let new_id = core.next_player_id(old_id);
+        // TODO: extruct func
+        let mut end_turn_events = Vec::new();
+        for sector in core.state.sectors().values() {
+            if let Some(player_id) = sector.owner_id {
+                if player_id != new_id {
+                    continue;
+                }
+                end_turn_events.push(CoreEvent::VictoryPoint {
+                    player_id: player_id,
+                    pos: sector.center(),
+                    count: 1,
+                });
+            }
+        }
+        for (&object_id, object) in core.state.objects() {
+            if let Some(timer) = object.timer {
+                if timer <= 0 {
+                    end_turn_events.push(CoreEvent::RemoveSmoke {
+                        id: object_id,
+                    });
+                }
+            }
+        }
+        for event in end_turn_events {
+            core.do_core_event(&event);
+        }
+        core.do_core_event(&CoreEvent::EndTurn {
+            old_id: old_id,
+            new_id: new_id,
+        });
+    }
+}
+
+impl SimulateCommand for CommandCreateUnit {
+    fn simulate(&self, core: &mut Core) {
+        let event = CoreEvent::CreateUnit {
+            unit_info: UnitInfo {
+                unit_id: core.get_new_unit_id(),
+                pos: self.pos,
+                type_id: self.type_id,
+                player_id: core.current_player_id,
+                passenger_id: None,
+                attached_unit_id: None,
+                is_alive: true,
+                is_loaded: false,
+                is_attached: false,
+            },
+        };
+        core.do_core_event(&event);
+    }
+}
+
+impl SimulateCommand for CommandMove {
+    fn simulate(&self, core: &mut Core) {
+        let unit_id = self.unit_id;
+        let mode = self.mode;
+        let player_id = core.state.unit(unit_id).player_id;
+        for window in self.path.windows(2) {
+            let from = window[0];
+            let to = window[1];
+            let show_event = core.state.unit_at_opt(to).and_then(|unit| {
+                Some(CoreEvent::Reveal {
+                    unit_info: unit_to_info(unit),
+                })
+            });
+            if let Some(event) = show_event {
+                core.do_core_event(&event);
+                continue;
+            }
+            let move_event = {
+                let unit = core.state.unit(unit_id);
+                let cost = MovePoints {
+                    n: tile_cost(&core.db, &core.state, unit, from, to).n
+                        * move_cost_modifier(mode)
+                };
+                CoreEvent::Move {
+                    unit_id: unit_id,
+                    from: from,
+                    to: to,
+                    mode: mode,
+                    cost: cost,
+                }
+            };
+            let pre_visible_enemies = core.players_info[&player_id]
+                .visible_enemies.clone();
+            core.do_core_event(&move_event);
+            let reaction_fire_result = core.reaction_fire_internal(
+                unit_id, mode == MoveMode::Fast);
+            if reaction_fire_result != ReactionFireResult::None {
+                break;
+            }
+            let i = &core.players_info[&player_id];
+            if pre_visible_enemies != i.visible_enemies {
+                break;
+            }
+        }
+    }
+}
+
+impl SimulateCommand for CommandAttackUnit {
+    fn simulate(&self, core: &mut Core) {
+        if let Some(ref event) = core.command_attack_unit_to_event(
+            self.attacker_id, self.defender_id, FireMode::Active)
+        {
+            core.do_core_event(event);
+            core.reaction_fire(self.attacker_id);
+        }
+    }
+}
+
+impl SimulateCommand for CommandLoadUnit {
+    fn simulate(&self, core: &mut Core) {
+        let from = core.state.unit(self.passenger_id).pos;
+        let to = core.state.unit(self.transporter_id).pos;
+        core.do_core_event(&CoreEvent::LoadUnit {
+            transporter_id: Some(self.transporter_id),
+            passenger_id: self.passenger_id,
+            from: from,
+            to: to,
+        });
+    }
+}
+
+impl SimulateCommand for CommandUnloadUnit {
+    fn simulate(&self, core: &mut Core) {
+        let event = {
+            let passenger = core.state.unit(self.passenger_id);
+            let from = core.state.unit(self.transporter_id).pos;
+            CoreEvent::UnloadUnit {
+                transporter_id: Some(self.transporter_id),
+                unit_info: UnitInfo {
+                    pos: self.pos,
+                    .. unit_to_info(passenger)
+                },
+                from: from,
+                to: self.pos,
+            }
+        };
+        core.do_core_event(&event);
+        core.reaction_fire(self.passenger_id);
+    }
+}
+
+impl SimulateCommand for CommandAttach {
+    fn simulate(&self, core: &mut Core) {
+        let from = core.state.unit(self.transporter_id).pos;
+        let to = core.state.unit(self.attached_unit_id).pos;
+        core.do_core_event(&CoreEvent::Attach {
+            transporter_id: self.transporter_id,
+            attached_unit_id: self.attached_unit_id,
+            from: from,
+            to: to,
+        });
+        core.reaction_fire(self.transporter_id);
+    }
+}
+
+impl SimulateCommand for CommandDetach {
+    fn simulate(&self, core: &mut Core) {
+        let from = core.state.unit(self.transporter_id).pos;
+        core.do_core_event(&CoreEvent::Detach {
+            transporter_id: self.transporter_id,
+            from: from,
+            to: self.pos,
+        });
+        core.reaction_fire(self.transporter_id);
+    }
+}
+
+impl SimulateCommand for CommandSetReactionFireMode {
+    fn simulate(&self, core: &mut Core) {
+        core.do_core_event(&CoreEvent::SetReactionFireMode {
+            unit_id: self.unit_id,
+            mode: self.mode,
+        });
+    }
+}
+
+impl SimulateCommand for CommandSmoke {
+    fn simulate(&self, core: &mut Core) {
+        let pos = self.pos;
+        let unit_id = self.unit_id;
+        let id = core.get_new_object_id();
+        core.do_core_event(&CoreEvent::Smoke {
+            id: id,
+            unit_id: Some(unit_id),
+            pos: pos,
+        });
+        let mut dir = Dir::from_int(thread_rng().gen_range(0, 5));
+        let additional_smoke_count = {
+            let unit = core.state.unit(unit_id);
+            let unit_type = core.db.unit_type(unit.type_id);
+            let weapon_type = core.db.weapon_type(unit_type.weapon_type_id);
+            weapon_type.smoke.unwrap()
+        };
+        assert!(additional_smoke_count <= 3);
+        for _ in 0..additional_smoke_count {
+            let mut dir_index = dir.to_int() + thread_rng().gen_range(1, 3);
+            if dir_index > 5 {
+                dir_index -= 6;
+            }
+            dir = Dir::from_int(dir_index);
+            let id = core.get_new_object_id();
+            core.do_core_event(&CoreEvent::Smoke {
+                id: id,
+                unit_id: Some(unit_id),
+                pos: Dir::get_neighbour_pos(pos, dir),
+            });
+        }
+        core.reaction_fire(unit_id);
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -963,199 +1181,12 @@ impl Core {
                 &self.state,
                 &self.players_info[&self.current_player_id].fow,
             ),
-            &command,
+            command,
         ) {
             panic!("Bad command: {:?} ({:?})", err, command);
         }
         */
         command.simulate(self);
-        /*
-        match command {
-            Command::EndTurn => {
-                let old_id = self.current_player_id;
-                let new_id = self.next_player_id(old_id);
-                // TODO: extruct func
-                let mut end_turn_events = Vec::new();
-                for sector in self.state.sectors().values() {
-                    if let Some(player_id) = sector.owner_id {
-                        if player_id != new_id {
-                            continue;
-                        }
-                        end_turn_events.push(CoreEvent::VictoryPoint {
-                            player_id: player_id,
-                            pos: sector.center(),
-                            count: 1,
-                        });
-                    }
-                }
-                for (&object_id, object) in self.state.objects() {
-                    if let Some(timer) = object.timer {
-                        if timer <= 0 {
-                            end_turn_events.push(CoreEvent::RemoveSmoke {
-                                id: object_id,
-                            });
-                        }
-                    }
-                }
-                for event in end_turn_events {
-                    self.do_core_event(&event);
-                }
-                self.do_core_event(&CoreEvent::EndTurn {
-                    old_id: old_id,
-                    new_id: new_id,
-                });
-            },
-            Command::CreateUnit{pos, type_id} => {
-                let event = CoreEvent::CreateUnit {
-                    unit_info: UnitInfo {
-                        unit_id: self.get_new_unit_id(),
-                        pos: pos,
-                        type_id: type_id,
-                        player_id: self.current_player_id,
-                        passenger_id: None,
-                        attached_unit_id: None,
-                        is_alive: true,
-                        is_loaded: false,
-                        is_attached: false,
-                    },
-                };
-                self.do_core_event(&event);
-            },
-            Command::Move{unit_id, path, mode} => {
-                let player_id = self.state.unit(unit_id).player_id;
-                for window in path.windows(2) {
-                    let from = window[0];
-                    let to = window[1];
-                    let show_event = self.state.unit_at_opt(to).and_then(|unit| {
-                        Some(CoreEvent::Reveal {
-                            unit_info: unit_to_info(unit),
-                        })
-                    });
-                    if let Some(event) = show_event {
-                        self.do_core_event(&event);
-                        continue;
-                    }
-                    let move_event = {
-                        let unit = self.state.unit(unit_id);
-                        let cost = MovePoints {
-                            n: tile_cost(&self.db, &self.state, unit, from, to).n
-                                * move_cost_modifier(mode)
-                        };
-                        CoreEvent::Move {
-                            unit_id: unit_id,
-                            from: from,
-                            to: to,
-                            mode: mode,
-                            cost: cost,
-                        }
-                    };
-                    let pre_visible_enemies = self.players_info[&player_id]
-                        .visible_enemies.clone();
-                    self.do_core_event(&move_event);
-                    let reaction_fire_result = self.reaction_fire_internal(
-                        unit_id, mode == MoveMode::Fast);
-                    if reaction_fire_result != ReactionFireResult::None {
-                        break;
-                    }
-                    let i = &self.players_info[&player_id];
-                    if pre_visible_enemies != i.visible_enemies {
-                        break;
-                    }
-                }
-            },
-            Command::AttackUnit{attacker_id, defender_id} => {
-                if let Some(ref event) = self.command_attack_unit_to_event(
-                    attacker_id, defender_id, FireMode::Active)
-                {
-                    self.do_core_event(event);
-                    self.reaction_fire(attacker_id);
-                }
-            },
-            Command::LoadUnit{transporter_id, passenger_id} => {
-                let from = self.state.unit(passenger_id).pos;
-                let to = self.state.unit(transporter_id).pos;
-                self.do_core_event(&CoreEvent::LoadUnit {
-                    transporter_id: Some(transporter_id),
-                    passenger_id: passenger_id,
-                    from: from,
-                    to: to,
-                });
-            },
-            Command::UnloadUnit{transporter_id, passenger_id, pos} => {
-                let event = {
-                    let passenger = self.state.unit(passenger_id);
-                    let from = self.state.unit(transporter_id).pos;
-                    CoreEvent::UnloadUnit {
-                        transporter_id: Some(transporter_id),
-                        unit_info: UnitInfo {
-                            pos: pos,
-                            .. unit_to_info(passenger)
-                        },
-                        from: from,
-                        to: pos,
-                    }
-                };
-                self.do_core_event(&event);
-                self.reaction_fire(passenger_id);
-            },
-            Command::Attach{transporter_id, attached_unit_id} => {
-                let from = self.state.unit(transporter_id).pos;
-                let to = self.state.unit(attached_unit_id).pos;
-                self.do_core_event(&CoreEvent::Attach {
-                    transporter_id: transporter_id,
-                    attached_unit_id: attached_unit_id,
-                    from: from,
-                    to: to,
-                });
-                self.reaction_fire(transporter_id);
-            },
-            Command::Detach{transporter_id, pos} => {
-                let from = self.state.unit(transporter_id).pos;
-                self.do_core_event(&CoreEvent::Detach {
-                    transporter_id: transporter_id,
-                    from: from,
-                    to: pos,
-                });
-                self.reaction_fire(transporter_id);
-            },
-            Command::SetReactionFireMode{unit_id, mode} => {
-                self.do_core_event(&CoreEvent::SetReactionFireMode {
-                    unit_id: unit_id,
-                    mode: mode,
-                });
-            },
-            Command::Smoke{unit_id, pos} => {
-                let id = self.get_new_object_id();
-                self.do_core_event(&CoreEvent::Smoke {
-                    id: id,
-                    unit_id: Some(unit_id),
-                    pos: pos,
-                });
-                let mut dir = Dir::from_int(thread_rng().gen_range(0, 5));
-                let additional_smoke_count = {
-                    let unit = self.state.unit(unit_id);
-                    let unit_type = self.db.unit_type(unit.type_id);
-                    let weapon_type = self.db.weapon_type(unit_type.weapon_type_id);
-                    weapon_type.smoke.unwrap()
-                };
-                assert!(additional_smoke_count <= 3);
-                for _ in 0..additional_smoke_count {
-                    let mut dir_index = dir.to_int() + thread_rng().gen_range(1, 3);
-                    if dir_index > 5 {
-                        dir_index -= 6;
-                    }
-                    dir = Dir::from_int(dir_index);
-                    let id = self.get_new_object_id();
-                    self.do_core_event(&CoreEvent::Smoke {
-                        id: id,
-                        unit_id: Some(unit_id),
-                        pos: Dir::get_neighbour_pos(pos, dir),
-                    });
-                }
-                self.reaction_fire(unit_id);
-            },
-        };
-        */
         let sector_events = check_sectors(&self.db, &self.state);
         for event in sector_events {
             self.do_core_event(&event);
