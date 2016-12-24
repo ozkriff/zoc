@@ -32,7 +32,7 @@ fn can_unload_unit(
         None => return None,
     };
     let player_id = transporter.player_id;
-    let command = core::Command::UnloadUnit {
+    let command = core::command::UnloadUnit {
         transporter_id: transporter_id,
         passenger_id: passenger_id,
         pos: exact_pos,
@@ -59,7 +59,7 @@ fn can_detach_unit(
         Some(pos) => pos,
         None => return None,
     };
-    let command = core::Command::Detach {
+    let command = core::command::Detach {
         transporter_id: transporter_id,
         pos: exact_pos,
     };
@@ -130,7 +130,7 @@ pub fn get_options(
                 // TODO: attach dead enemies
                 if unit.is_alive {
                     options.selects.push(unit_id);
-                    let load_command = core::Command::LoadUnit {
+                    let load_command = core::command::LoadUnit {
                         transporter_id: selected_unit_id,
                         passenger_id: unit_id,
                     };
@@ -138,7 +138,7 @@ pub fn get_options(
                         options.loads.push(unit_id);
                     }
                 }
-                let attach_command = core::Command::Attach {
+                let attach_command = core::command::Attach {
                     transporter_id: selected_unit_id,
                     attached_unit_id: unit_id,
                 };
@@ -150,7 +150,7 @@ pub fn get_options(
             let attacker = state.unit(selected_unit_id);
             let defender = state.unit(unit_id);
             let hit_chance = core::hit_chance(db, state, attacker, defender);
-            let attack_command = core::Command::AttackUnit {
+            let attack_command = core::command::AttackUnit {
                 attacker_id: attacker.id,
                 defender_id: defender.id,
             };
@@ -159,7 +159,7 @@ pub fn get_options(
             }
         }
     }
-    if check_command(db, player_id, state, &core::Command::Smoke {
+    if check_command(db, player_id, state, &core::command::Smoke {
         unit_id: selected_unit_id,
         pos: pos,
     }).is_ok() {
@@ -177,14 +177,14 @@ pub fn get_options(
         db, state, state.unit(selected_unit_id).type_id, pos,
     ) {
         if let Some(path) = pathfinder.get_path(destination) {
-            if check_command(db, player_id, state, &core::Command::Move {
+            if check_command(db, player_id, state, &core::command::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
                 mode: core::MoveMode::Fast,
             }).is_ok() {
                 options.move_pos = Some(destination);
             }
-            let hunt_command = core::Command::Move {
+            let hunt_command = core::command::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
                 mode: core::MoveMode::Hunt,

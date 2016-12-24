@@ -9,7 +9,8 @@ use glutin::ElementState::{Released};
 use core::map::{Terrain};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState, GameStateMut};
-use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
+use core::{self, CoreEvent, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
+use core::command;
 use core::unit::{UnitTypeId};
 use core::misc::{opt_rx_collect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
@@ -341,7 +342,7 @@ impl TacticalScreen {
             context.add_command(ScreenCommand::PushScreen(screen));
         }
         self.deselect_unit(context);
-        self.core.do_command(Command::EndTurn);
+        self.core.do_command(&command::EndTurn);
         self.regenerate_fow();
     }
 
@@ -532,7 +533,7 @@ impl TacticalScreen {
         let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
         let path = player_info.pathfinder.get_path(pos).unwrap();
-        self.core.do_command(Command::Move {
+        self.core.do_command(&command::Move {
             unit_id: unit_id,
             path: path,
             mode: move_mode,
@@ -1058,14 +1059,14 @@ impl TacticalScreen {
             },
             context_menu_popup::Command::Attack{id} => {
                 let selected_unit_id = self.selected_unit_id.unwrap();
-                self.core.do_command(Command::AttackUnit {
+                self.core.do_command(&command::AttackUnit {
                     attacker_id: selected_unit_id,
                     defender_id: id,
                 });
             },
             context_menu_popup::Command::LoadUnit{passenger_id} => {
                 let selected_unit_id = self.selected_unit_id.unwrap();
-                self.core.do_command(Command::LoadUnit {
+                self.core.do_command(&command::LoadUnit {
                     transporter_id: selected_unit_id,
                     passenger_id: passenger_id,
                 });
@@ -1077,7 +1078,7 @@ impl TacticalScreen {
                         .unit(selected_unit_id);
                     transporter.passenger_id.unwrap()
                 };
-                self.core.do_command(Command::UnloadUnit {
+                self.core.do_command(&command::UnloadUnit {
                     transporter_id: selected_unit_id,
                     passenger_id: passenger_id,
                     pos: pos,
@@ -1085,32 +1086,32 @@ impl TacticalScreen {
             },
             context_menu_popup::Command::Attach{attached_unit_id} => {
                 let selected_unit_id = self.selected_unit_id.unwrap();
-                self.core.do_command(Command::Attach {
+                self.core.do_command(&command::Attach {
                     transporter_id: selected_unit_id,
                     attached_unit_id: attached_unit_id,
                 });
             },
             context_menu_popup::Command::Detach{pos} => {
-                self.core.do_command(Command::Detach {
+                self.core.do_command(&command::Detach {
                     transporter_id: self.selected_unit_id.unwrap(),
                     pos: pos,
                 });
             },
             context_menu_popup::Command::EnableReactionFire{id} => {
-                self.core.do_command(Command::SetReactionFireMode {
+                self.core.do_command(&command::SetReactionFireMode {
                     unit_id: id,
                     mode: core::ReactionFireMode::Normal,
                 });
             },
             context_menu_popup::Command::DisableReactionFire{id} => {
-                self.core.do_command(Command::SetReactionFireMode {
+                self.core.do_command(&command::SetReactionFireMode {
                     unit_id: id,
                     mode: core::ReactionFireMode::HoldFire,
                 });
             },
             context_menu_popup::Command::Smoke{pos} => {
                 let selected_unit_id = self.selected_unit_id.unwrap();
-                self.core.do_command(Command::Smoke {
+                self.core.do_command(&command::Smoke {
                     unit_id: selected_unit_id,
                     pos: pos,
                 });
@@ -1122,7 +1123,7 @@ impl TacticalScreen {
     }
 
     fn handle_reinforce_command(&mut self, type_id: UnitTypeId, pos: ExactPos) {
-        self.core.do_command(Command::CreateUnit {
+        self.core.do_command(&command::CreateUnit {
             pos: pos,
             type_id: type_id,
         });
