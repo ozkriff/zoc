@@ -1328,7 +1328,7 @@ impl Core {
         }}
     }
 
-    fn simulation_step(&mut self, command: &Command) {
+    pub fn do_command(&mut self, command: &Command) {
         /*
         if let Err(err) = check_command(
             &self.db,
@@ -1349,23 +1349,23 @@ impl Core {
         }
     }
 
-    pub fn do_command(&mut self, command: &Command) {
-        self.simulation_step(command);
-    }
-
     fn do_ai(&mut self) {
         loop {
             while let Some(event) = self.get_event() {
                 self.ai.apply_event(&event);
+                // лучше по типу события, наверное, проверки эти делать.
+                // а еще лучше было бы в самом ядре какой-то
+                // флаг взводить или отслеживать смену текущего игрока
+                // через всякие current_player_id() == my.id
+                //
+                // if let CoreEvent::EndTurn{old_id, new_id} = *event {
+                //     if old_id == me {
+                //         continue;
+                //     }
+                // }
             }
-            let _ = self.ai.get_command(); // TODO
-            /*
             let command = self.ai.get_command();
-            self.do_command(&command);
-            if command == Command::EndTurn {
-                return;
-            }
-            */
+            self.do_command(&*command);
         }
     }
 
