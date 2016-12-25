@@ -243,7 +243,8 @@ pub enum MoveMode {
 
 // TODO: вынести в command.rs
 pub mod command {
-    use ::{UnitId, UnitTypeId, ExactPos, MapPos, MoveMode, ReactionFireMode};
+    use ::{UnitId, ExactPos, MapPos, MoveMode, ReactionFireMode};
+    use unit::{UnitTypeId};
 
     #[derive(PartialEq, Clone, Debug)]
     pub struct Move {
