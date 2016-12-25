@@ -553,6 +553,7 @@ pub struct AttackInfo {
     pub leave_wrecks: bool,
 }
 
+// TODO: удали потом все
 #[derive(Clone, Debug, PartialEq)]
 pub enum CoreEvent {
     Move {
@@ -628,6 +629,127 @@ pub enum CoreEvent {
     RemoveSmoke {
         id: ObjectId,
     },
+}
+
+pub mod event {
+    use ::{
+        UnitId,
+        SectorId,
+        ObjectId,
+        UnitInfo,
+        AttackInfo,
+        ExactPos,
+        MapPos,
+        PlayerId,
+        MoveMode,
+        ReactionFireMode,
+        MovePoints,
+    };
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct Move {
+        pub unit_id: UnitId,
+        pub from: ExactPos,
+        pub to: ExactPos,
+        pub mode: MoveMode,
+        pub cost: MovePoints,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct EndTurn {
+        pub old_id: PlayerId,
+        pub new_id: PlayerId,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct CreateUnit {
+        pub unit_info: UnitInfo,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct AttackUnit {
+        pub attack_info: AttackInfo,
+    }
+
+    // Reveal is like ShowUnit but is generated directly by Core
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct Reveal {
+        pub unit_info: UnitInfo,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct ShowUnit {
+        pub unit_info: UnitInfo,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct HideUnit {
+        pub unit_id: UnitId,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct LoadUnit {
+        pub transporter_id: Option<UnitId>,
+        pub passenger_id: UnitId,
+        pub from: ExactPos,
+        pub to: ExactPos,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct UnloadUnit {
+        pub unit_info: UnitInfo,
+        pub transporter_id: Option<UnitId>,
+        pub from: ExactPos,
+        pub to: ExactPos,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct Attach {
+        pub transporter_id: UnitId,
+        pub attached_unit_id: UnitId,
+        pub from: ExactPos,
+        pub to: ExactPos,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct Detach {
+        pub transporter_id: UnitId,
+        pub from: ExactPos,
+        pub to: ExactPos,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct SetReactionFireMode {
+        pub unit_id: UnitId,
+        pub mode: ReactionFireMode,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct SectorOwnerChanged {
+        pub sector_id: SectorId,
+        pub new_owner_id: Option<PlayerId>,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct VictoryPoint {
+        pub player_id: PlayerId,
+        pub pos: MapPos,
+        pub count: i32,
+    }
+
+    // TODO: CreateObject
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct Smoke {
+        pub id: ObjectId,
+        pub pos: MapPos,
+        pub unit_id: Option<UnitId>,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    // TODO: RemoveObject
+    pub struct RemoveSmoke {
+        pub id: ObjectId,
+    }
 }
 
 pub fn move_cost_modifier(mode: MoveMode) -> i32 {
