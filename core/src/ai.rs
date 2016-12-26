@@ -8,7 +8,7 @@ use dir::{Dir, dirs};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
-use check::{check_command};
+use check::{CheckCommand};
 use command;
 use ::{
     Command,
@@ -146,7 +146,7 @@ impl Ai {
                     attacker_id: unit.id,
                     defender_id: target.id,
                 };
-                if check_command(&self.db, self.id, &self.state, &command).is_ok() {
+                if command.check(&self.db, self.id, &self.state).is_ok() {
                     return Some(command);
                 }
             }
@@ -185,7 +185,7 @@ impl Ai {
                 path: path,
                 mode: MoveMode::Fast,
             };
-            if check_command(&self.db, self.id, &self.state, &command).is_err() {
+            if command.check(&self.db, self.id, &self.state).is_err() {
                 continue;
             }
             return Some(command);
@@ -235,7 +235,7 @@ impl Ai {
                     type_id: unit_type_id,
                     pos: exact_pos,
                 };
-                if check_command(&self.db, self.id, &self.state, &command).is_err() {
+                if command.check(&self.db, self.id, &self.state).is_err() {
                     continue;
                 }
                 return Some(command);

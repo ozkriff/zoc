@@ -7,7 +7,7 @@ use core::{self, ObjectClass, UnitId, MapPos, ExactPos, HitChance};
 use core::partial_state::{PartialState};
 use core::game_state::{GameState};
 use core::db::{Db};
-use core::check::{check_command};
+use core::check::{CheckCommand};
 use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
@@ -37,7 +37,7 @@ fn can_unload_unit(
         passenger_id: passenger_id,
         pos: exact_pos,
     };
-    if check_command(db, player_id, state, &command).is_ok() {
+    if command.check(db, player_id, state).is_ok() {
         Some(exact_pos)
     } else {
         None
@@ -63,7 +63,7 @@ fn can_detach_unit(
         transporter_id: transporter_id,
         pos: exact_pos,
     };
-    if check_command(db, transporter.player_id, state, &command).is_ok() {
+    if command.check(db, transporter.player_id, state).is_ok() {
         Some(exact_pos)
     } else {
         None
@@ -134,7 +134,7 @@ pub fn get_options(
                         transporter_id: selected_unit_id,
                         passenger_id: unit_id,
                     };
-                    if check_command(db, player_id, state, &load_command).is_ok() {
+                    if load_command.check(db, player_id, state).is_ok() {
                         options.loads.push(unit_id);
                     }
                 }
@@ -142,7 +142,7 @@ pub fn get_options(
                     transporter_id: selected_unit_id,
                     attached_unit_id: unit_id,
                 };
-                if check_command(db, player_id, state, &attach_command).is_ok() {
+                if attach_command.check(db, player_id, state).is_ok() {
                     options.attaches.push(unit_id);
                 }
             }
@@ -154,15 +154,16 @@ pub fn get_options(
                 attacker_id: attacker.id,
                 defender_id: defender.id,
             };
-            if check_command(db, player_id, state, &attack_command).is_ok() {
+            if attack_command.check(db, player_id, state).is_ok() {
                 options.attacks.push((unit_id, hit_chance));
             }
         }
     }
-    if check_command(db, player_id, state, &core::command::Smoke {
+    let smoke_command = core::command::Smoke {
         unit_id: selected_unit_id,
         pos: pos,
-    }).is_ok() {
+    };
+    if smoke_command.check(db, player_id, state).is_ok() {
         options.smoke_pos = Some(pos);
     }
     if let Some(pos) = can_unload_unit(db, state, selected_unit_id, pos) {
@@ -177,11 +178,12 @@ pub fn get_options(
         db, state, state.unit(selected_unit_id).type_id, pos,
     ) {
         if let Some(path) = pathfinder.get_path(destination) {
-            if check_command(db, player_id, state, &core::command::Move {
+            let move_command = core::command::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
                 mode: core::MoveMode::Fast,
-            }).is_ok() {
+            };
+            if move_command.check(db, player_id, state).is_ok() {
                 options.move_pos = Some(destination);
             }
             let hunt_command = core::command::Move {
@@ -190,7 +192,7 @@ pub fn get_options(
                 mode: core::MoveMode::Hunt,
             };
             if !selected_unit_type.is_air
-                && check_command(db, player_id, state, &hunt_command).is_ok()
+                && hunt_command.check(db, player_id, state).is_ok()
             {
                 options.hunt_pos = Some(destination);
             }

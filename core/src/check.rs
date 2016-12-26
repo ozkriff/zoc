@@ -407,15 +407,6 @@ impl error::Error for CommandError {
     }
 }
 
-pub fn check_command<S: GameState>(
-    db: &Db,
-    player_id: PlayerId,
-    state: &S,
-    command: &CheckCommand<S>,
-) -> CheckResult {
-    command.check(db, player_id, state)
-}
-
 pub fn check_attack<S: GameState>(
     db: &Db,
     state: &S,
