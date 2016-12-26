@@ -23,6 +23,7 @@ mod filter;
 
 use std::{cmp, fmt};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::{Debug};
 use std::rc::{Rc};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector2};
@@ -30,7 +31,7 @@ use types::{Size2};
 use misc::{clamp};
 use full_state::{FullState};
 use game_state::{GameState, GameStateMut, ObjectsAtIter};
-// use tmp_partial_state::{TmpPartialState};
+use tmp_partial_state::{TmpPartialState};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -38,8 +39,7 @@ use db::{Db};
 use ai::{Ai};
 use fow::{Fow};
 use dir::{Dir};
-// use check::{check_command, check_attack, CheckCommand};
-use check::{check_attack};
+use check::{check_attack, CheckCommand};
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct HitChance{pub n: i32}
@@ -306,12 +306,11 @@ pub mod command {
     }
 }
 
-// pub trait Command<'a>: CheckCommand<TmpPartialState<'a>> {
-pub trait Command {
+pub trait Command<'a>: CheckCommand<TmpPartialState<'a>> + Debug {
     fn simulate(&self, core: &mut Core);
 }
 
-impl Command for command::EndTurn {
+impl<'a> Command<'a> for command::EndTurn {
     fn simulate(&self, core: &mut Core) {
         let old_id = core.current_player_id;
         let new_id = core.next_player_id(old_id);
@@ -348,7 +347,7 @@ impl Command for command::EndTurn {
     }
 }
 
-impl Command for command::CreateUnit {
+impl<'a> Command<'a> for command::CreateUnit {
     fn simulate(&self, core: &mut Core) {
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
@@ -367,7 +366,7 @@ impl Command for command::CreateUnit {
     }
 }
 
-impl Command for command::Move {
+impl<'a> Command<'a> for command::Move {
     fn simulate(&self, core: &mut Core) {
         let unit_id = self.unit_id;
         let mode = self.mode;
@@ -414,7 +413,7 @@ impl Command for command::Move {
     }
 }
 
-impl Command for command::AttackUnit {
+impl<'a> Command<'a> for command::AttackUnit {
     fn simulate(&self, core: &mut Core) {
         if let Some(ref event) = core.command_attack_unit_to_event(
             self.attacker_id, self.defender_id, FireMode::Active)
@@ -425,7 +424,7 @@ impl Command for command::AttackUnit {
     }
 }
 
-impl Command for command::LoadUnit {
+impl<'a> Command<'a> for command::LoadUnit {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.passenger_id).pos;
         let to = core.state.unit(self.transporter_id).pos;
@@ -438,7 +437,7 @@ impl Command for command::LoadUnit {
     }
 }
 
-impl Command for command::UnloadUnit {
+impl<'a> Command<'a> for command::UnloadUnit {
     fn simulate(&self, core: &mut Core) {
         let event = {
             let passenger = core.state.unit(self.passenger_id);
@@ -458,7 +457,7 @@ impl Command for command::UnloadUnit {
     }
 }
 
-impl Command for command::Attach {
+impl<'a> Command<'a> for command::Attach {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.transporter_id).pos;
         let to = core.state.unit(self.attached_unit_id).pos;
@@ -472,7 +471,7 @@ impl Command for command::Attach {
     }
 }
 
-impl Command for command::Detach {
+impl<'a> Command<'a> for command::Detach {
     fn simulate(&self, core: &mut Core) {
         let from = core.state.unit(self.transporter_id).pos;
         core.do_core_event(&CoreEvent::Detach {
@@ -484,7 +483,7 @@ impl Command for command::Detach {
     }
 }
 
-impl Command for command::SetReactionFireMode {
+impl<'a> Command<'a> for command::SetReactionFireMode {
     fn simulate(&self, core: &mut Core) {
         core.do_core_event(&CoreEvent::SetReactionFireMode {
             unit_id: self.unit_id,
@@ -493,7 +492,7 @@ impl Command for command::SetReactionFireMode {
     }
 }
 
-impl Command for command::Smoke {
+impl<'a> Command<'a> for command::Smoke {
     fn simulate(&self, core: &mut Core) {
         let pos = self.pos;
         let unit_id = self.unit_id;
@@ -1329,20 +1328,15 @@ impl Core {
         }}
     }
 
-    pub fn do_command(&mut self, command: &Command) {
-        /*
-        if let Err(err) = check_command(
-            &self.db,
-            self.current_player_id,
-            &TmpPartialState::new(
-                &self.state,
-                &self.players_info[&self.current_player_id].fow,
-            ),
-            command,
-        ) {
-            panic!("Bad command: {:?} ({:?})", err, command);
+    pub fn do_command(&mut self, command: &for<'a> Command<'a>) {
+        {
+            let id = self.current_player_id;
+            let fow = &self.players_info[&id].fow;
+            let tmp_state = TmpPartialState::new(&self.state, fow);
+            if let Err(err) = command.check(&self.db, id, &tmp_state) {
+                panic!("Bad command: {:?} ({:?})", err, command);
+            }
         }
-        */
         command.simulate(self);
         let sector_events = check_sectors(&self.db, &self.state);
         for event in sector_events {

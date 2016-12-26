@@ -244,8 +244,7 @@ impl Ai {
         None
     }
 
-    // TODO: вернуть какой-то бокс?
-    pub fn get_command(&mut self) -> Box<Command> {
+    pub fn get_command(&mut self) -> Box<for<'b> Command<'b>> {
         if let Some(cmd) = self.try_get_attack_command() {
             Box::new(cmd)
         } else if let Some(cmd) = self.try_get_move_command() {
