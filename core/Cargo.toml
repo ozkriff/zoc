@@ -9,5 +9,5 @@ name = "core"
 doctest = false
 
 [dependencies]
-cgmath = "*"
-rand = "*"
+cgmath = "0.12"
+rand = "0.3"
