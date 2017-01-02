@@ -1,8 +1,7 @@
-use cgmath::{self, InnerSpace, SquareMatrix, EuclideanSpace};
+use cgmath::{self, SquareMatrix, EuclideanSpace};
 use collision::{Plane, Ray, Intersect};
-use core::{MapPos, Distance};
+use core::{MapPos};
 use core::partial_state::{PartialState};
-use core::map::{spiral_iter};
 use core::game_state::{GameState};
 use context::{Context};
 use geom;
@@ -35,23 +34,8 @@ pub fn pick_tile(
     state: &PartialState,
     camera: &Camera,
 ) -> Option<MapPos> {
-    let p = pick_world_pos(context, camera);
-    let origin = MapPos{v: cgmath::Vector2 {
-        x: (p.v.x / (geom::HEX_IN_RADIUS * 2.0)) as i32,
-        y: (p.v.y / (geom::HEX_EX_RADIUS * 1.5)) as i32,
-    }};
-    let origin_world_pos = geom::map_pos_to_world_pos(origin);
-    let mut closest_map_pos = origin;
-    let mut min_dist = (origin_world_pos.v - p.v).magnitude();
-    for map_pos in spiral_iter(origin, Distance{n: 1}) {
-        let pos = geom::map_pos_to_world_pos(map_pos);
-        let d = (pos.v - p.v).magnitude();
-        if d < min_dist {
-            min_dist = d;
-            closest_map_pos = map_pos;
-        }
-    }
-    let pos = closest_map_pos;
+    let world_pos = pick_world_pos(context, camera);
+    let pos = geom::world_pos_to_map_pos(world_pos);
     if state.map().is_inboard(pos) {
         Some(pos)
     } else {

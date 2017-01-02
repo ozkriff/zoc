@@ -1,8 +1,9 @@
 use std::f32::consts::{PI};
-use cgmath::{Vector3, Rad, Angle};
-use core::{ExactPos, MapPos, SlotId, geom, get_slots_count};
+use cgmath::{Vector3, Vector2, Rad, Angle, InnerSpace};
+use core::{ExactPos, MapPos, SlotId, Distance, geom, get_slots_count};
 use core::dir::{Dir};
 use core::game_state::{GameState};
+use core::map::{spiral_iter};
 use types::{VertexCoord, WorldPos, WorldDistance};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
@@ -11,6 +12,25 @@ pub const MIN_LIFT_HEIGHT: f32 = 0.01;
 
 pub fn vec3_z(z: f32) -> Vector3<f32> {
     Vector3{x: 0.0, y: 0.0, z: z}
+}
+
+pub fn world_pos_to_map_pos(pos: WorldPos) -> MapPos {
+    let origin = MapPos{v: Vector2 {
+        x: (pos.v.x / (HEX_IN_RADIUS * 2.0)) as i32,
+        y: (pos.v.y / (HEX_EX_RADIUS * 1.5)) as i32,
+    }};
+    let origin_world_pos = map_pos_to_world_pos(origin);
+    let mut closest_map_pos = origin;
+    let mut min_dist = (origin_world_pos.v - pos.v).magnitude();
+    for map_pos in spiral_iter(origin, Distance{n: 1}) {
+        let world_pos = map_pos_to_world_pos(map_pos);
+        let d = (world_pos.v - pos.v).magnitude();
+        if d < min_dist {
+            min_dist = d;
+            closest_map_pos = map_pos;
+        }
+    }
+    closest_map_pos
 }
 
 pub fn map_pos_to_world_pos(p: MapPos) -> WorldPos {
