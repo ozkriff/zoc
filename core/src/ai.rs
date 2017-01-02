@@ -7,7 +7,8 @@ use dir::{Dir, dirs};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
-use check::{check_command};
+use check::{CheckCommand};
+use command;
 use ::{
     CoreEvent,
     Command,
@@ -128,7 +129,7 @@ impl Ai {
         false
     }
 
-    pub fn try_get_attack_command(&self) -> Option<Command> {
+    pub fn try_get_attack_command(&self) -> Option<command::AttackUnit> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
@@ -140,11 +141,11 @@ impl Ai {
                 if target.player_id == self.id {
                     continue;
                 }
-                let command = Command::AttackUnit {
+                let command = command::AttackUnit {
                     attacker_id: unit.id,
                     defender_id: target.id,
                 };
-                if check_command(&self.db, self.id, &self.state, &command).is_ok() {
+                if command.check(&self.db, self.id, &self.state).is_ok() {
                     return Some(command);
                 }
             }
@@ -152,7 +153,7 @@ impl Ai {
         None
     }
 
-    pub fn try_get_move_command(&mut self) -> Option<Command> {
+    pub fn try_get_move_command(&mut self) -> Option<command::Move> {
         for (_, unit) in self.state.units() {
             if unit.player_id != self.id {
                 continue;
@@ -178,12 +179,12 @@ impl Ai {
             if move_points.n < cost.n {
                 continue;
             }
-            let command = Command::Move {
+            let command = command::Move {
                 unit_id: unit.id,
                 path: path,
                 mode: MoveMode::Fast,
             };
-            if check_command(&self.db, self.id, &self.state, &command).is_err() {
+            if command.check(&self.db, self.id, &self.state).is_err() {
                 continue;
             }
             return Some(command);
@@ -210,7 +211,7 @@ impl Ai {
         reinforcement_sectors
     }
 
-    pub fn try_get_create_unit_command(&self) -> Option<Command> {
+    pub fn try_get_create_unit_command(&self) -> Option<command::CreateUnit> {
         let reinforcement_sectors = self.get_shuffled_reinforcement_sectors(self.id);
         let reinforcement_points = self.state.reinforcement_points()[&self.id];
         for type_index in get_shuffled_indices(self.db.unit_types()) {
@@ -229,11 +230,11 @@ impl Ai {
                     Some(pos) => pos,
                     None => continue,
                 };
-                let command = Command::CreateUnit {
+                let command = command::CreateUnit {
                     type_id: unit_type_id,
                     pos: exact_pos,
                 };
-                if check_command(&self.db, self.id, &self.state, &command).is_err() {
+                if command.check(&self.db, self.id, &self.state).is_err() {
                     continue;
                 }
                 return Some(command);
@@ -242,15 +243,15 @@ impl Ai {
         None
     }
 
-    pub fn get_command(&mut self) -> Command {
+    pub fn get_command(&mut self) -> Box<Command> {
         if let Some(cmd) = self.try_get_attack_command() {
-            cmd
+            Box::new(cmd)
         } else if let Some(cmd) = self.try_get_move_command() {
-            cmd
+            Box::new(cmd)
         } else if let Some(cmd) = self.try_get_create_unit_command() {
-            cmd
+            Box::new(cmd)
         } else {
-            Command::EndTurn
+            Box::new(command::EndTurn)
         }
     }
 }

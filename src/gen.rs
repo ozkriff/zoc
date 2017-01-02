@@ -1,11 +1,12 @@
 use std::path::{Path};
 use cgmath::{Vector2, Array};
-use core::{MapPos, Sector, MovePoints, ExactPos, Command, UnitId, PlayerId};
+use core::{MapPos, Sector, MovePoints, ExactPos, UnitId, PlayerId};
 use core::db::{Db};
 use core::pathfinder::{Pathfinder};
 use core::map::{Terrain};
 use core::game_state::{State};
-use core::check::{check_command};
+use core::check::{CheckCommand};
+use core::command;
 use context::{Context};
 use texture::{Texture, load_texture};
 use mesh::{Mesh};
@@ -132,11 +133,11 @@ pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &State, unit_id
         if unit.player_id == enemy.player_id {
             continue;
         }
-        let command = Command::AttackUnit {
+        let command = command::AttackUnit {
             attacker_id: unit_id,
             defender_id: enemy_id,
         };
-        if !check_command(db, unit.player_id, state, &command).is_ok() {
+        if !command.check(db, unit.player_id, state).is_ok() {
             continue;
         }
         let world_pos_from = geom::exact_pos_to_world_pos(state, unit.pos);
