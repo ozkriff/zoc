@@ -25,15 +25,15 @@ fn get_max_camera_pos(map_size: Size2) -> WorldPos {
 }
 
 #[derive(Clone, Debug)]
-pub struct Fow {
+pub struct FowInfo {
     pub map: Map<Option<NodeId>>,
     pub vanishing_node_ids: HashMap<NodeId, Time>,
     pub forthcoming_node_ids: HashMap<NodeId, Time>,
 }
 
-impl Fow {
-    pub fn new(map_size: Size2) -> Fow {
-        Fow {
+impl FowInfo {
+    pub fn new(map_size: Size2) -> FowInfo {
+        FowInfo {
             map: Map::new(map_size),
             vanishing_node_ids: HashMap::new(),
             forthcoming_node_ids: HashMap::new(),
@@ -47,7 +47,7 @@ pub struct PlayerInfo {
     pub pathfinder: Pathfinder,
     pub scene: Scene,
     pub camera: Camera,
-    pub fow: Fow,
+    pub fow_info: FowInfo,
 }
 
 #[derive(Clone, Debug)]
@@ -68,7 +68,7 @@ impl PlayerInfoManager {
             pathfinder: Pathfinder::new(db.clone(), map_size),
             scene: Scene::new(),
             camera: camera.clone(),
-            fow: Fow::new(map_size),
+            fow_info: FowInfo::new(map_size),
         });
         if options.game_type == core::GameType::Hotseat {
             let state2 = PartialState::new(db.clone(), options, PlayerId{id: 1});
@@ -77,7 +77,7 @@ impl PlayerInfoManager {
                 pathfinder: Pathfinder::new(db, map_size),
                 scene: Scene::new(),
                 camera: camera,
-                fow: Fow::new(map_size),
+                fow_info: FowInfo::new(map_size),
             });
         }
         PlayerInfoManager{info: m}

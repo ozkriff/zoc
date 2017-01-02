@@ -347,7 +347,7 @@ impl TacticalScreen {
 
     fn regenerate_fow(&mut self) {
         let player_info = self.player_info.get_mut(self.core.player_id());
-        let fow = &mut player_info.fow;
+        let fow = &mut player_info.fow_info;
         let state = &player_info.game_state;
         for pos in state.map().get_iter() {
             let is_visible = state.is_ground_tile_visible(pos);
@@ -382,7 +382,7 @@ impl TacticalScreen {
         let max_alpha = 0.4;
         let player_info = self.player_info.get_mut(self.core.player_id());
         let scene = &mut player_info.scene;
-        let fow = &mut player_info.fow;
+        let fow = &mut player_info.fow_info;
         for (&node_id, time) in &mut fow.forthcoming_node_ids {
             time.n += dtime.n;
             let mut a = (time.n / FOW_FADING_TIME) * max_alpha;
