@@ -933,7 +933,7 @@ impl Core {
         }}
     }
 
-    fn simulation_step(&mut self, command: Command) {
+    fn check_command(&mut self, command: &Command) {
         if let Err(err) = check_command(
             &self.db,
             self.current_player_id,
@@ -945,6 +945,9 @@ impl Core {
         ) {
             panic!("Bad command: {:?} ({:?})", err, command);
         }
+    }
+
+    fn simulation_step(&mut self, command: Command) {
         match command {
             Command::EndTurn => {
                 let old_id = self.current_player_id;
@@ -1137,6 +1140,7 @@ impl Core {
     }
 
     pub fn do_command(&mut self, command: Command) {
+        self.check_command(&command);
         self.simulation_step(command);
     }
 
