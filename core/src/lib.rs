@@ -1169,31 +1169,29 @@ impl Core {
         }
     }
 
+    fn filter_event(&mut self, player_id: PlayerId, event: &CoreEvent) {
+        let mut i = self.players_info.get_mut(&player_id).unwrap();
+        let state = &self.state;
+        let (filtered_events, active_unit_ids) = filter::filter_events(
+            state, player_id, &i.fow, event);
+        for event in filtered_events {
+            i.fow.apply_event(state, &event);
+            i.events.push_back(event);
+            let new_enemies = filter::get_visible_enemies(
+                state, &i.fow, player_id);
+            let show_hide_events = filter::show_or_hide_passive_enemies(
+                state, &active_unit_ids, &i.visible_enemies, &new_enemies);
+            i.events.extend(show_hide_events);
+            i.visible_enemies = new_enemies;
+        }
+    }
+
     fn do_core_event(&mut self, event: &CoreEvent) {
         self.state.apply_event(event);
-        for player in &self.players {
-            let (filtered_events, active_unit_ids) = filter::filter_events(
-                &self.state,
-                player.id,
-                &self.players_info[&player.id].fow,
-                event,
-            );
-            let mut i = self.players_info.get_mut(&player.id)
-                .expect("core: Can`t get player`s info");
-            for event in filtered_events {
-                i.fow.apply_event(&self.state, &event);
-                i.events.push_back(event);
-                let new_visible_enemies = filter::get_visible_enemies(
-                    &self.state, &i.fow, player.id);
-                let show_hide_events = filter::show_or_hide_passive_enemies(
-                    &self.state,
-                    &active_unit_ids,
-                    &i.visible_enemies,
-                    &new_visible_enemies,
-                );
-                i.events.extend(show_hide_events);
-                i.visible_enemies = new_visible_enemies;
-            }
+        let player_ids: Vec<_> = self.players.iter()
+            .map(|player| player.id).collect();
+        for player_id in player_ids {
+            self.filter_event(player_id, &event);
         }
         if let CoreEvent::EndTurn{old_id, new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
