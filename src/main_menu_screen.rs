@@ -20,7 +20,7 @@ pub struct MainMenuScreen {
 
 impl MainMenuScreen {
     pub fn new(context: &mut Context) -> MainMenuScreen {
-        let map_names = vec!["map01", "map02"];
+        let map_names = vec!["map01", "map02", "map03", "map04", "map05"];
         let selected_map_index = 0;
         let mut button_manager = ButtonManager::new();
         // TODO: Use relative coords in ScreenPos - x: [0.0, 1.0], y: [0.0, 1.0]
