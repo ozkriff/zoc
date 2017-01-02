@@ -4,8 +4,7 @@ use core::{MapPos, Sector, MovePoints, ExactPos, Command, UnitId, PlayerId};
 use core::db::{Db};
 use core::pathfinder::{Pathfinder};
 use core::map::{Terrain};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::check::{check_command};
 use context::{Context};
 use texture::{Texture, load_texture};
@@ -57,7 +56,7 @@ pub fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture
     generate_tiles_mesh(context, tex, sector.positions.to_vec())
 }
 
-pub fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
+pub fn generate_map_mesh(context: &mut Context, state: &State, tex: Texture) -> Mesh {
     let mut normal_positions = Vec::new();
     for tile_pos in state.map().get_iter() {
         if *state.map().tile(tile_pos) != Terrain::Water {
@@ -67,7 +66,7 @@ pub fn generate_map_mesh(context: &mut Context, state: &PartialState, tex: Textu
     generate_tiles_mesh(context, tex, normal_positions)
 }
 
-pub fn generate_water_mesh(context: &mut Context, state: &PartialState, tex: Texture) -> Mesh {
+pub fn generate_water_mesh(context: &mut Context, state: &State, tex: Texture) -> Mesh {
     let mut normal_positions = Vec::new();
     for pos in state.map().get_iter() {
         if *state.map().tile(pos) == Terrain::Water {
@@ -84,7 +83,7 @@ pub fn empty_mesh(context: &mut Context) -> Mesh {
 pub fn build_walkable_mesh(
     context: &mut Context,
     pf: &Pathfinder,
-    state: &PartialState,
+    state: &State,
     move_points: MovePoints,
 ) -> Mesh {
     let map = state.map();
@@ -124,7 +123,7 @@ pub fn build_walkable_mesh(
     Mesh::new_wireframe(context, &vertices, &indices)
 }
 
-pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &PartialState, unit_id: UnitId) -> Mesh {
+pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &State, unit_id: UnitId) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let unit = state.unit(unit_id);

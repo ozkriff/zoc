@@ -2,14 +2,13 @@ use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{PlayerId, Score};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, is_tap};
 use types::{ScreenPos, Time};
 
-fn winner_id(state: &PartialState) -> PlayerId {
+fn winner_id(state: &State) -> PlayerId {
     // TODO: `CoreEvent::GameEnd` event?
     let mut winner_id = PlayerId{id: 0};
     let mut winner_score = Score{n: 0};
@@ -28,7 +27,7 @@ pub struct GameResultsScreen {
 }
 
 impl GameResultsScreen {
-    pub fn new(context: &mut Context, state: &PartialState) -> GameResultsScreen {
+    pub fn new(context: &mut Context, state: &State) -> GameResultsScreen {
         let mut button_manager = ButtonManager::new();
         let wh = context.win_size().h;
         let mut pos = ScreenPos{v: Vector2{x: 10, y: wh -10}};

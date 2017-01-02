@@ -2,7 +2,7 @@ use std::f32::consts::{PI};
 use cgmath::{Vector3, Vector2, Rad, Angle, InnerSpace};
 use core::{ExactPos, MapPos, SlotId, Distance, geom, get_slots_count};
 use core::dir::{Dir};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::map::{spiral_iter};
 use types::{VertexCoord, WorldPos, WorldDistance};
 
@@ -38,7 +38,7 @@ pub fn map_pos_to_world_pos(p: MapPos) -> WorldPos {
     WorldPos{v: v}
 }
 
-pub fn exact_pos_to_world_pos<S: GameState>(state: &S, p: ExactPos) -> WorldPos {
+pub fn exact_pos_to_world_pos(state: &State, p: ExactPos) -> WorldPos {
     let v = geom::map_pos_to_world_pos(p.map_pos).extend(0.0);
     let n = get_slots_count(state.map(), p.map_pos);
     match p.slot_id {

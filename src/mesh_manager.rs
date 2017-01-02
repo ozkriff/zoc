@@ -1,8 +1,7 @@
 use std::collections::{HashMap};
 use context::{Context};
 use core::{self};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use texture::{load_texture};
 use mesh::{Mesh, MeshId};
 use selection::{get_selection_mesh};
@@ -35,7 +34,7 @@ impl MeshIdManager {
     pub fn new(
         context: &mut Context,
         meshes: &mut MeshManager,
-        state: &PartialState,
+        state: &State,
     ) -> MeshIdManager {
         let smoke_tex = load_texture(context, &fs::load("smoke.png").into_inner());
         let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());

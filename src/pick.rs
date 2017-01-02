@@ -1,8 +1,7 @@
 use cgmath::{self, SquareMatrix, EuclideanSpace};
 use collision::{Plane, Ray, Intersect};
 use core::{MapPos};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use context::{Context};
 use geom;
 use camera::Camera;
@@ -31,7 +30,7 @@ pub fn pick_world_pos(context: &Context, camera: &Camera) -> WorldPos {
 
 pub fn pick_tile(
     context: &Context,
-    state: &PartialState,
+    state: &State,
     camera: &Camera,
 ) -> Option<MapPos> {
     let world_pos = pick_world_pos(context, camera);

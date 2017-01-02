@@ -1,7 +1,7 @@
 use std::default::{Default};
 use std::rc::{Rc};
 use types::{Size2};
-use game_state::{GameState};
+use game_state::{State};
 use map::{Map, Terrain, distance};
 use fov::{fov, simple_fov};
 use db::{Db};
@@ -20,8 +20,8 @@ impl Default for TileVisibility {
     fn default() -> Self { TileVisibility::No }
 }
 
-fn calc_visibility<S: GameState>(
-    state: &S,
+fn calc_visibility(
+    state: &State,
     unit_type: &UnitType,
     origin: MapPos,
     pos: MapPos,
@@ -77,7 +77,11 @@ impl Fow {
         }
     }
 
-    pub fn is_visible(&self, unit: &Unit, pos: ExactPos) -> bool {
+    pub fn is_visible(&self, unit: &Unit) -> bool {
+        self.is_visible_at(unit, unit.pos)
+    }
+
+    pub fn is_visible_at(&self, unit: &Unit, pos: ExactPos) -> bool {
         if pos.slot_id == SlotId::Air {
             *self.air_map.tile(pos.map_pos) != TileVisibility::No
         } else if unit.is_loaded {
@@ -92,7 +96,7 @@ impl Fow {
         }
     }
 
-    fn fov_unit<S: GameState>(&mut self, state: &S, unit: &Unit) {
+    fn fov_unit(&mut self, state: &State, unit: &Unit) {
         assert!(unit.is_alive);
         let origin = unit.pos.map_pos;
         let unit_type = self.db.unit_type(unit.type_id);
@@ -122,7 +126,7 @@ impl Fow {
         }
     }
 
-    fn reset<S: GameState>(&mut self, state: &S) {
+    fn reset(&mut self, state: &State) {
         self.clear();
         for (_, unit) in state.units() {
             if unit.player_id == self.player_id && unit.is_alive {
@@ -131,9 +135,9 @@ impl Fow {
         }
     }
 
-    pub fn apply_event<S: GameState>(
+    pub fn apply_event(
         &mut self,
-        state: &S,
+        state: &State,
         event: &CoreEvent,
     ) {
         match *event {
@@ -186,29 +190,5 @@ impl Fow {
             CoreEvent::RemoveSmoke{..} |
             CoreEvent::VictoryPoint{..} => {},
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct FakeFow;
-
-pub fn fake_fow() -> &'static FakeFow {
-    static FAKE_FOW: FakeFow = FakeFow;
-    &FAKE_FOW
-}
-
-pub trait FogOfWar: Clone {
-    fn is_visible(&self, unit: &Unit, pos: ExactPos) -> bool;
-}
-
-impl FogOfWar for FakeFow {
-    fn is_visible(&self, _: &Unit, _: ExactPos) -> bool {
-        true
-    }
-}
-
-impl FogOfWar for Fow {
-    fn is_visible(&self, unit: &Unit, pos: ExactPos) -> bool {
-        self.is_visible(unit, pos)
     }
 }

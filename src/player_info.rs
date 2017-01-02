@@ -1,8 +1,7 @@
 use std::collections::{HashMap};
 use std::rc::{Rc};
 use cgmath::{Vector2, Vector3};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::pathfinder::{Pathfinder};
 use core::map::{Map};
 use core::db::{Db};
@@ -43,7 +42,7 @@ impl FowInfo {
 
 #[derive(Clone, Debug)]
 pub struct PlayerInfo {
-    pub game_state: PartialState,
+    pub game_state: State,
     pub pathfinder: Pathfinder,
     pub scene: Scene,
     pub camera: Camera,
@@ -57,7 +56,7 @@ pub struct PlayerInfoManager {
 
 impl PlayerInfoManager {
     pub fn new(db: Rc<Db>, context: &Context, options: &core::Options) -> PlayerInfoManager {
-        let state = PartialState::new(db.clone(), options, PlayerId{id: 0});
+        let state = State::new_partial(db.clone(), options, PlayerId{id: 0});
         let map_size = state.map().size();
         let mut m = HashMap::new();
         let mut camera = Camera::new(context.win_size());
@@ -71,7 +70,7 @@ impl PlayerInfoManager {
             fow_info: FowInfo::new(map_size),
         });
         if options.game_type == core::GameType::Hotseat {
-            let state2 = PartialState::new(db.clone(), options, PlayerId{id: 1});
+            let state2 = State::new_partial(db.clone(), options, PlayerId{id: 1});
             m.insert(PlayerId{id: 1}, PlayerInfo {
                 game_state: state2,
                 pathfinder: Pathfinder::new(db, map_size),

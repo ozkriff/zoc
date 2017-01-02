@@ -6,9 +6,6 @@ pub mod map;
 pub mod db;
 pub mod unit;
 pub mod dir;
-pub mod partial_state;
-pub mod tmp_partial_state;
-pub mod full_state;
 pub mod game_state;
 pub mod pathfinder;
 pub mod misc;
@@ -18,7 +15,6 @@ pub mod check;
 mod ai;
 mod fov;
 mod fow;
-mod internal_state;
 mod filter;
 
 use std::{cmp, fmt};
@@ -28,9 +24,7 @@ use rand::{thread_rng, Rng};
 use cgmath::{Vector2};
 use types::{Size2};
 use misc::{clamp};
-use full_state::{FullState};
-use game_state::{GameState, GameStateMut, ObjectsAtIter};
-use tmp_partial_state::{TmpPartialState};
+use game_state::{State, ObjectsAtIter};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -132,7 +126,7 @@ impl Iterator for ExactPosIter {
     }
 }
 
-fn check_sectors<S: GameState>(db: &Db, state: &S) -> Vec<CoreEvent> {
+fn check_sectors(db: &Db, state: &State) -> Vec<CoreEvent> {
     let mut events = Vec::new();
     for (&sector_id, sector) in state.sectors() {
         let mut claimers = HashSet::new();
@@ -373,8 +367,8 @@ pub fn is_unit_in_object(unit: &Unit, object: &Object) -> bool {
 }
 
 // TODO: simplify/optimize
-pub fn find_next_player_unit_id<S: GameState>(
-    state: &S,
+pub fn find_next_player_unit_id(
+    state: &State,
     player_id: PlayerId,
     unit_id: UnitId,
 ) -> UnitId {
@@ -390,8 +384,8 @@ pub fn find_next_player_unit_id<S: GameState>(
 }
 
 // TODO: simplify/optimize
-pub fn find_prev_player_unit_id<S: GameState>(
-    state: &S,
+pub fn find_prev_player_unit_id(
+    state: &State,
     player_id: PlayerId,
     unit_id: UnitId,
 ) -> UnitId {
@@ -410,7 +404,7 @@ pub fn is_loaded_or_attached(unit: &Unit) -> bool {
     unit.is_loaded || unit.is_attached
 }
 
-pub fn get_unit_ids_at<S: GameState>(state: &S, pos: MapPos) -> Vec<UnitId> {
+pub fn get_unit_ids_at(state: &State, pos: MapPos) -> Vec<UnitId> {
     let mut ids = Vec::new();
     for unit in state.units_at(pos) {
         if !is_loaded_or_attached(unit) {
@@ -437,8 +431,33 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
 #[derive(Clone, Debug)]
 struct PlayerInfo {
     events: VecDeque<CoreEvent>,
-    fow: Fow,
     visible_enemies: HashSet<UnitId>,
+
+    // This filed is optional because we need to temporary
+    // put its Fow into Core's State for filtering events.
+    //
+    // See State::to_full, State:to_partial
+    //
+    fow: Option<Fow>,
+}
+
+impl PlayerInfo {
+    fn new(db: Rc<Db>, player_id: PlayerId, map_size: Size2) -> PlayerInfo {
+        let fow = Fow::new(db, map_size, player_id);
+        PlayerInfo {
+            fow: Some(fow),
+            events: VecDeque::new(),
+            visible_enemies: HashSet::new(),
+        }
+    }
+
+    fn fow(&self) -> &Fow {
+        self.fow.as_ref().unwrap()
+    }
+
+    fn fow_mut(&mut self) -> &mut Fow {
+        self.fow.as_mut().unwrap()
+    }
 }
 
 pub fn print_unit_info(db: &Db, unit: &Unit) {
@@ -489,7 +508,7 @@ pub fn print_unit_info(db: &Db, unit: &Unit) {
     println!("  smoke: {:?}", weapon_type.smoke);
 }
 
-pub fn print_terrain_info<S: GameState>(state: &S, pos: MapPos) {
+pub fn print_terrain_info(state: &State, pos: MapPos) {
     match *state.map().tile(pos) {
         Terrain::City => println!("City"),
         Terrain::Trees => println!("Trees"),
@@ -526,7 +545,7 @@ pub struct Options {
 
 #[derive(Clone, Debug)]
 pub struct Core {
-    state: FullState,
+    state: State,
     players: Vec<Player>,
     current_player_id: PlayerId,
     db: Rc<Db>,
@@ -553,18 +572,12 @@ fn get_players_list(options: &Options) -> Vec<Player> {
     )
 }
 
-fn get_player_info_lists(db: Rc<Db>, map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
+fn get_player_info_lists(db: &Rc<Db>, map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
-    map.insert(PlayerId{id: 0}, PlayerInfo {
-        fow: Fow::new(db.clone(), map_size, PlayerId{id: 0}),
-        events: VecDeque::new(),
-        visible_enemies: HashSet::new(),
-    });
-    map.insert(PlayerId{id: 1}, PlayerInfo {
-        fow: Fow::new(db, map_size, PlayerId{id: 1}),
-        events: VecDeque::new(),
-        visible_enemies: HashSet::new(),
-    });
+    map.insert(PlayerId{id: 0}, PlayerInfo::new(
+        db.clone(), PlayerId{id: 0}, map_size));
+    map.insert(PlayerId{id: 1}, PlayerInfo::new(
+        db.clone(), PlayerId{id: 1}, map_size));
     map
 }
 
@@ -594,9 +607,9 @@ pub fn get_free_slot_for_building(
     None
 }
 
-pub fn get_free_exact_pos<S: GameState>(
+pub fn get_free_exact_pos(
     db: &Db,
-    state: &S,
+    state: &State,
     type_id: UnitTypeId,
     pos: MapPos,
 ) -> Option<ExactPos> {
@@ -607,9 +620,9 @@ pub fn get_free_exact_pos<S: GameState>(
     Some(ExactPos{map_pos: pos, slot_id: slot_id})
 }
 
-pub fn get_free_slot_id<S: GameState>(
+pub fn get_free_slot_id(
     db: &Db,
-    state: &S,
+    state: &State,
     type_id: UnitTypeId,
     pos: MapPos,
 ) -> Option<SlotId> {
@@ -684,9 +697,9 @@ pub fn get_slots_count(map: &Map<Terrain>, pos: MapPos) -> i32 {
 }
 
 // TODO: join logic with get_free_slot_id
-pub fn is_exact_pos_free<S: GameState>(
+pub fn is_exact_pos_free(
     db: &Db,
-    state: &S,
+    state: &State,
     type_id: UnitTypeId,
     pos: ExactPos,
 ) -> bool {
@@ -709,7 +722,7 @@ pub fn is_exact_pos_free<S: GameState>(
     true
 }
 
-fn cover_bonus<S: GameState>(db: &Db, state: &S, defender: &Unit) -> i32 {
+fn cover_bonus(db: &Db, state: &State, defender: &Unit) -> i32 {
     let defender_type = db.unit_type(defender.type_id);
     if defender_type.is_infantry {
         match *state.map().tile(defender.pos) {
@@ -722,9 +735,9 @@ fn cover_bonus<S: GameState>(db: &Db, state: &S, defender: &Unit) -> i32 {
     }
 }
 
-pub fn hit_chance<S: GameState>(
+pub fn hit_chance(
     db: &Db,
-    state: &S,
+    state: &State,
     attacker: &Unit,
     defender: &Unit,
 ) -> HitChance {
@@ -746,9 +759,8 @@ pub fn hit_chance<S: GameState>(
 impl Core {
     pub fn new(options: &Options) -> Core {
         let db = Rc::new(Db::new());
-        let state = FullState::new(db.clone(), options);
-        let map_size = state.map().size();
-        let players_info = get_player_info_lists(db.clone(), map_size);
+        let state = State::new_full(db.clone(), options);
+        let players_info = get_player_info_lists(&db, state.map().size());
         let ai = Ai::new(db.clone(), options, PlayerId{id:1});
         Core {
             state: state,
@@ -833,8 +845,8 @@ impl Core {
         let suppression = hit_chance.n / 2;
         let killed = cmp::min(
             defender.count, self.get_killed_count(attacker, defender));
-        let fow = &self.players_info[&defender.player_id].fow;
-        let is_visible = fow.is_visible(attacker, attacker.pos);
+        let fow = self.players_info[&defender.player_id].fow();
+        let is_visible = fow.is_visible(attacker);
         let ambush_chance = 70;
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
@@ -867,8 +879,8 @@ impl Core {
             return false;
         }
         // TODO: move to `check_attack`
-        let fow = &self.players_info[&attacker.player_id].fow;
-        if !fow.is_visible(defender, defender.pos) {
+        let fow = self.players_info[&attacker.player_id].fow();
+        if !fow.is_visible(defender) {
             return false;
         }
         let check_attack_result = check_attack(
@@ -934,17 +946,13 @@ impl Core {
     }
 
     fn check_command(&mut self, command: &Command) {
-        if let Err(err) = check_command(
-            &self.db,
-            self.current_player_id,
-            &TmpPartialState::new(
-                &self.state,
-                &self.players_info[&self.current_player_id].fow,
-            ),
-            &command,
-        ) {
+        let id = self.current_player_id;
+        let mut i = self.players_info.get_mut(&id).unwrap();
+        self.state.to_partial(i.fow.take().unwrap());
+        if let Err(err) = check_command(&self.db, id, &self.state, command) {
             panic!("Bad command: {:?} ({:?})", err, command);
         }
+        i.fow = Some(self.state.to_full());
     }
 
     fn simulation_step(&mut self, command: Command) {
@@ -1177,12 +1185,12 @@ impl Core {
         let mut i = self.players_info.get_mut(&player_id).unwrap();
         let state = &self.state;
         let (filtered_events, active_unit_ids) = filter::filter_events(
-            state, player_id, &i.fow, event);
-        for event in filtered_events {
-            i.fow.apply_event(state, &event);
-            i.events.push_back(event);
+            state, player_id, i.fow(), event);
+        for filtered_event in filtered_events {
+            i.fow_mut().apply_event(state, &filtered_event);
+            i.events.push_back(filtered_event);
             let new_enemies = filter::get_visible_enemies(
-                state, &i.fow, player_id);
+                state, i.fow(), player_id);
             let show_hide_events = filter::show_or_hide_passive_enemies(
                 state, &active_unit_ids, &i.visible_enemies, &new_enemies);
             i.events.extend(show_hide_events);

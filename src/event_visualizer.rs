@@ -1,8 +1,7 @@
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Rad};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::{
     self,
     UnitInfo,
@@ -31,7 +30,7 @@ static WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
     fn draw(&mut self, scene: &mut Scene, dtime: Time);
-    fn end(&mut self, scene: &mut Scene, state: &PartialState);
+    fn end(&mut self, scene: &mut Scene, state: &State);
 }
 
 #[derive(Clone, Debug)]
@@ -50,7 +49,7 @@ impl EventVisualizer for EventMoveVisualizer {
         scene.node_mut(self.node_id).pos = pos;
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
+    fn end(&mut self, scene: &mut Scene, _: &State) {
         let node = scene.node_mut(self.node_id);
         node.pos = self.move_helper.destination();
     }
@@ -58,7 +57,7 @@ impl EventVisualizer for EventMoveVisualizer {
 
 impl EventMoveVisualizer {
     pub fn new(
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
@@ -94,7 +93,7 @@ impl EventVisualizer for EventEndTurnVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 fn try_to_fix_attached_unit_pos(
@@ -121,7 +120,7 @@ fn try_to_fix_attached_unit_pos(
 
 fn show_unit_at(
     db: &Db,
-    state: &PartialState,
+    state: &State,
     scene: &mut Scene,
     unit_info: &UnitInfo,
     mesh_id: MeshId,
@@ -192,7 +191,7 @@ fn get_unit_scene_nodes(
 impl EventCreateUnitVisualizer {
     pub fn new(
         db: &Db,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
@@ -223,7 +222,7 @@ impl EventVisualizer for EventCreateUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -240,7 +239,7 @@ pub struct EventAttackUnitVisualizer {
 impl EventAttackUnitVisualizer {
     pub fn new(
         db: &Db,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         attack_info: &AttackInfo,
         mesh_ids: &MeshIdManager,
@@ -371,7 +370,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
+    fn end(&mut self, scene: &mut Scene, _: &State) {
         if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
             let killed = self.attack_info.killed as usize;
@@ -404,7 +403,7 @@ pub struct EventShowUnitVisualizer;
 impl EventShowUnitVisualizer {
     pub fn new(
         db: &Db,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
@@ -434,7 +433,7 @@ impl EventVisualizer for EventShowUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -443,14 +442,18 @@ pub struct EventHideUnitVisualizer;
 impl EventHideUnitVisualizer {
     pub fn new(
         scene: &mut Scene,
-        state: &PartialState,
+        _: &State,
         unit_id: UnitId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         // passenger doesn't have any scene node
-        if scene.unit_id_to_node_id_opt(unit_id).is_some() {
-            let pos = state.unit(unit_id).pos.map_pos;
-            map_text.add_text(pos, "lost");
+        if let Some(node_id) = scene.unit_id_to_node_id_opt(unit_id) {
+            // We can't read 'pos' from `state.unit(unit_id).pos`
+            // because this unit may be in a fogged tile now
+            // so State will filter him out.
+            let world_pos = scene.node(node_id).pos;
+            let map_pos = geom::world_pos_to_map_pos(world_pos);
+            map_text.add_text(map_pos, "lost");
             scene.remove_unit(unit_id);
         }
         Box::new(EventHideUnitVisualizer)
@@ -464,7 +467,7 @@ impl EventVisualizer for EventHideUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -476,7 +479,7 @@ pub struct EventUnloadUnitVisualizer {
 impl EventUnloadUnitVisualizer {
     pub fn new(
         db: &Db,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         unit_info: &UnitInfo,
         mesh_id: MeshId,
@@ -511,7 +514,7 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -523,7 +526,7 @@ pub struct EventLoadUnitVisualizer {
 impl EventLoadUnitVisualizer {
     pub fn new(
         scene: &mut Scene,
-        state: &PartialState,
+        state: &State,
         unit_id: UnitId,
         transporter_pos: ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
@@ -555,7 +558,7 @@ impl EventVisualizer for EventLoadUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
+    fn end(&mut self, scene: &mut Scene, _: &State) {
         scene.remove_unit(self.passenger_id);
     }
 }
@@ -565,7 +568,7 @@ pub struct EventSetReactionFireModeVisualizer;
 
 impl EventSetReactionFireModeVisualizer {
     pub fn new(
-        state: &PartialState,
+        state: &State,
         unit_id: UnitId,
         mode: ReactionFireMode,
         map_text: &mut MapTextManager,
@@ -590,7 +593,7 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -599,7 +602,7 @@ pub struct EventSectorOwnerChangedVisualizer;
 impl EventSectorOwnerChangedVisualizer {
     pub fn new(
         scene: &mut Scene,
-        state: &PartialState,
+        state: &State,
         sector_id: SectorId,
         owner_id: Option<PlayerId>,
         map_text: &mut MapTextManager,
@@ -635,7 +638,7 @@ impl EventVisualizer for EventSectorOwnerChangedVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -668,7 +671,7 @@ impl EventVisualizer for EventVictoryPointVisualizer {
         self.time.n += dt.n;
     }
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 const SMOKE_ALPHA: f32 = 0.7;
@@ -727,7 +730,7 @@ impl EventVisualizer for EventSmokeVisualizer {
         }
     }
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
 #[derive(Clone, Debug)]
@@ -739,7 +742,7 @@ pub struct EventRemoveSmokeVisualizer {
 
 impl EventRemoveSmokeVisualizer {
     pub fn new(
-        state: &PartialState,
+        state: &State,
         object_id: ObjectId,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
@@ -767,7 +770,7 @@ impl EventVisualizer for EventRemoveSmokeVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
+    fn end(&mut self, scene: &mut Scene, _: &State) {
         scene.remove_object(self.object_id);
     }
 }
@@ -780,7 +783,7 @@ pub struct EventAttachVisualizer {
 
 impl EventAttachVisualizer {
     pub fn new(
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         transporter_id: UnitId,
         attached_unit_id: UnitId,
@@ -815,7 +818,7 @@ impl EventVisualizer for EventAttachVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &PartialState) {
+    fn end(&mut self, scene: &mut Scene, _: &State) {
         try_to_fix_attached_unit_pos(
             scene, self.transporter_id, self.attached_unit_id);
     }
@@ -829,7 +832,7 @@ pub struct EventDetachVisualizer {
 impl EventDetachVisualizer {
     pub fn new(
         db: &Db,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         transporter_id: UnitId,
         pos: ExactPos,
@@ -880,5 +883,5 @@ impl EventVisualizer for EventDetachVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &PartialState) {}
+    fn end(&mut self, _: &mut Scene, _: &State) {}
 }

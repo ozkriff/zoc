@@ -1,5 +1,5 @@
 use std::{fmt, error};
-use game_state::{GameState};
+use game_state::{State};
 use map::{distance};
 use pathfinder::{path_cost, tile_cost};
 use unit::{Unit};
@@ -101,12 +101,13 @@ impl error::Error for CommandError {
     }
 }
 
-pub fn check_command<S: GameState>(
+pub fn check_command(
     db: &Db,
     player_id: PlayerId,
-    state: &S,
+    state: &State,
     command: &Command,
 ) -> Result<(), CommandError> {
+    assert!(state.is_partial());
     match *command {
         Command::EndTurn => Ok(()),
         Command::CreateUnit{pos, type_id} => {
@@ -379,9 +380,9 @@ pub fn check_command<S: GameState>(
     }
 }
 
-pub fn check_attack<S: GameState>(
+pub fn check_attack(
     db: &Db,
-    state: &S,
+    state: &State,
     attacker: &Unit,
     defender: &Unit,
     fire_mode: FireMode,
@@ -434,9 +435,9 @@ pub fn check_attack<S: GameState>(
 }
 
 // TODO: profile and optimize!
-fn los<S: GameState>(
+fn los(
     db: &Db,
-    state: &S,
+    state: &State,
     attacker: &Unit,
     defender: &Unit,
 ) -> bool {

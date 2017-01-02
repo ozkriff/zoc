@@ -4,8 +4,7 @@ use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{self, ObjectClass, UnitId, MapPos, ExactPos, HitChance};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::db::{Db};
 use core::check::{check_command};
 use types::{Time, ScreenPos};
@@ -17,7 +16,7 @@ use reinforcements_popup;
 
 fn can_unload_unit(
     db: &Db,
-    state: &PartialState,
+    state: &State,
     transporter_id: UnitId,
     pos: MapPos,
 ) -> Option<ExactPos> {
@@ -46,7 +45,7 @@ fn can_unload_unit(
 
 fn can_detach_unit(
     db: &Db,
-    state: &PartialState,
+    state: &State,
     transporter_id: UnitId,
     pos: MapPos,
 ) -> Option<ExactPos> {
@@ -277,7 +276,7 @@ pub struct ContextMenuPopup {
 
 impl ContextMenuPopup {
     pub fn new(
-        state: &PartialState,
+        state: &State,
         db: &Db,
         context: &mut Context,
         pos: ScreenPos,

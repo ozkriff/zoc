@@ -7,8 +7,7 @@ use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use core::map::{Terrain};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState, GameStateMut};
+use core::game_state::{State};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::unit::{UnitTypeId};
 use core::misc::{opt_rx_collect};
@@ -42,7 +41,7 @@ fn target_score() -> core::Score {
     core::Score{n: 5}
 }
 
-fn score_text(state: &PartialState) -> String {
+fn score_text(state: &State) -> String {
     let score = state.score();
     // TODO: get rid of magic num
     format!("P0:{}/{}, P1:{}/{}",
@@ -53,7 +52,7 @@ fn score_text(state: &PartialState) -> String {
     )
 }
 
-fn reinforcement_points_text(state: &PartialState, player_id: PlayerId) -> String {
+fn reinforcement_points_text(state: &State, player_id: PlayerId) -> String {
     let rp = state.reinforcement_points()[&player_id].n;
     let rp_per_turn = 10; // TODO: magic num
     format!("reinforcements: {} (+{})", rp, rp_per_turn)
@@ -92,7 +91,7 @@ pub struct Gui {
 }
 
 impl Gui {
-    fn new(context: &mut Context, state: &PartialState) -> Gui {
+    fn new(context: &mut Context, state: &State) -> Gui {
         let mut button_manager = ButtonManager::new();
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_end_turn_id = button_manager.add_button(
@@ -154,7 +153,7 @@ impl Gui {
     }
 }
 
-fn make_scene(state: &PartialState, mesh_ids: &MeshIdManager) -> Scene {
+fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
     let mut scene = Scene::new();
     let map = state.map();
     scene.add_node(SceneNode {
@@ -436,7 +435,7 @@ impl TacticalScreen {
         self.hide_selected_unit_meshes(context);
     }
 
-    fn current_state(&self) -> &PartialState {
+    fn current_state(&self) -> &State {
         &self.player_info.get(self.core.player_id()).game_state
     }
 

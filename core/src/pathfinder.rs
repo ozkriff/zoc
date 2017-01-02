@@ -4,8 +4,7 @@ use types::{Size2};
 use db::{Db};
 use unit::{Unit};
 use map::{Map, Terrain};
-use partial_state::{PartialState};
-use game_state::{GameState};
+use game_state::{State};
 use dir::{Dir, dirs};
 use ::{MovePoints, ExactPos, SlotId, ObjectClass, get_free_exact_pos};
 
@@ -32,7 +31,7 @@ impl Default for Tile {
     }
 }
 
-pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Unit) -> Option<Vec<ExactPos>> {
+pub fn truncate_path(db: &Db, state: &State, path: &[ExactPos], unit: &Unit) -> Option<Vec<ExactPos>> {
     let mut new_path = Vec::new();
     let mut cost = MovePoints{n: 0};
     new_path.push(path[0]);
@@ -53,7 +52,7 @@ pub fn truncate_path(db: &Db, state: &PartialState, path: &[ExactPos], unit: &Un
     }
 }
 
-pub fn path_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, path: &[ExactPos])
+pub fn path_cost(db: &Db, state: &State, unit: &Unit, path: &[ExactPos])
     -> MovePoints
 {
     let mut cost = MovePoints{n: 0};
@@ -71,7 +70,7 @@ pub fn max_cost() -> MovePoints {
 }
 
 // TODO: increase cost for attached units
-pub fn tile_cost<S: GameState>(db: &Db, state: &S, unit: &Unit, from: ExactPos, pos: ExactPos)
+pub fn tile_cost(db: &Db, state: &State, unit: &Unit, from: ExactPos, pos: ExactPos)
     -> MovePoints
 {
     let map_pos = pos.map_pos;
@@ -170,7 +169,7 @@ impl Pathfinder {
 
     fn process_neighbour_pos(
         &mut self,
-        state: &PartialState,
+        state: &State,
         unit: &Unit,
         original_pos: ExactPos,
         neighbour_pos: ExactPos
@@ -199,7 +198,7 @@ impl Pathfinder {
 
     fn try_to_push_neighbours(
         &mut self,
-        state: &PartialState,
+        state: &State,
         unit: &Unit,
         pos: ExactPos,
     ) {
@@ -227,7 +226,7 @@ impl Pathfinder {
         self.queue.push(start_pos);
     }
 
-    pub fn fill_map(&mut self, state: &PartialState, unit: &Unit) {
+    pub fn fill_map(&mut self, state: &State, unit: &Unit) {
         assert!(self.queue.len() == 0);
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos);

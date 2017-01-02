@@ -1,7 +1,6 @@
 use cgmath::{Rad};
 use core::{UnitId};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::dir::{dirs};
 use geom;
 use fs;
@@ -29,7 +28,7 @@ impl SelectionManager {
         }
     }
 
-    fn get_pos(&self, state: &PartialState) -> WorldPos {
+    fn get_pos(&self, state: &State) -> WorldPos {
         let unit_id = self.unit_id
             .expect("Can`t get pos if no unit is selected");
         let map_pos = state.unit(unit_id).pos;
@@ -38,7 +37,7 @@ impl SelectionManager {
 
     pub fn create_selection_marker(
         &mut self,
-        state: &PartialState,
+        state: &State,
         scene: &mut Scene,
         unit_id: UnitId,
     ) {

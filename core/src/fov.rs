@@ -2,7 +2,7 @@
 
 use std::f32::consts::{PI};
 use cgmath::{InnerSpace};
-use game_state::{GameState};
+use game_state::{State};
 use map::{Terrain, spiral_iter};
 use geom;
 use ::{MapPos, ObjectClass, Distance};
@@ -21,7 +21,7 @@ fn is_tile_visible(angle: f32, shadows: &[Shadow]) -> bool {
     true
 }
 
-fn is_obstacle<S: GameState>(state: &S, pos: MapPos) -> bool {
+fn is_obstacle(state: &State, pos: MapPos) -> bool {
     match *state.map().tile(pos){
         Terrain::Trees | Terrain::City => return true,
         Terrain::Plain | Terrain::Water => {},
@@ -38,8 +38,8 @@ fn is_obstacle<S: GameState>(state: &S, pos: MapPos) -> bool {
 }
 
 // TODO: precalculate all 'atan2' and 'asin' stuff
-pub fn fov<S: GameState>(
-    state: &S,
+pub fn fov(
+    state: &State,
     origin: MapPos,
     range: Distance,
     callback: &mut FnMut(MapPos),
@@ -71,8 +71,8 @@ pub fn fov<S: GameState>(
     }
 }
 
-pub fn simple_fov<S: GameState>(
-    state: &S,
+pub fn simple_fov(
+    state: &State,
     origin: MapPos,
     range: Distance,
     callback: &mut FnMut(MapPos),

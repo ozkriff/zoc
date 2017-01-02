@@ -1,7 +1,6 @@
 use std::rc::{Rc};
 use rand::{thread_rng, Rng};
-use game_state::{GameState, GameStateMut};
-use partial_state::{PartialState};
+use game_state::{State};
 use map::{distance};
 use pathfinder::{self, Pathfinder, path_cost, truncate_path};
 use dir::{Dir, dirs};
@@ -26,14 +25,14 @@ use ::{
 #[derive(Clone, Debug)]
 pub struct Ai {
     id: PlayerId,
-    state: PartialState,
+    state: State,
     pathfinder: Pathfinder,
     db: Rc<Db>,
 }
 
 impl Ai {
     pub fn new(db: Rc<Db>, options: &Options, id: PlayerId) -> Ai {
-        let state = PartialState::new(db.clone(), options, id);
+        let state = State::new_partial(db.clone(), options, id);
         let map_size = state.map().size();
         Ai {
             id: id,

@@ -3,8 +3,7 @@ use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::{MapPos, ExactPos, PlayerId, get_free_exact_pos};
-use core::partial_state::{PartialState};
-use core::game_state::{GameState};
+use core::game_state::{State};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
 use types::{Time, ScreenPos};
@@ -27,7 +26,7 @@ impl Options {
 
 pub fn get_options(
     db: &Db,
-    state: &PartialState,
+    state: &State,
     player_id: PlayerId,
     pos: MapPos,
 ) -> Options {
