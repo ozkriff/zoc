@@ -48,7 +48,7 @@ mod fs;
 
 use visualizer::{Visualizer};
 
-pub fn main() {
+fn main() {
     let mut visualizer = Visualizer::new();
     while visualizer.is_running() {
         visualizer.tick();

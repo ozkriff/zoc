@@ -1,13 +1,16 @@
 use std::collections::hash_map::{self, HashMap};
 use std::collections::{HashSet};
 use std::rc::{Rc};
+use std::fmt::{Debug};
 use cgmath::{Vector2};
 use types::{Size2};
 use unit::{Unit};
 use db::{Db};
 use map::{Map, Terrain};
+use filter::{FilterEvent}; // TODO: возможно, удалить к фигам
 use dir::{Dir};
-use fow::{Fow};
+use fow::{Fow, FowEvent};
+use core_event;
 use ::{
     CoreEvent,
     FireMode,
@@ -30,6 +33,37 @@ use ::{
     Options,
     get_free_slot_for_building,
 };
+
+// TODO: переименовать
+// pub trait StateEvent {
+//
+// Блин, а эта фигня точно должна зависеть от фильтрации?
+// Как-то странно выходит.
+//
+// pub trait StateEvent: Debug + FowEvent + FilterEvent {
+pub trait StateEvent: Debug + FowEvent + FilterEvent {
+    fn apply_to_state(&self, state: &mut State);
+}
+
+impl StateEvent for core_event::EndTurn {
+    fn apply_to_state(&self, state: &mut State) {
+        state.shown_unit_ids.clear();
+        {
+            let reinforcement_points = state.reinforcement_points
+                .get_mut(&self.old_id).unwrap();
+            reinforcement_points.n += 10;
+        }
+        state.refresh_units(self.new_id);
+        state.convert_ap(self.old_id);
+        // TODO: timer ticks on every player's turn! O.o
+        for (_, object) in &mut state.objects {
+            if let Some(ref mut timer) = object.timer {
+                *timer -= 1;
+                assert!(*timer >= 0);
+            }
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct ObjectsAtIter<'a> {
@@ -338,8 +372,20 @@ impl State {
         }
     }
 
+    pub fn apply_event2(&mut self, event: &StateEvent) {
+        event.apply_to_state(self);
+        if self.fow.is_some() {
+            let mut fow = self.to_full();
+            // fow.apply_event(self, event);
+            // fow.apply_event2(self, event);
+            event.apply_to_fow(self, &mut fow);
+            self.to_partial(fow);
+        }
+    }
+
     pub fn apply_event(&mut self, event: &CoreEvent) {
         match *event {
+            /*
             CoreEvent::Move{unit_id, to, cost, ..} => {
                 {
                     let unit = self.units.get_mut(&unit_id).unwrap();
@@ -359,6 +405,7 @@ impl State {
                     attached_unit.pos = to;
                 }
             },
+            */
             CoreEvent::EndTurn{new_id, old_id} => {
                 self.shown_unit_ids.clear();
                 {
@@ -376,6 +423,7 @@ impl State {
                     }
                 }
             },
+            /*
             CoreEvent::CreateUnit{ref unit_info} => {
                 self.add_unit(unit_info, InfoLevel::Full);
             },
@@ -547,6 +595,7 @@ impl State {
             CoreEvent::RemoveSmoke{id} => {
                 self.objects.remove(&id);
             },
+            */
         }
         if self.fow.is_some() {
             let mut fow = self.to_full();

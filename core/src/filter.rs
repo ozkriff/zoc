@@ -1,6 +1,8 @@
+use std::default::{Default};
 use std::collections::{HashSet};
-use game_state::{State};
+use game_state::{State, StateEvent};
 use fow::{Fow};
+use core_event;
 use ::{
     CoreEvent,
     AttackInfo,
@@ -11,6 +13,38 @@ use ::{
     MovePoints,
     unit_to_info,
 };
+
+pub struct FilterResult {
+    pub filtered_events: Vec<Box<StateEvent>>,
+    pub active_unit_ids: HashSet<UnitId>,
+}
+
+impl Default for FilterResult {
+    fn default() -> FilterResult {
+        FilterResult {
+            filtered_events: Vec::new(),
+            active_unit_ids: HashSet::new(),
+        }
+    }
+}
+
+impl FilterResult {
+    fn new() -> FilterResult {
+        Default::default()
+    }
+}
+
+pub trait FilterEvent {
+    fn filter(&self, state: &State, player_id: PlayerId, fow: &Fow) -> FilterResult;
+}
+
+impl FilterEvent for core_event::EndTurn {
+    fn filter(&self, state: &State, player_id: PlayerId, fow: &Fow) -> FilterResult {
+        let mut result = FilterResult::new();
+        result.filtered_events.push(Box::new(self.clone()));
+        result
+    }
+}
 
 pub fn get_visible_enemies(
     state: &State,
@@ -35,6 +69,7 @@ pub fn show_or_hide_passive_enemies(
     new: &HashSet<UnitId>,
 ) -> Vec<CoreEvent> {
     let mut events = Vec::new();
+    /*
     let located_units = new.difference(old);
     for &id in located_units {
         if active_unit_ids.contains(&id) {
@@ -52,7 +87,19 @@ pub fn show_or_hide_passive_enemies(
         }
         events.push(CoreEvent::HideUnit{unit_id: id});
     }
+    */
     events
+}
+
+pub fn show_or_hide_passive_enemies_2(
+    state: &State,
+    active_unit_ids: &HashSet<UnitId>,
+    old: &HashSet<UnitId>,
+    new: &HashSet<UnitId>,
+) -> Vec<Box<StateEvent>> {
+    // TODO: вытащи кишки из `show_or_hide_passive_enemies`
+    unimplemented!()
+    // Vec::new()
 }
 
 pub fn filter_events(
@@ -65,6 +112,7 @@ pub fn filter_events(
     let mut active_unit_ids = HashSet::new();
     let mut events = vec![];
     match *event {
+        /*
         CoreEvent::Move{unit_id, from, to, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == player_id {
@@ -293,6 +341,10 @@ pub fn filter_events(
         CoreEvent::RemoveSmoke{..} |
         CoreEvent::VictoryPoint{..} |
         CoreEvent::SectorOwnerChanged{..} => {
+            events.push(event.clone());
+        },
+        */
+        CoreEvent::EndTurn{..} => {
             events.push(event.clone());
         },
     }

@@ -7,7 +7,7 @@ use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use core::map::{Terrain};
-use core::game_state::{State};
+use core::game_state::{State, StateEvent};
 use core::{self, CoreEvent, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::command;
 use core::unit::{UnitTypeId};
@@ -258,6 +258,14 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
         }
     }
     scene
+}
+
+trait VisualizedEvent {
+    fn make_visualizer(
+        &self,
+        // TODO: мдеее, надо бы на какое-то подмножество заменить.
+        screen: &mut TacticalScreen,
+    ) -> Box<event_visualizer::EventVisualizer>;
 }
 
 pub struct TacticalScreen {
@@ -748,6 +756,7 @@ impl TacticalScreen {
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
         match *event {
+            /*
             CoreEvent::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
@@ -759,9 +768,11 @@ impl TacticalScreen {
                     to,
                 )
             },
+            */
             CoreEvent::EndTurn{..} => {
                 event_visualizer::EventEndTurnVisualizer::new()
             },
+            /*
             CoreEvent::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
@@ -903,6 +914,7 @@ impl TacticalScreen {
                 )
             }
             CoreEvent::Reveal{..} => unreachable!(),
+            */
         }
     }
 
@@ -910,6 +922,10 @@ impl TacticalScreen {
         self.event_visualizer.as_ref()
             .expect("No event visualizer")
             .is_finished()
+    }
+
+    fn start_event_visualization_2(&mut self, context: &mut Context, event: &StateEvent) {
+        let vis = self.make_event_visualizer_2(event);
     }
 
     fn start_event_visualization(&mut self, context: &mut Context, event: CoreEvent) {
@@ -925,6 +941,7 @@ impl TacticalScreen {
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
+        /*
         let attack_info = match self.event {
             Some(CoreEvent::AttackUnit{ref attack_info}) => attack_info,
             _ => return,
@@ -941,6 +958,7 @@ impl TacticalScreen {
         {
             self.selected_unit_id = None;
         }
+        */
     }
 
     fn check_game_end(&mut self, context: &mut Context) {
@@ -1013,24 +1031,32 @@ impl TacticalScreen {
             self.gui.button_manager.remove_button(label_id);
         }
         self.update_reinforcement_points_label(context);
+        /*
         if let Some(CoreEvent::VictoryPoint{..}) = self.event {
             self.update_score_labels(context);
             self.check_game_end(context);
         }
+        */
         self.regenerate_fow();
         self.event_visualizer = None;
         self.event = None;
+        unimplemented!(); // TODO: почини что там дальше
+        /*
         if let Some(event) = self.core.get_event() {
             self.start_event_visualization(context, event);
         } else if let Some(unit_id) = self.selected_unit_id {
             self.select_unit(context, unit_id);
         }
+        */
     }
 
     fn logic(&mut self, context: &mut Context) {
         if self.event_visualizer.is_none() {
-            if let Some(event) = self.core.get_event() {
-                self.start_event_visualization(context, event);
+            // if let Some(event) = self.core.get_event() {
+            //     self.start_event_visualization(context, event);
+            // }
+            if let Some(event) = self.core.get_event_2() {
+                self.start_event_visualization_2(context, &*event);
             }
         } else if self.is_event_visualization_finished() {
             self.end_event_visualization(context);

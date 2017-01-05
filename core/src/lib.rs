@@ -22,10 +22,17 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug};
 use std::rc::{Rc};
 use rand::{thread_rng, Rng};
+use filter::{
+    filter_events,
+    show_or_hide_passive_enemies,
+    show_or_hide_passive_enemies_2,
+    FilterEvent,
+    FilterResult,
+};
 use cgmath::{Vector2};
 use types::{Size2};
 use misc::{clamp};
-use game_state::{State, ObjectsAtIter};
+use game_state::{State, ObjectsAtIter, StateEvent};
 use map::{Map, Terrain};
 use pathfinder::{tile_cost};
 use unit::{Unit, UnitTypeId};
@@ -144,12 +151,14 @@ fn check_sectors(db: &Db, state: &State) -> Vec<CoreEvent> {
         } else {
             Some(claimers.into_iter().next().unwrap())
         };
+        /*
         if sector.owner_id != owner_id {
             events.push(CoreEvent::SectorOwnerChanged {
                 sector_id: sector_id,
                 new_owner_id: owner_id,
             });
         }
+        */
     }
     events
 }
@@ -308,6 +317,7 @@ impl Command for command::EndTurn {
     fn simulate(&self, core: &mut Core) {
         let old_id = core.current_player_id;
         let new_id = core.next_player_id(old_id);
+        /*
         // TODO: extruct func
         let mut end_turn_events = Vec::new();
         for sector in core.state.sectors().values() {
@@ -338,11 +348,17 @@ impl Command for command::EndTurn {
             old_id: old_id,
             new_id: new_id,
         });
+        */
+        core.do_core_event_2(&core_event::EndTurn {
+            old_id: old_id,
+            new_id: new_id,
+        });
     }
 }
 
 impl Command for command::CreateUnit {
     fn simulate(&self, core: &mut Core) {
+        /*
         let event = CoreEvent::CreateUnit {
             unit_info: UnitInfo {
                 unit_id: core.get_new_unit_id(),
@@ -357,11 +373,13 @@ impl Command for command::CreateUnit {
             },
         };
         core.do_core_event(&event);
+        */
     }
 }
 
 impl Command for command::Move {
     fn simulate(&self, core: &mut Core) {
+        /*
         let unit_id = self.unit_id;
         let mode = self.mode;
         let player_id = core.state.unit(unit_id).player_id;
@@ -404,22 +422,26 @@ impl Command for command::Move {
                 break;
             }
         }
+        */
     }
 }
 
 impl Command for command::AttackUnit {
     fn simulate(&self, core: &mut Core) {
+        /*
         if let Some(ref event) = core.command_attack_unit_to_event(
             self.attacker_id, self.defender_id, FireMode::Active)
         {
             core.do_core_event(event);
             core.reaction_fire(self.attacker_id);
         }
+        */
     }
 }
 
 impl Command for command::LoadUnit {
     fn simulate(&self, core: &mut Core) {
+        /*
         let from = core.state.unit(self.passenger_id).pos;
         let to = core.state.unit(self.transporter_id).pos;
         core.do_core_event(&CoreEvent::LoadUnit {
@@ -428,11 +450,13 @@ impl Command for command::LoadUnit {
             from: from,
             to: to,
         });
+        */
     }
 }
 
 impl Command for command::UnloadUnit {
     fn simulate(&self, core: &mut Core) {
+        /*
         let event = {
             let passenger = core.state.unit(self.passenger_id);
             let from = core.state.unit(self.transporter_id).pos;
@@ -448,11 +472,13 @@ impl Command for command::UnloadUnit {
         };
         core.do_core_event(&event);
         core.reaction_fire(self.passenger_id);
+        */
     }
 }
 
 impl Command for command::Attach {
     fn simulate(&self, core: &mut Core) {
+        /*
         let from = core.state.unit(self.transporter_id).pos;
         let to = core.state.unit(self.attached_unit_id).pos;
         core.do_core_event(&CoreEvent::Attach {
@@ -462,11 +488,13 @@ impl Command for command::Attach {
             to: to,
         });
         core.reaction_fire(self.transporter_id);
+        */
     }
 }
 
 impl Command for command::Detach {
     fn simulate(&self, core: &mut Core) {
+        /*
         let from = core.state.unit(self.transporter_id).pos;
         core.do_core_event(&CoreEvent::Detach {
             transporter_id: self.transporter_id,
@@ -474,20 +502,24 @@ impl Command for command::Detach {
             to: self.pos,
         });
         core.reaction_fire(self.transporter_id);
+        */
     }
 }
 
 impl Command for command::SetReactionFireMode {
     fn simulate(&self, core: &mut Core) {
+        /*
         core.do_core_event(&CoreEvent::SetReactionFireMode {
             unit_id: self.unit_id,
             mode: self.mode,
         });
+        */
     }
 }
 
 impl Command for command::Smoke {
     fn simulate(&self, core: &mut Core) {
+        /*
         let pos = self.pos;
         let unit_id = self.unit_id;
         let id = core.get_new_object_id();
@@ -518,6 +550,7 @@ impl Command for command::Smoke {
             });
         }
         core.reaction_fire(unit_id);
+        */
     }
 }
 
@@ -550,6 +583,7 @@ pub struct AttackInfo {
 // TODO: удали потом все
 #[derive(Clone, Debug, PartialEq)]
 pub enum CoreEvent {
+    /*
     Move {
         unit_id: UnitId,
         from: ExactPos,
@@ -557,10 +591,12 @@ pub enum CoreEvent {
         mode: MoveMode,
         cost: MovePoints,
     },
+    */
     EndTurn {
         old_id: PlayerId,
         new_id: PlayerId,
     },
+    /*
     CreateUnit {
         unit_info: UnitInfo,
     },
@@ -623,9 +659,11 @@ pub enum CoreEvent {
     RemoveSmoke {
         id: ObjectId,
     },
+    */
 }
 
-pub mod event {
+// TODO: переименовать в просто `event`?
+pub mod core_event {
     use ::{
         UnitId,
         SectorId,
@@ -823,9 +861,11 @@ pub fn unit_to_info(unit: &Unit) -> UnitInfo {
     }
 }
 
-#[derive(Clone, Debug)]
+// #[derive(Clone, Debug)]
+#[derive(Debug)]
 struct PlayerInfo {
-    events: VecDeque<CoreEvent>,
+    events: VecDeque<CoreEvent>, // TODO: удалить
+    events_2: VecDeque<Box<StateEvent>>,
     visible_enemies: HashSet<UnitId>,
 
     // This filed is optional because we need to temporary
@@ -842,6 +882,7 @@ impl PlayerInfo {
         PlayerInfo {
             fow: Some(fow),
             events: VecDeque::new(),
+            events_2: VecDeque::new(),
             visible_enemies: HashSet::new(),
         }
     }
@@ -938,7 +979,8 @@ pub struct Options {
     pub players_count: i32, // TODO: must it be defined by map/scenario?
 }
 
-#[derive(Clone, Debug)]
+// #[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Core {
     state: State,
     players: Vec<Player>,
@@ -1210,10 +1252,16 @@ impl Core {
         self.current_player_id
     }
 
+    // TODO: удали
     pub fn get_event(&mut self) -> Option<CoreEvent> {
         let mut i = self.players_info.get_mut(&self.current_player_id)
             .expect("core: Can`t get current player`s info");
         i.events.pop_front()
+    }
+
+    pub fn get_event_2(&mut self) -> Option<Box<StateEvent>> {
+        let mut i = self.players_info.get_mut(&self.current_player_id).unwrap();
+        i.events_2.pop_front()
     }
 
     fn command_attack_unit_to_event(
@@ -1261,7 +1309,8 @@ impl Core {
             is_inderect: weapon_type.is_inderect,
             leave_wrecks: leave_wrecks,
         };
-        Some(CoreEvent::AttackUnit{attack_info: attack_info})
+        // Some(CoreEvent::AttackUnit{attack_info: attack_info})
+        unimplemented!()
     }
 
     fn can_unit_make_reaction_attack(
@@ -1288,9 +1337,14 @@ impl Core {
         check_attack_result.is_ok()
     }
 
-    fn reaction_fire_internal(&mut self, unit_id: UnitId, stop_on_attack: bool) -> ReactionFireResult {
+    fn reaction_fire_internal(
+        &mut self,
+        unit_id: UnitId,
+        stop_on_attack: bool,
+    ) -> ReactionFireResult {
         let unit_ids: Vec<_> = self.state.units().map(|(&id, _)| id).collect();
         let mut result = ReactionFireResult::None;
+        /*
         for enemy_unit_id in unit_ids {
             if is_loaded_or_attached(self.state.unit(enemy_unit_id)) {
                 continue;
@@ -1323,6 +1377,7 @@ impl Core {
                 return ReactionFireResult::Killed;
             }
         }
+        */
         result
     }
 
@@ -1392,14 +1447,14 @@ impl Core {
     fn filter_event(&mut self, player_id: PlayerId, event: &CoreEvent) {
         let mut i = self.players_info.get_mut(&player_id).unwrap();
         let state = &self.state;
-        let (filtered_events, active_unit_ids) = filter::filter_events(
+        let (filtered_events, active_unit_ids) = filter_events(
             state, player_id, i.fow(), event);
         for filtered_event in filtered_events {
             i.fow_mut().apply_event(state, &filtered_event);
             i.events.push_back(filtered_event);
             let new_enemies = filter::get_visible_enemies(
                 state, i.fow(), player_id);
-            let show_hide_events = filter::show_or_hide_passive_enemies(
+            let show_hide_events = show_or_hide_passive_enemies(
                 state, &active_unit_ids, &i.visible_enemies, &new_enemies);
             i.events.extend(show_hide_events);
             i.visible_enemies = new_enemies;
@@ -1413,9 +1468,41 @@ impl Core {
         for player_id in player_ids {
             self.filter_event(player_id, &event);
         }
+        /*
         if let CoreEvent::EndTurn{old_id, new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
         }
+        */
+    }
+
+    fn filter_event_2(&mut self, player_id: PlayerId, event: &StateEvent) {
+        let mut i = self.players_info.get_mut(&player_id).unwrap();
+        let state = &self.state;
+        let filter_result = event.filter(state, player_id, i.fow());
+        for filtered_event in filter_result.filtered_events {
+            filtered_event.apply_to_fow(state, i.fow_mut());
+            i.events_2.push_back(filtered_event);
+            let new_enemies = filter::get_visible_enemies(
+                state, i.fow(), player_id);
+            let active_units = &filter_result.active_unit_ids;
+            let show_hide_events = show_or_hide_passive_enemies_2(
+                state, active_units, &i.visible_enemies, &new_enemies);
+            i.events_2.extend(show_hide_events);
+            i.visible_enemies = new_enemies;
+        }
+    }
+
+    fn do_core_event_2(&mut self, event: &StateEvent) {
+        event.apply_to_state(&mut self.state);
+        let player_ids: Vec<_> = self.players.iter()
+            .map(|player| player.id).collect();
+        for player_id in player_ids {
+            self.filter_event_2(player_id, event);
+        }
+        // TODO: засекать смену игрока по изменения current_player_id
+        // if let CoreEvent::EndTurn{old_id, new_id} = *event {
+        //     self.handle_end_turn_event(old_id, new_id);
+        // }
     }
 }
 

@@ -1,13 +1,28 @@
 use std::default::{Default};
 use std::rc::{Rc};
 use types::{Size2};
-use game_state::{State};
+use game_state::{State, StateEvent};
 use map::{Map, Terrain, distance};
 use fov::{fov, simple_fov};
 use db::{Db};
 use unit::{Unit, UnitType};
+use core_event;
 use ::{CoreEvent, PlayerId, MapPos, ExactPos, ObjectClass, SlotId};
 
+// TODO: переименовать
+// trait FowEvent: StateEvent {
+pub trait FowEvent {
+    fn apply_to_fow(&self, state: &State, fow: &mut Fow);
+}
+
+impl FowEvent for core_event::EndTurn {
+    fn apply_to_fow(&self, state: &State, fow: &mut Fow) {
+        if fow.player_id == self.new_id {
+            fow.reset(state);
+        }
+    }
+}
+ 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub enum TileVisibility {
     No,
@@ -135,23 +150,36 @@ impl Fow {
         }
     }
 
+    /*
+    pub fn apply_event2(
+        &mut self,
+        state: &State,
+        event: &FowEvent, // CoreEvent?
+    ) {
+        event.apply(state, self);
+    }
+    */
+
     pub fn apply_event(
         &mut self,
         state: &State,
         event: &CoreEvent,
     ) {
         match *event {
+            /*
             CoreEvent::Move{unit_id, ..} => {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     self.fov_unit(state, unit);
                 }
             },
+            */
             CoreEvent::EndTurn{new_id, ..} => {
                 if self.player_id == new_id {
                     self.reset(state);
                 }
             },
+            /*
             CoreEvent::CreateUnit{ref unit_info} => {
                 let unit = state.unit(unit_info.unit_id);
                 if self.player_id == unit_info.player_id {
@@ -189,6 +217,7 @@ impl Fow {
             CoreEvent::Smoke{..} |
             CoreEvent::RemoveSmoke{..} |
             CoreEvent::VictoryPoint{..} => {},
+            */
         }
     }
 }
