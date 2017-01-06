@@ -12,7 +12,7 @@ use ::{
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitTypeId{pub id: i32}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Unit {
     pub id: UnitId,
     pub pos: ExactPos,

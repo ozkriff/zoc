@@ -11,7 +11,6 @@ use fow::{Fow};
 use ::{
     CoreEvent,
     FireMode,
-    UnitInfo,
     ReactionFireMode,
     UnitId,
     ObjectId,
@@ -216,8 +215,8 @@ impl State {
         }
     }
 
-    fn add_unit(&mut self, unit_info: &UnitInfo, info_level: InfoLevel) {
-        assert!(self.units.get(&unit_info.unit_id).is_none());
+    fn add_unit(&mut self, unit_info: &Unit, info_level: InfoLevel) {
+        assert!(self.units.get(&unit_info.id).is_none());
         let unit_type = self.db.unit_type(unit_info.type_id);
         let reinforcement_points = self.reinforcement_points
             .get_mut(&unit_info.player_id).unwrap();
@@ -225,9 +224,9 @@ impl State {
             return;
         }
         reinforcement_points.n -= unit_type.cost.n;
-        self.units.insert(unit_info.unit_id, Unit {
+        self.units.insert(unit_info.id, Unit {
             is_alive: unit_info.is_alive,
-            id: unit_info.unit_id,
+            id: unit_info.id,
             pos: unit_info.pos,
             player_id: unit_info.player_id,
             type_id: unit_info.type_id,
@@ -443,7 +442,7 @@ impl State {
             CoreEvent::Reveal{..} => (),
             CoreEvent::ShowUnit{ref unit_info} => {
                 self.add_unit(unit_info, InfoLevel::Partial);
-                self.shown_unit_ids.insert(unit_info.unit_id);
+                self.shown_unit_ids.insert(unit_info.id);
             },
             CoreEvent::HideUnit{unit_id} => {
                 assert!(self.units.get(&unit_id).is_some());
@@ -470,9 +469,9 @@ impl State {
                         .expect("Bad transporter_id")
                         .passenger_id = None;
                 }
-                if let Some(unit) = self.units.get_mut(&unit_info.unit_id) {
-                    unit.pos = unit_info.pos;
-                    unit.is_loaded = false;
+                if let Some(unloaded_unit) = self.units.get_mut(&unit_info.id) {
+                    unloaded_unit.pos = unit_info.pos;
+                    unloaded_unit.is_loaded = false;
                     return;
                 }
                 self.add_unit(unit_info, InfoLevel::Partial);

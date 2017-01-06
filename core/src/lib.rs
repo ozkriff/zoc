@@ -249,19 +249,6 @@ pub enum Command {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct UnitInfo {
-    pub unit_id: UnitId,
-    pub pos: ExactPos,
-    pub type_id: UnitTypeId,
-    pub player_id: PlayerId,
-    pub passenger_id: Option<UnitId>,
-    pub attached_unit_id: Option<UnitId>,
-    pub is_loaded: bool,
-    pub is_attached: bool,
-    pub is_alive: bool,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct AttackInfo {
     pub attacker_id: Option<UnitId>,
     pub defender_id: UnitId,
@@ -288,17 +275,17 @@ pub enum CoreEvent {
         new_id: PlayerId,
     },
     CreateUnit {
-        unit_info: UnitInfo,
+        unit_info: Unit,
     },
     AttackUnit {
         attack_info: AttackInfo,
     },
     // Reveal is like ShowUnit but is generated directly by Core
     Reveal {
-        unit_info: UnitInfo,
+        unit_info: Unit,
     },
     ShowUnit {
-        unit_info: UnitInfo,
+        unit_info: Unit,
     },
     HideUnit {
         unit_id: UnitId,
@@ -310,7 +297,7 @@ pub enum CoreEvent {
         to: ExactPos,
     },
     UnloadUnit {
-        unit_info: UnitInfo,
+        unit_info: Unit,
         transporter_id: Option<UnitId>,
         from: ExactPos,
         to: ExactPos,
@@ -412,20 +399,6 @@ pub fn get_unit_ids_at(state: &State, pos: MapPos) -> Vec<UnitId> {
         }
     }
     ids
-}
-
-pub fn unit_to_info(unit: &Unit) -> UnitInfo {
-    UnitInfo {
-        unit_id: unit.id,
-        pos: unit.pos,
-        type_id: unit.type_id,
-        player_id: unit.player_id,
-        passenger_id: unit.passenger_id,
-        attached_unit_id: unit.attached_unit_id,
-        is_alive: unit.is_alive,
-        is_loaded: unit.is_loaded,
-        is_attached: unit.is_attached,
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -992,18 +965,28 @@ impl Core {
                 });
             },
             Command::CreateUnit{pos, type_id} => {
-                let event = CoreEvent::CreateUnit {
-                    unit_info: UnitInfo {
-                        unit_id: self.get_new_unit_id(),
-                        pos: pos,
-                        type_id: type_id,
-                        player_id: self.current_player_id,
-                        passenger_id: None,
-                        attached_unit_id: None,
-                        is_alive: true,
-                        is_loaded: false,
-                        is_attached: false,
-                    },
+                let event = {
+                    let id = self.get_new_unit_id();
+                    let unit_type = self.db.unit_type(type_id);
+                    CoreEvent::CreateUnit {
+                        unit_info: Unit {
+                            id: id,
+                            player_id: self.current_player_id,
+                            pos: pos,
+                            type_id: type_id,
+                            passenger_id: None,
+                            attached_unit_id: None,
+                            move_points: Some(MovePoints{n: 0}),
+                            attack_points: Some(AttackPoints{n: 0}),
+                            reactive_attack_points: Some(AttackPoints{n: 0}),
+                            reaction_fire_mode: ReactionFireMode::Normal,
+                            count: unit_type.count,
+                            morale: 100,
+                            is_alive: true,
+                            is_loaded: false,
+                            is_attached: false,
+                        },
+                    }
                 };
                 self.do_core_event(&event);
             },
@@ -1014,7 +997,7 @@ impl Core {
                     let to = window[1];
                     let show_event = self.state.unit_at_opt(to).and_then(|unit| {
                         Some(CoreEvent::Reveal {
-                            unit_info: unit_to_info(unit),
+                            unit_info: unit.clone(),
                         })
                     });
                     if let Some(event) = show_event {
@@ -1073,9 +1056,9 @@ impl Core {
                     let from = self.state.unit(transporter_id).pos;
                     CoreEvent::UnloadUnit {
                         transporter_id: Some(transporter_id),
-                        unit_info: UnitInfo {
+                        unit_info: Unit {
                             pos: pos,
-                            .. unit_to_info(passenger)
+                            .. passenger.clone()
                         },
                         from: from,
                         to: pos,

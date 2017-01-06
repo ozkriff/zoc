@@ -2,9 +2,9 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Rad};
 use core::game_state::{State};
+use core::unit::{Unit};
 use core::{
     self,
-    UnitInfo,
     AttackInfo,
     ReactionFireMode,
     UnitId,
@@ -122,7 +122,7 @@ fn show_unit_at(
     db: &Db,
     state: &State,
     scene: &mut Scene,
-    unit_info: &UnitInfo,
+    unit_info: &Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
 ) {
@@ -138,7 +138,7 @@ fn show_unit_at(
             children: Vec::new(),
         });
     }
-    scene.add_unit(unit_info.unit_id, SceneNode {
+    scene.add_unit(unit_info.id, SceneNode {
         pos: to,
         rot: rot,
         mesh_id: None,
@@ -155,7 +155,7 @@ pub struct EventCreateUnitVisualizer {
 
 fn get_unit_scene_nodes(
     db: &Db,
-    unit_info: &UnitInfo,
+    unit_info: &Unit,
     mesh_id: MeshId,
 ) -> Vec<SceneNode> {
     let color = if unit_info.is_alive {
@@ -193,7 +193,7 @@ impl EventCreateUnitVisualizer {
         db: &Db,
         state: &State,
         scene: &mut Scene,
-        unit_info: &UnitInfo,
+        unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
     ) -> Box<EventVisualizer> {
@@ -202,7 +202,7 @@ impl EventCreateUnitVisualizer {
         show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
         let speed = Speed{n: 2.0};
         let move_helper = MoveHelper::new(from, to, speed);
-        let node_id = scene.unit_id_to_node_id(unit_info.unit_id);
+        let node_id = scene.unit_id_to_node_id(unit_info.id);
         let new_node = scene.node_mut(node_id);
         new_node.pos = from;
         Box::new(EventCreateUnitVisualizer {
@@ -291,14 +291,13 @@ impl EventAttackUnitVisualizer {
         if is_target_destroyed {
             if let Some(attached_unit_id) = defender.attached_unit_id {
                 let attached_unit = state.unit(attached_unit_id);
-                let attached_unit_info = core::unit_to_info(attached_unit);
                 let attached_unit_mesh_id = unit_type_visual_info
                     .get(attached_unit.type_id).mesh_id;
                 show_unit_at(
                     db,
                     state,
                     scene,
-                    &attached_unit_info,
+                    attached_unit,
                     attached_unit_mesh_id,
                     mesh_ids.marker_mesh_id,
                 );
@@ -405,7 +404,7 @@ impl EventShowUnitVisualizer {
         db: &Db,
         state: &State,
         scene: &mut Scene,
-        unit_info: &UnitInfo,
+        unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
         map_text: &mut MapTextManager,
@@ -414,7 +413,7 @@ impl EventShowUnitVisualizer {
         show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
         if let Some(attached_unit_id) = unit_info.attached_unit_id {
             try_to_fix_attached_unit_pos(
-                scene, unit_info.unit_id, attached_unit_id);
+                scene, unit_info.id, attached_unit_id);
         }
         for unit in state.units_at(unit_info.pos.map_pos) {
             if let Some(attached_unit_id) = unit.attached_unit_id {
@@ -481,7 +480,7 @@ impl EventUnloadUnitVisualizer {
         db: &Db,
         state: &State,
         scene: &mut Scene,
-        unit_info: &UnitInfo,
+        unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
         transporter_pos: ExactPos,
@@ -492,7 +491,7 @@ impl EventUnloadUnitVisualizer {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = geom::exact_pos_to_world_pos(state, transporter_pos);
         show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
-        let node_id = scene.unit_id_to_node_id(unit_info.unit_id);
+        let node_id = scene.unit_id_to_node_id(unit_info.id);
         let unit_node = scene.node_mut(node_id);
         unit_node.pos = from;
         unit_node.rot = geom::get_rot_angle(from, to);
@@ -843,7 +842,6 @@ impl EventDetachVisualizer {
         let transporter = state.unit(transporter_id);
         let attached_unit_id = transporter.attached_unit_id.unwrap();
         let attached_unit = state.unit(attached_unit_id);
-        let attached_unit_info = core::unit_to_info(attached_unit);
         let transporter_visual_info
             = unit_type_visual_info.get(transporter.type_id);
         let attached_unit_mesh_id = unit_type_visual_info
@@ -852,7 +850,7 @@ impl EventDetachVisualizer {
             db,
             state,
             scene,
-            &attached_unit_info,
+            attached_unit,
             attached_unit_mesh_id,
             mesh_ids.marker_mesh_id,
         );

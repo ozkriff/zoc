@@ -153,7 +153,7 @@ impl Fow {
                 }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
-                let unit = state.unit(unit_info.unit_id);
+                let unit = state.unit(unit_info.id);
                 if self.player_id == unit_info.player_id {
                     self.fov_unit(state, unit);
                 }
@@ -169,7 +169,7 @@ impl Fow {
             },
             CoreEvent::UnloadUnit{ref unit_info, ..} => {
                 if self.player_id == unit_info.player_id {
-                    let unit = state.unit(unit_info.unit_id);
+                    let unit = state.unit(unit_info.id);
                     self.fov_unit(state, unit);
                 }
             },

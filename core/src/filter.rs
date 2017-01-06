@@ -1,15 +1,14 @@
 use std::collections::{HashSet};
 use game_state::{State};
 use fow::{Fow};
+use unit::{Unit};
 use ::{
     CoreEvent,
     AttackInfo,
-    UnitInfo,
     UnitId,
     PlayerId,
     MoveMode,
     MovePoints,
-    unit_to_info,
 };
 
 pub fn get_visible_enemies(
@@ -42,7 +41,7 @@ pub fn show_or_hide_passive_enemies(
         }
         let unit = state.unit_opt(id).expect("Can`t find unit");
         events.push(CoreEvent::ShowUnit {
-            unit_info: unit_to_info(unit),
+            unit_info: unit.clone(),
         });
     }
     let lost_units = old.difference(new);
@@ -74,18 +73,18 @@ pub fn filter_events(
                 let next_vis = fow.is_visible_at(unit, to);
                 if !prev_vis && next_vis {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: UnitInfo {
+                        unit_info: Unit {
                             pos: from,
-                            .. unit_to_info(unit)
+                            .. unit.clone()
                         },
                     });
                     if let Some(attached_unit_id) = unit.attached_unit_id {
                         active_unit_ids.insert(attached_unit_id);
                         let attached_unit = state.unit(attached_unit_id);
                         events.push(CoreEvent::ShowUnit {
-                            unit_info: UnitInfo {
+                            unit_info: Unit {
                                 pos: from,
-                                .. unit_to_info(attached_unit)
+                                .. attached_unit.clone()
                             },
                         });
                     }
@@ -102,12 +101,12 @@ pub fn filter_events(
             }
         },
         CoreEvent::CreateUnit{ref unit_info} => {
-            let unit = state.unit(unit_info.unit_id);
+            let unit = state.unit(unit_info.id);
             if player_id == unit_info.player_id
                 || fow.is_visible_at(unit, unit_info.pos)
             {
                 events.push(event.clone());
-                active_unit_ids.insert(unit_info.unit_id);
+                active_unit_ids.insert(unit_info.id);
             }
         },
         CoreEvent::AttackUnit{ref attack_info} => {
@@ -119,7 +118,7 @@ pub fn filter_events(
                 let attacker = state.unit(attacker_id);
                 if !fow.is_visible(attacker) {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: unit_to_info(attacker),
+                        unit_info: attacker.clone(),
                     });
                 }
                 active_unit_ids.insert(attacker_id);
@@ -156,9 +155,9 @@ pub fn filter_events(
             } else if is_passenger_vis || is_transporter_vis {
                 if !fow.is_visible_at(passenger, from) {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: UnitInfo {
+                        unit_info: Unit {
                             pos: from,
-                            .. unit_to_info(passenger)
+                            .. passenger.clone()
                         },
                     });
                 }
@@ -177,8 +176,8 @@ pub fn filter_events(
             }
         },
         CoreEvent::UnloadUnit{ref unit_info, transporter_id, from, to} => {
-            active_unit_ids.insert(unit_info.unit_id);
-            let passenger = state.unit(unit_info.unit_id);
+            active_unit_ids.insert(unit_info.id);
+            let passenger = state.unit(unit_info.id);
             let transporter = state.unit(transporter_id.unwrap());
             let is_transporter_vis = fow.is_visible_at(transporter, from);
             let is_passenger_vis = fow.is_visible_at(passenger, to);
@@ -215,10 +214,10 @@ pub fn filter_events(
                 if is_attached_unit_vis {
                     if !is_transporter_vis {
                         events.push(CoreEvent::ShowUnit {
-                            unit_info: UnitInfo {
+                            unit_info: Unit {
                                 pos: from,
                                 attached_unit_id: None,
-                                .. unit_to_info(transporter)
+                                .. transporter.clone()
                             },
                         });
                     }
@@ -254,10 +253,10 @@ pub fn filter_events(
                     }
                } else if is_to_vis {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: UnitInfo {
+                        unit_info: Unit {
                             pos: from,
                             attached_unit_id: None,
-                            .. unit_to_info(transporter)
+                            .. transporter.clone()
                         },
                     });
                     events.push(CoreEvent::Move {
