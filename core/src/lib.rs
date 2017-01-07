@@ -1186,7 +1186,7 @@ impl Core {
         let player_ids: Vec<_> = self.players.iter()
             .map(|player| player.id).collect();
         for player_id in player_ids {
-            self.filter_event(player_id, &event);
+            self.filter_event(player_id, event);
         }
         if let CoreEvent::EndTurn{old_id, new_id} = *event {
             self.handle_end_turn_event(old_id, new_id);
