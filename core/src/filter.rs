@@ -11,6 +11,16 @@ use ::{
     MovePoints,
 };
 
+fn filtered_unit(unit: &Unit) -> Unit {
+    Unit {
+        move_points: None,
+        attack_points: None,
+        reactive_attack_points: None,
+        passenger_id: None,
+        .. unit.clone()
+    }
+}
+
 pub fn get_visible_enemies(
     state: &State,
     fow: &Fow,
@@ -41,7 +51,7 @@ pub fn show_or_hide_passive_enemies(
         }
         let unit = state.unit_opt(id).expect("Can`t find unit");
         events.push(CoreEvent::ShowUnit {
-            unit_info: unit.clone(),
+            unit_info: filtered_unit(unit),
         });
     }
     let lost_units = old.difference(new);
@@ -75,7 +85,7 @@ pub fn filter_events(
                     events.push(CoreEvent::ShowUnit {
                         unit_info: Unit {
                             pos: from,
-                            .. unit.clone()
+                            .. filtered_unit(unit)
                         },
                     });
                     if let Some(attached_unit_id) = unit.attached_unit_id {
@@ -84,7 +94,7 @@ pub fn filter_events(
                         events.push(CoreEvent::ShowUnit {
                             unit_info: Unit {
                                 pos: from,
-                                .. attached_unit.clone()
+                                .. filtered_unit(attached_unit)
                             },
                         });
                     }
@@ -118,7 +128,7 @@ pub fn filter_events(
                 let attacker = state.unit(attacker_id);
                 if !fow.is_visible(attacker) {
                     events.push(CoreEvent::ShowUnit {
-                        unit_info: attacker.clone(),
+                        unit_info: filtered_unit(attacker),
                     });
                 }
                 active_unit_ids.insert(attacker_id);
@@ -139,7 +149,7 @@ pub fn filter_events(
         CoreEvent::Reveal{ref unit_info} => {
             if unit_info.player_id != player_id {
                 events.push(CoreEvent::ShowUnit {
-                    unit_info: unit_info.clone(),
+                    unit_info: filtered_unit(unit_info),
                 });
             }
         },
@@ -157,7 +167,7 @@ pub fn filter_events(
                     events.push(CoreEvent::ShowUnit {
                         unit_info: Unit {
                             pos: from,
-                            .. passenger.clone()
+                            .. filtered_unit(passenger)
                         },
                     });
                 }
@@ -191,7 +201,13 @@ pub fn filter_events(
                 };
                 events.push(CoreEvent::UnloadUnit {
                     transporter_id: filtered_transporter_id,
-                    unit_info: unit_info.clone(),
+                    unit_info: Unit {
+                        move_points: None,
+                        attack_points: None,
+                        reactive_attack_points: None,
+                        passenger_id: None,
+                        .. unit_info.clone()
+                    },
                     from: from,
                     to: to,
                 });
@@ -217,7 +233,7 @@ pub fn filter_events(
                             unit_info: Unit {
                                 pos: from,
                                 attached_unit_id: None,
-                                .. transporter.clone()
+                                .. filtered_unit(transporter)
                             },
                         });
                     }
@@ -256,7 +272,7 @@ pub fn filter_events(
                         unit_info: Unit {
                             pos: from,
                             attached_unit_id: None,
-                            .. transporter.clone()
+                            .. filtered_unit(transporter)
                         },
                     });
                     events.push(CoreEvent::Move {

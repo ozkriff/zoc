@@ -11,7 +11,6 @@ use fow::{Fow};
 use ::{
     CoreEvent,
     FireMode,
-    ReactionFireMode,
     UnitId,
     ObjectId,
     Object,
@@ -94,12 +93,6 @@ impl<'a> Iterator for UnitIter<'a> {
         }
         None
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum InfoLevel {
-    Full,
-    Partial,
 }
 
 #[derive(Clone, Debug)]
@@ -215,48 +208,16 @@ impl State {
         }
     }
 
-    fn add_unit(&mut self, unit_info: &Unit, info_level: InfoLevel) {
-        assert!(self.units.get(&unit_info.id).is_none());
-        let unit_type = self.db.unit_type(unit_info.type_id);
+    fn add_unit(&mut self, unit: &Unit) {
+        assert!(self.units.get(&unit.id).is_none());
+        let unit_type = self.db.unit_type(unit.type_id);
         let reinforcement_points = self.reinforcement_points
-            .get_mut(&unit_info.player_id).unwrap();
+            .get_mut(&unit.player_id).unwrap();
         if *reinforcement_points < unit_type.cost {
             return;
         }
         reinforcement_points.n -= unit_type.cost.n;
-        self.units.insert(unit_info.id, Unit {
-            is_alive: unit_info.is_alive,
-            id: unit_info.id,
-            pos: unit_info.pos,
-            player_id: unit_info.player_id,
-            type_id: unit_info.type_id,
-            move_points: if info_level == InfoLevel::Full {
-                Some(MovePoints{n: 0})
-            } else {
-                None
-            },
-            attack_points: if info_level == InfoLevel::Full {
-                Some(AttackPoints{n: 0})
-            } else {
-                None
-            },
-            reactive_attack_points: if info_level == InfoLevel::Full {
-                Some(AttackPoints{n: 0})
-            } else {
-                None
-            },
-            reaction_fire_mode: ReactionFireMode::Normal,
-            count: unit_type.count,
-            morale: 100,
-            passenger_id: if info_level == InfoLevel::Full {
-                unit_info.passenger_id
-            } else {
-                None
-            },
-            attached_unit_id: unit_info.attached_unit_id,
-            is_loaded: unit_info.is_loaded,
-            is_attached: unit_info.is_attached,
-        });
+        self.units.insert(unit.id, unit.clone());
     }
 
     pub fn units(&self) -> UnitIter {
@@ -376,7 +337,7 @@ impl State {
                 }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
-                self.add_unit(unit_info, InfoLevel::Full);
+                self.add_unit(unit_info);
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 let count;
@@ -441,7 +402,7 @@ impl State {
             },
             CoreEvent::Reveal{..} => (),
             CoreEvent::ShowUnit{ref unit_info} => {
-                self.add_unit(unit_info, InfoLevel::Partial);
+                self.add_unit(unit_info);
                 self.shown_unit_ids.insert(unit_info.id);
             },
             CoreEvent::HideUnit{unit_id} => {
@@ -474,7 +435,7 @@ impl State {
                     unloaded_unit.is_loaded = false;
                     return;
                 }
-                self.add_unit(unit_info, InfoLevel::Partial);
+                self.add_unit(unit_info);
             },
             CoreEvent::Attach{transporter_id, attached_unit_id, to, ..} => {
                 if let Some(passenger_id) = self.unit(transporter_id).passenger_id {
