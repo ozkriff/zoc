@@ -680,10 +680,10 @@ fn load_map_01() -> MapInfo {
         MapPos{v: Vector2{x: 7, y: 11}},
     ]);
     for &((x, y), player_index) in &[
-        ((0, 0), 0),
         ((0, 1), 0),
-        ((9, 2), 1),
+        ((0, 7), 0),
         ((9, 3), 1),
+        ((9, 8), 1),
     ] {
         add_reinforcement_sector(
             &mut objects,
