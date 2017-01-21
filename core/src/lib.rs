@@ -360,7 +360,7 @@ pub fn find_next_player_unit_id(
     unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().cycle().filter(
-        |&(_, unit)| unit.is_alive && unit.player_id == player_id);
+        |&(_, unit)| is_commandable(player_id, unit));
     while let Some((&id, _)) = i.next() {
         if id == unit_id {
             let (&id, _) = i.next().unwrap();
@@ -377,7 +377,7 @@ pub fn find_prev_player_unit_id(
     unit_id: UnitId,
 ) -> UnitId {
     let mut i = state.units().cycle().filter(
-        |&(_, unit)| unit.is_alive && unit.player_id == player_id).peekable();
+        |&(_, unit)| is_commandable(player_id, unit)).peekable();
     while let Some((&id, _)) = i.next() {
         let &(&next_id, _) = i.peek().unwrap();
         if next_id == unit_id {
@@ -385,6 +385,11 @@ pub fn find_prev_player_unit_id(
         }
     }
     unreachable!()
+}
+
+pub fn is_commandable(player_id: PlayerId, unit: &Unit) -> bool {
+    unit.is_alive && unit.player_id == player_id
+        && !is_loaded_or_attached(unit)
 }
 
 pub fn is_loaded_or_attached(unit: &Unit) -> bool {
