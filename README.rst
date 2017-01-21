@@ -29,11 +29,11 @@ Core game features are:
 - reaction fire (xcom-like)
 - morale and suppression
 
-.. image:: http://i.imgur.com/gZeJJGM.png
+.. image:: http://i.imgur.com/TYoAVj6.png
 
-.. image:: http://i.imgur.com/POhSLwh.png
+.. image:: http://i.imgur.com/DxfBok2.png
 
-.. image:: http://i.imgur.com/qnZZgdX.png
+.. image:: http://i.imgur.com/V4ZPCrT.png
 
 Videos:
 
