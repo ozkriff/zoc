@@ -735,6 +735,7 @@ impl Core {
         let state = State::new_full(db.clone(), options);
         let players_info = get_player_info_lists(&db, state.map().size());
         let ai = Ai::new(db.clone(), options, PlayerId{id:1});
+        let next_object_id = ObjectId{id: state.objects().len() as i32};
         Core {
             state: state,
             players: get_players_list(options),
@@ -743,7 +744,7 @@ impl Core {
             ai: ai,
             players_info: players_info,
             next_unit_id: UnitId{id: 0},
-            next_object_id: ObjectId{id: 0},
+            next_object_id: next_object_id,
         }
     }
 
