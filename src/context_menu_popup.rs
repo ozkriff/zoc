@@ -126,7 +126,6 @@ pub fn get_options(
                     }
                 }
             } else {
-                // TODO: attach dead enemies
                 if unit.is_alive {
                     options.selects.push(unit_id);
                     let load_command = core::Command::LoadUnit {
