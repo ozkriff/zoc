@@ -377,26 +377,26 @@ impl State {
                         self.units.remove(&attack_info.defender_id);
                     }
                 }
-                let attacker_id = match attack_info.attacker_id {
-                    Some(attacker_id) => attacker_id,
-                    None => return,
-                };
-                if let Some(unit) = self.units.get_mut(&attacker_id) {
-                    match attack_info.mode {
-                        FireMode::Active => {
-                            if let Some(ref mut attack_points) = unit.attack_points {
-                                assert!(attack_points.n >= 1);
-                                attack_points.n -= 1;
-                            }
-                        },
-                        FireMode::Reactive => {
-                            if let Some(ref mut reactive_attack_points)
-                                = unit.reactive_attack_points
-                            {
-                                assert!(reactive_attack_points.n >= 1);
-                                reactive_attack_points.n -= 1;
-                            }
-                        },
+                if let Some(attacker_id) = attack_info.attacker_id {
+                    if let Some(unit) = self.units.get_mut(&attacker_id) {
+                        match attack_info.mode {
+                            FireMode::Active => {
+                                if let Some(ref mut attack_points)
+                                    = unit.attack_points
+                                {
+                                    assert!(attack_points.n >= 1);
+                                    attack_points.n -= 1;
+                                }
+                            },
+                            FireMode::Reactive => {
+                                if let Some(ref mut reactive_attack_points)
+                                    = unit.reactive_attack_points
+                                {
+                                    assert!(reactive_attack_points.n >= 1);
+                                    reactive_attack_points.n -= 1;
+                                }
+                            },
+                        }
                     }
                 }
             },
@@ -430,12 +430,13 @@ impl State {
                         .expect("Bad transporter_id")
                         .passenger_id = None;
                 }
-                if let Some(unloaded_unit) = self.units.get_mut(&unit_info.id) {
-                    unloaded_unit.pos = unit_info.pos;
-                    unloaded_unit.is_loaded = false;
-                    return;
+                if self.unit_opt(unit_info.id).is_some() {
+                    let unit = self.units.get_mut(&unit_info.id).unwrap();
+                    unit.pos = unit_info.pos;
+                    unit.is_loaded = false;
+                } else {
+                    self.add_unit(unit_info);
                 }
-                self.add_unit(unit_info);
             },
             CoreEvent::Attach{transporter_id, attached_unit_id, to, ..} => {
                 if let Some(passenger_id) = self.unit(transporter_id).passenger_id {

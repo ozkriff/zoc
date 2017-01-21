@@ -84,8 +84,6 @@ impl Fow {
     pub fn is_visible_at(&self, unit: &Unit, pos: ExactPos) -> bool {
         if pos.slot_id == SlotId::Air {
             *self.air_map.tile(pos.map_pos) != TileVisibility::No
-        } else if unit.is_loaded {
-            false
         } else {
             let unit_type = self.db.unit_type(unit.type_id);
             match *self.map.tile(pos.map_pos) {
