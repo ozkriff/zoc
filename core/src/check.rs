@@ -18,6 +18,7 @@ use ::{
 pub enum CommandError {
     TileIsOccupied,
     CanNotCommandEnemyUnits,
+    CanNotChainAttachments,
     NotInReinforcementSector,
     NotEnoughMovePoints,
     NotEnoughAttackPoints,
@@ -55,6 +56,7 @@ impl CommandError {
         match *self {
             CommandError::TileIsOccupied => "Tile is occupied",
             CommandError::CanNotCommandEnemyUnits => "Can not command enemy units",
+            CommandError::CanNotChainAttachments => "Can not chain attachments",
             CommandError::NotInReinforcementSector => "Not in reinforcement sector",
             CommandError::NotEnoughMovePoints => "Not enough move points",
             CommandError::NotEnoughAttackPoints => "No attack points",
@@ -282,6 +284,9 @@ pub fn check_command(
             };
             if attached_unit.is_alive && attached_unit.player_id != player_id {
                 return Err(CommandError::CanNotCommandEnemyUnits);
+            }
+            if attached_unit.attached_unit_id.is_some() {
+                return Err(CommandError::CanNotChainAttachments);
             }
             let attached_unit_type = db.unit_type(attached_unit.type_id);
             if attached_unit_type.size > transporter_type.size {
