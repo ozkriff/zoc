@@ -210,13 +210,6 @@ impl State {
 
     fn add_unit(&mut self, unit: &Unit) {
         assert!(self.units.get(&unit.id).is_none());
-        let unit_type = self.db.unit_type(unit.type_id);
-        let reinforcement_points = self.reinforcement_points
-            .get_mut(&unit.player_id).unwrap();
-        if *reinforcement_points < unit_type.cost {
-            return;
-        }
-        reinforcement_points.n -= unit_type.cost.n;
         self.units.insert(unit.id, unit.clone());
     }
 
@@ -337,6 +330,13 @@ impl State {
                 }
             },
             CoreEvent::CreateUnit{ref unit_info} => {
+                {
+                    let unit_type = self.db.unit_type(unit_info.type_id);
+                    let reinforcement_points = self.reinforcement_points
+                        .get_mut(&unit_info.player_id).unwrap();
+                    assert!(*reinforcement_points >= unit_type.cost);
+                    reinforcement_points.n -= unit_type.cost.n;
+                }
                 self.add_unit(unit_info);
             },
             CoreEvent::AttackUnit{ref attack_info} => {
