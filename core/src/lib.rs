@@ -692,7 +692,9 @@ pub fn is_exact_pos_free(
         }
         match unit.pos.slot_id {
             SlotId::WholeTile | SlotId::TwoTiles(_) => {
-                return false;
+                if !unit_type.is_air {
+                    return false;
+                }
             }
             _ => {}
         }
