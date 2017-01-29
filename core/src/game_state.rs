@@ -77,8 +77,8 @@ impl<'a> Iterator for UnitsAtIter<'a> {
 
 #[derive(Clone)]
 pub struct UnitIter<'a> {
-    pub iter: hash_map::Iter<'a, UnitId, Unit>,
-    pub state: &'a State,
+    iter: hash_map::Iter<'a, UnitId, Unit>,
+    state: &'a State,
 }
 
 impl<'a> Iterator for UnitIter<'a> {
