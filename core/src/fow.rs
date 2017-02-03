@@ -30,7 +30,7 @@ fn calc_visibility(
     if distance > unit_type.los_range {
         return TileVisibility::No;
     }
-    if distance <= unit_type.cover_los_range {
+    if !unit_type.is_air && distance <= unit_type.cover_los_range {
         return TileVisibility::Excellent;
     }
     let mut vis = match *state.map().tile(pos) {
@@ -39,7 +39,7 @@ fn calc_visibility(
     };
     for object in state.objects_at(pos) {
         match object.class {
-            // TODO: Removed Terrain::City and Terrain::Trees, use Smoke-like objects in logic
+            // TODO: Remove Terrain::City and Terrain::Trees, use Smoke-like objects in logic
             ObjectClass::Building | ObjectClass::Smoke => {
                 vis = TileVisibility::Normal;
             }
