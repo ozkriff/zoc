@@ -65,7 +65,6 @@ pub fn main() {
 
         let delta = start.elapsed();
         if max_frame_time > delta {
-            println!("Sleeping for: {:?}", max_frame_time - delta);
             thread::sleep(max_frame_time - delta);
         }
     }
