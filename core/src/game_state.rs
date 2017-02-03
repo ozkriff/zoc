@@ -606,6 +606,7 @@ fn load_map(map_name: &str) -> MapInfo {
         "map03" => load_map_03(),
         "map04" => load_map_04(),
         "map05" => load_map_05(),
+        "map_fov_bug_test" => load_map_fov_bug_test(),
         _ => unimplemented!(),
     }
 }
@@ -823,6 +824,30 @@ fn load_map_05() -> MapInfo {
     for &((x, y), player_index) in &[
         ((0, 0), 0),
         ((2, 0), 1),
+    ] {
+        add_reinforcement_sector(
+            &mut objects,
+            MapPos{v: Vector2{x: x, y: y}},
+            Some(PlayerId{id: player_index}),
+        );
+    }
+    (map, objects, sectors)
+}
+
+/// Map for repoducing of https://github.com/ozkriff/zoc/issues/149
+fn load_map_fov_bug_test() -> MapInfo {
+    let map_size = Size2{w: 20, h: 20};
+    let mut objects = HashMap::new();
+    let mut map = Map::new(map_size);
+    let sectors = HashMap::new();
+    for &((x, y), terrain) in &[
+        ((9, 10), Terrain::Trees),
+        ((10, 9), Terrain::Trees),
+    ] {
+        *map.tile_mut(MapPos{v: Vector2{x: x, y: y}}) = terrain;
+    }
+    for &((x, y), player_index) in &[
+        ((10, 10), 0),
     ] {
         add_reinforcement_sector(
             &mut objects,
