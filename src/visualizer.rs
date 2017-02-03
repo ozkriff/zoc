@@ -1,4 +1,4 @@
-use std::process;
+use std::{process, thread, time};
 use std::sync::mpsc::{channel, Receiver};
 use std::fs::{metadata};
 use screen::{Screen, ScreenCommand, EventStatus};
@@ -47,9 +47,16 @@ impl Visualizer {
     }
 
     pub fn tick(&mut self) {
+        let max_fps = 60;
+        let max_frame_time = time::Duration::from_millis(1000 / max_fps);
+        let start_frame_time = time::Instant::now();
         self.draw();
         self.handle_events();
         self.handle_commands();
+        let delta_time = start_frame_time.elapsed();
+        if max_frame_time > delta_time {
+            thread::sleep(max_frame_time - delta_time);
+        }
     }
 
     fn draw(&mut self) {

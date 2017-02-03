@@ -1,5 +1,5 @@
 use std::sync::mpsc::{Sender};
-use time::{precise_time_ns};
+use std::time;
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
 use glutin::{self, Api, Event, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
@@ -15,6 +15,12 @@ use texture::{load_texture_raw};
 use pipeline::{pipe};
 use fs;
 use mesh::{Mesh};
+
+fn duration_to_time(duration: time::Duration) -> Time {
+    let seconds = duration.as_secs() as f32;
+    let nanoseconds = duration.subsec_nanos() as f32;
+    Time{n: seconds + nanoseconds / 1_000_000_000.0}
+}
 
 fn new_shader(
     window: &glutin::Window,
@@ -88,7 +94,7 @@ pub struct Context {
     factory: gfx_gl::Factory,
     font: rusttype::Font<'static>,
     data: pipe::Data<gfx_gl::Resources>,
-    start_time_ns: u64,
+    start_time: time::Instant,
 }
 
 impl Context {
@@ -131,7 +137,7 @@ impl Context {
                 last_press_pos: ScreenPos{v: Vector2::from_value(0)},
                 pos: ScreenPos{v: Vector2::from_value(0)},
             },
-            start_time_ns: precise_time_ns(),
+            start_time: time::Instant::now(),
         }
     }
 
@@ -141,8 +147,7 @@ impl Context {
     }
 
     pub fn current_time(&self) -> Time {
-        let ns = precise_time_ns() - self.start_time_ns;
-        Time{n: ns as f32 / 1_000_000_000.0}
+        duration_to_time(time::Instant::now() - self.start_time)
     }
 
     pub fn should_close(&self) -> bool {

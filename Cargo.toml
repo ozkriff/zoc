@@ -23,7 +23,6 @@ gfx = "0.12"
 glutin = "0.6"
 collision = "0.9"
 cgmath = "0.12"
-time = "0.1"
 rand = "0.3"
 rusttype = "0.2"
 
