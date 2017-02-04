@@ -765,7 +765,6 @@ impl TacticalScreen {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventCreateUnitVisualizer::new(
-                    self.core.db(),
                     state,
                     scene,
                     unit_info,
@@ -775,7 +774,6 @@ impl TacticalScreen {
             },
             CoreEvent::AttackUnit{ref attack_info} => {
                 event_visualizer::EventAttackUnitVisualizer::new(
-                    self.core.db(),
                     state,
                     scene,
                     attack_info,
@@ -788,7 +786,6 @@ impl TacticalScreen {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventShowUnitVisualizer::new(
-                    self.core.db(),
                     state,
                     scene,
                     unit_info,
@@ -824,7 +821,6 @@ impl TacticalScreen {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventUnloadUnitVisualizer::new(
-                    self.core.db(),
                     state,
                     scene,
                     unit_info,
@@ -850,7 +846,6 @@ impl TacticalScreen {
             },
             CoreEvent::Detach{transporter_id, to, ..} => {
                 event_visualizer::EventDetachVisualizer::new(
-                    self.core.db(),
                     state,
                     scene,
                     transporter_id,

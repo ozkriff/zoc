@@ -14,7 +14,6 @@ use core::{
     MapPos,
     ObjectId
 };
-use core::db::{Db};
 use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
@@ -119,7 +118,6 @@ fn try_to_fix_attached_unit_pos(
 }
 
 fn show_unit_at(
-    db: &Db,
     state: &State,
     scene: &mut Scene,
     unit_info: &Unit,
@@ -128,7 +126,7 @@ fn show_unit_at(
 ) {
     let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-    let mut children = get_unit_scene_nodes(db, unit_info, mesh_id);
+    let mut children = get_unit_scene_nodes(unit_info, mesh_id);
     if unit_info.is_alive {
         children.push(SceneNode {
             pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
@@ -153,19 +151,14 @@ pub struct EventCreateUnitVisualizer {
     move_helper: MoveHelper,
 }
 
-fn get_unit_scene_nodes(
-    db: &Db,
-    unit_info: &Unit,
-    mesh_id: MeshId,
-) -> Vec<SceneNode> {
-    let color = if unit_info.is_alive {
+fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
+    let color = if unit.is_alive {
         [1.0, 1.0, 1.0, 1.0]
     } else {
         WRECKS_COLOR
     };
-    let count = db.unit_type(unit_info.type_id).count;
     let mut vec = Vec::new();
-    if count == 1 {
+    if unit.count == 1 {
         vec![SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
             rot: Rad(0.0),
@@ -174,8 +167,8 @@ fn get_unit_scene_nodes(
             children: vec![],
         }]
     } else {
-        for i in 0 .. count {
-            let pos = geom::index_to_circle_vertex(count, i).v * 0.15;
+        for i in 0 .. unit.count {
+            let pos = geom::index_to_circle_vertex(unit.count, i).v * 0.15;
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
                 rot: Rad(0.0),
@@ -190,7 +183,6 @@ fn get_unit_scene_nodes(
 
 impl EventCreateUnitVisualizer {
     pub fn new(
-        db: &Db,
         state: &State,
         scene: &mut Scene,
         unit_info: &Unit,
@@ -199,7 +191,7 @@ impl EventCreateUnitVisualizer {
     ) -> Box<EventVisualizer> {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
         let speed = Speed{n: 2.0};
         let move_helper = MoveHelper::new(from, to, speed);
         let node_id = scene.unit_id_to_node_id(unit_info.id);
@@ -238,7 +230,6 @@ pub struct EventAttackUnitVisualizer {
 
 impl EventAttackUnitVisualizer {
     pub fn new(
-        db: &Db,
         state: &State,
         scene: &mut Scene,
         attack_info: &AttackInfo,
@@ -294,7 +285,6 @@ impl EventAttackUnitVisualizer {
                 let attached_unit_mesh_id = unit_type_visual_info
                     .get(attached_unit.type_id).mesh_id;
                 show_unit_at(
-                    db,
                     state,
                     scene,
                     attached_unit,
@@ -401,7 +391,6 @@ pub struct EventShowUnitVisualizer;
 
 impl EventShowUnitVisualizer {
     pub fn new(
-        db: &Db,
         state: &State,
         scene: &mut Scene,
         unit_info: &Unit,
@@ -410,7 +399,7 @@ impl EventShowUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         map_text.add_text(unit_info.pos.map_pos, "spotted");
-        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
         if let Some(attached_unit_id) = unit_info.attached_unit_id {
             try_to_fix_attached_unit_pos(
                 scene, unit_info.id, attached_unit_id);
@@ -477,7 +466,6 @@ pub struct EventUnloadUnitVisualizer {
 
 impl EventUnloadUnitVisualizer {
     pub fn new(
-        db: &Db,
         state: &State,
         scene: &mut Scene,
         unit_info: &Unit,
@@ -490,7 +478,7 @@ impl EventUnloadUnitVisualizer {
         map_text.add_text(unit_info.pos.map_pos, "unloaded");
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = geom::exact_pos_to_world_pos(state, transporter_pos);
-        show_unit_at(db, state, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
         let node_id = scene.unit_id_to_node_id(unit_info.id);
         let unit_node = scene.node_mut(node_id);
         unit_node.pos = from;
@@ -830,7 +818,6 @@ pub struct EventDetachVisualizer {
 
 impl EventDetachVisualizer {
     pub fn new(
-        db: &Db,
         state: &State,
         scene: &mut Scene,
         transporter_id: UnitId,
@@ -847,7 +834,6 @@ impl EventDetachVisualizer {
         let attached_unit_mesh_id = unit_type_visual_info
             .get(attached_unit.type_id).mesh_id;
         show_unit_at(
-            db,
             state,
             scene,
             attached_unit,
