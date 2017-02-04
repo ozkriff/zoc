@@ -131,6 +131,15 @@ impl Fow {
                 self.fov_unit(state, unit);
             }
         }
+        for object in state.objects().values() {
+            if object.class != ObjectClass::ReinforcementSector
+                || object.owner_id != Some(self.player_id)
+            {
+                continue;
+            }
+            *self.map.tile_mut(object.pos) = TileVisibility::Excellent;
+            *self.air_map.tile_mut(object.pos) = TileVisibility::Excellent;
+        }
     }
 
     pub fn apply_event(
