@@ -82,14 +82,9 @@ pub fn get_options(
     let player_id = core.player_id();
     let unit_ids = core::get_unit_ids_at(state, pos);
     for object in state.objects_at(pos) {
-        if object.class != ObjectClass::ReinforcementSector {
-            continue;
-        }
-        let owner_id = match object.owner_id {
-            Some(id) => id,
-            None => continue,
-        };
-        if owner_id != player_id {
+        if object.class != ObjectClass::ReinforcementSector
+            || object.owner_id != Some(player_id)
+        {
             continue;
         }
         let reinforcement_options = reinforcements_popup::get_options(
