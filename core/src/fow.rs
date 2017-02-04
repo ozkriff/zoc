@@ -1,6 +1,5 @@
 use std::default::{Default};
 use std::rc::{Rc};
-use types::{Size2};
 use game_state::{State};
 use map::{Map, Terrain, distance};
 use fov::{fov, simple_fov};
@@ -60,13 +59,17 @@ pub struct Fow {
 }
 
 impl Fow {
-    pub fn new(db: Rc<Db>, map_size: Size2, player_id: PlayerId) -> Fow {
-        Fow {
+    pub fn new(state: &State, player_id: PlayerId) -> Fow {
+        let db = state.db().clone();
+        let map_size = state.map().size();
+        let mut fow = Fow {
             map: Map::new(map_size),
             air_map: Map::new(map_size),
             player_id: player_id,
             db: db,
-        }
+        };
+        fow.reset(state);
+        fow
     }
 
     pub fn is_ground_tile_visible(&self, pos: MapPos) -> bool {

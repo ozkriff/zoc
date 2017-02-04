@@ -148,7 +148,7 @@ impl State {
 
     pub fn new_partial(db: Rc<Db>, options: &Options, id: PlayerId) -> State {
         let mut state = basic_state(db.clone(), options);
-        let fow = Fow::new(db, state.map().size(), id);
+        let fow = Fow::new(&state, id);
         state.to_partial(fow);
         state
     }
@@ -165,6 +165,10 @@ impl State {
 
     pub fn is_partial(&self) -> bool {
         self.fow.is_some()
+    }
+
+    pub fn db(&self) -> &Rc<Db> {
+        &self.db
     }
 
     /// Converts active ap (attack points) to reactive

@@ -22,7 +22,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::{Rc};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector2};
-use types::{Size2};
 use misc::{clamp};
 use game_state::{State, ObjectsAtIter};
 use map::{Map, Terrain};
@@ -420,8 +419,8 @@ struct PlayerInfo {
 }
 
 impl PlayerInfo {
-    fn new(db: Rc<Db>, player_id: PlayerId, map_size: Size2) -> PlayerInfo {
-        let fow = Fow::new(db, map_size, player_id);
+    fn new(state: &State, player_id: PlayerId) -> PlayerInfo {
+        let fow = Fow::new(state, player_id);
         PlayerInfo {
             fow: Some(fow),
             events: VecDeque::new(),
@@ -550,12 +549,10 @@ fn get_players_list(options: &Options) -> Vec<Player> {
     )
 }
 
-fn get_player_info_lists(db: &Rc<Db>, map_size: Size2) -> HashMap<PlayerId, PlayerInfo> {
+fn get_player_info_lists(state: &State) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
-    map.insert(PlayerId{id: 0}, PlayerInfo::new(
-        db.clone(), PlayerId{id: 0}, map_size));
-    map.insert(PlayerId{id: 1}, PlayerInfo::new(
-        db.clone(), PlayerId{id: 1}, map_size));
+    map.insert(PlayerId{id: 0}, PlayerInfo::new(state, PlayerId{id: 0}));
+    map.insert(PlayerId{id: 1}, PlayerInfo::new(state, PlayerId{id: 1}));
     map
 }
 
@@ -740,7 +737,7 @@ impl Core {
     pub fn new(options: &Options) -> Core {
         let db = Rc::new(Db::new());
         let state = State::new_full(db.clone(), options);
-        let players_info = get_player_info_lists(&db, state.map().size());
+        let players_info = get_player_info_lists(&state);
         let ai = Ai::new(db.clone(), options, PlayerId{id:1});
         let next_object_id = ObjectId{id: state.objects().len() as i32};
         Core {
