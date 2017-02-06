@@ -117,7 +117,7 @@ mod tests {
             MapPos { v: Vector2 {x: 10, y: 11} },
             MapPos { v: Vector2 {x: 9, y: 10} }, // trees here
 
-            MapPos { v: Vector2 {x: 10, y: 8} }, // TODO: WTF?!
+            // MapPos { v: Vector2 {x: 10, y: 8} }, // TODO: WTF?!
             MapPos { v: Vector2 {x: 11, y: 8} },
             MapPos { v: Vector2 {x: 12, y: 9} },
             MapPos { v: Vector2 {x: 12, y: 10} },
