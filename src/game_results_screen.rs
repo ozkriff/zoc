@@ -5,7 +5,7 @@ use core::{PlayerId, Score};
 use core::game_state::{State};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
-use gui::{ButtonManager, Button, is_tap};
+use gui::{ButtonManager, Button, Widget, is_tap};
 use types::{ScreenPos, Time};
 
 fn winner_id(state: &State) -> PlayerId {

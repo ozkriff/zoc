@@ -11,7 +11,7 @@ use core::game_state::{State};
 use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
 use core::unit::{UnitTypeId};
 use core::misc::{opt_rx_collect};
-use gui::{ButtonManager, Button, ButtonId, is_tap};
+use gui::{ButtonManager, Button, GuiId, TextSize, is_tap, Widget};
 use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
 use unit_type_visual_info::{
@@ -79,23 +79,26 @@ fn wireframe_building_mesh_id(mesh_ids: &MeshIdManager, object: &Object) -> Mesh
 #[derive(Clone, Debug)]
 pub struct Gui {
     button_manager: ButtonManager,
-    button_end_turn_id: ButtonId,
-    button_deselect_unit_id: ButtonId,
-    button_next_unit_id: ButtonId,
-    button_prev_unit_id: ButtonId,
-    button_zoom_in_id: ButtonId,
-    button_zoom_out_id: ButtonId,
-    label_unit_info_id: Option<ButtonId>,
-    label_score_id: ButtonId,
-    label_reinforcement_points_id: ButtonId,
+    button_end_turn_id: GuiId,
+    button_deselect_unit_id: GuiId,
+    button_next_unit_id: GuiId,
+    button_prev_unit_id: GuiId,
+    button_zoom_in_id: GuiId,
+    button_zoom_out_id: GuiId,
+    label_unit_info_id: Option<GuiId>,
+    label_score_id: GuiId,
+    label_reinforcement_points_id: GuiId,
 }
 
 impl Gui {
     fn new(context: &mut Context, state: &State) -> Gui {
         let mut button_manager = ButtonManager::new();
         let mut pos = ScreenPos{v: Vector2{x: 10, y: 10}};
-        let button_end_turn_id = button_manager.add_button(
-            Button::new(context, "[end turn]", pos));
+        let mut b = Button::new2();
+        b.text("[end turn]")
+            .set_pos(pos)
+            .build(context);
+        let button_end_turn_id = button_manager.add_button(b);
         let ystep = (button_manager.buttons()[&button_end_turn_id].size().h as f32 * 1.2) as i32; // TODO
         pos.v.y += ystep;
         let button_deselect_unit_id = button_manager.add_button(
@@ -653,7 +656,7 @@ impl TacticalScreen {
         }
     }
 
-    fn handle_event_button_press(&mut self, context: &mut Context, button_id: ButtonId) {
+    fn handle_event_button_press(&mut self, context: &mut Context, button_id: GuiId) {
         if button_id == self.gui.button_end_turn_id {
             self.end_turn(context);
         } else if button_id == self.gui.button_deselect_unit_id {
@@ -728,7 +731,8 @@ impl TacticalScreen {
         self.draw_scene(context, dtime);
         let player_info = self.player_info.get(self.core.player_id());
         self.map_text_manager.draw(context, &player_info.camera, dtime);
-        context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
+        // why is this set to black?
+        context.set_basic_color([1.0, 1.0, 1.0, 1.0]);
         self.gui.button_manager.draw(context);
     }
 
@@ -949,7 +953,7 @@ impl TacticalScreen {
 
     fn update_score_labels(&mut self, context: &mut Context) {
         let pos = self.gui.button_manager.buttons()[&self.gui.label_score_id].pos();
-        let label_score = Button::new_small(context, &score_text(self.current_state()), pos);
+        let label_score = Button::new(context, &score_text(self.current_state()), pos);
         self.gui.button_manager.remove_button(self.gui.label_score_id);
         self.gui.label_score_id = self.gui.button_manager.add_button(label_score);
     }
