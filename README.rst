@@ -23,7 +23,7 @@ ZoC is a turn-based hexagonal strategy game written in Rust_.
 Core game features are:
 
 - advanced fog of war
-- slot system (multiple units per tile)
+- slot system (single tile fits multiple units)
 - reaction fire (xcom-like)
 - morale and suppression
 
@@ -37,19 +37,19 @@ Videos:
 
 - AI, reaction fire and sectors (2016.06.08): https://youtu.be/hI6YmZeuZ3s
 - transporter, roads (2016.08.07): https://youtu.be/_0_U-h1KCAE
-- smoke, water and bridge (2016.08.20): https://youtu.be/WJHkuWwAb7A
+- smoke, water and bridges (2016.08.20): https://youtu.be/WJHkuWwAb7A
 
 
 Assets
 ------
 
-Basic game assets are stored in separate repo:
+Basic game assets are stored in a separate repo:
 https://github.com/ozkriff/zoc_assets
 
 Run ``make assets`` (or ``git clone https://github.com/ozkriff/zoc_assets assets``) to download them.
 
-NOTE: If game will not die in early stage of development I'm planning
-to release actual game resources under proprietary license.
+NOTE: If I don't abandon the game in the early stages of development
+I'll release actual game resources under proprietary license.
 
 
 Building
@@ -82,7 +82,7 @@ Feel free to report bugs and patches using GitHub's pull requests
 system on https://github.com/ozkriff/zoc. Any feedback would be much
 appreciated!
 
-NOTE: You must apologize my English level. I'm trying to do my best :) .
+NOTE: You have to apologize my English, I'm trying as best as I can.
 Please open an issue if anything in docs or comments is strange/unclear/can
 be improved.
 
