@@ -9,6 +9,14 @@ Zone of Control
 |gitter|_
 
 
+News
+----
+
+This project is a work in progress and is still rough at the edges.
+
+Read a summary of what happened last month in `This Month in ZoC`_.
+
+
 Downloads
 ---------
 
@@ -104,6 +112,7 @@ See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 .. |travis-ci| image:: https://travis-ci.org/ozkriff/zoc.svg?branch=master
 .. |appveyor-ci| image:: https://ci.appveyor.com/api/projects/status/49kqaol7dlt2xrec/branch/master?svg=true
 .. |gitter| image:: https://badges.gitter.im/....svg
+.. _`This Month in ZoC`: users.rust-lang.org/t/this-month-in-zone-of-control/6993
 .. _Rust: https://rust-lang.org
 .. _LICENSE-MIT: LICENSE-MIT
 .. _LICENSE-APACHE: LICENSE-APACHE
