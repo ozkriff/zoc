@@ -22,19 +22,34 @@ fn duration_to_time(duration: time::Duration) -> Time {
     Time{n: seconds + nanoseconds / 1_000_000_000.0}
 }
 
+fn shader_version_string(api: Api) -> String {
+    match api {
+        Api::OpenGl => "#version 120\n".into(),
+        Api::OpenGlEs | Api::WebGl => "#version 100\n".into(),
+    }
+}
+
+fn vertex_shader(api: Api) -> String {
+    shader_version_string(api) + &fs::load_as_string("shader/v.glsl")
+}
+
+fn fragment_shader(api: Api) -> String {
+    let mut text = shader_version_string(api);
+    if api == Api::OpenGlEs || api == Api::WebGl {
+        text += "precision mediump float;\n";
+    }
+    text + &fs::load_as_string("shader/f.glsl")
+}
+
 fn new_shader(
     window: &glutin::Window,
     factory: &mut gfx_gl::Factory,
 ) -> Program<gfx_gl::Resources> {
-    let shader_header = match window.get_api() {
-        Api::OpenGl => fs::load("shader/pre_gl.glsl").into_inner(),
-        Api::OpenGlEs | Api::WebGl => fs::load("shader/pre_gles.glsl").into_inner(),
-    };
-    let mut vertex_shader = shader_header.clone();
-    vertex_shader.extend(fs::load("shader/v.glsl").into_inner());
-    let mut fragment_shader = shader_header;
-    fragment_shader.extend(fs::load("shader/f.glsl").into_inner());
-    factory.link_program(&vertex_shader, &fragment_shader).unwrap()
+    let api = window.get_api();
+    factory.link_program(
+        vertex_shader(api).as_bytes(),
+        fragment_shader(api).as_bytes(),
+    ).unwrap()
 }
 
 fn new_pso(

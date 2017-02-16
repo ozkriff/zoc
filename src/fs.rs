@@ -1,6 +1,10 @@
 use std::path::{Path};
 use std::io::{Cursor};
 
+pub fn load_as_string<P: AsRef<Path>>(path: P) -> String {
+    String::from_utf8(load(path).into_inner()).unwrap()
+}
+
 #[cfg(not(target_os = "android"))]
 pub fn load<P: AsRef<Path>>(path: P) -> Cursor<Vec<u8>> {
     use std::fs::{File};
