@@ -9,7 +9,7 @@ use core::db::{Db};
 use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
-use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
+use gui::{ButtonManager, Button, GuiId, is_tap, basic_text_size};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Options {
@@ -55,7 +55,7 @@ pub fn get_options(
 pub struct ReinforcementsPopup {
     game_screen_tx: Sender<(UnitTypeId, ExactPos)>,
     button_manager: ButtonManager,
-    button_ids: HashMap<ButtonId, (UnitTypeId, ExactPos)>,
+    button_ids: HashMap<GuiId, (UnitTypeId, ExactPos)>,
 }
 
 impl ReinforcementsPopup {
@@ -102,7 +102,7 @@ impl ReinforcementsPopup {
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: ButtonId
+        button_id: GuiId
     ) {
         if let Some(&unit_info) = self.button_ids.get(&button_id) {
             self.game_screen_tx.send(unit_info).unwrap();

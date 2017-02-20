@@ -1,11 +1,33 @@
 use std::collections::{HashMap};
-use cgmath::{Vector3, Matrix4, ortho};
+use cgmath::{Vector2, Vector3, Matrix4, ortho};
 use context::{Context};
 use texture::{load_texture_raw};
 use types::{Size2, ScreenPos};
 use text;
 use mesh::{Mesh};
 use pipeline::{Vertex};
+
+static mut GLOBAL_GUI_ID: u32 = 0;
+
+pub fn new_gui_id() -> GuiId {
+    unsafe {
+        GLOBAL_GUI_ID += 1;
+        GuiId { id: GLOBAL_GUI_ID }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum TextSize {
+    Basic,
+    Small,
+}
+
+pub fn point_in_rect(point: ScreenPos, loc: ScreenPos, dim: Size2) -> bool {
+    let x = point.v.x;
+    let y = point.v.y;
+    x >= loc.v.x && x <= loc.v.x + dim.w
+        && y >= loc.v.y && y <= loc.v.y + dim.h
+}
 
 /// Check if this was a tap or swipe
 pub fn is_tap(context: &Context) -> bool {
@@ -35,106 +57,167 @@ pub fn get_2d_screen_matrix(win_size: Size2) -> Matrix4<f32> {
     ortho(left, right, bottom, top, near, far)
 }
 
+pub fn text_to_mesh(context: &mut Context, size: TextSize, text: &str, color: &[u8; 4]) -> (Size2, Mesh) {
+    let size = match size {
+        TextSize::Basic => basic_text_size(context),
+        TextSize::Small => small_text_size(context),
+    };
+    let (texture_size, texture_data) =
+        text::text_to_texture(context.font(), size, text, &color);
+    let texture = load_texture_raw(context.factory_mut(), texture_size, &texture_data);
+    let h = texture_size.h as f32;
+    let w = texture_size.w as f32;
+    let vertices = &[
+        Vertex{pos: [0.0, 0.0, 0.0], uv: [0.0, 1.0]},
+        Vertex{pos: [0.0, h, 0.0], uv: [0.0, 0.0]},
+        Vertex{pos: [w, 0.0, 0.0], uv: [1.0, 1.0]},
+        Vertex{pos: [w, h, 0.0], uv: [1.0, 0.0]},
+    ];
+    let indices = &[0,  1,  2,  1,  2,  3];
+    (texture_size, Mesh::new(context, vertices, indices, texture))
+}
+
+pub trait Widget {
+    fn mouse_over(&self, context: &Context) -> bool;
+    fn draw(&self, context: &mut Context);
+    fn pos(&self) -> ScreenPos;
+    fn set_pos<'a>(&'a mut self, pos: ScreenPos) -> &'a mut Self;
+    fn size(&self) -> Size2;
+}
+
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
-pub struct ButtonId {pub id: i32}
+pub struct GuiId {pub id: u32}
 
 #[derive(Clone, Debug)]
 pub struct Button {
     pos: ScreenPos,
     size: Size2,
-    mesh: Mesh,
+    text: String,
+    text_size: TextSize,
+    default_mesh: Option<Mesh>,
+    hover_mesh: Option<Mesh>,
 }
 
 impl Button {
-    pub fn new(context: &mut Context, label: &str, pos: ScreenPos) -> Button {
-        let text_size = basic_text_size(context);
-        Button::new_with_size(context, label, text_size, pos)
+    pub fn new(context: &mut Context, text: &str, pos: ScreenPos) -> Button {
+        let mut b = Button::new2();
+        b.text(text).set_pos(pos).build(context);
+        b
     }
 
-    pub fn new_small(context: &mut Context, label: &str, pos: ScreenPos) -> Button {
-        let text_size = small_text_size(context);
-        Button::new_with_size(context, label, text_size, pos)
+    pub fn new_small(context: &mut Context, text: &str, pos: ScreenPos) -> Button {
+        let mut b = Button::new2();
+        b.text(text)
+            .text_size(TextSize::Small)
+            .set_pos(pos)
+            .build(context);
+        b
     }
 
-    pub fn new_with_size(context: &mut Context, label: &str, size: f32, pos: ScreenPos) -> Button {
-        let (texture_size, texture_data) = text::text_to_texture(context.font(), size, label);
-        let texture = load_texture_raw(context.factory_mut(), texture_size, &texture_data);
-        let h = texture_size.h as f32;
-        let w = texture_size.w as f32;
-        let vertices = &[
-            Vertex{pos: [0.0, 0.0, 0.0], uv: [0.0, 1.0]},
-            Vertex{pos: [0.0, h, 0.0], uv: [0.0, 0.0]},
-            Vertex{pos: [w, 0.0, 0.0], uv: [1.0, 1.0]},
-            Vertex{pos: [w, h, 0.0], uv: [1.0, 0.0]},
-        ];
-        let indices = &[0,  1,  2,  1,  2,  3];
-        let mesh = Mesh::new(context, vertices, indices, texture);
+    pub fn new2() -> Button {
         Button {
-            pos: pos,
-            size: texture_size,
-            mesh: mesh,
+            pos: ScreenPos{v: Vector2{ x: 0, y: 0}},
+            size: Size2{w: 0, h: 0},
+            text: String::new(),
+            text_size: TextSize::Basic,
+            default_mesh: None,
+            hover_mesh: None
         }
     }
 
-    pub fn draw(&self, context: &mut Context) {
-        context.draw_mesh(&self.mesh);
+    pub fn text<'a, S: Into<String>>(&'a mut self, text: S) -> &'a mut Button {
+        self.text = text.into();
+        self
     }
 
-    pub fn pos(&self) -> ScreenPos {
+    pub fn text_size<'a>(&'a mut self, size: TextSize) -> &'a mut Button {
+        self.text_size = size;
+        self
+    }
+
+    pub fn build(&mut self, context: &mut Context) {
+        let (size, def_mesh) = text_to_mesh(context, self.text_size, self.text.as_str(), &[255, 0, 0, 255]);
+        let (_, hov_mesh) = text_to_mesh(context, self.text_size, self.text.as_str(), &[0, 255, 255, 255]);
+        self.default_mesh = Some(def_mesh);
+        self.hover_mesh = Some(hov_mesh);
+        self.size = size;
+    }
+}
+
+impl Widget for Button {
+    fn mouse_over(&self, context: &Context) -> bool {
+        let x = context.mouse().pos.v.x;
+        let y = context.win_size().h - context.mouse().pos.v.y;
+        let mouse = ScreenPos { v: Vector2 { x: x, y: y} };
+        point_in_rect(mouse, self.pos(), self.size())
+    }
+
+    fn set_pos<'a>(&'a mut self, pos: ScreenPos) -> &'a mut Button {
+        self.pos = pos;
+        self
+    }
+
+    fn pos(&self) -> ScreenPos {
         self.pos
     }
 
-    pub fn set_pos(&mut self, pos: ScreenPos) {
-        self.pos = pos;
+    fn size(&self) -> Size2 {
+        self.size
     }
 
-    pub fn size(&self) -> Size2 {
-        self.size
+    fn draw(&self, context: &mut Context) {
+        let mouse_over = self.mouse_over(context);
+        let proj_mat = get_2d_screen_matrix(context.win_size());
+        let tr_mat = Matrix4::from_translation(Vector3 {
+            x: self.pos.v.x as f32,
+            y: self.pos.v.y as f32,
+            z: 0.0,
+        });
+        context.set_mvp(proj_mat * tr_mat);
+
+        if mouse_over && self.hover_mesh.is_some() {
+            context.draw_mesh(&self.hover_mesh.as_ref().unwrap());
+        } else if self.default_mesh.is_some() {
+            context.draw_mesh(self.default_mesh.as_ref().unwrap());
+        }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ButtonManager {
-    buttons: HashMap<ButtonId, Button>,
-    last_id: ButtonId,
+    buttons: HashMap<GuiId, Button>,
+    last_id: GuiId,
 }
 
 impl ButtonManager {
     pub fn new() -> ButtonManager {
         ButtonManager {
             buttons: HashMap::new(),
-            last_id: ButtonId{id: 0},
+            last_id: GuiId{id: 0},
         }
     }
 
-    pub fn buttons(&self) -> &HashMap<ButtonId, Button> {
+    pub fn buttons(&self) -> &HashMap<GuiId, Button> {
         &self.buttons
     }
 
-    pub fn buttons_mut(&mut self) -> &mut HashMap<ButtonId, Button> {
+    pub fn buttons_mut(&mut self) -> &mut HashMap<GuiId, Button> {
         &mut self.buttons
     }
 
-    pub fn add_button(&mut self, button: Button) -> ButtonId {
-        let id = self.last_id;
+    pub fn add_button(&mut self, button: Button) -> GuiId {
+        let id = new_gui_id();
         self.buttons.insert(id, button);
-        self.last_id.id += 1;
         id
     }
 
-    pub fn remove_button(&mut self, id: ButtonId) {
+    pub fn remove_button(&mut self, id: GuiId) {
         self.buttons.remove(&id).unwrap();
     }
 
-    pub fn get_clicked_button_id(&self, context: &Context) -> Option<ButtonId> {
-        let x = context.mouse().pos.v.x;
-        let y = context.win_size().h - context.mouse().pos.v.y;
+    pub fn get_clicked_button_id(&self, context: &Context) -> Option<GuiId> {
         for (&id, button) in self.buttons() {
-            if x >= button.pos().v.x
-                && x <= button.pos().v.x + button.size().w
-                && y >= button.pos().v.y
-                && y <= button.pos().v.y + button.size().h
-            {
+            if button.mouse_over(context) {
                 return Some(id);
             }
         }
@@ -142,14 +225,7 @@ impl ButtonManager {
     }
 
     pub fn draw(&self, context: &mut Context) {
-        let proj_mat = get_2d_screen_matrix(context.win_size());
         for button in self.buttons().values() {
-            let tr_mat = Matrix4::from_translation(Vector3 {
-                x: button.pos().v.x as f32,
-                y: button.pos().v.y as f32,
-                z: 0.0,
-            });
-            context.set_mvp(proj_mat * tr_mat);
             button.draw(context);
         }
     }

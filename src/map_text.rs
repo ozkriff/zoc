@@ -72,7 +72,7 @@ impl MapTextManager {
             let mut to = from;
             to.v.z += 2.0;
             let mesh = {
-                let (size, texture_data) = text::text_to_texture(context.font(), 80.0, &command.text);
+                let (size, texture_data) = text::text_to_texture(context.font(), 80.0, &command.text, &[255,255,255,255]);
                 let texture = load_texture_raw(context.factory_mut(), size, &texture_data);
                 let scale_factor = 200.0; // TODO: take camera zoom into account
                 let h_2 = (size.h as f32 / scale_factor) / 2.0;

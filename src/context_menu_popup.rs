@@ -10,7 +10,7 @@ use core::check::{check_command};
 use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
-use gui::{ButtonManager, Button, ButtonId, is_tap, basic_text_size};
+use gui::{ButtonManager, Button, GuiId, Widget, is_tap, basic_text_size};
 use player_info::{PlayerInfo};
 use reinforcements_popup;
 
@@ -254,18 +254,18 @@ pub struct ContextMenuPopup {
     game_screen_tx: Sender<Command>,
     button_manager: ButtonManager,
     options: Options,
-    select_button_ids: HashMap<ButtonId, UnitId>,
-    attack_button_ids: HashMap<ButtonId, UnitId>,
-    load_button_ids: HashMap<ButtonId, UnitId>,
-    attach_button_ids: HashMap<ButtonId, UnitId>,
-    move_button_id: Option<ButtonId>,
-    hunt_button_id: Option<ButtonId>,
-    unload_unit_button_id: Option<ButtonId>,
-    detach_button_id: Option<ButtonId>,
-    smoke_button_id: Option<ButtonId>,
-    enable_reaction_fire_button_id: Option<ButtonId>,
-    disable_reaction_fire_button_id: Option<ButtonId>,
-    call_reinforcements_button_id: Option<ButtonId>,
+    select_button_ids: HashMap<GuiId, UnitId>,
+    attack_button_ids: HashMap<GuiId, UnitId>,
+    load_button_ids: HashMap<GuiId, UnitId>,
+    attach_button_ids: HashMap<GuiId, UnitId>,
+    move_button_id: Option<GuiId>,
+    hunt_button_id: Option<GuiId>,
+    unload_unit_button_id: Option<GuiId>,
+    detach_button_id: Option<GuiId>,
+    smoke_button_id: Option<GuiId>,
+    enable_reaction_fire_button_id: Option<GuiId>,
+    disable_reaction_fire_button_id: Option<GuiId>,
+    call_reinforcements_button_id: Option<GuiId>,
 }
 
 impl ContextMenuPopup {
@@ -414,7 +414,7 @@ impl ContextMenuPopup {
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: ButtonId
+        button_id: GuiId
     ) {
         if let Some(&unit_id) = self.select_button_ids.get(&button_id) {
             self.return_command(context, Command::Select {

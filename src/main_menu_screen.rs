@@ -5,14 +5,14 @@ use screen::{Screen, ScreenCommand, EventStatus};
 use tactical_screen::{TacticalScreen};
 use core;
 use context::{Context};
-use gui::{ButtonManager, Button, ButtonId, is_tap};
+use gui::{ButtonManager, Button, GuiId, Widget, is_tap};
 use types::{ScreenPos, Time};
 
 #[derive(Clone, Debug)]
 pub struct MainMenuScreen {
-    button_start_hotseat_id: ButtonId,
-    button_start_vs_ai_id: ButtonId,
-    button_map_id: ButtonId,
+    button_start_hotseat_id: GuiId,
+    button_start_vs_ai_id: GuiId,
+    button_map_id: GuiId,
     button_manager: ButtonManager,
     map_names: Vec<&'static str>,
     selected_map_index: usize,
@@ -74,7 +74,7 @@ impl MainMenuScreen {
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: ButtonId
+        button_id: GuiId
     ) {
         let map_name = self.map_names[self.selected_map_index].to_string();
         let mut core_options = core::Options {
@@ -121,7 +121,7 @@ impl MainMenuScreen {
 impl Screen for MainMenuScreen {
     fn tick(&mut self, context: &mut Context, _: Time) {
         context.clear();
-        context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
+        context.set_basic_color([1.0, 1.0, 1.0, 1.0]);
         self.button_manager.draw(context);
     }
 
