@@ -5,7 +5,7 @@ use movement::{path_cost, tile_cost, move_cost_modifier};
 use unit::{Unit};
 use db::{Db};
 use fov::{fov, simple_fov};
-use position::{is_exact_pos_free};
+use position::{can_place_unit};
 use event::{Command, FireMode};
 use object::{ObjectClass};
 use player::{PlayerId};
@@ -124,7 +124,7 @@ pub fn check_command(
             if unit_type.cost > reinforcement_points {
                 return Err(CommandError::NotEnoughReinforcementPoints);
             }
-            if !is_exact_pos_free(state, db.unit_type(type_id), pos) {
+            if !can_place_unit(state, db.unit_type(type_id), pos) {
                 return Err(CommandError::TileIsOccupied);
             }
             Ok(())
@@ -145,7 +145,7 @@ pub fn check_command(
             }
             for window in path.windows(2) {
                 let pos = window[1];
-                if !is_exact_pos_free(state, db.unit_type(unit.type_id), pos) {
+                if !can_place_unit(state, db.unit_type(unit.type_id), pos) {
                     return Err(CommandError::BadPath);
                 }
             }
@@ -246,7 +246,7 @@ pub fn check_command(
             if transporter.passenger_id.is_none() {
                 return Err(CommandError::TransporterIsEmpty);
             }
-            if !is_exact_pos_free(state, db.unit_type(passenger.type_id), pos) {
+            if !can_place_unit(state, db.unit_type(passenger.type_id), pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             let passenger_type = db.unit_type(passenger.type_id);
@@ -330,7 +330,7 @@ pub fn check_command(
             if distance(transporter.pos.map_pos, pos.map_pos).n > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
-            if !is_exact_pos_free(state, db.unit_type(transporter.type_id), pos) {
+            if !can_place_unit(state, db.unit_type(transporter.type_id), pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             let transporter_move_points = transporter.move_points.unwrap();

@@ -163,73 +163,17 @@ pub fn get_free_exact_pos(
     unit_type: &UnitType,
     pos: MapPos,
 ) -> Option<ExactPos> {
-    let slot_id = match get_free_slot_id(state, unit_type, pos) {
-        Some(id) => id,
-        None => return None,
-    };
-    Some(ExactPos{map_pos: pos, slot_id: slot_id})
-}
-
-pub fn get_free_slot_id(
-    state: &State,
-    unit_type: &UnitType,
-    pos: MapPos,
-) -> Option<SlotId> {
-    let objects_at = state.objects_at(pos);
-    let units_at = state.units_at(pos);
-    if unit_type.is_air {
-        for unit in units_at.clone() {
-            if unit.pos.slot_id == SlotId::Air {
-                return None;
-            }
-        }
-        return Some(SlotId::Air);
-    }
-    if unit_type.is_big {
-        for object in objects_at {
-            match object.class {
-                ObjectClass::Building => return None,
-                ObjectClass::Smoke |
-                ObjectClass::ReinforcementSector |
-                ObjectClass::Road => {},
-            }
-        }
-        if units_at.count() == 0 {
-            return Some(SlotId::WholeTile);
-        } else {
-            return None;
-        }
-    }
-    let mut slots = [false, false, false];
-    for unit in units_at {
-        match unit.pos.slot_id {
-            SlotId::Id(slot_id) => slots[slot_id as usize] = true,
-            SlotId::WholeTile | SlotId::TwoTiles(_) => return None,
-            SlotId::Air => {},
-        }
-    }
-    if !unit_type.is_infantry {
-        for object in objects_at {
-            match object.pos.slot_id {
-                SlotId::Id(slot_id) => {
-                    slots[slot_id as usize] = true;
-                },
-                SlotId::WholeTile => {
-                    match object.class {
-                        ObjectClass::Building => return None,
-                        ObjectClass::Smoke |
-                        ObjectClass::ReinforcementSector |
-                        ObjectClass::Road => {},
-                    }
-                }
-                SlotId::TwoTiles(_) | SlotId::Air => {},
-            }
-        }
-    }
-    let slots_count = get_slots_count(state.map(), pos) as usize;
-    for (i, slot) in slots.iter().enumerate().take(slots_count) {
-        if !slot {
-            return Some(SlotId::Id(i as u8));
+    let slot_ids = [
+        SlotId::Id(0),
+        SlotId::Id(1),
+        SlotId::Id(2),
+        SlotId::WholeTile,
+        SlotId::Air,
+    ];
+    for &slot_id in &slot_ids {
+        let exact_pos = ExactPos{map_pos: pos, slot_id: slot_id};
+        if can_place_unit(state, unit_type, exact_pos) {
+            return Some(exact_pos);
         }
     }
     None
@@ -244,27 +188,128 @@ pub fn get_slots_count(map: &Map<Terrain>, pos: MapPos) -> i32 {
     }
 }
 
-pub fn is_exact_pos_free(
+fn can_place_air_unit(
     state: &State,
     unit_type: &UnitType,
     pos: ExactPos,
 ) -> bool {
-    let units_at = state.units_at(pos.map_pos);
-    if unit_type.is_big && !unit_type.is_air {
-        return units_at.count() == 0;
+    assert!(unit_type.is_air);
+    if pos.slot_id != SlotId::Air {
+        return false;
     }
-    for unit in units_at {
-        if unit.pos == pos {
+    for unit in state.units_at(pos.map_pos) {
+        if unit.pos.slot_id == SlotId::Air {
             return false;
-        }
-        match unit.pos.slot_id {
-            SlotId::WholeTile | SlotId::TwoTiles(_) => {
-                if !unit_type.is_air {
-                    return false;
-                }
-            }
-            _ => {}
         }
     }
     true
+}
+
+fn can_place_big_ground_unit(
+    state: &State,
+    unit_type: &UnitType,
+    pos: ExactPos,
+) -> bool {
+    // TODO: forbid placing on bridge tile
+    assert!(unit_type.is_big);
+    if pos.slot_id != SlotId::WholeTile {
+        return false;
+    }
+    for object in state.objects_at(pos.map_pos) {
+        if object.class == ObjectClass::Building {
+            return false;
+        }
+    }
+    // check if there're any other ground units
+    for unit in state.units_at(pos.map_pos) {
+        if unit.pos.slot_id != SlotId::Air {
+            return false;
+        }
+    }
+    true
+}
+
+fn can_place_small_ground_vehicle_unit(
+    state: &State,
+    unit_type: &UnitType,
+    pos: ExactPos,
+) -> bool {
+    assert!(!unit_type.is_infantry);
+    // TODO: add assert that it's actually a small ground vehicle
+    let objects_at = state.objects_at(pos.map_pos);
+    for object in objects_at {
+        match object.pos.slot_id {
+            SlotId::Id(_) => {
+                if object.pos == pos {
+                    return false;
+                }
+            },
+            SlotId::WholeTile => {
+                if object.class == ObjectClass::Building {
+                    return false;
+                }
+            }
+            SlotId::TwoTiles(_) | SlotId::Air => {},
+        }
+    }
+    true
+}
+
+fn can_place_small_ground_unit(
+    state: &State,
+    unit_type: &UnitType,
+    pos: ExactPos,
+) -> bool {
+    match pos.slot_id {
+        SlotId::Id(_) => {},
+        _ => return false, // TODO: convert this match to assert?
+    }
+    let slots_count = get_slots_count(state.map(), pos.map_pos);
+    let units_at = state.units_at(pos.map_pos);
+    let ground_units_count = units_at.clone()
+        .filter(|unit| unit.pos.slot_id != SlotId::Air)
+        .count();
+    if slots_count == 1 && ground_units_count > 0 {
+        return false;
+    }
+    if !unit_type.is_infantry
+        && !can_place_small_ground_vehicle_unit(state, unit_type, pos)
+    {
+        return false;
+    }
+    for unit in units_at {
+        if unit.pos == pos || unit.pos.slot_id == SlotId::WholeTile {
+            return false;
+        }
+    }
+    true
+}
+
+fn can_place_ground_unit(
+    state: &State,
+    unit_type: &UnitType,
+    pos: ExactPos,
+) -> bool {
+    // TODO: forbid placing on water tiles without bridge
+    // TODO: check max move points
+    if pos.slot_id == SlotId::Air {
+        return false;
+    }
+    if unit_type.is_big {
+        can_place_big_ground_unit(state, unit_type, pos)
+    } else {
+        can_place_small_ground_unit(state, unit_type, pos)
+    }
+}
+
+pub fn can_place_unit(
+    state: &State,
+    unit_type: &UnitType,
+    pos: ExactPos,
+) -> bool {
+    if unit_type.is_air {
+        can_place_air_unit(state, unit_type, pos)
+    } else {
+        can_place_ground_unit(state, unit_type, pos)
+    }
 }
