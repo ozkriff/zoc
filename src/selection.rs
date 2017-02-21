@@ -1,5 +1,5 @@
 use cgmath::{Rad};
-use core::{UnitId};
+use core::unit::{UnitId};
 use core::game_state::{State};
 use core::dir::{dirs};
 use geom;

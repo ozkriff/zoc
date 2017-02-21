@@ -1,5 +1,5 @@
 use cgmath::{Vector2};
-use ::{MapPos};
+use position::{MapPos};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dir {

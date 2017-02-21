@@ -1,7 +1,7 @@
 use std::collections::{HashMap};
 use context::{Context};
-use core::{self};
 use core::game_state::{State};
+use core::sector::{SectorId};
 use texture::{load_texture};
 use mesh::{Mesh, MeshId};
 use selection::{get_selection_mesh};
@@ -27,7 +27,7 @@ pub struct MeshIdManager {
     pub smoke_mesh_id: MeshId,
     pub fow_tile_mesh_id: MeshId,
     pub reinforcement_sector_tile_mesh_id: MeshId,
-    pub sector_mesh_ids: HashMap<core::SectorId, MeshId>,
+    pub sector_mesh_ids: HashMap<SectorId, MeshId>,
 }
 
 impl MeshIdManager {

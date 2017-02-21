@@ -2,25 +2,17 @@ use std::rc::{Rc};
 use rand::{thread_rng, Rng};
 use game_state::{State};
 use map::{distance};
-use pathfinder::{self, Pathfinder, path_cost, truncate_path};
+use movement::{self, MovePoints, Pathfinder, path_cost, truncate_path};
 use dir::{Dir, dirs};
 use unit::{Unit, UnitTypeId};
 use db::{Db};
 use misc::{get_shuffled_indices};
 use check::{check_command};
-use ::{
-    CoreEvent,
-    Command,
-    MoveMode,
-    PlayerId,
-    ExactPos,
-    ObjectClass,
-    Object,
-    MovePoints,
-    MapPos,
-    Options,
-    get_free_exact_pos,
-};
+use position::{ExactPos, MapPos, get_free_exact_pos};
+use object::{ObjectClass, Object};
+use event::{CoreEvent, Command, MoveMode};
+use player::{PlayerId};
+use options::{Options};
 
 #[derive(Clone, Debug)]
 pub struct Ai {
@@ -48,7 +40,7 @@ impl Ai {
 
     fn get_best_pos(&self, unit: &Unit) -> Option<ExactPos> {
         let mut best_pos = None;
-        let mut best_cost = pathfinder::max_cost();
+        let mut best_cost = movement::max_cost();
         for (_, enemy) in self.state.units() {
             if enemy.player_id == self.id || !enemy.is_alive {
                 continue;
@@ -91,7 +83,9 @@ impl Ai {
         destination: MapPos,
     ) -> Option<(MovePoints, ExactPos)> {
         let exact_destination = match get_free_exact_pos(
-            &self.db, &self.state, unit.type_id, destination
+            &self.state,
+            self.db.unit_type(unit.type_id),
+            destination,
         ) {
             Some(pos) => pos,
             None => return None,
@@ -221,9 +215,8 @@ impl Ai {
             }
             for sector in &reinforcement_sectors {
                 let exact_pos = match get_free_exact_pos(
-                    &self.db,
                     &self.state,
-                    unit_type_id,
+                    unit_type,
                     sector.pos.map_pos,
                 ) {
                     Some(pos) => pos,

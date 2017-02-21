@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet, BTreeMap};
 use std::cmp::{Ord, Ordering};
 use cgmath::{Rad};
-use core::{UnitId, SectorId, ObjectId};
+use core::object::{ObjectId};
+use core::unit::{UnitId};
+use core::sector::{SectorId};
 use types::{WorldPos};
 use mesh::{MeshId};
 

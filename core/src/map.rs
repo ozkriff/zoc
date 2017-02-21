@@ -3,7 +3,10 @@ use std::iter::{repeat};
 use cgmath::{Vector2, Array};
 use types::{Size2};
 use dir::{Dir, DirIter, dirs};
-use ::{MapPos, Distance};
+use position::{MapPos};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Distance{pub n: i32}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Terrain {
@@ -205,8 +208,7 @@ pub fn distance(from: MapPos, to: MapPos) -> Distance {
 #[cfg(test)]
 mod tests {
     use cgmath::{Vector2};
-    use super::{ring_iter, spiral_iter};
-    use ::{MapPos, Distance};
+    use map::{MapPos, Distance, ring_iter, spiral_iter};
 
     #[test]
     fn test_ring_1() {

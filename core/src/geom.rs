@@ -1,5 +1,5 @@
 use cgmath::{Vector2};
-use ::{MapPos};
+use position::{MapPos};
 
 pub const HEX_EX_RADIUS: f32 = 1.4;
 

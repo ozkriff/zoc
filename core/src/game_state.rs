@@ -3,31 +3,25 @@ use std::collections::{HashSet};
 use std::rc::{Rc};
 use cgmath::{Vector2};
 use types::{Size2};
-use unit::{Unit};
+use unit::{Unit, UnitId};
 use db::{Db};
 use map::{Map, Terrain};
 use dir::{Dir};
 use fow::{Fow};
-use ::{
-    CoreEvent,
-    FireMode,
-    UnitId,
-    ObjectId,
-    Object,
-    MapPos,
-    ExactPos,
-    SlotId,
-    ObjectClass,
-    Sector,
-    SectorId,
-    PlayerId,
-    Score,
-    MovePoints,
-    ReinforcementPoints,
-    AttackPoints,
-    Options,
-    get_free_slot_for_building,
-};
+use sector::{Sector, SectorId};
+use position::{self, MapPos, ExactPos, SlotId};
+use event::{CoreEvent, FireMode};
+use player::{PlayerId};
+use object::{ObjectId, Object, ObjectClass};
+use movement::{MovePoints};
+use attack::{AttackPoints};
+use options::{Options};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ReinforcementPoints{pub n: i32}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Score{pub n: i32}
 
 #[derive(Clone)]
 pub struct ObjectsAtIter<'a> {
@@ -570,7 +564,7 @@ fn add_buildings(
 ) {
     *map.tile_mut(pos) = Terrain::City;
     for _ in 0 .. count {
-        let slot_id = get_free_slot_for_building(map, objects, pos).unwrap();
+        let slot_id = position::get_free_slot_for_building(map, objects, pos).unwrap();
         let obj_pos = ExactPos{map_pos: pos, slot_id: slot_id};
         let object = Object {
             class: ObjectClass::Building,

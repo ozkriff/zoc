@@ -6,7 +6,19 @@ use unit::{Unit};
 use map::{Map, Terrain};
 use game_state::{State};
 use dir::{Dir, dirs};
-use ::{MovePoints, ExactPos, SlotId, ObjectClass, get_free_exact_pos};
+use position::{ExactPos, SlotId, get_free_exact_pos};
+use object::{ObjectClass};
+use event::{MoveMode};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MovePoints{pub n: i32}
+
+pub fn move_cost_modifier(mode: MoveMode) -> i32 {
+    match mode {
+        MoveMode::Fast => 1,
+        MoveMode::Hunt => 2,
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Tile {
@@ -207,7 +219,7 @@ impl Pathfinder {
             let neighbour_pos = Dir::get_neighbour_pos(pos.map_pos, dir);
             if self.map.is_inboard(neighbour_pos) {
                 let exact_neighbour_pos = match get_free_exact_pos(
-                    &self.db, state, unit.type_id, neighbour_pos
+                    state, self.db.unit_type(unit.type_id), neighbour_pos
                 ) {
                     Some(pos) => pos,
                     None => continue,

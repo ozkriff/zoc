@@ -3,9 +3,10 @@
 use std::f32::consts::{PI};
 use cgmath::{InnerSpace};
 use game_state::{State};
-use map::{Terrain, spiral_iter};
+use map::{Terrain, Distance, spiral_iter};
 use geom;
-use ::{MapPos, ObjectClass, Distance};
+use position::{MapPos};
+use object::{ObjectClass};
 
 struct Shadow {
     left: f32,

@@ -1,6 +1,6 @@
 use cgmath::{self, SquareMatrix, EuclideanSpace};
 use collision::{Plane, Ray, Intersect};
-use core::{MapPos};
+use core::position::{MapPos};
 use core::game_state::{State};
 use context::{Context};
 use geom;

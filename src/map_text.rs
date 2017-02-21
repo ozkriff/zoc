@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use cgmath::{Matrix4, Matrix3};
-use core::{MapPos};
+use core::position::{MapPos};
 use types::{Time, Speed};
 use camera::Camera;
 use geom;

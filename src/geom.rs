@@ -1,9 +1,10 @@
 use std::f32::consts::{PI};
 use cgmath::{Vector3, Vector2, Rad, Angle, InnerSpace};
-use core::{ExactPos, MapPos, SlotId, Distance, geom, get_slots_count};
+use core::geom;
+use core::position::{ExactPos, MapPos, SlotId, get_slots_count};
 use core::dir::{Dir};
 use core::game_state::{State};
-use core::map::{spiral_iter};
+use core::map::{Distance, spiral_iter};
 use types::{VertexCoord, WorldPos, WorldDistance};
 
 pub use core::geom::{HEX_IN_RADIUS, HEX_EX_RADIUS};
@@ -107,7 +108,7 @@ pub fn get_rot_angle(a: WorldPos, b: WorldPos) -> Rad<f32> {
 mod tests {
     use std::f32::consts::{PI};
     use cgmath::{Vector3};
-    use ::types::{WorldPos};
+    use types::{WorldPos};
     use super::{get_rot_angle, index_to_circle_vertex};
 
     const EPS: f32 = 0.001;

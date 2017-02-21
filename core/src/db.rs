@@ -1,5 +1,8 @@
 use unit::{UnitType, WeaponType, UnitTypeId, WeaponTypeId};
-use ::{MovePoints, AttackPoints, ReinforcementPoints, Distance};
+use map::{Distance};
+use movement::{MovePoints};
+use attack::{AttackPoints};
+use game_state::{ReinforcementPoints};
 
 fn weapon_type_id(weapon_types: &[WeaponType], name: &str)
     -> WeaponTypeId

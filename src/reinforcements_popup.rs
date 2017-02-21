@@ -2,7 +2,8 @@ use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{MapPos, ExactPos, PlayerId, get_free_exact_pos};
+use core::player::{PlayerId};
+use core::position::{MapPos, ExactPos, get_free_exact_pos};
 use core::game_state::{State};
 use core::unit::{UnitTypeId};
 use core::db::{Db};
@@ -34,12 +35,7 @@ pub fn get_options(
     let reinforcement_points = state.reinforcement_points()[&player_id];
     for (i, unit_type) in db.unit_types().iter().enumerate() {
         let unit_type_id = UnitTypeId{id: i as i32};
-        let exact_pos = match get_free_exact_pos(
-            db,
-            state,
-            unit_type_id,
-            pos,
-        ) {
+        let exact_pos = match get_free_exact_pos(state, unit_type, pos) {
             Some(exact_pos) => exact_pos,
             None => continue,
         };

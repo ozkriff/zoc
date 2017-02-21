@@ -2,18 +2,12 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Rad};
 use core::game_state::{State};
-use core::unit::{Unit};
-use core::{
-    self,
-    AttackInfo,
-    ReactionFireMode,
-    UnitId,
-    ExactPos,
-    PlayerId,
-    SectorId,
-    MapPos,
-    ObjectId
-};
+use core::unit::{Unit, UnitId};
+use core::sector::{SectorId};
+use core::position::{MapPos, ExactPos};
+use core::event::{FireMode, AttackInfo, ReactionFireMode};
+use core::player::{PlayerId};
+use core::object::{ObjectId};
 use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
@@ -251,7 +245,7 @@ impl EventAttackUnitVisualizer {
             let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
             let attacker_pos = scene.node(attacker_node_id).pos;
             let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
-            if attack_info.mode == core::FireMode::Reactive {
+            if attack_info.mode == FireMode::Reactive {
                 map_text.add_text(attacker_map_pos, "reaction fire");
             }
             shell_node_id = Some(scene.add_node(SceneNode {

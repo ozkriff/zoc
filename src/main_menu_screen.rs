@@ -3,7 +3,7 @@ use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use screen::{Screen, ScreenCommand, EventStatus};
 use tactical_screen::{TacticalScreen};
-use core;
+use core::options::{Options, GameType};
 use context::{Context};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use types::{ScreenPos, Time};
@@ -77,8 +77,8 @@ impl MainMenuScreen {
         button_id: ButtonId
     ) {
         let map_name = self.map_names[self.selected_map_index].to_string();
-        let mut core_options = core::Options {
-            game_type: core::GameType::Hotseat,
+        let mut core_options = Options {
+            game_type: GameType::Hotseat,
             map_name: map_name,
             players_count: 2,
         };
@@ -87,7 +87,7 @@ impl MainMenuScreen {
                 TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));
         } else if button_id == self.button_start_vs_ai_id {
-            core_options.game_type = core::GameType::SingleVsAi;
+            core_options.game_type = GameType::SingleVsAi;
             let tactical_screen = Box::new(
                 TacticalScreen::new(context, &core_options));
             context.add_command(ScreenCommand::PushScreen(tactical_screen));

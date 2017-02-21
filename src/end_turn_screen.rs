@@ -1,10 +1,10 @@
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
+use core::player::{PlayerId};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, is_tap};
-use core::{PlayerId};
 use types::{ScreenPos, Time};
 
 #[derive(Clone, Debug)]

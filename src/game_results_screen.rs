@@ -1,8 +1,8 @@
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{PlayerId, Score};
-use core::game_state::{State};
+use core::player::{PlayerId};
+use core::game_state::{State, Score};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use gui::{ButtonManager, Button, is_tap};

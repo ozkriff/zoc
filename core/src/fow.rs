@@ -5,7 +5,10 @@ use map::{Map, Terrain, distance};
 use fov::{fov, simple_fov};
 use db::{Db};
 use unit::{Unit, UnitType};
-use ::{CoreEvent, PlayerId, MapPos, ExactPos, ObjectClass, SlotId};
+use position::{MapPos, ExactPos, SlotId};
+use event::{CoreEvent};
+use player::{PlayerId};
+use object::{ObjectClass};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub enum TileVisibility {

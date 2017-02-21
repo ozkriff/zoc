@@ -1,8 +1,12 @@
 use std::path::{Path};
 use cgmath::{Vector2, Array};
-use core::{MapPos, Sector, MovePoints, ExactPos, Command, UnitId, PlayerId};
+use core::event::{Command};
+use core::player::{PlayerId};
+use core::unit::{UnitId};
+use core::position::{MapPos, ExactPos};
+use core::sector::{Sector};
 use core::db::{Db};
-use core::pathfinder::{Pathfinder};
+use core::movement::{Pathfinder, MovePoints};
 use core::map::{Terrain};
 use core::game_state::{State};
 use core::check::{check_command};

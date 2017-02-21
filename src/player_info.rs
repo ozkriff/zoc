@@ -2,10 +2,12 @@ use std::collections::{HashMap};
 use std::rc::{Rc};
 use cgmath::{Vector2, Vector3};
 use core::game_state::{State};
-use core::pathfinder::{Pathfinder};
+use core::movement::{Pathfinder};
 use core::map::{Map};
 use core::db::{Db};
-use core::{self, PlayerId, MapPos};
+use core::player::{PlayerId};
+use core::options::{Options, GameType};
+use core::position::{MapPos};
 use context::{Context};
 use types::{Size2, Time, WorldPos};
 use scene::{Scene, NodeId};
@@ -55,7 +57,7 @@ pub struct PlayerInfoManager {
 }
 
 impl PlayerInfoManager {
-    pub fn new(db: Rc<Db>, context: &Context, options: &core::Options) -> PlayerInfoManager {
+    pub fn new(db: Rc<Db>, context: &Context, options: &Options) -> PlayerInfoManager {
         let state = State::new_partial(db.clone(), options, PlayerId{id: 0});
         let map_size = state.map().size();
         let mut m = HashMap::new();
@@ -69,7 +71,7 @@ impl PlayerInfoManager {
             camera: camera.clone(),
             fow_info: FowInfo::new(map_size),
         });
-        if options.game_type == core::GameType::Hotseat {
+        if options.game_type == GameType::Hotseat {
             let state2 = State::new_partial(db.clone(), options, PlayerId{id: 1});
             m.insert(PlayerId{id: 1}, PlayerInfo {
                 game_state: state2,

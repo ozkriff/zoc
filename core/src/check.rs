@@ -1,18 +1,14 @@
 use std::{fmt, error};
 use game_state::{State};
 use map::{distance};
-use pathfinder::{path_cost, tile_cost};
+use movement::{path_cost, tile_cost, move_cost_modifier};
 use unit::{Unit};
 use db::{Db};
 use fov::{fov, simple_fov};
-use ::{
-    Command,
-    FireMode,
-    PlayerId,
-    ObjectClass,
-    is_exact_pos_free,
-    move_cost_modifier,
-};
+use position::{is_exact_pos_free};
+use event::{Command, FireMode};
+use object::{ObjectClass};
+use player::{PlayerId};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CommandError {
@@ -128,7 +124,7 @@ pub fn check_command(
             if unit_type.cost > reinforcement_points {
                 return Err(CommandError::NotEnoughReinforcementPoints);
             }
-            if !is_exact_pos_free(db, state, type_id, pos) {
+            if !is_exact_pos_free(state, db.unit_type(type_id), pos) {
                 return Err(CommandError::TileIsOccupied);
             }
             Ok(())
@@ -149,7 +145,7 @@ pub fn check_command(
             }
             for window in path.windows(2) {
                 let pos = window[1];
-                if !is_exact_pos_free(db, state, unit.type_id, pos) {
+                if !is_exact_pos_free(state, db.unit_type(unit.type_id), pos) {
                     return Err(CommandError::BadPath);
                 }
             }
@@ -250,7 +246,7 @@ pub fn check_command(
             if transporter.passenger_id.is_none() {
                 return Err(CommandError::TransporterIsEmpty);
             }
-            if !is_exact_pos_free(db, state, passenger.type_id, pos) {
+            if !is_exact_pos_free(state, db.unit_type(passenger.type_id), pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             let passenger_type = db.unit_type(passenger.type_id);
@@ -334,7 +330,7 @@ pub fn check_command(
             if distance(transporter.pos.map_pos, pos.map_pos).n > 1 {
                 return Err(CommandError::UnloadDistanceIsTooBig);
             }
-            if !is_exact_pos_free(db, state, transporter.type_id, pos) {
+            if !is_exact_pos_free(state, db.unit_type(transporter.type_id), pos) {
                 return Err(CommandError::DestinationTileIsNotEmpty);
             }
             let transporter_move_points = transporter.move_points.unwrap();

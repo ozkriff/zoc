@@ -6,11 +6,17 @@ use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
+use core;
 use core::map::{Terrain};
-use core::game_state::{State};
-use core::{self, CoreEvent, Command, UnitId, PlayerId, MapPos, ExactPos, SlotId, Object};
-use core::unit::{UnitTypeId};
+use core::game_state::{State, Score};
+use core::event::{CoreEvent, Command, MoveMode, ReactionFireMode};
+use core::player::{PlayerId};
+use core::object::{Object, ObjectClass};
+use core::options::Options as CoreOptions;
+use core::position::{self, MapPos, ExactPos, SlotId};
+use core::unit::{UnitId, UnitTypeId};
 use core::misc::{opt_rx_collect};
+use core::print_info::{print_pos_info};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
@@ -36,9 +42,9 @@ use mesh_manager::{MeshIdManager, MeshManager};
 
 const FOW_FADING_TIME: f32 = 0.6;
 
-// TODO: get from Core
-fn target_score() -> core::Score {
-    core::Score{n: 5}
+// TODO: Move to game_state.rs
+fn target_score() -> Score {
+    Score{n: 5}
 }
 
 fn score_text(state: &State) -> String {
@@ -208,7 +214,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
     }
     for (&object_id, object) in state.objects() {
         match object.class {
-            core::ObjectClass::ReinforcementSector => {
+            ObjectClass::ReinforcementSector => {
                 let mut pos = geom::map_pos_to_world_pos(object.pos.map_pos);
                 pos.v.z += 0.03; // TODO: layers
                 let mut color = match object.owner_id {
@@ -226,7 +232,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     children: Vec::new(),
                 });
             },
-            core::ObjectClass::Building => {
+            ObjectClass::Building => {
                 let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
                 scene.add_object(object_id, SceneNode {
@@ -237,7 +243,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     children: Vec::new(),
                 });
             }
-            core::ObjectClass::Road => {
+            ObjectClass::Road => {
                 let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = match object.pos.slot_id {
                     SlotId::TwoTiles(dir) => {
@@ -253,7 +259,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     children: Vec::new(),
                 });
             }
-            core::ObjectClass::Smoke => unimplemented!(),
+            ObjectClass::Smoke => unimplemented!(),
         }
     }
     scene
@@ -276,7 +282,7 @@ pub struct TacticalScreen {
 }
 
 impl TacticalScreen {
-    pub fn new(context: &mut Context, core_options: &core::Options) -> TacticalScreen {
+    pub fn new(context: &mut Context, core_options: &CoreOptions) -> TacticalScreen {
         let core = core::Core::new(core_options);
         let mut player_info = PlayerInfoManager::new(
             core.db().clone(), context, core_options);
@@ -526,7 +532,7 @@ impl TacticalScreen {
         }
     }
 
-    fn move_unit(&mut self, pos: ExactPos, move_mode: core::MoveMode) {
+    fn move_unit(&mut self, pos: ExactPos, move_mode: MoveMode) {
         let unit_id = self.selected_unit_id.unwrap();
         let player_info = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
@@ -597,12 +603,7 @@ impl TacticalScreen {
         // TODO: move this to `fn Core::get_unit_info(...) -> &str`?
         let pick_result = self.pick_tile(context);
         if let Some(pos) = pick_result {
-            core::print_terrain_info(self.current_state(), pos);
-            println!("");
-            for unit in self.current_state().units_at(pos) {
-                core::print_unit_info(self.core.db(), unit);
-                println!("");
-            }
+            print_pos_info(self.core.db(), self.current_state(), pos);
         }
     }
 
@@ -660,13 +661,13 @@ impl TacticalScreen {
             self.deselect_unit(context);
         } else if button_id == self.gui.button_prev_unit_id {
             if let Some(id) = self.selected_unit_id {
-                let prev_id = core::find_prev_player_unit_id(
+                let prev_id = position::find_prev_player_unit_id(
                     self.current_state(), self.core.player_id(), id);
                 self.select_unit(context, prev_id);
             }
         } else if button_id == self.gui.button_next_unit_id {
             if let Some(id) = self.selected_unit_id {
-                let next_id = core::find_next_player_unit_id(
+                let next_id = position::find_next_player_unit_id(
                     self.current_state(), self.core.player_id(), id);
                 self.select_unit(context, next_id);
             }
@@ -968,7 +969,7 @@ impl TacticalScreen {
         let scene = &mut player_info.scene;
         let state = &mut player_info.game_state;
         'object_loop: for (&object_id, object) in state.objects() {
-            if object.class != core::ObjectClass::Building {
+            if object.class != ObjectClass::Building {
                 continue;
             }
             let node = {
@@ -982,7 +983,7 @@ impl TacticalScreen {
                 if unit_type.is_air {
                     continue;
                 }
-                if core::is_unit_in_object(unit, object) {
+                if position::is_unit_in_object(unit, object) {
                     node.mesh_id = Some(wireframe_building_mesh_id(&self.mesh_ids, object));
                     node.color = [0.0, 0.0, 0.0, 1.0];
                     continue 'object_loop;
@@ -1045,10 +1046,10 @@ impl TacticalScreen {
                 self.select_unit(context, id);
             },
             context_menu_popup::Command::Move{pos} => {
-                self.move_unit(pos, core::MoveMode::Fast);
+                self.move_unit(pos, MoveMode::Fast);
             },
             context_menu_popup::Command::Hunt{pos} => {
-                self.move_unit(pos, core::MoveMode::Hunt);
+                self.move_unit(pos, MoveMode::Hunt);
             },
             context_menu_popup::Command::Attack{id} => {
                 let selected_unit_id = self.selected_unit_id.unwrap();
@@ -1093,13 +1094,13 @@ impl TacticalScreen {
             context_menu_popup::Command::EnableReactionFire{id} => {
                 self.core.do_command(Command::SetReactionFireMode {
                     unit_id: id,
-                    mode: core::ReactionFireMode::Normal,
+                    mode: ReactionFireMode::Normal,
                 });
             },
             context_menu_popup::Command::DisableReactionFire{id} => {
                 self.core.do_command(Command::SetReactionFireMode {
                     unit_id: id,
-                    mode: core::ReactionFireMode::HoldFire,
+                    mode: ReactionFireMode::HoldFire,
                 });
             },
             context_menu_popup::Command::Smoke{pos} => {

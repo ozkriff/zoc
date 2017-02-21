@@ -1,13 +1,13 @@
-use ::{
-    ReactionFireMode,
-    MovePoints,
-    ReinforcementPoints,
-    AttackPoints,
-    Distance,
-    UnitId,
-    PlayerId,
-    ExactPos,
-};
+use position::{ExactPos};
+use event::{ReactionFireMode};
+use player::{PlayerId};
+use map::{Distance};
+use movement::{MovePoints};
+use attack::{AttackPoints};
+use game_state::{ReinforcementPoints};
+
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub struct UnitId{pub id: i32}
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct UnitTypeId{pub id: i32}
@@ -68,4 +68,13 @@ pub struct UnitType {
     pub is_infantry: bool,
     pub can_be_towed: bool,
     pub cost: ReinforcementPoints,
+}
+
+pub fn is_commandable(player_id: PlayerId, unit: &Unit) -> bool {
+    unit.is_alive && unit.player_id == player_id
+        && !is_loaded_or_attached(unit)
+}
+
+pub fn is_loaded_or_attached(unit: &Unit) -> bool {
+    unit.is_loaded || unit.is_attached
 }

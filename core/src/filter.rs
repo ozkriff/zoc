@@ -1,15 +1,10 @@
 use std::collections::{HashSet};
 use game_state::{State};
 use fow::{Fow};
-use unit::{Unit};
-use ::{
-    CoreEvent,
-    AttackInfo,
-    UnitId,
-    PlayerId,
-    MoveMode,
-    MovePoints,
-};
+use unit::{Unit, UnitId};
+use event::{CoreEvent, MoveMode, AttackInfo};
+use player::{PlayerId};
+use movement::{MovePoints};
 
 fn filtered_unit(unit: &Unit) -> Unit {
     Unit {

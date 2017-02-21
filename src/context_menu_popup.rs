@@ -3,10 +3,16 @@ use std::collections::{HashMap};
 use cgmath::{Vector2};
 use glutin::{self, Event, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
-use core::{self, ObjectClass, UnitId, MapPos, ExactPos, HitChance};
+use core;
+use core::object::{ObjectClass};
+use core::position::{self, MapPos, ExactPos};
+use core::unit::{UnitId};
 use core::game_state::{State};
 use core::db::{Db};
 use core::check::{check_command};
+use core::attack;
+use core::event::Command as CoreCommand;
+use core::event::{ReactionFireMode, MoveMode};
 use types::{Time, ScreenPos};
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
@@ -26,12 +32,13 @@ fn can_unload_unit(
         None => return None,
     };
     let type_id = state.unit(passenger_id).type_id;
-    let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
+    let unit_type = db.unit_type(type_id);
+    let exact_pos = match position::get_free_exact_pos(state, unit_type, pos) {
         Some(pos) => pos,
         None => return None,
     };
     let player_id = transporter.player_id;
-    let command = core::Command::UnloadUnit {
+    let command = CoreCommand::UnloadUnit {
         transporter_id: transporter_id,
         passenger_id: passenger_id,
         pos: exact_pos,
@@ -54,11 +61,12 @@ fn can_detach_unit(
         return None;
     }
     let type_id = transporter.type_id;
-    let exact_pos = match core::get_free_exact_pos(db, state, type_id, pos) {
+    let unit_type = db.unit_type(type_id);
+    let exact_pos = match position::get_free_exact_pos(state, unit_type, pos) {
         Some(pos) => pos,
         None => return None,
     };
-    let command = core::Command::Detach {
+    let command = CoreCommand::Detach {
         transporter_id: transporter_id,
         pos: exact_pos,
     };
@@ -80,7 +88,7 @@ pub fn get_options(
     let db = core.db();
     let mut options = Options::new();
     let player_id = core.player_id();
-    let unit_ids = core::get_unit_ids_at(state, pos);
+    let unit_ids = position::get_unit_ids_at(state, pos);
     for object in state.objects_at(pos) {
         if object.class != ObjectClass::ReinforcementSector
             || object.owner_id != Some(player_id)
@@ -114,7 +122,7 @@ pub fn get_options(
                 if unit_type.attack_points.n != 0
                     || unit_type.reactive_attack_points.n != 0
                 {
-                    if unit.reaction_fire_mode == core::ReactionFireMode::HoldFire {
+                    if unit.reaction_fire_mode == ReactionFireMode::HoldFire {
                         options.enable_reaction_fire = Some(selected_unit_id);
                     } else {
                         options.disable_reaction_fire = Some(selected_unit_id);
@@ -123,7 +131,7 @@ pub fn get_options(
             } else {
                 if unit.is_alive {
                     options.selects.push(unit_id);
-                    let load_command = core::Command::LoadUnit {
+                    let load_command = CoreCommand::LoadUnit {
                         transporter_id: selected_unit_id,
                         passenger_id: unit_id,
                     };
@@ -131,7 +139,7 @@ pub fn get_options(
                         options.loads.push(unit_id);
                     }
                 }
-                let attach_command = core::Command::Attach {
+                let attach_command = CoreCommand::Attach {
                     transporter_id: selected_unit_id,
                     attached_unit_id: unit_id,
                 };
@@ -142,8 +150,8 @@ pub fn get_options(
         } else {
             let attacker = state.unit(selected_unit_id);
             let defender = state.unit(unit_id);
-            let hit_chance = core::hit_chance(db, state, attacker, defender);
-            let attack_command = core::Command::AttackUnit {
+            let hit_chance = attack::hit_chance(db, state, attacker, defender);
+            let attack_command = CoreCommand::AttackUnit {
                 attacker_id: attacker.id,
                 defender_id: defender.id,
             };
@@ -152,7 +160,7 @@ pub fn get_options(
             }
         }
     }
-    if check_command(db, player_id, state, &core::Command::Smoke {
+    if check_command(db, player_id, state, &CoreCommand::Smoke {
         unit_id: selected_unit_id,
         pos: pos,
     }).is_ok() {
@@ -166,21 +174,21 @@ pub fn get_options(
     }
     let selected_unit = state.unit(selected_unit_id);
     let selected_unit_type = db.unit_type(selected_unit.type_id);
-    if let Some(destination) = core::get_free_exact_pos(
-        db, state, state.unit(selected_unit_id).type_id, pos,
+    if let Some(destination) = position::get_free_exact_pos(
+        state, selected_unit_type, pos,
     ) {
         if let Some(path) = pathfinder.get_path(destination) {
-            if check_command(db, player_id, state, &core::Command::Move {
+            if check_command(db, player_id, state, &CoreCommand::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
-                mode: core::MoveMode::Fast,
+                mode: MoveMode::Fast,
             }).is_ok() {
                 options.move_pos = Some(destination);
             }
-            let hunt_command = core::Command::Move {
+            let hunt_command = CoreCommand::Move {
                 unit_id: selected_unit_id,
                 path: path.clone(),
-                mode: core::MoveMode::Hunt,
+                mode: MoveMode::Hunt,
             };
             if !selected_unit_type.is_air
                 && check_command(db, player_id, state, &hunt_command).is_ok()
@@ -211,7 +219,7 @@ pub enum Command {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Options {
     selects: Vec<UnitId>,
-    attacks: Vec<(UnitId, HitChance)>,
+    attacks: Vec<(UnitId, attack::HitChance)>,
     loads: Vec<UnitId>,
     attaches: Vec<UnitId>,
     move_pos: Option<ExactPos>,
