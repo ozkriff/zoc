@@ -319,7 +319,6 @@ impl State {
                 }
                 self.refresh_units(new_id);
                 self.convert_ap(old_id);
-                // TODO: timer ticks on every player's turn! O.o
                 for (_, object) in &mut self.objects {
                     if let Some(ref mut timer) = object.timer {
                         *timer -= 1;
