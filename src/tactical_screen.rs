@@ -337,6 +337,7 @@ impl TacticalScreen {
             self.core.db(), context, menu_pos, options, tx);
         self.reinforcements_popup_rx = Some(rx);
         context.add_command(ScreenCommand::PushPopup(Box::new(screen)));
+        self.deselect_unit(context);
     }
 
     fn end_turn(&mut self, context: &mut Context) {
