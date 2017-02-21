@@ -35,7 +35,7 @@ impl MainMenuScreen {
         let mut button_pos = ScreenPos{v: Vector2{x: 10, y: 10}};
         let button_start_hotseat_id = button_manager.add_button(Button::new(
             context,
-            "start hotseat",
+            "[start hotseat]",
             button_pos,
         ));
         // TODO: Add something like QLayout
@@ -43,13 +43,13 @@ impl MainMenuScreen {
         button_pos.v.y += vstep;
         let button_start_vs_ai_id = button_manager.add_button(Button::new(
             context,
-            "start human vs ai",
+            "[start human vs ai]",
             button_pos,
         ));
         button_pos.v.y += vstep * 2;
         let button_map_id = button_manager.add_button(Button::new(
             context,
-            &format!("map: {}", map_names[selected_map_index]),
+            &format!("[map: {}]", map_names[selected_map_index]),
             button_pos,
         ));
         MainMenuScreen {
@@ -96,7 +96,7 @@ impl MainMenuScreen {
             if self.selected_map_index == self.map_names.len() {
                 self.selected_map_index = 0;
             }
-            let text = &format!("map: {}", self.map_names[self.selected_map_index]);
+            let text = &format!("[map: {}]", self.map_names[self.selected_map_index]);
             let pos = self.button_manager.buttons()[&self.button_map_id].pos();
             let button_map = Button::new(context, text, pos);
             self.button_manager.remove_button(self.button_map_id);

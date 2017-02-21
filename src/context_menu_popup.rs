@@ -306,13 +306,13 @@ impl ContextMenuPopup {
         for &unit_id in &options.selects {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("select <{}>", unit_type.name), pos));
+                Button::new(context, &format!("[select <{}>]", unit_type.name), pos));
             select_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         for &(unit_id, hit_chance) in &options.attacks {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
-            let text = format!("attack <{}> ({}%)", unit_type.name, hit_chance.n);
+            let text = format!("[attack <{}>: {}%]", unit_type.name, hit_chance.n);
             let button_id = button_manager.add_button(
                 Button::new(context, &text, pos));
             attack_button_ids.insert(button_id, unit_id);
@@ -321,55 +321,55 @@ impl ContextMenuPopup {
         for &unit_id in &options.loads {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("load <{}>", unit_type.name), pos));
+                Button::new(context, &format!("[load <{}>]", unit_type.name), pos));
             load_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         for &unit_id in &options.attaches {
             let unit_type = db.unit_type(state.unit(unit_id).type_id);
             let button_id = button_manager.add_button(
-                Button::new(context, &format!("attach <{}>", unit_type.name), pos));
+                Button::new(context, &format!("[attach <{}>]", unit_type.name), pos));
             attach_button_ids.insert(button_id, unit_id);
             pos.v.y -= vstep;
         }
         if options.move_pos.is_some() {
             move_button_id = Some(button_manager.add_button(
-                Button::new(context, "move", pos)));
+                Button::new(context, "[move]", pos)));
             pos.v.y -= vstep;
         }
         if options.hunt_pos.is_some() {
             hunt_button_id = Some(button_manager.add_button(
-                Button::new(context, "hunt", pos)));
+                Button::new(context, "[hunt]", pos)));
             pos.v.y -= vstep;
         }
         if options.enable_reaction_fire.is_some() {
             enable_reaction_fire_button_id = Some(button_manager.add_button(
-                Button::new(context, "enable reaction fire", pos)));
+                Button::new(context, "[enable reaction fire]", pos)));
             pos.v.y -= vstep;
         }
         if options.disable_reaction_fire.is_some() {
             disable_reaction_fire_button_id = Some(button_manager.add_button(
-                Button::new(context, "disable reaction fire", pos)));
+                Button::new(context, "[disable reaction fire]", pos)));
             pos.v.y -= vstep;
         }
         if options.reinforcements_pos.is_some() {
             call_reinforcements_button_id = Some(button_manager.add_button(
-                Button::new(context, "reinforcements", pos)));
+                Button::new(context, "[reinforcements]", pos)));
             pos.v.y -= vstep;
         }
         if options.unload_pos.is_some() {
             unload_unit_button_id = Some(button_manager.add_button(
-                Button::new(context, "unload", pos)));
+                Button::new(context, "[unload]", pos)));
             pos.v.y -= vstep;
         }
         if options.detach_pos.is_some() {
             detach_button_id = Some(button_manager.add_button(
-                Button::new(context, "detach", pos)));
+                Button::new(context, "[detach]", pos)));
             pos.v.y -= vstep;
         }
         if options.smoke_pos.is_some() {
             smoke_button_id = Some(button_manager.add_button(
-                Button::new(context, "smoke", pos)));
+                Button::new(context, "[smoke]", pos)));
             pos.v.y -= vstep;
         }
         let diff = Vector2 {
