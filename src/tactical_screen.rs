@@ -297,7 +297,7 @@ impl TacticalScreen {
         let map_text_manager = MapTextManager::new();
         let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
         let selection_manager = SelectionManager::new(mesh_ids.selection_marker_mesh_id);
-        for (_, player_info) in &mut player_info.info {
+        for player_info in player_info.info.values_mut() {
             player_info.scene = make_scene(&player_info.game_state, &mesh_ids);
         }
         let mut screen = TacticalScreen {
@@ -1145,7 +1145,7 @@ impl Screen for TacticalScreen {
     fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
         match *event {
             Event::Resized(..) => {
-                for (_, player_info) in &mut self.player_info.info {
+                for player_info in self.player_info.info.values_mut() {
                     player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },

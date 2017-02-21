@@ -118,7 +118,7 @@ impl MapTextManager {
         self.do_commands(context);
         let rot_z_mat = Matrix4::from(Matrix3::from_angle_z(camera.get_z_angle()));
         let rot_x_mat = Matrix4::from(Matrix3::from_angle_x(camera.get_x_angle()));
-        for (_, map_text) in &mut self.visible_labels_list {
+        for map_text in self.visible_labels_list.values_mut() {
             // TODO: use https://github.com/orhanbalci/rust-easing
             let t = 0.8;
             let p = map_text.move_helper.progress();

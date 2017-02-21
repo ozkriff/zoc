@@ -167,7 +167,7 @@ impl State {
 
     /// Converts active ap (attack points) to reactive
     fn convert_ap(&mut self, player_id: PlayerId) {
-        for (_, unit) in &mut self.units {
+        for unit in self.units.values_mut() {
             let unit_type = self.db.unit_type(unit.type_id);
             let weapon_type = self.db.weapon_type(unit_type.weapon_type_id);
             if unit.player_id != player_id || !weapon_type.reaction_fire {
@@ -185,7 +185,7 @@ impl State {
     }
 
     fn refresh_units(&mut self, player_id: PlayerId) {
-        for (_, unit) in &mut self.units {
+        for unit in self.units.values_mut() {
             if unit.player_id == player_id {
                 let unit_type = self.db.unit_type(unit.type_id);
                 if let Some(ref mut move_points) = unit.move_points {
@@ -319,7 +319,7 @@ impl State {
                 }
                 self.refresh_units(new_id);
                 self.convert_ap(old_id);
-                for (_, object) in &mut self.objects {
+                for object in self.objects.values_mut() {
                     if let Some(ref mut timer) = object.timer {
                         *timer -= 1;
                         assert!(*timer >= 0);
