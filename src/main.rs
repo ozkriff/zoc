@@ -45,11 +45,10 @@ mod text;
 mod mesh;
 mod fs;
 
-use std::env;
 use visualizer::{Visualizer};
 
 pub fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
+    std::env::set_var("RUST_BACKTRACE", "1");
     let mut visualizer = Visualizer::new();
     while visualizer.is_running() {
         visualizer.tick();
