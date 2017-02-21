@@ -96,6 +96,7 @@ pub struct State {
     map: Map<Terrain>,
     sectors: HashMap<SectorId, Sector>,
     score: HashMap<PlayerId, Score>,
+    target_score: Score,
     reinforcement_points: HashMap<PlayerId, ReinforcementPoints>,
     players_count: i32,
     db: Rc<Db>,
@@ -120,13 +121,14 @@ fn basic_state(db: Rc<Db>, options: &Options) -> State {
     let mut reinforcement_points = HashMap::new();
     reinforcement_points.insert(PlayerId{id: 0}, ReinforcementPoints{n: 10});
     reinforcement_points.insert(PlayerId{id: 1}, ReinforcementPoints{n: 10});
-    let (map, objects, sectors) = load_map(&options.map_name);
+    let (map, objects, sectors, target_score) = load_map(&options.map_name);
     State {
         units: HashMap::new(),
         objects: objects,
         map: map,
         sectors: sectors,
         score: score,
+        target_score: target_score,
         reinforcement_points: reinforcement_points,
         players_count: options.players_count,
         db: db,
@@ -163,6 +165,10 @@ impl State {
 
     pub fn db(&self) -> &Rc<Db> {
         &self.db
+    }
+
+    pub fn target_score(&self) -> Score {
+        self.target_score
     }
 
     /// Converts active ap (attack points) to reactive
@@ -593,7 +599,12 @@ fn add_big_building(
     add_object(objects, object);
 }
 
-type MapInfo = (Map<Terrain>, HashMap<ObjectId, Object>, HashMap<SectorId, Sector>);
+type MapInfo = (
+    Map<Terrain>,
+    HashMap<ObjectId, Object>,
+    HashMap<SectorId, Sector>,
+    Score,
+);
 
 // TODO: read from scenario.json?
 fn load_map(map_name: &str) -> MapInfo {
@@ -609,6 +620,7 @@ fn load_map(map_name: &str) -> MapInfo {
 }
 
 fn load_map_01() -> MapInfo {
+    let target_score = Score{n: 7};
     let map_size = Size2{w: 10, h: 12};
     let mut objects = HashMap::new();
     let mut map = Map::new(map_size);
@@ -720,10 +732,11 @@ fn load_map_01() -> MapInfo {
             owner_id: None,
         },
     );
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }
 
 fn load_map_02() -> MapInfo {
+    let target_score = Score{n: 5};
     let map_size = Size2{w: 9, h: 12};
     let mut objects = HashMap::new();
     let mut map = Map::new(map_size);
@@ -764,10 +777,11 @@ fn load_map_02() -> MapInfo {
             owner_id: None,
         },
     );
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }
 
 fn load_map_03() -> MapInfo {
+    let target_score = Score{n: 5};
     let map_size = Size2{w: 3, h: 1};
     let mut objects = HashMap::new();
     let mut map = Map::new(map_size);
@@ -787,10 +801,11 @@ fn load_map_03() -> MapInfo {
             Some(PlayerId{id: player_index}),
         );
     }
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }
 
 fn load_map_04() -> MapInfo {
+    let target_score = Score{n: 5};
     let map_size = Size2{w: 2, h: 1};
     let mut objects = HashMap::new();
     let mut map = Map::new(map_size);
@@ -810,10 +825,11 @@ fn load_map_04() -> MapInfo {
             Some(PlayerId{id: player_index}),
         );
     }
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }
 
 fn load_map_05() -> MapInfo {
+    let target_score = Score{n: 5};
     let map_size = Size2{w: 3, h: 1};
     let mut objects = HashMap::new();
     let map = Map::new(map_size);
@@ -828,11 +844,12 @@ fn load_map_05() -> MapInfo {
             Some(PlayerId{id: player_index}),
         );
     }
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }
 
 /// Map for repoducing of https://github.com/ozkriff/zoc/issues/149
 fn load_map_fov_bug_test() -> MapInfo {
+    let target_score = Score{n: 5};
     let map_size = Size2{w: 20, h: 20};
     let mut objects = HashMap::new();
     let mut map = Map::new(map_size);
@@ -852,5 +869,5 @@ fn load_map_fov_bug_test() -> MapInfo {
             Some(PlayerId{id: player_index}),
         );
     }
-    (map, objects, sectors)
+    (map, objects, sectors, target_score)
 }

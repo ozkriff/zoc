@@ -8,7 +8,7 @@ use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
 use core;
 use core::map::{Terrain};
-use core::game_state::{State, Score};
+use core::game_state::{State};
 use core::event::{CoreEvent, Command, MoveMode, ReactionFireMode};
 use core::player::{PlayerId};
 use core::object::{Object, ObjectClass};
@@ -42,19 +42,15 @@ use mesh_manager::{MeshIdManager, MeshManager};
 
 const FOW_FADING_TIME: f32 = 0.6;
 
-// TODO: Move to game_state.rs
-fn target_score() -> Score {
-    Score{n: 5}
-}
-
 fn score_text(state: &State) -> String {
+    let target_score = state.target_score();
     let score = state.score();
     // TODO: get rid of magic num
     format!("P0:{}/{}, P1:{}/{}",
         score[&PlayerId{id: 0}].n,
-        target_score().n,
+        target_score.n,
         score[&PlayerId{id: 1}].n,
-        target_score().n,
+        target_score.n,
     )
 }
 
@@ -940,8 +936,9 @@ impl TacticalScreen {
     }
 
     fn check_game_end(&mut self, context: &mut Context) {
-        for score in self.current_state().score().values() {
-            if score.n >= target_score().n {
+        let state = self.current_state();
+        for score in state.score().values() {
+            if score.n >= state.target_score().n {
                 context.add_command(ScreenCommand::PopScreen);
                 let screen = Box::new(GameResultsScreen::new(context, self.current_state()));
                 context.add_command(ScreenCommand::PushScreen(screen));
