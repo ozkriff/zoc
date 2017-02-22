@@ -5,6 +5,9 @@ env:
 
 cache: cargo
 
+services:
+    - docker
+
 rust:
     - nightly
     - beta
