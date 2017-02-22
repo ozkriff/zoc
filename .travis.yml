@@ -22,6 +22,7 @@ sudo: false
 
 script:
     - make && make test
+    - docker run --rm -v `pwd`:/root/src tomaka/android-rs-glue cargo apk
 
 before_deploy:
     - mv target/release/zoc .
