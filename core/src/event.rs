@@ -57,7 +57,7 @@ pub struct AttackInfo {
     pub leave_wrecks: bool,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum CoreEvent {
     Move {
         unit_id: UnitId,
