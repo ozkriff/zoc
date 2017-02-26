@@ -19,6 +19,7 @@ pub mod player;
 pub mod object;
 pub mod options;
 pub mod attack;
+pub mod effect;
 
 mod ai;
 mod fov;
@@ -167,6 +168,7 @@ impl Core {
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
             leave_wrecks: leave_wrecks,
+            effect: None,
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }
@@ -315,6 +317,7 @@ impl Core {
                             reaction_fire_mode: event::ReactionFireMode::Normal,
                             count: unit_type.count,
                             morale: 100,
+                            effects: Vec::new(),
                             is_alive: true,
                             is_loaded: false,
                             is_attached: false,

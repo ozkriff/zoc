@@ -4,6 +4,7 @@ use player::{PlayerId};
 use map::{Distance};
 use movement::{MovePoints};
 use attack::{AttackPoints};
+use effect::{TimedEffect};
 use game_state::{ReinforcementPoints};
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -29,6 +30,7 @@ pub struct Unit {
     pub is_alive: bool,
     pub is_loaded: bool,
     pub is_attached: bool,
+    pub effects: Vec<TimedEffect>,
 }
 
 #[derive(Clone, Debug)]

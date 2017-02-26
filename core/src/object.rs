@@ -18,6 +18,10 @@ pub struct ObjectId {
 pub struct Object {
     pub pos: ExactPos,
     pub class: ObjectClass,
+
+    // TODO: можно таймер эффектов объединить с таймером объектов
+    // и превратить в перечисление `enum Timer { Вечный, Ходов(i32) }`
     pub timer: Option<i32>,
+
     pub owner_id: Option<PlayerId>,
 }
