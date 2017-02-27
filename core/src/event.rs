@@ -3,7 +3,7 @@ use position::{ExactPos, MapPos};
 use player::{PlayerId};
 use sector::{SectorId};
 use object::{ObjectId};
-use effect::{Effect};
+use effect::{TimedEffect};
 use movement::{MovePoints};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -52,11 +52,11 @@ pub struct AttackInfo {
     pub mode: FireMode,
     pub killed: i32,
     pub suppression: i32,
-    pub remove_move_points: bool,
+    pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
     pub is_ambush: bool,
     pub is_inderect: bool,
     pub leave_wrecks: bool,
-    pub effect: Option<Effect>,
+    pub effect: Option<TimedEffect>,
 }
 
 #[derive(Clone, Debug)]

@@ -402,6 +402,13 @@ impl State {
                         }
                     }
                 }
+                if let Some(ref effect) = attack_info.effect {
+                    let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
+                    unit.effects.push(effect.clone());
+                    unimplemented!(); // TODO: apply_effect(unit, effect);
+                    // TODO: конретно для обездвиживания просто убрат ьвсе очки движения
+                    // TODO: и ту же функцию вызывать в начале каждого хода
+                }
             },
             CoreEvent::Reveal{..} => (),
             CoreEvent::ShowUnit{ref unit_info} => {

@@ -1,12 +1,15 @@
 // TODO: subturns?
 #[derive(Clone, Debug, PartialEq)]
-pub struct Turns(i32);
+pub enum Time {
+    Turns(i32),
+    Forever,
+}
 
 // TODO: Timed? Как назвать вообще?
 #[derive(Clone, Debug, PartialEq)]
 pub struct TimedEffect {
-    time: Turns,
-    effect: Effect,
+    pub time: Time,
+    pub effect: Effect,
 }
 
 #[derive(Clone, Debug, PartialEq)]

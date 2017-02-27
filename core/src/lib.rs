@@ -43,6 +43,7 @@ use check::{check_attack};
 use player::{Player, PlayerId, PlayerClass, PlayerInfo};
 use object::{ObjectId};
 use event::{CoreEvent, Command};
+use effect::{TimedEffect, Effect, Time};
 
 fn get_players_list(options: &Options) -> Vec<Player> {
     assert_eq!(options.players_count, 2);
@@ -144,20 +145,35 @@ impl Core {
         let weapon_type = self.db.weapon_type(attacker_type.weapon_type_id);
         let hit_chance = hit_chance(&self.db, &self.state, attacker, defender);
         let suppression = hit_chance.n / 2;
-        let killed = cmp::min(
+        let defender_type = self.db.unit_type(defender.type_id);
+        let is_ground_vehicle = !defender_type.is_infantry && !defender_type.is_air;
+        let mut effect = None;
+        let mut killed = cmp::min(
             defender.count,
             get_killed_count(&self.db, &self.state, attacker, defender),
         );
+        if killed > 0 {
+            if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 {
+                // TODO: надо бы переделать всю систему, что бы эффекты
+                // были на одном уровне с убийствами
+                killed = 0;
+                effect = Some(TimedEffect {
+                    time: Time::Turns(2),
+                    effect: Effect::Immobilized,
+                });
+            } else if defender_type.is_infantry {
+                // TODO: Effect::Pinned
+            }
+            // TODO: добавить другие эффекты
+        }
         let fow = self.players_info[&defender.player_id].fow();
         let is_visible = fow.is_visible(attacker);
         let ambush_chance = 70;
         let is_ambush = !is_visible
             && thread_rng().gen_range(1, 100) <= ambush_chance;
         let per_death_suppression = 20;
-        let defender_type = self.db.unit_type(defender.type_id);
         // TODO: destroyed helicopters must kill everyone
         // on the ground in their tile
-        let leave_wrecks = !defender_type.is_infantry && !defender_type.is_air;
         let attack_info = event::AttackInfo {
             attacker_id: Some(attacker_id),
             defender_id: defender_id,
@@ -167,8 +183,8 @@ impl Core {
             remove_move_points: false,
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
-            leave_wrecks: leave_wrecks,
-            effect: None,
+            leave_wrecks: is_ground_vehicle,
+            effect: effect,
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }
