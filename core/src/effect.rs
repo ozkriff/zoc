@@ -1,8 +1,12 @@
-// TODO: subturns?
+use unit::{Unit};
+use movement::{MovePoints};
+
+// TODO: subturns? EffectTime?
 #[derive(Clone, Debug, PartialEq)]
 pub enum Time {
-    Turns(i32),
     Forever,
+    Turns(i32),
+    Instant,
 }
 
 // TODO: Timed? Как назвать вообще?
@@ -19,5 +23,21 @@ pub enum Effect {
     ReducedMovement,
     // ReducedAttackPoints,
     // Destroyed(u8), // TODO: ?
-    // Pinned, // пехотинцы "прижаты", должно бы заменить поле remove_move_points
+    Pinned, // пехотинцы "прижаты", должно бы заменить поле remove_move_points
+}
+
+impl Effect {
+    pub fn apply(&self, unit: &mut Unit) {
+        match *self {
+            Effect::Immobilized => {
+                unit.move_points = Some(MovePoints{n: 0});
+            },
+            Effect::Pinned => {
+                // TODO: какие еще последствия?
+                // минус к точности стрельбы?
+                unit.move_points = Some(MovePoints{n: 0});
+            },
+            _ => unimplemented!(),
+        }
+    }
 }

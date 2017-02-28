@@ -163,7 +163,11 @@ impl Core {
                     effect: Effect::Immobilized,
                 });
             } else if defender_type.is_infantry {
-                // TODO: Effect::Pinned
+                killed = 0;
+                effect = Some(TimedEffect {
+                    time: Time::Instant,
+                    effect: Effect::Pinned,
+                });
             }
             // TODO: добавить другие эффекты
         }

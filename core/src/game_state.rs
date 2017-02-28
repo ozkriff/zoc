@@ -16,7 +16,7 @@ use object::{ObjectId, Object, ObjectClass};
 use movement::{MovePoints};
 use attack::{AttackPoints};
 use options::{Options};
-use effect::{Effect};
+use effect::{Time};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReinforcementPoints{pub n: i32}
@@ -405,14 +405,11 @@ impl State {
                 }
                 if let Some(ref effect) = attack_info.effect {
                     let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
-                    unit.effects.push(effect.clone());
-                    // TODO: apply_effect(unit, effect);
-                    match effect.effect {
-                        Effect::Immobilized => {
-                            unit.move_points = Some(MovePoints{n: 0});
-                        },
-                        _ => unimplemented!(),
+                    if effect.time != Time::Instant {
+                        unit.effects.push(effect.clone());
                     }
+                    // TODO: применять сразу только для мгновенны эффектов?
+                    effect.effect.apply(unit);
                     // TODO: и ту же функцию вызывать в начале каждого хода
                 }
             },
