@@ -16,6 +16,7 @@ use object::{ObjectId, Object, ObjectClass};
 use movement::{MovePoints};
 use attack::{AttackPoints};
 use options::{Options};
+use effect::{Effect};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReinforcementPoints{pub n: i32}
@@ -405,8 +406,13 @@ impl State {
                 if let Some(ref effect) = attack_info.effect {
                     let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
                     unit.effects.push(effect.clone());
-                    unimplemented!(); // TODO: apply_effect(unit, effect);
-                    // TODO: конретно для обездвиживания просто убрат ьвсе очки движения
+                    // TODO: apply_effect(unit, effect);
+                    match effect.effect {
+                        Effect::Immobilized => {
+                            unit.move_points = Some(MovePoints{n: 0});
+                        },
+                        _ => unimplemented!(),
+                    }
                     // TODO: и ту же функцию вызывать в начале каждого хода
                 }
             },

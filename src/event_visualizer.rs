@@ -8,6 +8,7 @@ use core::position::{MapPos, ExactPos};
 use core::event::{FireMode, AttackInfo, ReactionFireMode};
 use core::player::{PlayerId};
 use core::object::{ObjectId};
+use core::effect::{Effect};
 use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
@@ -294,6 +295,14 @@ impl EventAttackUnitVisualizer {
             );
             if is_target_suppressed {
                 map_text.add_text(defender.pos.map_pos, "suppressed");
+            }
+        }
+        if let Some(ref effect) = attack_info.effect {
+            match effect.effect {
+                Effect::Immobilized => {
+                    map_text.add_text(defender.pos.map_pos, "Immobilized");
+                },
+                _ => unimplemented!(), // TODO
             }
         }
         Box::new(EventAttackUnitVisualizer {

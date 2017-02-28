@@ -153,7 +153,8 @@ impl Core {
             get_killed_count(&self.db, &self.state, attacker, defender),
         );
         if killed > 0 {
-            if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 {
+            // if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 { // TODO: вернуть шанс
+            if is_ground_vehicle {
                 // TODO: надо бы переделать всю систему, что бы эффекты
                 // были на одном уровне с убийствами
                 killed = 0;
