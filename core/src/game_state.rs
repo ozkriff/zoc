@@ -191,6 +191,16 @@ impl State {
         }
     }
 
+    fn update_effects(&mut self, player_id: PlayerId) {
+        for unit in self.units.values_mut() {
+            for effect in &mut unit.effects {
+                // TODO применить эффекты
+                // TODO обновить таймеры
+                // TODO удалить отработавшие эффекты?
+            }
+        }
+    }
+
     fn refresh_units(&mut self, player_id: PlayerId) {
         for unit in self.units.values_mut() {
             if unit.player_id == player_id {
@@ -325,6 +335,7 @@ impl State {
                     reinforcement_points.n += 10;
                 }
                 self.refresh_units(new_id);
+                self.update_effects(new_id);
                 self.convert_ap(old_id);
                 for object in self.objects.values_mut() {
                     if let Some(ref mut timer) = object.timer {
