@@ -21,7 +21,7 @@ pub enum Effect {
     Immobilized,
     WeaponBroken,
     ReducedMovement,
-    // ReducedAttackPoints,
+    ReducedAttackPoints,
 
     // TODO: это точно должен быть эффект вообще?
     // Destroyed(u8),

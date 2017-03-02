@@ -895,6 +895,14 @@ impl TacticalScreen {
                 )
             }
             CoreEvent::Reveal{..} => unreachable!(),
+            CoreEvent::Effect{unit_id, ref effect} => {
+                event_visualizer::EventEffectVisualizer::new(
+                    state,
+                    unit_id,
+                    effect,
+                    &mut self.map_text_manager,
+                )
+            }
         }
     }
 

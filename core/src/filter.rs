@@ -280,7 +280,8 @@ pub fn filter_events(
                 }
             }
         },
-        CoreEvent::SetReactionFireMode{unit_id, ..} => {
+        CoreEvent::SetReactionFireMode{unit_id, ..} |
+        CoreEvent::Effect{unit_id, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == player_id {
                 events.push(event.clone());

@@ -43,7 +43,7 @@ use check::{check_attack};
 use player::{Player, PlayerId, PlayerClass, PlayerInfo};
 use object::{ObjectId};
 use event::{CoreEvent, Command};
-use effect::{TimedEffect, Effect, Time};
+// use effect::{TimedEffect, Effect, Time};
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum ReactionFireResult {
@@ -154,11 +154,13 @@ impl Core {
         let suppression = hit_chance.n / 2;
         let defender_type = self.db.unit_type(defender.type_id);
         let is_ground_vehicle = !defender_type.is_infantry && !defender_type.is_air;
-        let mut effect = None;
-        let mut killed = cmp::min(
+        // let mut effect = None;
+        let killed = cmp::min(
             defender.count,
             get_killed_count(&self.db, &self.state, attacker, defender),
         );
+        /*
+        // TODO: создать отдельное событие CoreEvent::Effect
         if killed > 0 {
             // if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 { // TODO: вернуть шанс
             if is_ground_vehicle {
@@ -178,6 +180,7 @@ impl Core {
             }
             // TODO: добавить другие эффекты
         }
+        */
         let fow = self.players_info[&defender.player_id].fow();
         let is_visible = fow.is_visible(attacker);
         let ambush_chance = 70;
@@ -196,7 +199,7 @@ impl Core {
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
             leave_wrecks: is_ground_vehicle,
-            effect: effect,
+            // effect: effect,
         };
         Some(CoreEvent::AttackUnit{attack_info: attack_info})
     }
@@ -247,7 +250,8 @@ impl Core {
                 }
                 let event = self.command_attack_unit_to_event(
                     enemy_unit.id, unit_id, event::FireMode::Reactive);
-                if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
+                // if let Some(CoreEvent::AttackUnit{mut attack_info}) = event {
+                if let Some(CoreEvent::AttackUnit{attack_info}) = event {
                     let hit_chance = attack::hit_chance(
                         &self.db, &self.state, enemy_unit, unit);
                     let unit_type = self.db.unit_type(unit.type_id);
@@ -387,6 +391,10 @@ impl Core {
                     let pre_visible_enemies = self.players_info[&player_id]
                         .visible_enemies().clone();
                     self.do_core_event(&move_event);
+                    //
+                    // TODO: при движении техники по сложным участкам
+                    // создавать CoreEvent::Effect(Застрял\Замедился)
+                    //
                     let reaction_fire_result = self.reaction_fire_internal(
                         unit_id, mode == event::MoveMode::Fast);
                     if reaction_fire_result != ReactionFireResult::None {

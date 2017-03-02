@@ -8,7 +8,7 @@ use core::position::{MapPos, ExactPos};
 use core::event::{FireMode, AttackInfo, ReactionFireMode};
 use core::player::{PlayerId};
 use core::object::{ObjectId};
-use core::effect::{Effect};
+use core::effect::{self, Effect, TimedEffect};
 use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
@@ -297,6 +297,7 @@ impl EventAttackUnitVisualizer {
                 map_text.add_text(defender.pos.map_pos, "suppressed");
             }
         }
+        /*
         if let Some(ref effect) = attack_info.effect {
             match effect.effect {
                 Effect::Immobilized => {
@@ -305,6 +306,7 @@ impl EventAttackUnitVisualizer {
                 _ => unimplemented!(), // TODO
             }
         }
+        */
         Box::new(EventAttackUnitVisualizer {
             defender_node_id: defender_node_id,
             attack_info: attack_info,
@@ -869,6 +871,48 @@ impl EventVisualizer for EventDetachVisualizer {
         let node = scene.node_mut(transporter_node_id);
         node.pos = self.move_helper.step(dtime);
     }
+
+    fn end(&mut self, _: &mut Scene, _: &State) {}
+}
+
+#[derive(Clone, Debug)]
+pub struct EventEffectVisualizer;
+
+impl EventEffectVisualizer {
+    pub fn new(
+        state: &State,
+        unit_id: UnitId,
+        effect: &TimedEffect,
+        map_text: &mut MapTextManager,
+    ) -> Box<EventVisualizer> {
+        let unit = state.unit(unit_id);
+        let unit_pos = unit.pos.map_pos;
+        let mut text = String::new();
+        text += match effect.effect {
+            Effect::Immobilized => "Immobilized",
+            Effect::WeaponBroken => "WeaponBroken",
+            Effect::ReducedMovement => "ReducedMovement",
+            Effect::ReducedAttackPoints => "ReducedAttackPoints",
+            Effect::Pinned => "Pinned",
+        };
+        text += ": ";
+        text += match effect.time {
+            effect::Time::Forever => "Forever",
+            // effect::Time::Turns(n) => "Turns(n)", // TODO: показать число ходов!
+            effect::Time::Turns(_) => "Turns(n)", // TODO: показать число ходов!
+            effect::Time::Instant => "Instant",
+        };
+        map_text.add_text(unit_pos, &text);
+        Box::new(EventEffectVisualizer)
+    }
+}
+
+impl EventVisualizer for EventEffectVisualizer {
+    fn is_finished(&self) -> bool {
+        true
+    }
+
+    fn draw(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene, _: &State) {}
 }

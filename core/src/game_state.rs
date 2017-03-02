@@ -429,17 +429,15 @@ impl State {
                         }
                     }
                 }
-                /*
-                if let Some(ref effect) = attack_info.effect {
-                    let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
-                    if effect.time != Time::Instant {
-                        unit.effects.push(effect.clone());
-                    }
-                    // TODO: применять сразу только для мгновенны эффектов?
-                    effect.effect.apply(unit);
-                    // TODO: и ту же функцию вызывать в начале каждого хода
+            },
+            CoreEvent::Effect{unit_id, ref effect} => {
+                let unit = self.units.get_mut(&unit_id).unwrap();
+                if effect.time != Time::Instant {
+                    unit.effects.push(effect.clone());
                 }
-                */
+                // TODO: применять сразу только для мгновенны эффектов?
+                effect.effect.apply(unit);
+                // TODO: и ту же функцию вызывать в начале каждого хода
             },
             CoreEvent::Reveal{..} => (),
             CoreEvent::ShowUnit{ref unit_info} => {
