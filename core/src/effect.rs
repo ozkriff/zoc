@@ -22,8 +22,12 @@ pub enum Effect {
     WeaponBroken,
     ReducedMovement,
     // ReducedAttackPoints,
-    // Destroyed(u8), // TODO: ?
-    Pinned, // пехотинцы "прижаты", должно бы заменить поле remove_move_points
+
+    // TODO: это точно должен быть эффект вообще?
+    // Destroyed(u8),
+
+    // пехотинцы "прижаты", должно бы заменить поле remove_move_points
+    Pinned,
 }
 
 impl Effect {

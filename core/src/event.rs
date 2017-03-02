@@ -45,10 +45,17 @@ pub struct AttackInfo {
     pub mode: FireMode,
     pub killed: i32,
     pub suppression: i32,
-    pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
     pub is_ambush: bool,
     pub is_inderect: bool,
+
+    // это точно нужно хранить?
     pub leave_wrecks: bool,
+
+    pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
+
+    // Точно надо делоть это полем атаки?
+    // А если эффектов будет несколько?
+    // А как это будет сочетаться с эффектами после движения или аналогичных действий?
     pub effect: Option<TimedEffect>,
 }
 

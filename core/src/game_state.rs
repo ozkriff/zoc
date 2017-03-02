@@ -191,13 +191,26 @@ impl State {
         }
     }
 
+    // TODO: apply_effects?
     fn update_effects(&mut self, player_id: PlayerId) {
-        for unit in self.units.values_mut() {
-            for effect in &mut unit.effects {
-                // TODO применить эффекты
-                // TODO обновить таймеры
-                // TODO удалить отработавшие эффекты?
+        for unit in self.units.values_mut()
+            .filter(|unit| unit.player_id == player_id)
+        {
+            for effect in unit.effects.clone() {
+                effect.effect.apply(unit);
             }
+            for effect in &mut unit.effects {
+                if let Time::Turns(ref mut n) = effect.time {
+                    *n -= 1;
+                }
+            }
+            unit.effects.retain(|effect| {
+                match effect.time {
+                    Time::Turns(n) => n > 0,
+                    Time::Forever => true,
+                    Time::Instant => unreachable!(),
+                }
+            });
         }
     }
 
