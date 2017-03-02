@@ -43,6 +43,13 @@ use player::{Player, PlayerId, PlayerClass, PlayerInfo};
 use object::{ObjectId};
 use event::{CoreEvent, Command};
 
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum ReactionFireResult {
+    Attacked,
+    Killed,
+    None,
+}
+
 fn get_players_list(options: &Options) -> Vec<Player> {
     assert_eq!(options.players_count, 2);
     vec!(
@@ -198,9 +205,9 @@ impl Core {
         &mut self,
         unit_id: UnitId,
         stop_on_attack: bool,
-    ) -> event::ReactionFireResult {
+    ) -> ReactionFireResult {
         let unit_ids: Vec<_> = self.state.units().map(|(&id, _)| id).collect();
-        let mut result = event::ReactionFireResult::None;
+        let mut result = ReactionFireResult::None;
         for enemy_unit_id in unit_ids {
             if unit::is_loaded_or_attached(self.state.unit(enemy_unit_id)) {
                 continue;
@@ -229,9 +236,9 @@ impl Core {
                 }
             };
             self.do_core_event(&event);
-            result = event::ReactionFireResult::Attacked;
+            result = ReactionFireResult::Attacked;
             if self.state.unit_opt(unit_id).is_none() {
-                return event::ReactionFireResult::Killed;
+                return ReactionFireResult::Killed;
             }
         }
         result
@@ -355,7 +362,7 @@ impl Core {
                     self.do_core_event(&move_event);
                     let reaction_fire_result = self.reaction_fire_internal(
                         unit_id, mode == event::MoveMode::Fast);
-                    if reaction_fire_result != event::ReactionFireResult::None {
+                    if reaction_fire_result != ReactionFireResult::None {
                         break;
                     }
                     let i = &self.players_info[&player_id];

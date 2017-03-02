@@ -23,13 +23,6 @@ pub enum MoveMode {
     Hunt,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
-pub enum ReactionFireResult {
-    Attacked,
-    Killed,
-    None,
-}
-
 #[derive(PartialEq, Clone, Debug)]
 pub enum Command {
     Move{unit_id: UnitId, path: Vec<ExactPos>, mode: MoveMode},
