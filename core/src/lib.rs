@@ -192,7 +192,7 @@ impl Core {
             killed: killed,
             mode: fire_mode,
             suppression: suppression + per_death_suppression * killed,
-            remove_move_points: false,
+            // remove_move_points: false,
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
             leave_wrecks: is_ground_vehicle,
@@ -251,8 +251,10 @@ impl Core {
                     let hit_chance = attack::hit_chance(
                         &self.db, &self.state, enemy_unit, unit);
                     let unit_type = self.db.unit_type(unit.type_id);
-                    if hit_chance.n > 15 && !unit_type.is_air && stop_on_attack {
-                        attack_info.remove_move_points = true;
+                    // if hit_chance.n > 15 && !unit_type.is_air && stop_on_attack {
+                    if hit_chance.n > 15 && unit_type.is_infantry && stop_on_attack {
+                        // attack_info.remove_move_points = true;
+                        // TODO: создать новое событие - Effect::Pinned
                     }
                     CoreEvent::AttackUnit{attack_info: attack_info}
                 } else {

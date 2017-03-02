@@ -51,12 +51,12 @@ pub struct AttackInfo {
     // это точно нужно хранить?
     pub leave_wrecks: bool,
 
-    pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
+    // pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
 
     // Точно надо делоть это полем атаки?
     // А если эффектов будет несколько?
     // А как это будет сочетаться с эффектами после движения или аналогичных действий?
-    pub effect: Option<TimedEffect>,
+    // pub effect: Option<TimedEffect>,
 }
 
 #[derive(Clone, Debug)]
@@ -133,5 +133,9 @@ pub enum CoreEvent {
     // TODO: RemoveObject
     RemoveSmoke {
         id: ObjectId,
+    },
+    Effect {
+        unit_id: UnitId,
+        effect: TimedEffect,
     },
 }

@@ -374,11 +374,13 @@ impl State {
                         .expect("Can`t find defender");
                     unit.count -= attack_info.killed;
                     unit.morale -= attack_info.suppression;
+                    /*
                     if attack_info.remove_move_points {
                         if let Some(ref mut move_points) = unit.move_points {
                             move_points.n = 0;
                         }
                     }
+                    */
                     count = unit.count;
                 }
                 if count <= 0 {
@@ -427,6 +429,7 @@ impl State {
                         }
                     }
                 }
+                /*
                 if let Some(ref effect) = attack_info.effect {
                     let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
                     if effect.time != Time::Instant {
@@ -436,6 +439,7 @@ impl State {
                     effect.effect.apply(unit);
                     // TODO: и ту же функцию вызывать в начале каждого хода
                 }
+                */
             },
             CoreEvent::Reveal{..} => (),
             CoreEvent::ShowUnit{ref unit_info} => {
