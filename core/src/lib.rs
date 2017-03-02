@@ -60,8 +60,7 @@ fn get_players_list(options: &Options) -> Vec<Player> {
     )
 }
 
-// TODO: rename to 'get_player_info_list'
-fn get_player_info_lists(state: &State) -> HashMap<PlayerId, PlayerInfo> {
+fn get_player_info_list(state: &State) -> HashMap<PlayerId, PlayerInfo> {
     let mut map = HashMap::new();
     map.insert(PlayerId{id: 0}, PlayerInfo::new(state, PlayerId{id: 0}));
     map.insert(PlayerId{id: 1}, PlayerInfo::new(state, PlayerId{id: 1}));
@@ -84,7 +83,7 @@ impl Core {
     pub fn new(options: &Options) -> Core {
         let db = Rc::new(Db::new());
         let state = State::new_full(db.clone(), options);
-        let players_info = get_player_info_lists(&state);
+        let players_info = get_player_info_list(&state);
         let ai = Ai::new(db.clone(), options, PlayerId{id:1});
         let next_object_id = ObjectId{id: state.objects().len() as i32};
         Core {
