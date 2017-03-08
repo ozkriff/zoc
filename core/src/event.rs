@@ -1,3 +1,4 @@
+use std::collections::{HashMap};
 use unit::{Unit, UnitId, UnitTypeId};
 use position::{ExactPos, MapPos};
 use player::{PlayerId};
@@ -60,7 +61,17 @@ pub struct AttackInfo {
 }
 
 #[derive(Clone, Debug)]
-pub enum CoreEvent {
+pub struct CoreEvent {
+    // TODO: точно оба поля долджны быть публичными?
+    pub event: Event,
+
+    // список целей и примененные к ним эффекты
+    // (урон в том числе)
+    pub effects: HashMap<UnitId, Vec<TimedEffect>>, // TODO: UnitId -> ObjectId
+}
+
+#[derive(Clone, Debug)]
+pub enum Event {
     Move {
         unit_id: UnitId,
         from: ExactPos,
@@ -133,9 +144,5 @@ pub enum CoreEvent {
     // TODO: RemoveObject
     RemoveSmoke {
         id: ObjectId,
-    },
-    Effect {
-        unit_id: UnitId,
-        effect: TimedEffect,
     },
 }

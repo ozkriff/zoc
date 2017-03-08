@@ -8,7 +8,7 @@ use core::position::{MapPos, ExactPos};
 use core::event::{FireMode, AttackInfo, ReactionFireMode};
 use core::player::{PlayerId};
 use core::object::{ObjectId};
-use core::effect::{self, Effect, TimedEffect};
+// use core::effect::{self, Effect, TimedEffect};
 use types::{WorldPos, Time, Speed};
 use mesh::{MeshId};
 use geom::{self, vec3_z};
@@ -875,6 +875,7 @@ impl EventVisualizer for EventDetachVisualizer {
     fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
+/*
 #[derive(Clone, Debug)]
 pub struct EventEffectVisualizer;
 
@@ -916,3 +917,4 @@ impl EventVisualizer for EventEffectVisualizer {
 
     fn end(&mut self, _: &mut Scene, _: &State) {}
 }
+*/

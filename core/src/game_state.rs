@@ -10,7 +10,7 @@ use dir::{Dir};
 use fow::{Fow};
 use sector::{Sector, SectorId};
 use position::{self, MapPos, ExactPos, SlotId};
-use event::{CoreEvent, FireMode};
+use event::{Event, CoreEvent, FireMode};
 use player::{PlayerId};
 use object::{ObjectId, Object, ObjectClass};
 use movement::{MovePoints};
@@ -320,8 +320,9 @@ impl State {
     }
 
     pub fn apply_event(&mut self, event: &CoreEvent) {
-        match *event {
-            CoreEvent::Move{unit_id, to, cost, ..} => {
+        // TODO: обработка эффектов?
+        match event.event {
+            Event::Move{unit_id, to, cost, ..} => {
                 {
                     let unit = self.units.get_mut(&unit_id).unwrap();
                     unit.pos = to;
@@ -340,7 +341,7 @@ impl State {
                     attached_unit.pos = to;
                 }
             },
-            CoreEvent::EndTurn{new_id, old_id} => {
+            Event::EndTurn{new_id, old_id} => {
                 self.shown_unit_ids.clear();
                 {
                     let reinforcement_points = self.reinforcement_points
@@ -357,7 +358,7 @@ impl State {
                     }
                 }
             },
-            CoreEvent::CreateUnit{ref unit_info} => {
+            Event::CreateUnit{ref unit_info} => {
                 {
                     let unit_type = self.db.unit_type(unit_info.type_id);
                     let reinforcement_points = self.reinforcement_points
@@ -367,7 +368,7 @@ impl State {
                 }
                 self.add_unit(unit_info);
             },
-            CoreEvent::AttackUnit{ref attack_info} => {
+            Event::AttackUnit{ref attack_info} => {
                 let count;
                 {
                     let unit = self.units.get_mut(&attack_info.defender_id)
@@ -430,7 +431,8 @@ impl State {
                     }
                 }
             },
-            CoreEvent::Effect{unit_id, ref effect} => {
+            /*
+            Event::Effect{unit_id, ref effect} => {
                 let unit = self.units.get_mut(&unit_id).unwrap();
                 if effect.time != Time::Instant {
                     unit.effects.push(effect.clone());
@@ -439,16 +441,17 @@ impl State {
                 effect.effect.apply(unit);
                 // TODO: и ту же функцию вызывать в начале каждого хода
             },
-            CoreEvent::Reveal{..} => (),
-            CoreEvent::ShowUnit{ref unit_info} => {
+            */
+            Event::Reveal{..} => (),
+            Event::ShowUnit{ref unit_info} => {
                 self.add_unit(unit_info);
                 self.shown_unit_ids.insert(unit_info.id);
             },
-            CoreEvent::HideUnit{unit_id} => {
+            Event::HideUnit{unit_id} => {
                 assert!(self.units.get(&unit_id).is_some());
                 self.units.remove(&unit_id);
             },
-            CoreEvent::LoadUnit{passenger_id, transporter_id, to, ..} => {
+            Event::LoadUnit{passenger_id, transporter_id, to, ..} => {
                 // TODO: hide info about passenger from enemy player
                 if let Some(transporter_id) = transporter_id {
                     self.units.get_mut(&transporter_id)
@@ -463,7 +466,7 @@ impl State {
                     move_points.n = 0;
                 }
             },
-            CoreEvent::UnloadUnit{transporter_id, ref unit_info, ..} => {
+            Event::UnloadUnit{transporter_id, ref unit_info, ..} => {
                 if let Some(transporter_id) = transporter_id {
                     self.units.get_mut(&transporter_id)
                         .expect("Bad transporter_id")
@@ -477,7 +480,7 @@ impl State {
                     self.add_unit(unit_info);
                 }
             },
-            CoreEvent::Attach{transporter_id, attached_unit_id, to, ..} => {
+            Event::Attach{transporter_id, attached_unit_id, to, ..} => {
                 if let Some(passenger_id) = self.unit(transporter_id).passenger_id {
                     let passenger = self.units.get_mut(&passenger_id).unwrap();
                     passenger.pos = to;
@@ -493,7 +496,7 @@ impl State {
                 }
                 transporter.attached_unit_id = Some(attached_unit_id);
             },
-            CoreEvent::Detach{transporter_id, to, ..} => {
+            Event::Detach{transporter_id, to, ..} => {
                 if let Some(passenger_id) = self.unit(transporter_id).passenger_id {
                     let passenger = self.units.get_mut(&passenger_id).unwrap();
                     passenger.pos = to;
@@ -512,19 +515,19 @@ impl State {
                     move_points.n = 0;
                 }
             },
-            CoreEvent::SetReactionFireMode{unit_id, mode} => {
+            Event::SetReactionFireMode{unit_id, mode} => {
                 self.units.get_mut(&unit_id)
                     .expect("Bad unit id")
                     .reaction_fire_mode = mode;
             },
-            CoreEvent::SectorOwnerChanged{sector_id, new_owner_id} => {
+            Event::SectorOwnerChanged{sector_id, new_owner_id} => {
                 let sector = self.sectors.get_mut(&sector_id).unwrap();
                 sector.owner_id = new_owner_id;
             },
-            CoreEvent::VictoryPoint{player_id, count, ..} => {
+            Event::VictoryPoint{player_id, count, ..} => {
                 self.score.get_mut(&player_id).unwrap().n += count;
             },
-            CoreEvent::Smoke{pos, id, unit_id} => {
+            Event::Smoke{pos, id, unit_id} => {
                 if let Some(unit_id) = unit_id {
                     if let Some(unit) = self.units.get_mut(&unit_id) {
                         if let Some(ref mut attack_points) = unit.attack_points {
@@ -544,7 +547,7 @@ impl State {
                     owner_id: None,
                 });
             },
-            CoreEvent::RemoveSmoke{id} => {
+            Event::RemoveSmoke{id} => {
                 self.objects.remove(&id);
             },
         }

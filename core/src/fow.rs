@@ -6,7 +6,7 @@ use fov::{fov, simple_fov};
 use db::{Db};
 use unit::{Unit, UnitType};
 use position::{MapPos, ExactPos, SlotId};
-use event::{CoreEvent};
+use event::{CoreEvent, Event};
 use player::{PlayerId};
 use object::{ObjectClass};
 
@@ -153,25 +153,26 @@ impl Fow {
         state: &State,
         event: &CoreEvent,
     ) {
-        match *event {
-            CoreEvent::Move{unit_id, ..} => {
+        // match *event {
+        match event.event {
+            Event::Move{unit_id, ..} => {
                 let unit = state.unit(unit_id);
                 if unit.player_id == self.player_id {
                     self.fov_unit(state, unit);
                 }
             },
-            CoreEvent::EndTurn{new_id, ..} => {
+            Event::EndTurn{new_id, ..} => {
                 if self.player_id == new_id {
                     self.reset(state);
                 }
             },
-            CoreEvent::CreateUnit{ref unit_info} => {
+            Event::CreateUnit{ref unit_info} => {
                 let unit = state.unit(unit_info.id);
                 if self.player_id == unit_info.player_id {
                     self.fov_unit(state, unit);
                 }
             },
-            CoreEvent::AttackUnit{ref attack_info} => {
+            Event::AttackUnit{ref attack_info} => {
                 if let Some(attacker_id) = attack_info.attacker_id {
                     if !attack_info.is_ambush {
                         let pos = state.unit(attacker_id).pos;
@@ -180,29 +181,29 @@ impl Fow {
                     }
                 }
             },
-            CoreEvent::UnloadUnit{ref unit_info, ..} => {
+            Event::UnloadUnit{ref unit_info, ..} => {
                 if self.player_id == unit_info.player_id {
                     let unit = state.unit(unit_info.id);
                     self.fov_unit(state, unit);
                 }
             },
-            CoreEvent::Detach{transporter_id, ..} => {
+            Event::Detach{transporter_id, ..} => {
                 let transporter = state.unit(transporter_id);
                 if self.player_id == transporter.player_id {
                     self.fov_unit(state, transporter);
                 }
             },
-            CoreEvent::Effect{..} |
-            CoreEvent::Reveal{..} |
-            CoreEvent::ShowUnit{..} |
-            CoreEvent::HideUnit{..} |
-            CoreEvent::LoadUnit{..} |
-            CoreEvent::Attach{..} |
-            CoreEvent::SetReactionFireMode{..} |
-            CoreEvent::SectorOwnerChanged{..} |
-            CoreEvent::Smoke{..} |
-            CoreEvent::RemoveSmoke{..} |
-            CoreEvent::VictoryPoint{..} => {},
+            // Event::Effect{..} |
+            Event::Reveal{..} |
+            Event::ShowUnit{..} |
+            Event::HideUnit{..} |
+            Event::LoadUnit{..} |
+            Event::Attach{..} |
+            Event::SetReactionFireMode{..} |
+            Event::SectorOwnerChanged{..} |
+            Event::Smoke{..} |
+            Event::RemoveSmoke{..} |
+            Event::VictoryPoint{..} => {},
         }
     }
 }

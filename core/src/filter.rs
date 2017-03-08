@@ -1,8 +1,8 @@
-use std::collections::{HashSet};
+use std::collections::{HashSet, HashMap};
 use game_state::{State};
 use fow::{Fow};
 use unit::{Unit, UnitId};
-use event::{CoreEvent, MoveMode, AttackInfo};
+use event::{CoreEvent, Event, MoveMode, AttackInfo};
 use player::{PlayerId};
 use movement::{MovePoints};
 
@@ -45,8 +45,11 @@ pub fn show_or_hide_passive_enemies(
             continue;
         }
         let unit = state.unit_opt(id).expect("Can`t find unit");
-        events.push(CoreEvent::ShowUnit {
-            unit_info: filtered_unit(unit),
+        events.push(CoreEvent {
+            event: Event::ShowUnit {
+                unit_info: filtered_unit(unit),
+            },
+            effects: HashMap::new(),
         });
     }
     let lost_units = old.difference(new);
@@ -54,7 +57,10 @@ pub fn show_or_hide_passive_enemies(
         if active_unit_ids.contains(&id) {
             continue;
         }
-        events.push(CoreEvent::HideUnit{unit_id: id});
+        events.push(CoreEvent {
+            event: Event::HideUnit{unit_id: id},
+            effects: HashMap::new(),
+        });
     }
     events
 }
@@ -68,8 +74,9 @@ pub fn filter_events(
     assert!(!state.is_partial());
     let mut active_unit_ids = HashSet::new();
     let mut events = vec![];
-    match *event {
-        CoreEvent::Move{unit_id, from, to, ..} => {
+    // match *event {
+    match event.event {
+        Event::Move{unit_id, from, to, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == player_id {
                 events.push(event.clone());
@@ -77,20 +84,26 @@ pub fn filter_events(
                 let prev_vis = fow.is_visible_at(unit, from);
                 let next_vis = fow.is_visible_at(unit, to);
                 if !prev_vis && next_vis {
-                    events.push(CoreEvent::ShowUnit {
-                        unit_info: Unit {
-                            pos: from,
-                            .. filtered_unit(unit)
+                    events.push(CoreEvent {
+                        event: Event::ShowUnit {
+                            unit_info: Unit {
+                                pos: from,
+                                .. filtered_unit(unit)
+                            },
                         },
+                        effects: HashMap::new(),
                     });
                     if let Some(attached_unit_id) = unit.attached_unit_id {
                         active_unit_ids.insert(attached_unit_id);
                         let attached_unit = state.unit(attached_unit_id);
-                        events.push(CoreEvent::ShowUnit {
-                            unit_info: Unit {
-                                pos: from,
-                                .. filtered_unit(attached_unit)
+                        events.push(CoreEvent {
+                            event: Event::ShowUnit {
+                                unit_info: Unit {
+                                    pos: from,
+                                    .. filtered_unit(attached_unit)
+                                },
                             },
+                            effects: HashMap::new(),
                         });
                     }
                 }
@@ -98,14 +111,17 @@ pub fn filter_events(
                     events.push(event.clone());
                 }
                 if prev_vis && !next_vis {
-                    events.push(CoreEvent::HideUnit {
-                        unit_id: unit.id,
+                    events.push(CoreEvent {
+                        event: Event::HideUnit {
+                            unit_id: unit.id,
+                        },
+                        effects: HashMap::new(),
                     });
                 }
                 active_unit_ids.insert(unit_id);
             }
         },
-        CoreEvent::CreateUnit{ref unit_info} => {
+        Event::CreateUnit{ref unit_info} => {
             let unit = state.unit(unit_info.id);
             if player_id == unit_info.player_id
                 || fow.is_visible_at(unit, unit_info.pos)
@@ -114,7 +130,7 @@ pub fn filter_events(
                 active_unit_ids.insert(unit_info.id);
             }
         },
-        CoreEvent::AttackUnit{ref attack_info} => {
+        Event::AttackUnit{ref attack_info} => {
             let attacker_id = attack_info.attacker_id
                 .expect("Core must know about everything");
             let attacker = state.unit(attacker_id);
@@ -122,8 +138,11 @@ pub fn filter_events(
                 // show attacker if this is not ambush
                 let attacker = state.unit(attacker_id);
                 if !fow.is_visible(attacker) {
-                    events.push(CoreEvent::ShowUnit {
-                        unit_info: filtered_unit(attacker),
+                    events.push(CoreEvent {
+                        event: Event::ShowUnit {
+                            unit_info: filtered_unit(attacker),
+                        },
+                        effects: HashMap::new(),
                     });
                 }
                 active_unit_ids.insert(attacker_id);
@@ -139,18 +158,24 @@ pub fn filter_events(
                 },
                 .. attack_info.clone()
             };
-            events.push(CoreEvent::AttackUnit{attack_info: attack_info});
+            events.push(CoreEvent {
+                event: Event::AttackUnit{attack_info: attack_info},
+                effects: HashMap::new(),
+            });
         },
-        CoreEvent::Reveal{ref unit_info} => {
+        Event::Reveal{ref unit_info} => {
             if unit_info.player_id != player_id {
-                events.push(CoreEvent::ShowUnit {
-                    unit_info: filtered_unit(unit_info),
+                events.push(CoreEvent {
+                    event: Event::ShowUnit {
+                        unit_info: filtered_unit(unit_info),
+                    },
+                    effects: HashMap::new(),
                 });
             }
         },
-        CoreEvent::ShowUnit{..} |
-        CoreEvent::HideUnit{..} => panic!(),
-        CoreEvent::LoadUnit{passenger_id, from, to, transporter_id} => {
+        Event::ShowUnit{..} |
+        Event::HideUnit{..} => panic!(),
+        Event::LoadUnit{passenger_id, from, to, transporter_id} => {
             let passenger = state.unit(passenger_id);
             let transporter = state.unit(transporter_id.unwrap());
             let is_transporter_vis = fow.is_visible(transporter);
@@ -159,11 +184,14 @@ pub fn filter_events(
                 events.push(event.clone());
             } else if is_passenger_vis || is_transporter_vis {
                 if !fow.is_visible_at(passenger, from) {
-                    events.push(CoreEvent::ShowUnit {
-                        unit_info: Unit {
-                            pos: from,
-                            .. filtered_unit(passenger)
+                    events.push(CoreEvent {
+                        event: Event::ShowUnit {
+                            unit_info: Unit {
+                                pos: from,
+                                .. filtered_unit(passenger)
+                            },
                         },
+                        effects: HashMap::new(),
                     });
                 }
                 let filtered_transporter_id = if is_transporter_vis {
@@ -171,16 +199,19 @@ pub fn filter_events(
                 } else {
                     None
                 };
-                events.push(CoreEvent::LoadUnit {
-                    transporter_id: filtered_transporter_id,
-                    passenger_id: passenger_id,
-                    from: from,
-                    to: to,
+                events.push(CoreEvent {
+                    event: Event::LoadUnit {
+                        transporter_id: filtered_transporter_id,
+                        passenger_id: passenger_id,
+                        from: from,
+                        to: to,
+                    },
+                    effects: HashMap::new(),
                 });
                 active_unit_ids.insert(passenger_id);
             }
         },
-        CoreEvent::UnloadUnit{ref unit_info, transporter_id, from, to} => {
+        Event::UnloadUnit{ref unit_info, transporter_id, from, to} => {
             active_unit_ids.insert(unit_info.id);
             let passenger = state.unit(unit_info.id);
             let transporter = state.unit(transporter_id.unwrap());
@@ -194,26 +225,32 @@ pub fn filter_events(
                 } else {
                     None
                 };
-                events.push(CoreEvent::UnloadUnit {
-                    transporter_id: filtered_transporter_id,
-                    unit_info: Unit {
-                        move_points: None,
-                        attack_points: None,
-                        reactive_attack_points: None,
-                        passenger_id: None,
-                        .. unit_info.clone()
+                events.push(CoreEvent {
+                    event: Event::UnloadUnit {
+                        transporter_id: filtered_transporter_id,
+                        unit_info: Unit {
+                            move_points: None,
+                            attack_points: None,
+                            reactive_attack_points: None,
+                            passenger_id: None,
+                            .. unit_info.clone()
+                        },
+                        from: from,
+                        to: to,
                     },
-                    from: from,
-                    to: to,
+                    effects: HashMap::new(),
                 });
                 if !is_passenger_vis {
-                    events.push(CoreEvent::HideUnit {
-                        unit_id: passenger.id,
+                    events.push(CoreEvent {
+                        event: Event::HideUnit {
+                            unit_id: passenger.id,
+                        },
+                        effects: HashMap::new(),
                     });
                 }
             }
         },
-        CoreEvent::Attach{transporter_id, attached_unit_id, from, to} => {
+        Event::Attach{transporter_id, attached_unit_id, from, to} => {
             let transporter = state.unit(transporter_id);
             if transporter.player_id == player_id {
                 events.push(event.clone())
@@ -224,30 +261,39 @@ pub fn filter_events(
                 let is_transporter_vis = fow.is_visible_at(transporter, from);
                 if is_attached_unit_vis {
                     if !is_transporter_vis {
-                        events.push(CoreEvent::ShowUnit {
-                            unit_info: Unit {
-                                pos: from,
-                                attached_unit_id: None,
-                                .. filtered_unit(transporter)
+                        events.push(CoreEvent {
+                            event: Event::ShowUnit {
+                                unit_info: Unit {
+                                    pos: from,
+                                    attached_unit_id: None,
+                                    .. filtered_unit(transporter)
+                                },
                             },
+                            effects: HashMap::new(),
                         });
                     }
                     events.push(event.clone())
                 } else if is_transporter_vis {
-                    events.push(CoreEvent::Move {
-                        unit_id: transporter_id,
-                        mode: MoveMode::Fast,
-                        cost: MovePoints{n: 0},
-                        from: from,
-                        to: to,
+                    events.push(CoreEvent {
+                            event: Event::Move {
+                            unit_id: transporter_id,
+                            mode: MoveMode::Fast,
+                            cost: MovePoints{n: 0},
+                            from: from,
+                            to: to,
+                        },
+                        effects: HashMap::new(),
                     });
-                    events.push(CoreEvent::HideUnit {
-                        unit_id: transporter_id,
+                    events.push(CoreEvent {
+                        event: Event::HideUnit {
+                            unit_id: transporter_id,
+                        },
+                        effects: HashMap::new(),
                     });
                 }
             }
         },
-        CoreEvent::Detach{transporter_id, from, to} => {
+        Event::Detach{transporter_id, from, to} => {
             let transporter = state.unit(transporter_id);
             if transporter.player_id == player_id {
                 events.push(event.clone())
@@ -258,52 +304,63 @@ pub fn filter_events(
                 if is_from_vis {
                     events.push(event.clone());
                     if !is_to_vis {
-                        events.push(CoreEvent::HideUnit {
-                            unit_id: transporter_id,
+                        events.push(CoreEvent {
+                            event: Event::HideUnit {
+                                unit_id: transporter_id,
+                            },
+                            effects: HashMap::new(),
                         });
                     }
                } else if is_to_vis {
-                    events.push(CoreEvent::ShowUnit {
-                        unit_info: Unit {
-                            pos: from,
-                            attached_unit_id: None,
-                            .. filtered_unit(transporter)
+                    events.push(CoreEvent {
+                        event: Event::ShowUnit {
+                            unit_info: Unit {
+                                pos: from,
+                                attached_unit_id: None,
+                                .. filtered_unit(transporter)
+                            },
                         },
+                        effects: HashMap::new(),
                     });
-                    events.push(CoreEvent::Move {
-                        unit_id: transporter_id,
-                        mode: MoveMode::Fast,
-                        cost: MovePoints{n: 0},
-                        from: from,
-                        to: to,
+                    events.push(CoreEvent {
+                        event: Event::Move {
+                            unit_id: transporter_id,
+                            mode: MoveMode::Fast,
+                            cost: MovePoints{n: 0},
+                            from: from,
+                            to: to,
+                        },
+                        effects: HashMap::new(),
                     });
                 }
             }
         },
-        CoreEvent::SetReactionFireMode{unit_id, ..} |
-        CoreEvent::Effect{unit_id, ..} => {
+        Event::SetReactionFireMode{unit_id, ..} => {
             let unit = state.unit(unit_id);
             if unit.player_id == player_id {
                 events.push(event.clone());
             }
         },
-        CoreEvent::Smoke{id, pos, unit_id} => {
+        Event::Smoke{id, pos, unit_id} => {
             let unit_id = unit_id.expect("Core must know about everything");
             let unit = state.unit(unit_id);
             if fow.is_visible(unit) {
                 events.push(event.clone());
             } else {
-                events.push(CoreEvent::Smoke {
-                    id: id,
-                    pos: pos,
-                    unit_id: None,
+                events.push(CoreEvent {
+                    event: Event::Smoke {
+                        id: id,
+                        pos: pos,
+                        unit_id: None,
+                    },
+                    effects: HashMap::new(),
                 });
             }
         },
-        CoreEvent::EndTurn{..} |
-        CoreEvent::RemoveSmoke{..} |
-        CoreEvent::VictoryPoint{..} |
-        CoreEvent::SectorOwnerChanged{..} => {
+        Event::EndTurn{..} |
+        Event::RemoveSmoke{..} |
+        Event::VictoryPoint{..} |
+        Event::SectorOwnerChanged{..} => {
             events.push(event.clone());
         },
     }

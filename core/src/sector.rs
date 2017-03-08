@@ -1,9 +1,9 @@
-use std::collections::{HashSet};
+use std::collections::{HashSet, HashMap};
 use cgmath::{Vector2};
 use db::{Db};
 use game_state::{State};
 use position::{MapPos};
-use event::{CoreEvent};
+use event::{CoreEvent, Event};
 use player::{PlayerId};
 
 #[derive(PartialOrd, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -50,9 +50,12 @@ pub fn check_sectors(db: &Db, state: &State) -> Vec<CoreEvent> {
             Some(claimers.into_iter().next().unwrap())
         };
         if sector.owner_id != owner_id {
-            events.push(CoreEvent::SectorOwnerChanged {
-                sector_id: sector_id,
-                new_owner_id: owner_id,
+            events.push(CoreEvent {
+                event: Event::SectorOwnerChanged {
+                    sector_id: sector_id,
+                    new_owner_id: owner_id,
+                },
+                effects: HashMap::new(),
             });
         }
     }

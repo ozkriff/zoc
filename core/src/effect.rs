@@ -28,6 +28,8 @@ pub enum Effect {
 
     // пехотинцы "прижаты", должно бы заменить поле remove_move_points
     Pinned,
+
+    // Убийство солдат, уничтожение машины, т.п.
 }
 
 impl Effect {
