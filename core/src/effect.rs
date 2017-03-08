@@ -27,12 +27,22 @@ pub enum Effect {
     // Destroyed(u8),
 
     // пехотинцы "прижаты", должно бы заменить поле remove_move_points
+    // применимо только к пехоте
     Pinned,
 
-    // Убийство солдат, уничтожение машины, т.п.
+    Suppressed{value: i32},
+
+    // Убийство солдат,
+    // применимо только к пехоте
+    SoldierKilled,
+
+    // уничтожение машины
+    // применимо только к технике
+    VehicleDestroyed,
 }
 
 impl Effect {
+    // есть чувство, что мне тут может понадобиться не просто юнит, а все состояние
     pub fn apply(&self, unit: &mut Unit) {
         match *self {
             Effect::Immobilized => {

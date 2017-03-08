@@ -41,23 +41,30 @@ pub enum Command {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttackInfo {
+    // эти поля останутся тут, потому что описывают атаку со стороны атакующего
     pub attacker_id: Option<UnitId>,
-    pub defender_id: UnitId,
-    pub mode: FireMode,
-    pub killed: i32,
-    pub suppression: i32,
+    pub mode: FireMode, // TODO: нельзя ли удалить это поле?
     pub is_ambush: bool,
     pub is_inderect: bool,
 
+    // эти поля уходят в `effects`
+    pub defender_id: UnitId,
+
+    // TODO для начала можно все эти поля сложить в один эффект,
+    // Damage{...}, Time::Instant
+    // а уже потом бить его на части
+
+    // TODO в эффект "убито людей"
+    pub killed: i32,
+
+    // TODO в эффект "подавление"
+    pub suppression: i32,
+
     // это точно нужно хранить?
+    // TODO: в эффект "юнит уничтожен"?
     pub leave_wrecks: bool,
 
     // pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
-
-    // Точно надо делоть это полем атаки?
-    // А если эффектов будет несколько?
-    // А как это будет сочетаться с эффектами после движения или аналогичных действий?
-    // pub effect: Option<TimedEffect>,
 }
 
 #[derive(Clone, Debug)]
