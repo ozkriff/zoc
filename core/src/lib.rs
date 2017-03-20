@@ -43,7 +43,7 @@ use check::{check_attack};
 use player::{Player, PlayerId, PlayerClass, PlayerInfo};
 use object::{ObjectId};
 use event::{CoreEvent, Event, Command};
-// use effect::{TimedEffect, Effect, Time};
+use effect::{TimedEffect, Effect, Time};
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum ReactionFireResult {
@@ -168,7 +168,8 @@ impl Core {
         // обездвижет О.о
         //
         if killed > 0 {
-            // if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 { // TODO: вернуть шанс
+            // TODO: вернуть шанс:
+            // if is_ground_vehicle && thread_rng().gen_range(1, 100) <= 50 {
             if is_ground_vehicle {
                 // TODO: надо бы переделать всю систему, что бы эффекты
                 // были на одном уровне с убийствами
@@ -197,19 +198,27 @@ impl Core {
         // on the ground in their tile
         let attack_info = event::AttackInfo {
             attacker_id: Some(attacker_id),
-            defender_id: defender_id,
-            killed: killed,
             mode: fire_mode,
-            suppression: suppression + per_death_suppression * killed,
-            // remove_move_points: false,
             is_ambush: is_ambush,
             is_inderect: weapon_type.is_inderect,
-            leave_wrecks: is_ground_vehicle,
-            // effect: effect,
+            target_pos: defender.pos,
         };
         Some(CoreEvent {
             event: Event::AttackUnit{attack_info: attack_info},
-            effects: HashMap::new(),
+            effects: {
+                let mut effects = HashMap::new();
+                let effect = TimedEffect {
+                    time: Time::Instant,
+                    effect: Effect::Attacked {
+                        killed: killed,
+                        suppression: suppression + per_death_suppression * killed,
+                        remove_move_points: false,
+                        leave_wrecks: is_ground_vehicle,
+                    },
+                };
+                effects.insert(defender_id, vec![effect]);
+                effects
+            },
         })
     }
 
@@ -268,10 +277,7 @@ impl Core {
                         // attack_info.remove_move_points = true;
                         // TODO: создать новое событие - Effect::Pinned
                     }
-                    CoreEvent {
-                        event: Event::AttackUnit{attack_info: attack_info},
-                        effects: HashMap::new(),
-                    }
+                    Event::AttackUnit{attack_info: attack_info}.to_core_event()
                 } else {
                     continue;
                 }
@@ -320,66 +326,53 @@ impl Core {
                         if player_id != new_id {
                             continue;
                         }
-                        end_turn_events.push(CoreEvent {
-                            event: Event::VictoryPoint {
-                                player_id: player_id,
-                                pos: sector.center(),
-                                count: 1,
-                            },
-                            effects: HashMap::new(),
-                        });
+                        end_turn_events.push(Event::VictoryPoint {
+                            player_id: player_id,
+                            pos: sector.center(),
+                            count: 1,
+                        }.to_core_event());
                     }
                 }
                 for (&object_id, object) in self.state.objects() {
                     if let Some(timer) = object.timer {
                         if timer <= 0 {
-                            end_turn_events.push(CoreEvent {
-                                event: Event::RemoveSmoke {
-                                    id: object_id,
-                                },
-                                effects: HashMap::new(),
-                            });
+                            end_turn_events.push(Event::RemoveSmoke {
+                                id: object_id,
+                            }.to_core_event());
                         }
                     }
                 }
                 for event in end_turn_events {
                     self.do_core_event(&event);
                 }
-                self.do_core_event(&CoreEvent {
-                    event: Event::EndTurn {
-                        old_id: old_id,
-                        new_id: new_id,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::EndTurn {
+                    old_id: old_id,
+                    new_id: new_id,
+                }.to_core_event());
             },
             Command::CreateUnit{pos, type_id} => {
                 let event = {
                     let id = self.get_new_unit_id();
                     let unit_type = self.db.unit_type(type_id);
-                    CoreEvent {
-                        event: Event::CreateUnit {
-                            unit_info: Unit {
-                                id: id,
-                                player_id: self.current_player_id,
-                                pos: pos,
-                                type_id: type_id,
-                                passenger_id: None,
-                                attached_unit_id: None,
-                                move_points: Some(MovePoints{n: 0}),
-                                attack_points: Some(AttackPoints{n: 0}),
-                                reactive_attack_points: Some(AttackPoints{n: 0}),
-                                reaction_fire_mode: event::ReactionFireMode::Normal,
-                                count: unit_type.count,
-                                morale: 100,
-                                effects: Vec::new(),
-                                is_alive: true,
-                                is_loaded: false,
-                                is_attached: false,
-                            },
+                    Event::CreateUnit {
+                        unit_info: Unit {
+                            id: id,
+                            player_id: self.current_player_id,
+                            pos: pos,
+                            type_id: type_id,
+                            passenger_id: None,
+                            attached_unit_id: None,
+                            move_points: Some(MovePoints{n: 0}),
+                            attack_points: Some(AttackPoints{n: 0}),
+                            reactive_attack_points: Some(AttackPoints{n: 0}),
+                            reaction_fire_mode: event::ReactionFireMode::Normal,
+                            count: unit_type.count,
+                            morale: 100,
+                            is_alive: true,
+                            is_loaded: false,
+                            is_attached: false,
                         },
-                        effects: HashMap::new(),
-                    }
+                    }.to_core_event()
                 };
                 self.do_core_event(&event);
             },
@@ -389,12 +382,9 @@ impl Core {
                     let from = window[0];
                     let to = window[1];
                     let show_event = self.state.unit_at_opt(to).and_then(|unit| {
-                        Some(CoreEvent {
-                            event: Event::Reveal {
-                                unit_info: unit.clone(),
-                            },
-                            effects: HashMap::new(),
-                        })
+                        Some(Event::Reveal {
+                            unit_info: unit.clone(),
+                        }.to_core_event())
                     });
                     if let Some(event) = show_event {
                         self.do_core_event(&event);
@@ -406,16 +396,13 @@ impl Core {
                             n: tile_cost(&self.db, &self.state, unit, from, to).n
                                 * move_cost_modifier(mode)
                         };
-                        CoreEvent {
-                            event: Event::Move {
-                                unit_id: unit_id,
-                                from: from,
-                                to: to,
-                                mode: mode,
-                                cost: cost,
-                            },
-                            effects: HashMap::new(),
-                        }
+                        Event::Move {
+                            unit_id: unit_id,
+                            from: from,
+                            to: to,
+                            mode: mode,
+                            cost: cost,
+                        }.to_core_event()
                     };
                     let pre_visible_enemies = self.players_info[&player_id]
                         .visible_enemies().clone();
@@ -446,81 +433,59 @@ impl Core {
             Command::LoadUnit{transporter_id, passenger_id} => {
                 let from = self.state.unit(passenger_id).pos;
                 let to = self.state.unit(transporter_id).pos;
-                self.do_core_event(&CoreEvent {
-                    event: Event::LoadUnit {
-                        transporter_id: Some(transporter_id),
-                        passenger_id: passenger_id,
-                        from: from,
-                        to: to,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::LoadUnit {
+                    transporter_id: Some(transporter_id),
+                    passenger_id: passenger_id,
+                    from: from,
+                    to: to,
+                }.to_core_event());
             },
             Command::UnloadUnit{transporter_id, passenger_id, pos} => {
-                let event = {
-                    let passenger = self.state.unit(passenger_id);
-                    let from = self.state.unit(transporter_id).pos;
-                    CoreEvent {
-                        event: Event::UnloadUnit {
-                            transporter_id: Some(transporter_id),
-                            unit_info: Unit {
-                                pos: pos,
-                                .. passenger.clone()
-                            },
-                            from: from,
-                            to: pos,
-                        },
-                        effects: HashMap::new(),
-                    }
-                };
+                let event = Event::UnloadUnit {
+                    unit_info: Unit {
+                        pos: pos,
+                        .. self.state.unit(passenger_id).clone()
+                    },
+                    transporter_id: Some(transporter_id),
+                    from: self.state.unit(transporter_id).pos,
+                    to: pos,
+                }.to_core_event();
                 self.do_core_event(&event);
                 self.reaction_fire(passenger_id);
             },
             Command::Attach{transporter_id, attached_unit_id} => {
                 let from = self.state.unit(transporter_id).pos;
                 let to = self.state.unit(attached_unit_id).pos;
-                self.do_core_event(&CoreEvent {
-                    event: Event::Attach {
-                        transporter_id: transporter_id,
-                        attached_unit_id: attached_unit_id,
-                        from: from,
-                        to: to,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::Attach {
+                    transporter_id: transporter_id,
+                    attached_unit_id: attached_unit_id,
+                    from: from,
+                    to: to,
+                }.to_core_event());
                 self.reaction_fire(transporter_id);
             },
             Command::Detach{transporter_id, pos} => {
                 let from = self.state.unit(transporter_id).pos;
-                self.do_core_event(&CoreEvent {
-                    event: Event::Detach {
-                        transporter_id: transporter_id,
-                        from: from,
-                        to: pos,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::Detach {
+                    transporter_id: transporter_id,
+                    from: from,
+                    to: pos,
+                }.to_core_event());
                 self.reaction_fire(transporter_id);
             },
             Command::SetReactionFireMode{unit_id, mode} => {
-                self.do_core_event(&CoreEvent {
-                    event: Event::SetReactionFireMode {
-                        unit_id: unit_id,
-                        mode: mode,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::SetReactionFireMode {
+                    unit_id: unit_id,
+                    mode: mode,
+                }.to_core_event());
             },
             Command::Smoke{unit_id, pos} => {
                 let id = self.get_new_object_id();
-                self.do_core_event(&CoreEvent {
-                    event: Event::Smoke {
-                        id: id,
-                        unit_id: Some(unit_id),
-                        pos: pos,
-                    },
-                    effects: HashMap::new(),
-                });
+                self.do_core_event(&Event::Smoke {
+                    id: id,
+                    unit_id: Some(unit_id),
+                    pos: pos,
+                }.to_core_event());
                 let mut dir = Dir::from_int(thread_rng().gen_range(0, 5));
                 let additional_smoke_count = {
                     let unit = self.state.unit(unit_id);
@@ -536,14 +501,11 @@ impl Core {
                     }
                     dir = Dir::from_int(dir_index);
                     let id = self.get_new_object_id();
-                    self.do_core_event(&CoreEvent {
-                        event: Event::Smoke {
-                            id: id,
-                            unit_id: Some(unit_id),
-                            pos: Dir::get_neighbour_pos(pos, dir),
-                        },
-                        effects: HashMap::new(),
-                    });
+                    self.do_core_event(&Event::Smoke {
+                        id: id,
+                        unit_id: Some(unit_id),
+                        pos: Dir::get_neighbour_pos(pos, dir),
+                    }.to_core_event());
                 }
                 self.reaction_fire(unit_id);
             },

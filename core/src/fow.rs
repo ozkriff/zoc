@@ -148,12 +148,7 @@ impl Fow {
         }
     }
 
-    pub fn apply_event(
-        &mut self,
-        state: &State,
-        event: &CoreEvent,
-    ) {
-        // match *event {
+    pub fn apply_event(&mut self, state: &State, event: &CoreEvent) {
         match event.event {
             Event::Move{unit_id, ..} => {
                 let unit = state.unit(unit_id);
@@ -193,7 +188,6 @@ impl Fow {
                     self.fov_unit(state, transporter);
                 }
             },
-            // Event::Effect{..} |
             Event::Reveal{..} |
             Event::ShowUnit{..} |
             Event::HideUnit{..} |

@@ -17,6 +17,7 @@ use core::position::{self, MapPos, ExactPos, SlotId};
 use core::unit::{UnitId, UnitTypeId};
 use core::misc::{opt_rx_collect};
 use core::print_info::{print_pos_info};
+use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
 use event_visualizer;
@@ -267,7 +268,22 @@ pub struct TacticalScreen {
     player_info: PlayerInfoManager,
     core: core::Core,
     event: Option<CoreEvent>,
+
+    // TODO: это должен быть не Option, а Vec.
+    // Причем все события из ядра тоже должны получаться вектором,
+    // а не по одной функции.
+    //
+    // Т.е.
+    // `fn get_event(&mut self) -> Option<CoreEvent>`
+    // станет
+    // `fn get_events(&mut self) -> Vec<CoreEvent>`.
+    //
     event_visualizer: Option<Box<event_visualizer::EventVisualizer>>,
+    
+    // временное поле, оно будет хранить весь массив визуализаторов.
+    // А Option пока еще поживет, ничего страшного.
+    event_visualizers: Vec<Box<event_visualizer::EventVisualizer>>,
+
     mesh_ids: MeshIdManager,
     meshes: MeshManager,
     unit_type_visual_info: UnitTypeVisualInfoManager,
@@ -302,6 +318,7 @@ impl TacticalScreen {
             core: core,
             event: None,
             event_visualizer: None,
+            event_visualizers: Vec::new(),
             mesh_ids: mesh_ids,
             meshes: meshes,
             unit_type_visual_info: unit_type_visual_info,
@@ -740,11 +757,104 @@ impl TacticalScreen {
         &mut self,
         event: &CoreEvent,
     ) -> Box<event_visualizer::EventVisualizer> {
+        println!("TacticalScreen::make_event_visualizer: event: {:?}\n", event);
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
-        // TODO: обработать эффекты?
+        //
+        // TODO: Как-то визуализировать отложенные эффекты?
+        // Хрен с ними пока что.
+        // Вообще, не уверен что их как-то показывать надо,
+        // скорее там надо над юнитом значок какой-то рисовать.
+        //
+        for (&target_id, target_effects) in &event.effects {
+            println!("TacticalScreen::make_event_visualizer: effect <");
+            let target = state.unit(target_id);
+            for effect in target_effects {
+                if effect.time != effect::Time::Instant {
+                    // TODO: не забудеь убрать println
+                    println!("TacticalScreen::make_event_visualizer: long effect");
+                    continue;
+                }
+                match effect.effect {
+                    Effect::Attacked {
+                        killed,
+                        // suppression,
+                        leave_wrecks,
+                        // remove_move_points,
+                        ..
+                    } => {
+                        self.map_text_manager.add_text(target.pos.map_pos, "attacked");
+                        if killed > 0 {
+                            self.map_text_manager.add_text(
+                                target.pos.map_pos,
+                                &format!("killed: {}", killed),
+                            );
+                        } else {
+                            self.map_text_manager.add_text(
+                                target.pos.map_pos, "miss");
+                        }
+                        // TODO: вертолеты, прицепы?
+                        let target_node_id = scene.unit_id_to_node_id(target_id);
+                        if killed > 0 {
+                            let children = &mut scene.node_mut(target_node_id).children;
+                            let killed = killed as usize;
+                            assert!(killed <= children.len());
+                            for i in 0 .. killed {
+                                if leave_wrecks {
+                                    // TODO: криво как-то :(
+                                    children[i].color = event_visualizer::WRECKS_COLOR;
+                                } else {
+                                    let _ = children.remove(0);
+                                }
+                            }
+                        }
+                        let is_target_destroyed = target.count - killed <= 0;
+                        if is_target_destroyed {
+                            if target.attached_unit_id.is_some() {
+                                scene.node_mut(target_node_id).children.pop().unwrap();
+                            }
+                            // delete unit's marker
+                            scene.node_mut(target_node_id).children.pop().unwrap();
+                            if !leave_wrecks {
+                                assert_eq!(scene.node(target_node_id).children.len(), 0);
+                                scene.remove_node(target_node_id);
+                            }
+                        }
+                        /*
+                        let mut text = String::new();
+                        text += match effect.effect {
+                            Effect::Immobilized => "Immobilized",
+                            Effect::WeaponBroken => "WeaponBroken",
+                            Effect::ReducedMovement => "ReducedMovement",
+                            Effect::ReducedAttackPoints => "ReducedAttackPoints",
+                            Effect::Pinned => "Pinned",
+                        };
+                        text += ": ";
+                        text += match effect.time {
+                            effect::Time::Forever => "Forever",
+                            // TODO: показать число ходов:
+                            effect::Time::Turns(_) => "Turns(n)",
+                            effect::Time::Instant => "Instant",
+                        };
+                        map_text.add_text(unit_pos, &text);
+                        */
+                        // TODO: визуализировать как-то
+                    },
+                    // TODO: Реализовать вот это всякое
+                    Effect::Immobilized => {},
+                    Effect::WeaponBroken => {},
+                    Effect::ReducedMovementPoints(_) => {},
+                    Effect::ReducedAttackPoints(_) => {},
+                    Effect::Pinned => {},
+                    Effect::ReducedAccuracy(_) => {},
+                    Effect::Suppressed(_) => {},
+                    Effect::SoldierKilled(_) => {},
+                    Effect::VehicleDestroyed => {},
+                }
+            }
+        }
         match event.event {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
@@ -896,16 +1006,6 @@ impl TacticalScreen {
                 )
             }
             Event::Reveal{..} => unreachable!(),
-            /*
-            Event::Effect{unit_id, ref effect} => {
-                event_visualizer::EventEffectVisualizer::new(
-                    state,
-                    unit_id,
-                    effect,
-                    &mut self.map_text_manager,
-                )
-            }
-            */
         }
     }
 
@@ -928,6 +1028,8 @@ impl TacticalScreen {
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
+        // TODO: тут бы тоже поправить
+        /*
         let attack_info = match self.event {
             Some(CoreEvent{event: Event::AttackUnit{ref attack_info}, ..}) => attack_info,
             _ => return,
@@ -944,6 +1046,7 @@ impl TacticalScreen {
         {
             self.selected_unit_id = None;
         }
+        */
     }
 
     fn check_game_end(&mut self, context: &mut Context) {

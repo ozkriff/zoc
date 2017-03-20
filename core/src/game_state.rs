@@ -16,7 +16,7 @@ use object::{ObjectId, Object, ObjectClass};
 use movement::{MovePoints};
 use attack::{AttackPoints};
 use options::{Options};
-use effect::{Time};
+use effect::{Time, TimedEffect, Effect, /*EffectId*/};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReinforcementPoints{pub n: i32}
@@ -94,6 +94,7 @@ impl<'a> Iterator for UnitIter<'a> {
 pub struct State {
     units: HashMap<UnitId, Unit>,
     objects: HashMap<ObjectId, Object>,
+    effects: Vec<(UnitId, TimedEffect)>,
     map: Map<Terrain>,
     sectors: HashMap<SectorId, Sector>,
     score: HashMap<PlayerId, Score>,
@@ -126,6 +127,7 @@ fn basic_state(db: Rc<Db>, options: &Options) -> State {
     State {
         units: HashMap::new(),
         objects: objects,
+        effects: Vec::new(),
         map: map,
         sectors: sectors,
         score: score,
@@ -191,27 +193,40 @@ impl State {
         }
     }
 
-    // TODO: apply_effects?
-    fn update_effects(&mut self, player_id: PlayerId) {
-        for unit in self.units.values_mut()
-            .filter(|unit| unit.player_id == player_id)
-        {
-            for effect in unit.effects.clone() {
-                effect.effect.apply(unit);
+    fn apply_player_effects(&mut self, player_id: PlayerId) {
+        for (target_id, ref effect) in self.effects.clone() {
+            if self.unit(target_id).player_id == player_id {
+                self.apply_effect(&effect.effect, target_id);
             }
-            for effect in &mut unit.effects {
-                if let Time::Turns(ref mut n) = effect.time {
-                    *n -= 1;
-                }
-            }
-            unit.effects.retain(|effect| {
-                match effect.time {
-                    Time::Turns(n) => n > 0,
-                    Time::Forever => true,
-                    Time::Instant => unreachable!(),
-                }
-            });
         }
+    }
+
+    fn tick_player_effects(&mut self, player_id: PlayerId) {
+        for &mut (target_id, ref mut effect) in &mut self.effects {
+            if self.units[&target_id].player_id != player_id {
+                continue;
+            }
+            if let Time::Turns(ref mut n) = effect.time {
+                *n -= 1;
+            }
+        }
+    }
+
+    fn remove_old_effects(&mut self) {
+        self.effects.retain(|&(_, ref effect)| {
+            match effect.time {
+                Time::Turns(n) => n > 0,
+                Time::Forever => true,
+                Time::Instant => unreachable!(),
+            }
+        });
+    }
+
+    // TODO: проверит, что все как нао вызывается вообще
+    fn update_effects(&mut self, player_id: PlayerId) {
+        self.apply_player_effects(player_id);
+        self.tick_player_effects(player_id);
+        self.remove_old_effects();
     }
 
     fn refresh_units(&mut self, player_id: PlayerId) {
@@ -319,8 +334,57 @@ impl State {
         }
     }
 
+    // TODO: переименовать
+    pub fn apply_effect(&mut self, effect: &Effect, target_id: UnitId) {
+        match *effect {
+            Effect::Immobilized => {},
+            Effect::Attacked{killed, suppression, leave_wrecks, remove_move_points} => {
+                println!("State::apply_effect: Effect::Attacked");
+                // TODO: избавиться от всей этой акробатики с count,
+                // разбив на несколько эффектов
+                let count;
+                {
+                    let unit = self.units.get_mut(&target_id)
+                        .expect("Can`t find defender");
+                    unit.count -= killed;
+                    unit.morale -= suppression;
+                    if remove_move_points {
+                        if let Some(ref mut move_points) = unit.move_points {
+                            move_points.n = 0;
+                        }
+                    }
+                    count = unit.count;
+                }
+                if count <= 0 {
+                    if let Some(passenger_id)
+                        = self.unit(target_id).passenger_id
+                    {
+                        self.units.remove(&passenger_id).unwrap();
+                    }
+                    if let Some(attached_unit_id)
+                        = self.unit(target_id).attached_unit_id
+                    {
+                        let attached_unit = self.units.get_mut(&attached_unit_id).unwrap();
+                        attached_unit.attack_points = Some(AttackPoints{n: 0});
+                        attached_unit.reactive_attack_points = Some(AttackPoints{n: 0});
+                        attached_unit.move_points = Some(MovePoints{n: 0});
+                    }
+                    if leave_wrecks {
+                        let unit = self.units.get_mut(&target_id).unwrap();
+                        unit.attached_unit_id = None;
+                        unit.passenger_id = None;
+                        unit.is_alive = false;
+                    } else {
+                        assert!(self.units.get(&target_id).is_some());
+                        self.units.remove(&target_id);
+                    }
+                }
+            },
+            _ => unimplemented!(),
+        }
+    }
+
     pub fn apply_event(&mut self, event: &CoreEvent) {
-        // TODO: обработка эффектов?
         match event.event {
             Event::Move{unit_id, to, cost, ..} => {
                 {
@@ -359,6 +423,8 @@ impl State {
                 }
             },
             Event::CreateUnit{ref unit_info} => {
+                // TODO: тут поля можно поменять местами и избавиться от скобок
+                // раньше тут была проверка, но ее давно нет
                 {
                     let unit_type = self.db.unit_type(unit_info.type_id);
                     let reinforcement_points = self.reinforcement_points
@@ -369,45 +435,7 @@ impl State {
                 self.add_unit(unit_info);
             },
             Event::AttackUnit{ref attack_info} => {
-                let count;
-                {
-                    let unit = self.units.get_mut(&attack_info.defender_id)
-                        .expect("Can`t find defender");
-                    unit.count -= attack_info.killed;
-                    unit.morale -= attack_info.suppression;
-                    /*
-                    if attack_info.remove_move_points {
-                        if let Some(ref mut move_points) = unit.move_points {
-                            move_points.n = 0;
-                        }
-                    }
-                    */
-                    count = unit.count;
-                }
-                if count <= 0 {
-                    if let Some(passenger_id)
-                        = self.unit(attack_info.defender_id).passenger_id
-                    {
-                        self.units.remove(&passenger_id).unwrap();
-                    }
-                    if let Some(attached_unit_id)
-                        = self.unit(attack_info.defender_id).attached_unit_id
-                    {
-                        let attached_unit = self.units.get_mut(&attached_unit_id).unwrap();
-                        attached_unit.attack_points = Some(AttackPoints{n: 0});
-                        attached_unit.reactive_attack_points = Some(AttackPoints{n: 0});
-                        attached_unit.move_points = Some(MovePoints{n: 0});
-                    }
-                    if attack_info.leave_wrecks {
-                        let unit = self.units.get_mut(&attack_info.defender_id).unwrap();
-                        unit.attached_unit_id = None;
-                        unit.passenger_id = None;
-                        unit.is_alive = false;
-                    } else {
-                        assert!(self.units.get(&attack_info.defender_id).is_some());
-                        self.units.remove(&attack_info.defender_id);
-                    }
-                }
+                // TODO: слишком много отступов
                 if let Some(attacker_id) = attack_info.attacker_id {
                     if let Some(unit) = self.units.get_mut(&attacker_id) {
                         match attack_info.mode {
@@ -550,6 +578,19 @@ impl State {
             Event::RemoveSmoke{id} => {
                 self.objects.remove(&id);
             },
+        }
+        // TODO: обработка эффектов?
+        for (&target_id, target_effects) in &event.effects {
+            for effect in target_effects {
+                match effect.time {
+                    Time::Instant => {
+                        self.apply_effect(&effect.effect, target_id);
+                    },
+                    Time::Turns(_) | Time::Forever => {
+                        self.effects.push((target_id, effect.clone()));
+                    },
+                }
+            }
         }
         if self.fow.is_some() {
             let mut fow = self.to_full();

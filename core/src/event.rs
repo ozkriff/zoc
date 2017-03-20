@@ -41,44 +41,32 @@ pub enum Command {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttackInfo {
-    // эти поля останутся тут, потому что описывают атаку со стороны атакующего
+    // эти поля останутся тут,
+    // потому что описывают атаку со стороны атакующего
     pub attacker_id: Option<UnitId>,
     pub mode: FireMode, // TODO: нельзя ли удалить это поле?
     pub is_ambush: bool,
     pub is_inderect: bool,
 
-    // эти поля уходят в `effects`
-    pub defender_id: UnitId,
-
-    // TODO для начала можно все эти поля сложить в один эффект,
-    // Damage{...}, Time::Instant
-    // а уже потом бить его на части
-
-    // TODO в эффект "убито людей"
-    pub killed: i32,
-
-    // TODO в эффект "подавление"
-    pub suppression: i32,
-
-    // это точно нужно хранить?
-    // TODO: в эффект "юнит уничтожен"?
-    pub leave_wrecks: bool,
-
-    // pub remove_move_points: bool, // TODO: заменить на Effect::Pinned
+    // это поле нужно для визуализации атаки
+    pub target_pos: ExactPos,
 }
 
 #[derive(Clone, Debug)]
 pub struct CoreEvent {
-    // TODO: точно оба поля долджны быть публичными?
+    // TODO: точно оба поля должны быть публичными?
     pub event: Event,
 
-    // список целей и примененные к ним эффекты
-    // (урон в том числе)
+    // список целей и примененные к ним эффекты (урон в том числе)
     pub effects: HashMap<UnitId, Vec<TimedEffect>>, // TODO: UnitId -> ObjectId
 }
 
+// TODO: заменить тут unit_id на actor_id?
 #[derive(Clone, Debug)]
 pub enum Event {
+    // TODO: эффект отступления тоже надо бы обработать
+    // так что эти поля надо сложить во вспомогательную стркутуру,
+    // кторая будет общая у события движения и эффекта бегства
     Move {
         unit_id: UnitId,
         from: ExactPos,
@@ -86,6 +74,7 @@ pub enum Event {
         mode: MoveMode,
         cost: MovePoints,
     },
+    // TODO: разбить конец хода на несколько событий?
     EndTurn {
         old_id: PlayerId,
         new_id: PlayerId,
@@ -152,4 +141,13 @@ pub enum Event {
     RemoveSmoke {
         id: ObjectId,
     },
+}
+
+impl Event {
+    pub fn to_core_event(self) -> CoreEvent {
+        CoreEvent {
+            event: self,
+            effects: HashMap::new(),
+        }
+    }
 }

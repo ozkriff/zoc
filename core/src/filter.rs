@@ -71,10 +71,10 @@ pub fn filter_events(
     fow: &Fow,
     event: &CoreEvent,
 ) -> (Vec<CoreEvent>, HashSet<UnitId>) {
+    println!("filter_event: {:?}\n", event);
     assert!(!state.is_partial());
     let mut active_unit_ids = HashSet::new();
     let mut events = vec![];
-    // match *event {
     match event.event {
         Event::Move{unit_id, from, to, ..} => {
             let unit = state.unit(unit_id);
@@ -91,7 +91,7 @@ pub fn filter_events(
                                 .. filtered_unit(unit)
                             },
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                     if let Some(attached_unit_id) = unit.attached_unit_id {
                         active_unit_ids.insert(attached_unit_id);
@@ -103,7 +103,7 @@ pub fn filter_events(
                                     .. filtered_unit(attached_unit)
                                 },
                             },
-                            effects: HashMap::new(),
+                            effects: event.effects.clone(),
                         });
                     }
                 }
@@ -115,7 +115,7 @@ pub fn filter_events(
                         event: Event::HideUnit {
                             unit_id: unit.id,
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
                 active_unit_ids.insert(unit_id);
@@ -142,12 +142,14 @@ pub fn filter_events(
                         event: Event::ShowUnit {
                             unit_info: filtered_unit(attacker),
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
                 active_unit_ids.insert(attacker_id);
             }
-            active_unit_ids.insert(attack_info.defender_id); // if defender is killed
+            for &target_id in event.effects.keys() {
+                active_unit_ids.insert(target_id);
+            }
             let is_attacker_visible = player_id == attacker.player_id
                 || !attack_info.is_ambush;
             let attack_info = AttackInfo {
@@ -160,7 +162,7 @@ pub fn filter_events(
             };
             events.push(CoreEvent {
                 event: Event::AttackUnit{attack_info: attack_info},
-                effects: HashMap::new(),
+                effects: event.effects.clone(),
             });
         },
         Event::Reveal{ref unit_info} => {
@@ -169,7 +171,7 @@ pub fn filter_events(
                     event: Event::ShowUnit {
                         unit_info: filtered_unit(unit_info),
                     },
-                    effects: HashMap::new(),
+                    effects: event.effects.clone(),
                 });
             }
         },
@@ -191,7 +193,7 @@ pub fn filter_events(
                                 .. filtered_unit(passenger)
                             },
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
                 let filtered_transporter_id = if is_transporter_vis {
@@ -206,7 +208,7 @@ pub fn filter_events(
                         from: from,
                         to: to,
                     },
-                    effects: HashMap::new(),
+                    effects: event.effects.clone(),
                 });
                 active_unit_ids.insert(passenger_id);
             }
@@ -238,14 +240,14 @@ pub fn filter_events(
                         from: from,
                         to: to,
                     },
-                    effects: HashMap::new(),
+                    effects: event.effects.clone(),
                 });
                 if !is_passenger_vis {
                     events.push(CoreEvent {
                         event: Event::HideUnit {
                             unit_id: passenger.id,
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
             }
@@ -269,7 +271,7 @@ pub fn filter_events(
                                     .. filtered_unit(transporter)
                                 },
                             },
-                            effects: HashMap::new(),
+                            effects: event.effects.clone(),
                         });
                     }
                     events.push(event.clone())
@@ -282,13 +284,13 @@ pub fn filter_events(
                             from: from,
                             to: to,
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                     events.push(CoreEvent {
                         event: Event::HideUnit {
                             unit_id: transporter_id,
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
             }
@@ -308,7 +310,7 @@ pub fn filter_events(
                             event: Event::HideUnit {
                                 unit_id: transporter_id,
                             },
-                            effects: HashMap::new(),
+                            effects: event.effects.clone(),
                         });
                     }
                } else if is_to_vis {
@@ -320,7 +322,7 @@ pub fn filter_events(
                                 .. filtered_unit(transporter)
                             },
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                     events.push(CoreEvent {
                         event: Event::Move {
@@ -330,7 +332,7 @@ pub fn filter_events(
                             from: from,
                             to: to,
                         },
-                        effects: HashMap::new(),
+                        effects: event.effects.clone(),
                     });
                 }
             }
@@ -353,7 +355,7 @@ pub fn filter_events(
                         pos: pos,
                         unit_id: None,
                     },
-                    effects: HashMap::new(),
+                    effects: event.effects.clone(),
                 });
             }
         },

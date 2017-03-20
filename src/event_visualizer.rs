@@ -19,7 +19,9 @@ use move_helper::{MoveHelper};
 use map_text::{MapTextManager};
 use mesh_manager::{MeshIdManager};
 
-static WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
+// TODO: сделать скрытым или куда-то перенести
+// pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
+pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
@@ -214,13 +216,13 @@ impl EventVisualizer for EventCreateUnitVisualizer {
 
 #[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
-    defender_node_id: NodeId,
-    is_target_destroyed: bool,
+    // defender_node_id: NodeId,
+    // is_target_destroyed: bool,
     move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
     attack_info: AttackInfo,
-    attached_unit_id: Option<UnitId>,
+    // attached_unit_id: Option<UnitId>,
 }
 
 impl EventAttackUnitVisualizer {
@@ -229,14 +231,18 @@ impl EventAttackUnitVisualizer {
         scene: &mut Scene,
         attack_info: &AttackInfo,
         mesh_ids: &MeshIdManager,
-        unit_type_visual_info: &UnitTypeVisualInfoManager,
+        _ /*unit_type_visual_info*/: &UnitTypeVisualInfoManager,
         map_text: &mut MapTextManager,
     ) -> Box<EventVisualizer> {
         let attack_info = attack_info.clone();
+        /*
         let defender = state.unit(attack_info.defender_id);
         let defender_node_id = scene.unit_id_to_node_id(attack_info.defender_id);
         let defender_pos = scene.node(defender_node_id).pos;
         let from = defender_pos;
+        */
+        let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
+        let from = world_target_pos;
         let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         let speed = Speed{n: 1.0};
         let move_helper = MoveHelper::new(from, to, speed);
@@ -251,18 +257,19 @@ impl EventAttackUnitVisualizer {
             }
             shell_node_id = Some(scene.add_node(SceneNode {
                 pos: from,
-                rot: geom::get_rot_angle(attacker_pos, defender_pos),
+                rot: geom::get_rot_angle(attacker_pos, world_target_pos),
                 mesh_id: Some(mesh_ids.shell_mesh_id),
                 color: [1.0, 1.0, 1.0, 1.0],
                 children: Vec::new(),
             }));
             let shell_speed = Speed{n: 10.0};
             shell_move = Some(MoveHelper::new(
-                attacker_pos, defender_pos, shell_speed));
+                attacker_pos, world_target_pos, shell_speed));
         }
         if attack_info.is_ambush {
-            map_text.add_text(defender.pos.map_pos, "Ambushed");
+            map_text.add_text(attack_info.target_pos.map_pos, "Ambushed");
         };
+        /*
         let is_target_destroyed = defender.count - attack_info.killed <= 0;
         if attack_info.killed > 0 {
             map_text.add_text(
@@ -297,33 +304,38 @@ impl EventAttackUnitVisualizer {
                 map_text.add_text(defender.pos.map_pos, "suppressed");
             }
         }
-        /*
-        if let Some(ref effect) = attack_info.effect {
-            match effect.effect {
-                Effect::Immobilized => {
-                    map_text.add_text(defender.pos.map_pos, "Immobilized");
-                },
-                _ => unimplemented!(), // TODO
-            }
-        }
         */
         Box::new(EventAttackUnitVisualizer {
-            defender_node_id: defender_node_id,
             attack_info: attack_info,
-            is_target_destroyed: is_target_destroyed,
             move_helper: move_helper,
             shell_move: shell_move,
             shell_node_id: shell_node_id,
-            attached_unit_id: defender.attached_unit_id,
         })
     }
 }
 
 impl EventVisualizer for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
+        /*
         if self.attack_info.killed > 0 && !self.attack_info.leave_wrecks {
             self.move_helper.is_finished()
         } else if let Some(ref shell_move) = self.shell_move {
+            shell_move.is_finished()
+        } else {
+            true
+        }
+        */
+
+        // TODO: воскреси старую логику
+        // 
+        // Вообще, это странный момент: как визуализировать событие атаки,
+        // если оно из засады и я вообще не могу рисовать снаряд?
+        //
+        // Может, надо как-то обозначать район, из которого "прилетело"?
+        // В духе "случайно сдвинутый круг из 7 клеток,
+        // из одной из которых и стреляли".
+        //
+        if let Some(ref shell_move) = self.shell_move {
             shell_move.is_finished()
         } else {
             true
@@ -351,6 +363,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             self.shell_move = None;
             self.shell_node_id = None;
         }
+        /*
         if is_shell_ok && self.attack_info.killed > 0 {
             let step = self.move_helper.step_diff(dtime);
             let children = &mut scene.node_mut(self.defender_node_id).children;
@@ -362,9 +375,11 @@ impl EventVisualizer for EventAttackUnitVisualizer {
                 }
             }
         }
+        */
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &State) {
+    fn end(&mut self, _ /*scene*/: &mut Scene, _: &State) {
+        /*
         if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
             let killed = self.attack_info.killed as usize;
@@ -388,6 +403,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
                 scene.remove_node(self.defender_node_id);
             }
         }
+        */
     }
 }
 
@@ -875,46 +891,3 @@ impl EventVisualizer for EventDetachVisualizer {
     fn end(&mut self, _: &mut Scene, _: &State) {}
 }
 
-/*
-#[derive(Clone, Debug)]
-pub struct EventEffectVisualizer;
-
-impl EventEffectVisualizer {
-    pub fn new(
-        state: &State,
-        unit_id: UnitId,
-        effect: &TimedEffect,
-        map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
-        let unit = state.unit(unit_id);
-        let unit_pos = unit.pos.map_pos;
-        let mut text = String::new();
-        text += match effect.effect {
-            Effect::Immobilized => "Immobilized",
-            Effect::WeaponBroken => "WeaponBroken",
-            Effect::ReducedMovement => "ReducedMovement",
-            Effect::ReducedAttackPoints => "ReducedAttackPoints",
-            Effect::Pinned => "Pinned",
-        };
-        text += ": ";
-        text += match effect.time {
-            effect::Time::Forever => "Forever",
-            // effect::Time::Turns(n) => "Turns(n)", // TODO: показать число ходов!
-            effect::Time::Turns(_) => "Turns(n)", // TODO: показать число ходов!
-            effect::Time::Instant => "Instant",
-        };
-        map_text.add_text(unit_pos, &text);
-        Box::new(EventEffectVisualizer)
-    }
-}
-
-impl EventVisualizer for EventEffectVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene, _: &State) {}
-}
-*/
