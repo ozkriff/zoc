@@ -48,6 +48,7 @@ mod fs;
 use visualizer::{Visualizer};
 
 pub fn main() {
+    // TODO: возможно, это выставлять это дело только если никто другой его не задал
     std::env::set_var("RUST_BACKTRACE", "1");
     let mut visualizer = Visualizer::new();
     while visualizer.is_running() {

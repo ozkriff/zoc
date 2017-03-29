@@ -20,22 +20,22 @@ use map_text::{MapTextManager};
 use mesh_manager::{MeshIdManager};
 
 // TODO: сделать скрытым или куда-то перенести
-// pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
+// TODO: переименовать в Action?
 pub trait EventVisualizer {
     fn is_finished(&self) -> bool;
-    fn draw(&mut self, scene: &mut Scene, dtime: Time);
-    fn end(&mut self, scene: &mut Scene, state: &State);
+    fn draw(&mut self, scene: &mut Scene, dtime: Time); // TODO: обозвать `update`?
+    fn end(&mut self, scene: &mut Scene);
 }
 
-#[derive(Clone, Debug)]
-pub struct EventMoveVisualizer {
+pub struct ActionMove {
     node_id: NodeId,
+    // надо найти все остальные место использования мувхелпера и убрать его
     move_helper: MoveHelper,
 }
 
-impl EventVisualizer for EventMoveVisualizer {
+impl EventVisualizer for ActionMove {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
@@ -45,13 +45,13 @@ impl EventVisualizer for EventMoveVisualizer {
         scene.node_mut(self.node_id).pos = pos;
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &State) {
+    fn end(&mut self, scene: &mut Scene) {
         let node = scene.node_mut(self.node_id);
         node.pos = self.move_helper.destination();
     }
 }
 
-impl EventMoveVisualizer {
+impl ActionMove {
     pub fn new(
         state: &State,
         scene: &mut Scene,
@@ -66,7 +66,7 @@ impl EventMoveVisualizer {
         let to = geom::exact_pos_to_world_pos(state, destination);
         node.rot = geom::get_rot_angle(from, to);
         let move_helper = MoveHelper::new(from, to, speed);
-        Box::new(EventMoveVisualizer {
+        Box::new(ActionMove {
             node_id: node_id,
             move_helper: move_helper,
         })
@@ -89,7 +89,7 @@ impl EventVisualizer for EventEndTurnVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 fn try_to_fix_attached_unit_pos(
@@ -211,7 +211,7 @@ impl EventVisualizer for EventCreateUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -378,7 +378,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         */
     }
 
-    fn end(&mut self, _ /*scene*/: &mut Scene, _: &State) {
+    fn end(&mut self, _ /*scene*/: &mut Scene) {
         /*
         if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
@@ -442,7 +442,7 @@ impl EventVisualizer for EventShowUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -476,7 +476,7 @@ impl EventVisualizer for EventHideUnitVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -522,7 +522,7 @@ impl EventVisualizer for EventUnloadUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -566,7 +566,7 @@ impl EventVisualizer for EventLoadUnitVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &State) {
+    fn end(&mut self, scene: &mut Scene) {
         scene.remove_unit(self.passenger_id);
     }
 }
@@ -601,7 +601,7 @@ impl EventVisualizer for EventSetReactionFireModeVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -646,7 +646,7 @@ impl EventVisualizer for EventSectorOwnerChangedVisualizer {
 
     fn draw(&mut self, _: &mut Scene, _: Time) {}
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -679,7 +679,7 @@ impl EventVisualizer for EventVictoryPointVisualizer {
         self.time.n += dt.n;
     }
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 const SMOKE_ALPHA: f32 = 0.7;
@@ -738,7 +738,7 @@ impl EventVisualizer for EventSmokeVisualizer {
         }
     }
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -778,7 +778,7 @@ impl EventVisualizer for EventRemoveSmokeVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &State) {
+    fn end(&mut self, scene: &mut Scene) {
         scene.remove_object(self.object_id);
     }
 }
@@ -826,7 +826,7 @@ impl EventVisualizer for EventAttachVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, scene: &mut Scene, _: &State) {
+    fn end(&mut self, scene: &mut Scene) {
         try_to_fix_attached_unit_pos(
             scene, self.transporter_id, self.attached_unit_id);
     }
@@ -888,6 +888,6 @@ impl EventVisualizer for EventDetachVisualizer {
         node.pos = self.move_helper.step(dtime);
     }
 
-    fn end(&mut self, _: &mut Scene, _: &State) {}
+    fn end(&mut self, _: &mut Scene) {}
 }
 

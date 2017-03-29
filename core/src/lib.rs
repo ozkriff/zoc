@@ -130,6 +130,7 @@ impl Core {
         self.current_player_id
     }
 
+    // TODO: возвращать сразу вектор?
     pub fn get_event(&mut self) -> Option<CoreEvent> {
         let mut i = self.players_info.get_mut(&self.current_player_id).unwrap();
         i.get_event()
