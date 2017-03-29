@@ -19,56 +19,66 @@ use move_helper::{MoveHelper};
 use map_text::{MapTextManager};
 use mesh_manager::{MeshIdManager};
 
-// TODO: сделать скрытым или куда-то перенести
+// TODO: Move to some other place
 pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
-// TODO: переименовать в Action?
-pub trait EventVisualizer {
+// TODO: rename to Action? It's not direcly connected to `CoreEvent` anymore
+pub trait Action {
     fn is_finished(&self) -> bool;
-    fn draw(&mut self, scene: &mut Scene, dtime: Time); // TODO: обозвать `update`?
+
+    // TODO: I'm not sure that `begin\end` must mutate the scene
+    // TODO: Can I get rid of begin and end somehow? Should I?
+    fn begin(&mut self, _/*scene*/: &mut Scene) {} // TODO: Remove default impl
+    fn update(&mut self, scene: &mut Scene, dtime: Time); // TODO: fix arg
     fn end(&mut self, scene: &mut Scene);
 }
 
+// TODO: rename to `Move` and use as `action::Move`
 pub struct ActionMove {
     node_id: NodeId,
-    // надо найти все остальные место использования мувхелпера и убрать его
+    // TODO: Find all other usages of MoveHelper and replace them with ActionMove
     move_helper: MoveHelper,
+    rot: Rad<f32>, // TODO: Can I get this from MoveHelper?
 }
 
-impl EventVisualizer for ActionMove {
+impl Action for ActionMove {
+    fn begin(&mut self, scene: &mut Scene) {
+        scene.node_mut(self.node_id).rot = self.rot;
+    }
+
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let pos = self.move_helper.step(dtime);
         scene.node_mut(self.node_id).pos = pos;
     }
 
     fn end(&mut self, scene: &mut Scene) {
-        let node = scene.node_mut(self.node_id);
-        node.pos = self.move_helper.destination();
+        scene.node_mut(self.node_id).pos = self.move_helper.destination();
     }
 }
 
 impl ActionMove {
     pub fn new(
         state: &State,
-        scene: &mut Scene,
+        scene: &Scene,
         unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
         destination: ExactPos,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let speed = unit_type_visual_info.move_speed;
         let node_id = scene.unit_id_to_node_id(unit_id);
-        let node = scene.node_mut(node_id);
+        let node = scene.node(node_id);
         let from = node.pos;
         let to = geom::exact_pos_to_world_pos(state, destination);
-        node.rot = geom::get_rot_angle(from, to);
+        let rot = geom::get_rot_angle(from, to);
         let move_helper = MoveHelper::new(from, to, speed);
         Box::new(ActionMove {
             node_id: node_id,
             move_helper: move_helper,
+            rot: rot,
         })
     }
 }
@@ -77,17 +87,17 @@ impl ActionMove {
 pub struct EventEndTurnVisualizer;
 
 impl EventEndTurnVisualizer {
-    pub fn new() -> Box<EventVisualizer> {
+    pub fn new() -> Box<Action> {
         Box::new(EventEndTurnVisualizer)
     }
 }
 
-impl EventVisualizer for EventEndTurnVisualizer {
+impl Action for EventEndTurnVisualizer {
     fn is_finished(&self) -> bool {
         true
     }
 
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene) {}
 }
@@ -185,7 +195,7 @@ impl EventCreateUnitVisualizer {
         unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
         show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
@@ -201,12 +211,12 @@ impl EventCreateUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventCreateUnitVisualizer {
+impl Action for EventCreateUnitVisualizer {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let node = scene.node_mut(self.node_id);
         node.pos = self.move_helper.step(dtime);
     }
@@ -216,13 +226,10 @@ impl EventVisualizer for EventCreateUnitVisualizer {
 
 #[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
-    // defender_node_id: NodeId,
-    // is_target_destroyed: bool,
     move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
     attack_info: AttackInfo,
-    // attached_unit_id: Option<UnitId>,
 }
 
 impl EventAttackUnitVisualizer {
@@ -231,16 +238,9 @@ impl EventAttackUnitVisualizer {
         scene: &mut Scene,
         attack_info: &AttackInfo,
         mesh_ids: &MeshIdManager,
-        _ /*unit_type_visual_info*/: &UnitTypeVisualInfoManager,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
-        let attack_info = attack_info.clone();
-        /*
-        let defender = state.unit(attack_info.defender_id);
-        let defender_node_id = scene.unit_id_to_node_id(attack_info.defender_id);
-        let defender_pos = scene.node(defender_node_id).pos;
-        let from = defender_pos;
-        */
+    ) -> Box<Action> {
+        // let attack_info = attack_info.clone();
         let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
         let from = world_target_pos;
         let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
@@ -306,7 +306,7 @@ impl EventAttackUnitVisualizer {
         }
         */
         Box::new(EventAttackUnitVisualizer {
-            attack_info: attack_info,
+            attack_info: attack_info.clone(),
             move_helper: move_helper,
             shell_move: shell_move,
             shell_node_id: shell_node_id,
@@ -314,7 +314,7 @@ impl EventAttackUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventAttackUnitVisualizer {
+impl Action for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
         /*
         if self.attack_info.killed > 0 && !self.attack_info.leave_wrecks {
@@ -342,7 +342,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
         }
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         if let Some(ref mut shell_move) = self.shell_move {
             let shell_node_id = self.shell_node_id.unwrap();
             let mut pos = shell_move.step(dtime);
@@ -369,7 +369,7 @@ impl EventVisualizer for EventAttackUnitVisualizer {
             let children = &mut scene.node_mut(self.defender_node_id).children;
             for i in 0 .. self.attack_info.killed as usize {
                 let child = children.get_mut(i)
-                    .expect("draw: no child");
+                    .expect("update: no child");
                 if !self.attack_info.leave_wrecks {
                     child.pos.v += step;
                 }
@@ -418,7 +418,7 @@ impl EventShowUnitVisualizer {
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         map_text.add_text(unit_info.pos.map_pos, "spotted");
         show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
         if let Some(attached_unit_id) = unit_info.attached_unit_id {
@@ -435,12 +435,12 @@ impl EventShowUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventShowUnitVisualizer {
+impl Action for EventShowUnitVisualizer {
     fn is_finished(&self) -> bool {
         true
     }
 
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene) {}
 }
@@ -454,7 +454,7 @@ impl EventHideUnitVisualizer {
         _: &State,
         unit_id: UnitId,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         // passenger doesn't have any scene node
         if let Some(node_id) = scene.unit_id_to_node_id_opt(unit_id) {
             // We can't read 'pos' from `state.unit(unit_id).pos`
@@ -469,12 +469,12 @@ impl EventHideUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventHideUnitVisualizer {
+impl Action for EventHideUnitVisualizer {
     fn is_finished(&self) -> bool {
         true
     }
 
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene) {}
 }
@@ -495,7 +495,7 @@ impl EventUnloadUnitVisualizer {
         transporter_pos: ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         map_text.add_text(unit_info.pos.map_pos, "unloaded");
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = geom::exact_pos_to_world_pos(state, transporter_pos);
@@ -512,12 +512,12 @@ impl EventUnloadUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventUnloadUnitVisualizer {
+impl Action for EventUnloadUnitVisualizer {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let node = scene.node_mut(self.node_id);
         node.pos = self.move_helper.step(dtime);
     }
@@ -539,7 +539,7 @@ impl EventLoadUnitVisualizer {
         transporter_pos: ExactPos,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let unit_pos = state.unit(unit_id).pos;
         map_text.add_text(unit_pos.map_pos, "loaded");
         let from = geom::exact_pos_to_world_pos(state, unit_pos);
@@ -555,12 +555,12 @@ impl EventLoadUnitVisualizer {
     }
 }
 
-impl EventVisualizer for EventLoadUnitVisualizer {
+impl Action for EventLoadUnitVisualizer {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let node_id = scene.unit_id_to_node_id(self.passenger_id);
         let node = scene.node_mut(node_id);
         node.pos = self.move_helper.step(dtime);
@@ -580,7 +580,7 @@ impl EventSetReactionFireModeVisualizer {
         unit_id: UnitId,
         mode: ReactionFireMode,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let unit_pos = state.unit(unit_id).pos.map_pos;
         match mode {
             ReactionFireMode::Normal => {
@@ -594,12 +594,12 @@ impl EventSetReactionFireModeVisualizer {
     }
 }
 
-impl EventVisualizer for EventSetReactionFireModeVisualizer {
+impl Action for EventSetReactionFireModeVisualizer {
     fn is_finished(&self) -> bool {
         true
     }
 
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene) {}
 }
@@ -614,7 +614,7 @@ impl EventSectorOwnerChangedVisualizer {
         sector_id: SectorId,
         owner_id: Option<PlayerId>,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         // TODO: fix msg
         // "Sector {} secured by an enemy"
         // "Sector {} secured"
@@ -639,12 +639,12 @@ impl EventSectorOwnerChangedVisualizer {
     }
 }
 
-impl EventVisualizer for EventSectorOwnerChangedVisualizer {
+impl Action for EventSectorOwnerChangedVisualizer {
     fn is_finished(&self) -> bool {
         true
     }
 
-    fn draw(&mut self, _: &mut Scene, _: Time) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {}
 
     fn end(&mut self, _: &mut Scene) {}
 }
@@ -660,7 +660,7 @@ impl EventVictoryPointVisualizer {
         pos: MapPos,
         count: i32,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let text = format!("+{} VP!", count);
         map_text.add_text(pos, &text);
         Box::new(EventVictoryPointVisualizer{
@@ -670,12 +670,12 @@ impl EventVictoryPointVisualizer {
     }
 }
 
-impl EventVisualizer for EventVictoryPointVisualizer {
+impl Action for EventVictoryPointVisualizer {
     fn is_finished(&self) -> bool {
         self.time.n >= self.duration.n
     }
 
-    fn draw(&mut self, _: &mut Scene, dt: Time) {
+    fn update(&mut self, _: &mut Scene, dt: Time) {
         self.time.n += dt.n;
     }
 
@@ -699,7 +699,7 @@ impl EventSmokeVisualizer {
         object_id: ObjectId,
         smoke_mesh_id: MeshId,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         // TODO: show shell animation
         map_text.add_text(pos, "smoke");
         let z_step = 0.45; // TODO: magic
@@ -724,12 +724,12 @@ impl EventSmokeVisualizer {
     }
 }
 
-impl EventVisualizer for EventSmokeVisualizer {
+impl Action for EventSmokeVisualizer {
     fn is_finished(&self) -> bool {
         self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         self.time.n += dtime.n;
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
@@ -753,7 +753,7 @@ impl EventRemoveSmokeVisualizer {
         state: &State,
         object_id: ObjectId,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let pos = state.objects()[&object_id].pos.map_pos;
         map_text.add_text(pos, "smoke cleared");
         Box::new(EventRemoveSmokeVisualizer {
@@ -764,12 +764,12 @@ impl EventRemoveSmokeVisualizer {
     }
 }
 
-impl EventVisualizer for EventRemoveSmokeVisualizer {
+impl Action for EventRemoveSmokeVisualizer {
     fn is_finished(&self) -> bool {
         self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         self.time.n += dtime.n;
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
@@ -797,7 +797,7 @@ impl EventAttachVisualizer {
         attached_unit_id: UnitId,
         unit_type_visual_info: &UnitTypeVisualInfo,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let transporter = state.unit(transporter_id);
         let attached_unit = state.unit(attached_unit_id);
         map_text.add_text(transporter.pos.map_pos, "attached");
@@ -815,12 +815,12 @@ impl EventAttachVisualizer {
     }
 }
 
-impl EventVisualizer for EventAttachVisualizer {
+impl Action for EventAttachVisualizer {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let transporter_node_id = scene.unit_id_to_node_id(self.transporter_id);
         let node = scene.node_mut(transporter_node_id);
         node.pos = self.move_helper.step(dtime);
@@ -846,7 +846,7 @@ impl EventDetachVisualizer {
         mesh_ids: &MeshIdManager,
         unit_type_visual_info: &UnitTypeVisualInfoManager,
         map_text: &mut MapTextManager,
-    ) -> Box<EventVisualizer> {
+    ) -> Box<Action> {
         let transporter = state.unit(transporter_id);
         let attached_unit_id = transporter.attached_unit_id.unwrap();
         let attached_unit = state.unit(attached_unit_id);
@@ -877,12 +877,12 @@ impl EventDetachVisualizer {
     }
 }
 
-impl EventVisualizer for EventDetachVisualizer {
+impl Action for EventDetachVisualizer {
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
-    fn draw(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let transporter_node_id = scene.unit_id_to_node_id(self.transporter_id);
         let node = scene.node_mut(transporter_node_id);
         node.pos = self.move_helper.step(dtime);
@@ -890,4 +890,3 @@ impl EventVisualizer for EventDetachVisualizer {
 
     fn end(&mut self, _: &mut Scene) {}
 }
-

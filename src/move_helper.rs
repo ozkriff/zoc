@@ -37,6 +37,10 @@ impl MoveHelper {
         self.current
     }
 
+    pub fn current(&self) -> WorldPos {
+        self.current
+    }
+
     pub fn destination(&self) -> WorldPos {
         self.to
     }

@@ -109,17 +109,19 @@ impl MapTextManager {
         }
     }
 
-    pub fn draw(
-        &mut self,
-        context: &mut Context,
-        camera: &Camera,
-        dtime: Time,
-    ) {
+    // TODO: use https://github.com/orhanbalci/rust-easing
+    pub fn update(&mut self, context: &mut Context, dtime: Time) {
         self.do_commands(context);
+        for map_text in self.visible_labels_list.values_mut() {
+            let _ = map_text.move_helper.step(dtime);
+        }
+        self.delete_old();
+    }
+
+    pub fn draw(&mut self, context: &mut Context, camera: &Camera) {
         let rot_z_mat = Matrix4::from(Matrix3::from_angle_z(camera.get_z_angle()));
         let rot_x_mat = Matrix4::from(Matrix3::from_angle_x(camera.get_x_angle()));
         for map_text in self.visible_labels_list.values_mut() {
-            // TODO: use https://github.com/orhanbalci/rust-easing
             let t = 0.8;
             let p = map_text.move_helper.progress();
             let alpha = if p > t {
@@ -128,7 +130,7 @@ impl MapTextManager {
                 1.0
             };
             context.set_basic_color([0.0, 0.0, 0.0, alpha]);
-            let pos = map_text.move_helper.step(dtime);
+            let pos = map_text.move_helper.current();
             let tr_mat = Matrix4::from_translation(pos.v);
             let mvp = camera.mat() * tr_mat * rot_z_mat * rot_x_mat;
             context.set_mvp(mvp);

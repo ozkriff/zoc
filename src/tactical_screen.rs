@@ -20,7 +20,7 @@ use core::print_info::{print_pos_info};
 use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
-use event_visualizer;
+use event_visualizer::{self, Action};
 use unit_type_visual_info::{
     UnitTypeVisualInfoManager,
     get_unit_type_visual_info
@@ -268,30 +268,13 @@ pub struct TacticalScreen {
     player_info: PlayerInfoManager,
     core: core::Core,
 
-    // TODO: вот это поле тоже надо обработать и втолкать в event_visualizers,
-    // ведь все это дело после показа тоже применять придется.
-    // Только учти что у эффектов отдельные визуализаторы.
-    // event: Option<CoreEvent>,
-
-    // TODO: это должен быть не Option, а Vec.
-    // Причем все события из ядра тоже должны получаться вектором,
-    // а не по одной функции.
+    // TODO: all CoreEvents must be recieved as vectors:
     //
-    // Т.е.
     // `fn get_event(&mut self) -> Option<CoreEvent>`
-    // станет
+    // must be
     // `fn get_events(&mut self) -> Vec<CoreEvent>`.
-    //
 
-    // временное поле, оно будет хранить весь массив визуализаторов.
-    // А Option пока еще поживет, ничего страшного.
-    event_visualizers: VecDeque<Box<event_visualizer::EventVisualizer>>,
-
-    // СТОЙ
-    //
-    // зачем тебе ХРАНИТЬ события? Применяй их СРАЗУ
-    // и там же из них делай визуализаторы, которые в состояние вообще лезть не будут!
-    // Визуализаторы же просто должны менять сцену.
+    actions: VecDeque<Box<Action>>,
 
     mesh_ids: MeshIdManager,
     meshes: MeshManager,
@@ -326,7 +309,7 @@ impl TacticalScreen {
             player_info: player_info,
             core: core,
             // event: None,
-            event_visualizers: VecDeque::new(),
+            actions: VecDeque::new(),
             mesh_ids: mesh_ids,
             meshes: meshes,
             unit_type_visual_info: unit_type_visual_info,
@@ -666,7 +649,7 @@ impl TacticalScreen {
     }
 
     fn handle_event_lmb_release(&mut self, context: &mut Context) {
-        if !self.event_visualizers.is_empty() {
+        if !self.actions.is_empty() {
             return;
         }
         if !is_tap(context) {
@@ -727,7 +710,7 @@ impl TacticalScreen {
         }
     }
 
-    fn draw_scene_nodes(&self, context: &mut Context) {
+    fn draw_scene(&mut self, context: &mut Context) {
         let m = self.current_player_info().camera.mat();
         for node in self.scene().nodes().values() {
             if !(node.color[3] < 1.0) {
@@ -742,20 +725,14 @@ impl TacticalScreen {
         }
     }
 
-    fn draw_scene(&mut self, context: &mut Context, dtime: Time) {
-        self.draw_scene_nodes(context);
-        if !self.event_visualizers.is_empty() {
-            let event_visualizer = self.event_visualizers.front_mut().unwrap();
-            let player_info = self.player_info.get_mut(self.core.player_id());
-            event_visualizer.draw(&mut player_info.scene, dtime);
-        }
-    }
-
-    fn draw(&mut self, context: &mut Context, dtime: Time) {
+    // TODO: remove `dtime` argument
+    fn draw(&mut self, context: &mut Context) {
         context.clear();
-        self.draw_scene(context, dtime);
+        self.draw_scene(context);
         let player_info = self.player_info.get(self.core.player_id());
-        self.map_text_manager.draw(context, &player_info.camera, dtime);
+
+        self.map_text_manager.draw(context, &player_info.camera);
+
         context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.gui.button_manager.draw(context);
     }
@@ -766,12 +743,12 @@ impl TacticalScreen {
         pick::pick_tile(context, state, camera)
     }
 
-    // TODO: придется переименовать, видимо
-    fn make_event_visualizer(
-        &mut self,
-        event: &CoreEvent,
-    ) -> Box<event_visualizer::EventVisualizer> {
-        println!("TacticalScreen::make_event_visualizer: event: {:?}\n", event);
+    // TODO: Make this a standalone function and don't pass `&mut Scene` to
+    // Action c-tors. There're `update` and `end` methods to do this.
+    // Maybe I should add a `start` method to `Action` trait.
+    //
+    fn make_actions(&mut self, event: &CoreEvent) -> Vec<Box<Action>> {
+        println!("TacticalScreen::make_actions: event: {:?}\n", event);
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
@@ -783,12 +760,12 @@ impl TacticalScreen {
         // скорее там надо над юнитом значок какой-то рисовать.
         //
         for (&target_id, target_effects) in &event.effects {
-            println!("TacticalScreen::make_event_visualizer: effect <");
+            println!("TacticalScreen::make_actions: effect <");
             let target = state.unit(target_id);
             for effect in target_effects {
                 if effect.time != effect::Time::Instant {
-                    // TODO: не забудеь убрать println
-                    println!("TacticalScreen::make_event_visualizer: long effect");
+                    // TODO: don't forget to remove printlnes
+                    println!("TacticalScreen::make_actions: long effect");
                     continue;
                 }
                 match effect.effect {
@@ -873,77 +850,76 @@ impl TacticalScreen {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
-                event_visualizer::ActionMove::new(
+                vec![event_visualizer::ActionMove::new(
                     state,
                     scene,
                     unit_id,
                     visual_info,
                     to,
-                )
+                )]
             },
             Event::EndTurn{..} => {
-                event_visualizer::EventEndTurnVisualizer::new()
+                vec![event_visualizer::EventEndTurnVisualizer::new()]
             },
             Event::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::EventCreateUnitVisualizer::new(
+                vec![event_visualizer::EventCreateUnitVisualizer::new(
                     state,
                     scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
-                )
+                )]
             },
             Event::AttackUnit{ref attack_info} => {
-                event_visualizer::EventAttackUnitVisualizer::new(
+                vec![event_visualizer::EventAttackUnitVisualizer::new(
                     state,
                     scene,
                     attack_info,
                     &self.mesh_ids,
-                    &self.unit_type_visual_info,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::EventShowUnitVisualizer::new(
+                vec![event_visualizer::EventShowUnitVisualizer::new(
                     state,
                     scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::HideUnit{unit_id} => {
-                event_visualizer::EventHideUnitVisualizer::new(
+                vec![event_visualizer::EventHideUnitVisualizer::new(
                     scene,
                     state,
                     unit_id,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::LoadUnit{passenger_id, to, ..} => {
                 let type_id = state.unit(passenger_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(type_id);
-                event_visualizer::EventLoadUnitVisualizer::new(
+                vec![event_visualizer::EventLoadUnitVisualizer::new(
                     scene,
                     state,
                     passenger_id,
                     to,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::UnloadUnit{ref unit_info, from, ..} => {
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(unit_info.type_id);
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::EventUnloadUnitVisualizer::new(
+                vec![event_visualizer::EventUnloadUnitVisualizer::new(
                     state,
                     scene,
                     unit_info,
@@ -952,23 +928,23 @@ impl TacticalScreen {
                     from,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::Attach{transporter_id, attached_unit_id, ..} => {
                 let transporter_type_id = state.unit(transporter_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(transporter_type_id);
-                event_visualizer::EventAttachVisualizer::new(
+                vec![event_visualizer::EventAttachVisualizer::new(
                     state,
                     scene,
                     transporter_id,
                     attached_unit_id,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::Detach{transporter_id, to, ..} => {
-                event_visualizer::EventDetachVisualizer::new(
+                vec![event_visualizer::EventDetachVisualizer::new(
                     state,
                     scene,
                     transporter_id,
@@ -976,48 +952,48 @@ impl TacticalScreen {
                     &self.mesh_ids,
                     &self.unit_type_visual_info,
                     &mut self.map_text_manager,
-                )
+                )]
             },
             Event::SetReactionFireMode{unit_id, mode} => {
-                event_visualizer::EventSetReactionFireModeVisualizer::new(
+                vec!{event_visualizer::EventSetReactionFireModeVisualizer::new(
                     state,
                     unit_id,
                     mode,
                     &mut self.map_text_manager,
-                )
+                )}
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
-                event_visualizer::EventSectorOwnerChangedVisualizer::new(
+                vec![event_visualizer::EventSectorOwnerChangedVisualizer::new(
                     scene,
                     state,
                     sector_id,
                     new_owner_id,
                     &mut self.map_text_manager,
-                )
+                )]
             }
             Event::VictoryPoint{pos, count, ..} => {
-                event_visualizer::EventVictoryPointVisualizer::new(
+                vec![event_visualizer::EventVictoryPointVisualizer::new(
                     pos,
                     count,
                     &mut self.map_text_manager,
-                )
+                )]
             }
             Event::Smoke{pos, unit_id, id} => {
-                event_visualizer::EventSmokeVisualizer::new(
+                vec![event_visualizer::EventSmokeVisualizer::new(
                     scene,
                     pos,
                     unit_id,
                     id,
                     self.mesh_ids.smoke_mesh_id,
                     &mut self.map_text_manager,
-                )
+                )]
             }
             Event::RemoveSmoke{id} => {
-                event_visualizer::EventRemoveSmokeVisualizer::new(
+                vec![event_visualizer::EventRemoveSmokeVisualizer::new(
                     state,
                     id,
                     &mut self.map_text_manager,
-                )
+                )]
             }
             Event::Reveal{..} => unreachable!(),
         }
@@ -1025,7 +1001,7 @@ impl TacticalScreen {
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
-        // TODO: тут бы тоже поправить
+        // TODO: ressurect this
         /*
         let attack_info = match self.event {
             Some(CoreEvent{event: Event::AttackUnit{ref attack_info}, ..}) => attack_info,
@@ -1108,7 +1084,7 @@ impl TacticalScreen {
         {
             let player_info = self.player_info.get_mut(self.core.player_id());
             let scene = &mut player_info.scene;
-            self.event_visualizers.front_mut().unwrap().end(scene);
+            self.actions.front_mut().unwrap().end(scene);
         }
         self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {
@@ -1121,24 +1097,50 @@ impl TacticalScreen {
         }
     }
 
-    fn logic(&mut self, context: &mut Context) {
+    fn begin_action(&mut self) {
+        assert!(self.actions.len() > 0);
+        let player_info = self.player_info.get_mut(self.core.player_id());
+        self.actions.front_mut().unwrap().begin(&mut player_info.scene);
+    }
+
+    fn update_actions(&mut self, context: &mut Context, dtime: Time) {
+        if let Some(event_visualizer) = self.actions.front_mut() {
+            let player_info = self.player_info.get_mut(self.core.player_id());
+            event_visualizer.update(&mut player_info.scene, dtime);
+        }
         while let Some(event) = self.core.get_event() {
             // self.hide_selected_unit_meshes(context);
-            let event_visualizer = self.make_event_visualizer(&event);
-            self.event_visualizers.push_back(event_visualizer);
+            let is_new = self.actions.is_empty();
+            let actions = self.make_actions(&event);
+            self.actions.extend(actions);
             self.current_state_mut().apply_event(&event);
-        }
-        if !self.event_visualizers.is_empty() {
-            if self.event_visualizers.front_mut().unwrap().is_finished() {
-                // TODO: слепить
-                self.end_event_visualization(context);
-                self.event_visualizers.pop_front().unwrap();
+            if is_new {
+                self.begin_action();
             }
         }
-        if self.event_visualizers.is_empty() {
+        if !self.actions.is_empty() {
+            if self.actions.front_mut().unwrap().is_finished() {
+                // TODO: join
+                self.end_event_visualization(context);
+                self.actions.pop_front().unwrap();
+                if !self.actions.is_empty() {
+                    self.begin_action();
+                }
+            }
+        }
+        if self.actions.is_empty() {
+            // TODO: should this really be exectuted every frame? =\
+            // Maybe it should be moved to end_event_visualization func
             self.update_score_labels(context);
             self.check_game_end(context);
         }
+    }
+
+    fn update(&mut self, context: &mut Context, dtime: Time) {
+        self.map_text_manager.update(context, dtime);
+        self.update_actions(context, dtime);
+        self.bobble_helicopters(context, dtime);
+        self.update_fow(dtime);
     }
 
     fn handle_context_menu_popup_command(
@@ -1244,10 +1246,8 @@ impl TacticalScreen {
 
 impl Screen for TacticalScreen {
     fn tick(&mut self, context: &mut Context, dtime: Time) {
-        self.logic(context);
-        self.draw(context, dtime);
-        self.bobble_helicopters(context, dtime);
-        self.update_fow(dtime);
+        self.update(context, dtime);
+        self.draw(context);
         self.handle_context_menu_popup_commands(context);
     }
 
