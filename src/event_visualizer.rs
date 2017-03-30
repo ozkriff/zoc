@@ -34,16 +34,27 @@ pub trait Action {
 }
 
 // TODO: rename to `Move` and use as `action::Move`
+//
+// TODO: join with MoveHelper?
+//
 pub struct ActionMove {
     node_id: NodeId,
     // TODO: Find all other usages of MoveHelper and replace them with ActionMove
     move_helper: MoveHelper,
-    rot: Rad<f32>, // TODO: Can I get this from MoveHelper?
+    speed: Speed,
 }
 
 impl Action for ActionMove {
     fn begin(&mut self, scene: &mut Scene) {
-        scene.node_mut(self.node_id).rot = self.rot;
+        let node = scene.node_mut(self.node_id);
+        let move_helper = MoveHelper::new(
+            node.pos, self.move_helper.destination(), self.speed);
+        self.move_helper = move_helper;
+
+        // TODO: get from MoveHelper?
+        let rot = geom::get_rot_angle(
+            node.pos, self.move_helper.destination());
+        node.rot = rot;
     }
 
     fn is_finished(&self) -> bool {
@@ -61,6 +72,25 @@ impl Action for ActionMove {
 }
 
 impl ActionMove {
+    // TODO: rename
+    // TODO: builder pattern?
+    pub fn new_from(
+        node_id: NodeId,
+        from: WorldPos,
+        to: WorldPos,
+        speed: Speed,
+    ) -> Box<Action> {
+        // TODO: this mov_helper will be overwritten in `begin` method!
+        let move_helper = MoveHelper::new(from, to, speed);
+
+        Box::new(ActionMove {
+            node_id: node_id,
+            move_helper: move_helper,
+            speed: speed,
+        })
+    }
+
+    // TODO: rename to `new_exact_pos`? `move_unit_to`?
     pub fn new(
         state: &State,
         scene: &Scene,
@@ -70,20 +100,20 @@ impl ActionMove {
     ) -> Box<Action> {
         let speed = unit_type_visual_info.move_speed;
         let node_id = scene.unit_id_to_node_id(unit_id);
-        let node = scene.node(node_id);
-        let from = node.pos;
+
+        // TODO: This causes an error in multitile movement:
+        // for every tile unit teleports to start posotion
+        // and then moves to that tile.
+        //
+        // this `from` must be calculated in `begin`
+        //
+        let from = scene.node(node_id).pos;
+
         let to = geom::exact_pos_to_world_pos(state, destination);
-        let rot = geom::get_rot_angle(from, to);
-        let move_helper = MoveHelper::new(from, to, speed);
-        Box::new(ActionMove {
-            node_id: node_id,
-            move_helper: move_helper,
-            rot: rot,
-        })
+        ActionMove::new_from(node_id, from, to, speed)
     }
 }
 
-#[derive(Clone, Debug)]
 pub struct EventEndTurnVisualizer;
 
 impl EventEndTurnVisualizer {
@@ -125,37 +155,30 @@ fn try_to_fix_attached_unit_pos(
 }
 
 fn show_unit_at(
-    state: &State,
+    pos: WorldPos,
     scene: &mut Scene,
-    unit_info: &Unit,
+    unit: &Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
 ) {
-    let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-    let mut children = get_unit_scene_nodes(unit_info, mesh_id);
-    if unit_info.is_alive {
+    let mut children = get_unit_scene_nodes(unit, mesh_id);
+    if unit.is_alive {
         children.push(SceneNode {
             pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
             rot: Rad(0.0),
             mesh_id: Some(marker_mesh_id),
-            color: gen::get_player_color(unit_info.player_id),
+            color: gen::get_player_color(unit.player_id),
             children: Vec::new(),
         });
     }
-    scene.add_unit(unit_info.id, SceneNode {
-        pos: to,
+    scene.add_unit(unit.id, SceneNode {
+        pos: pos,
         rot: rot,
         mesh_id: None,
         color: [1.0, 1.0, 1.0, 1.0],
         children: children,
     });
-}
-
-#[derive(Clone, Debug)]
-pub struct EventCreateUnitVisualizer {
-    node_id: NodeId,
-    move_helper: MoveHelper,
 }
 
 fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
@@ -188,45 +211,78 @@ fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
     }
 }
 
+// TODO: Action::CreateSceneNode?
+pub struct EventCreateUnitVisualizer {
+    unit_info: Unit,
+    mesh_id: MeshId,
+    marker_mesh_id: MeshId,
+
+    // TODO: replace with ActionMove
+    from: WorldPos,
+    node_id: Option<NodeId>,
+    move_helper: MoveHelper,
+}
+
 impl EventCreateUnitVisualizer {
     pub fn new(
         state: &State,
-        scene: &mut Scene,
         unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
-    ) -> Box<Action> {
+    ) -> Vec<Box<Action>> {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
         let speed = Speed{n: 2.0};
         let move_helper = MoveHelper::new(from, to, speed);
-        let node_id = scene.unit_id_to_node_id(unit_info.id);
-        let new_node = scene.node_mut(node_id);
-        new_node.pos = from;
-        Box::new(EventCreateUnitVisualizer {
-            node_id: node_id,
+        let create_action = Box::new(EventCreateUnitVisualizer {
+            from: from,
+            node_id: None,
             move_helper: move_helper,
-        })
+            unit_info: unit_info.clone(),
+            mesh_id: mesh_id,
+            marker_mesh_id: marker_mesh_id,
+        });
+
+        // TODO: From where am I supposed to get `node_id` if the node
+        // isn't created yet?
+        // TODO: let move_action = ActionMove::new_from(node_id, from, to, speed);
+
+        vec![create_action]
     }
 }
 
 impl Action for EventCreateUnitVisualizer {
+    fn begin(&mut self, scene: &mut Scene) {
+        show_unit_at(
+            self.move_helper.destination(),
+            scene,
+            &self.unit_info,
+            self.mesh_id,
+            self.marker_mesh_id,
+        );
+        // TODO: сдвинуть node.pos вниз?
+        let node_id = scene.unit_id_to_node_id(self.unit_info.id);
+
+        // TODO: This must be done by ActionMove logic
+        scene.node_mut(node_id).pos = self.from;
+        self.node_id = Some(node_id);
+    }
+
     fn is_finished(&self) -> bool {
         self.move_helper.is_finished()
     }
 
     fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let node = scene.node_mut(self.node_id);
+        // TODO: this must be done by ActionMove
+        let node = scene.node_mut(self.node_id.unwrap());
         node.pos = self.move_helper.step(dtime);
     }
 
     fn end(&mut self, _: &mut Scene) {}
 }
 
-#[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
-    move_helper: MoveHelper,
+    // move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
     attack_info: AttackInfo,
@@ -242,10 +298,10 @@ impl EventAttackUnitVisualizer {
     ) -> Box<Action> {
         // let attack_info = attack_info.clone();
         let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
-        let from = world_target_pos;
-        let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        let speed = Speed{n: 1.0};
-        let move_helper = MoveHelper::new(from, to, speed);
+        let from = world_target_pos; // TODO: give better name
+        // let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+        // let speed = Speed{n: 1.0};
+        // let move_helper = MoveHelper::new(from, to, speed);
         let mut shell_move = None;
         let mut shell_node_id = None;
         if let Some(attacker_id) = attack_info.attacker_id {
@@ -307,7 +363,7 @@ impl EventAttackUnitVisualizer {
         */
         Box::new(EventAttackUnitVisualizer {
             attack_info: attack_info.clone(),
-            move_helper: move_helper,
+            // move_helper: move_helper,
             shell_move: shell_move,
             shell_node_id: shell_node_id,
         })
@@ -420,7 +476,8 @@ impl EventShowUnitVisualizer {
         map_text: &mut MapTextManager,
     ) -> Box<Action> {
         map_text.add_text(unit_info.pos.map_pos, "spotted");
-        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
+        let pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
+        show_unit_at(pos, scene, unit_info, mesh_id, marker_mesh_id);
         if let Some(attached_unit_id) = unit_info.attached_unit_id {
             try_to_fix_attached_unit_pos(
                 scene, unit_info.id, attached_unit_id);
@@ -499,7 +556,7 @@ impl EventUnloadUnitVisualizer {
         map_text.add_text(unit_info.pos.map_pos, "unloaded");
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = geom::exact_pos_to_world_pos(state, transporter_pos);
-        show_unit_at(state, scene, unit_info, mesh_id, marker_mesh_id);
+        show_unit_at(to, scene, unit_info, mesh_id, marker_mesh_id);
         let node_id = scene.unit_id_to_node_id(unit_info.id);
         let unit_node = scene.node_mut(node_id);
         unit_node.pos = from;
@@ -855,7 +912,7 @@ impl EventDetachVisualizer {
         let attached_unit_mesh_id = unit_type_visual_info
             .get(attached_unit.type_id).mesh_id;
         show_unit_at(
-            state,
+            geom::exact_pos_to_world_pos(state, attached_unit.pos),
             scene,
             attached_unit,
             attached_unit_mesh_id,

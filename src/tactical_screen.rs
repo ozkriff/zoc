@@ -864,13 +864,12 @@ impl TacticalScreen {
             Event::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                vec![event_visualizer::EventCreateUnitVisualizer::new(
+                event_visualizer::EventCreateUnitVisualizer::new(
                     state,
-                    scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
-                )]
+                )
             },
             Event::AttackUnit{ref attack_info} => {
                 vec![event_visualizer::EventAttackUnitVisualizer::new(
@@ -1118,14 +1117,14 @@ impl TacticalScreen {
                 self.begin_action();
             }
         }
-        if !self.actions.is_empty() {
-            if self.actions.front_mut().unwrap().is_finished() {
-                // TODO: join
-                self.end_event_visualization(context);
-                self.actions.pop_front().unwrap();
-                if !self.actions.is_empty() {
-                    self.begin_action();
-                }
+        if !self.actions.is_empty()
+            && self.actions.front_mut().unwrap().is_finished()
+        {
+            // TODO: join
+            self.end_event_visualization(context);
+            self.actions.pop_front().unwrap();
+            if !self.actions.is_empty() {
+                self.begin_action();
             }
         }
         if self.actions.is_empty() {
