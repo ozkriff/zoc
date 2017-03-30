@@ -137,6 +137,7 @@ TODO: И вот тут возникает вопрос - что делать с 
 
 -------
 
+```
 // TODO: вот это поле тоже надо обработать и втолкать в `event_visualizers`,
 // ведь все это дело после показа тоже применять придется.
 // Только учти что у эффектов отдельные визуализаторы.
@@ -169,6 +170,7 @@ fn logic(&mut self, context: &mut Context) {
     }
     */
 }
+```
 
 ------
 
@@ -178,9 +180,11 @@ Actions somehow.
 ------
 
 Ok, I have a problem: when unit is created its NodeId is allocated
-dynamically, but I need to know NodeId to create chain of actions like
-`Create->Move` :-(
+dynamically, but I need to know the NodeId to create a chain of
+actions like `Create->Move` :-(
 
 I still have an UnitId and can pass it to every action, but
 this way my actions will be tied too closely to units
 and I want Action to be useful for all SceneNodes.
+
+In the new event-action architecture NodeId must be reserved somehow I think.

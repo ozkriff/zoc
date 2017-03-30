@@ -77,6 +77,8 @@ impl Scene {
     }
 
     pub fn add_node(&mut self, node: SceneNode) -> NodeId {
+        // In the new event-action architecture NodeId must be reserved somehow I think
+
         let node_id = self.next_id;
         self.next_id.id += 1;
         assert!(!self.nodes.contains_key(&node_id));
