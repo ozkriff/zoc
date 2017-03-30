@@ -180,3 +180,7 @@ Actions somehow.
 Ok, I have a problem: when unit is created its NodeId is allocated
 dynamically, but I need to know NodeId to create chain of actions like
 `Create->Move` :-(
+
+I still have an UnitId and can pass it to every action, but
+this way my actions will be tied too closely to units
+and I want Action to be useful for all SceneNodes.
