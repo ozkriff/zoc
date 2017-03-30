@@ -169,3 +169,14 @@ fn logic(&mut self, context: &mut Context) {
     }
     */
 }
+
+------
+
+I should replace all the MapText machinery with simple
+Actions somehow.
+
+------
+
+Ok, I have a problem: when unit is created its NodeId is allocated
+dynamically, but I need to know NodeId to create chain of actions like
+`Create->Move` :-(
