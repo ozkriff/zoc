@@ -866,6 +866,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 event_visualizer::EventCreateUnitVisualizer::new(
                     state,
+                    scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,

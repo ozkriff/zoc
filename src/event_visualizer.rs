@@ -1,4 +1,5 @@
 use std::f32::consts::{PI};
+use std::fmt::{Debug};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Rad};
 use core::game_state::{State};
@@ -23,20 +24,24 @@ use mesh_manager::{MeshIdManager};
 pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 // TODO: rename to Action? It's not direcly connected to `CoreEvent` anymore
-pub trait Action {
-    fn is_finished(&self) -> bool;
+//
+// TODO: Remove default impl. Or not?
+//
+pub trait Action: Debug {
+    fn is_finished(&self) -> bool { true }
 
     // TODO: I'm not sure that `begin\end` must mutate the scene
     // TODO: Can I get rid of begin and end somehow? Should I?
-    fn begin(&mut self, _/*scene*/: &mut Scene) {} // TODO: Remove default impl
-    fn update(&mut self, scene: &mut Scene, dtime: Time); // TODO: fix arg
-    fn end(&mut self, scene: &mut Scene);
+    fn begin(&mut self, _: &mut Scene) {}
+    fn update(&mut self, _: &mut Scene, _: Time) {} // TODO: fix arg (what is wrong with the args?)
+    fn end(&mut self, _: &mut Scene) {}
 }
 
 // TODO: rename to `Move` and use as `action::Move`
 //
 // TODO: join with MoveHelper?
 //
+#[derive(Clone, Debug)]
 pub struct ActionMove {
     node_id: NodeId,
     // TODO: Find all other usages of MoveHelper and replace them with ActionMove
@@ -57,13 +62,13 @@ impl Action for ActionMove {
         node.rot = rot;
     }
 
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
-
     fn update(&mut self, scene: &mut Scene, dtime: Time) {
         let pos = self.move_helper.step(dtime);
         scene.node_mut(self.node_id).pos = pos;
+    }
+
+    fn is_finished(&self) -> bool {
+        self.move_helper.is_finished()
     }
 
     fn end(&mut self, scene: &mut Scene) {
@@ -114,6 +119,7 @@ impl ActionMove {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventEndTurnVisualizer;
 
 impl EventEndTurnVisualizer {
@@ -122,15 +128,7 @@ impl EventEndTurnVisualizer {
     }
 }
 
-impl Action for EventEndTurnVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn update(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene) {}
-}
+impl Action for EventEndTurnVisualizer {}
 
 fn try_to_fix_attached_unit_pos(
     scene: &mut Scene,
@@ -154,7 +152,21 @@ fn try_to_fix_attached_unit_pos(
     scene.node_mut(transporter_node_id).children[0].pos.v.y = 0.5;
 }
 
+// TODO: remove
 fn show_unit_at(
+    pos: WorldPos,
+    scene: &mut Scene,
+    unit: &Unit,
+    mesh_id: MeshId,
+    marker_mesh_id: MeshId,
+) {
+    let node_id = scene.allocate_node_id();
+    show_unit_with_node_id(node_id, pos, scene, unit, mesh_id, marker_mesh_id);
+}
+
+// TODO: rename
+fn show_unit_with_node_id(
+    node_id: NodeId,
     pos: WorldPos,
     scene: &mut Scene,
     unit: &Unit,
@@ -172,7 +184,7 @@ fn show_unit_at(
             children: Vec::new(),
         });
     }
-    scene.add_unit(unit.id, SceneNode {
+    scene.add_unit(node_id, unit.id, SceneNode {
         pos: pos,
         rot: rot,
         mesh_id: None,
@@ -212,6 +224,7 @@ fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
 }
 
 // TODO: Action::CreateSceneNode?
+#[derive(Clone, Debug)]
 pub struct EventCreateUnitVisualizer {
     unit_info: Unit,
     mesh_id: MeshId,
@@ -219,68 +232,51 @@ pub struct EventCreateUnitVisualizer {
 
     // TODO: replace with ActionMove
     from: WorldPos,
-    node_id: Option<NodeId>,
-    move_helper: MoveHelper,
+    to: WorldPos,
+    node_id: NodeId,
 }
 
 impl EventCreateUnitVisualizer {
     pub fn new(
         state: &State,
+        scene: &mut Scene,
         unit_info: &Unit,
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
     ) -> Vec<Box<Action>> {
         let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
         let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        let speed = Speed{n: 2.0};
-        let move_helper = MoveHelper::new(from, to, speed);
+        let node_id = scene.allocate_node_id();
         let create_action = Box::new(EventCreateUnitVisualizer {
             from: from,
-            node_id: None,
-            move_helper: move_helper,
+            to: to,
+            node_id: node_id,
             unit_info: unit_info.clone(),
             mesh_id: mesh_id,
             marker_mesh_id: marker_mesh_id,
         });
-
-        // TODO: From where am I supposed to get `node_id` if the node
-        // isn't created yet?
-        // TODO: let move_action = ActionMove::new_from(node_id, from, to, speed);
-
-        vec![create_action]
+        let speed = Speed{n: 2.0};
+        let move_action = ActionMove::new_from(node_id, from, to, speed);
+        vec![create_action, move_action]
     }
 }
 
 impl Action for EventCreateUnitVisualizer {
     fn begin(&mut self, scene: &mut Scene) {
-        show_unit_at(
-            self.move_helper.destination(),
+        show_unit_with_node_id(
+            self.node_id,
+            self.to,
             scene,
             &self.unit_info,
             self.mesh_id,
             self.marker_mesh_id,
         );
-        // TODO: сдвинуть node.pos вниз?
-        let node_id = scene.unit_id_to_node_id(self.unit_info.id);
-
         // TODO: This must be done by ActionMove logic
-        scene.node_mut(node_id).pos = self.from;
-        self.node_id = Some(node_id);
+        scene.node_mut(self.node_id).pos = self.from;
     }
-
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
-
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        // TODO: this must be done by ActionMove
-        let node = scene.node_mut(self.node_id.unwrap());
-        node.pos = self.move_helper.step(dtime);
-    }
-
-    fn end(&mut self, _: &mut Scene) {}
 }
 
+#[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
     // move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
@@ -492,15 +488,7 @@ impl EventShowUnitVisualizer {
     }
 }
 
-impl Action for EventShowUnitVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn update(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene) {}
-}
+impl Action for EventShowUnitVisualizer {}
 
 #[derive(Clone, Debug)]
 pub struct EventHideUnitVisualizer;
@@ -526,15 +514,7 @@ impl EventHideUnitVisualizer {
     }
 }
 
-impl Action for EventHideUnitVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn update(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene) {}
-}
+impl Action for EventHideUnitVisualizer {}
 
 #[derive(Clone, Debug)]
 pub struct EventUnloadUnitVisualizer {
@@ -578,8 +558,6 @@ impl Action for EventUnloadUnitVisualizer {
         let node = scene.node_mut(self.node_id);
         node.pos = self.move_helper.step(dtime);
     }
-
-    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -651,15 +629,7 @@ impl EventSetReactionFireModeVisualizer {
     }
 }
 
-impl Action for EventSetReactionFireModeVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn update(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene) {}
-}
+impl Action for EventSetReactionFireModeVisualizer{}
 
 #[derive(Clone, Debug)]
 pub struct EventSectorOwnerChangedVisualizer;
@@ -696,15 +666,7 @@ impl EventSectorOwnerChangedVisualizer {
     }
 }
 
-impl Action for EventSectorOwnerChangedVisualizer {
-    fn is_finished(&self) -> bool {
-        true
-    }
-
-    fn update(&mut self, _: &mut Scene, _: Time) {}
-
-    fn end(&mut self, _: &mut Scene) {}
-}
+impl Action for EventSectorOwnerChangedVisualizer{}
 
 #[derive(Clone, Debug)]
 pub struct EventVictoryPointVisualizer {
@@ -735,8 +697,6 @@ impl Action for EventVictoryPointVisualizer {
     fn update(&mut self, _: &mut Scene, dt: Time) {
         self.time.n += dt.n;
     }
-
-    fn end(&mut self, _: &mut Scene) {}
 }
 
 const SMOKE_ALPHA: f32 = 0.7;
@@ -794,8 +754,6 @@ impl Action for EventSmokeVisualizer {
             node.color[3] = self.time.n / self.duration.n;
         }
     }
-
-    fn end(&mut self, _: &mut Scene) {}
 }
 
 #[derive(Clone, Debug)]
@@ -840,6 +798,7 @@ impl Action for EventRemoveSmokeVisualizer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventAttachVisualizer {
     transporter_id: UnitId,
     attached_unit_id: UnitId,
@@ -889,6 +848,7 @@ impl Action for EventAttachVisualizer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EventDetachVisualizer {
     transporter_id: UnitId,
     move_helper: MoveHelper,
@@ -944,6 +904,4 @@ impl Action for EventDetachVisualizer {
         let node = scene.node_mut(transporter_node_id);
         node.pos = self.move_helper.step(dtime);
     }
-
-    fn end(&mut self, _: &mut Scene) {}
 }

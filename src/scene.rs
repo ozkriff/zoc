@@ -76,11 +76,14 @@ impl Scene {
         }
     }
 
-    pub fn add_node(&mut self, node: SceneNode) -> NodeId {
-        // In the new event-action architecture NodeId must be reserved somehow I think
-
+    // In the new event-action architecture NodeId must be reserved somehow I think
+    pub fn allocate_node_id(&mut self) -> NodeId {
         let node_id = self.next_id;
         self.next_id.id += 1;
+        node_id
+    }
+
+    pub fn set_node(&mut self, node_id: NodeId, node: SceneNode) {
         assert!(!self.nodes.contains_key(&node_id));
         if node.color[3] < 1.0 {
             let z = Z(node.pos.v.z);
@@ -89,6 +92,12 @@ impl Scene {
             layer.insert(node_id);
         }
         self.nodes.insert(node_id, node);
+    }
+
+    // TODO: deprecate?
+    pub fn add_node(&mut self, node: SceneNode) -> NodeId {
+        let node_id = self.allocate_node_id();
+        self.set_node(node_id, node);
         node_id
     }
 
@@ -108,11 +117,16 @@ impl Scene {
         self.object_id_to_node_id_map.remove(&object_id).unwrap();
     }
 
-    pub fn add_unit(&mut self, unit_id: UnitId, node: SceneNode) -> NodeId {
-        let node_id = self.add_node(node);
+    pub fn add_unit(
+        &mut self,
+        node_id: NodeId,
+        unit_id: UnitId,
+        node: SceneNode,
+    ) {
+        // let node_id = self.add_node(node);
+        self.set_node(node_id, node);
         assert!(!self.unit_id_to_node_id_map.contains_key(&unit_id));
         self.unit_id_to_node_id_map.insert(unit_id, node_id);
-        node_id
     }
 
     pub fn add_sector(&mut self, sector_id: SectorId, node: SceneNode) -> NodeId {
