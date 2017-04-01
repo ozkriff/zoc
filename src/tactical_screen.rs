@@ -882,42 +882,42 @@ impl TacticalScreen {
             Event::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                vec![event_visualizer::EventShowUnitVisualizer::new(
+                event_visualizer::EventShowUnitVisualizer::new(
                     state,
                     scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::HideUnit{unit_id} => {
-                vec![event_visualizer::EventHideUnitVisualizer::new(
+                event_visualizer::EventHideUnitVisualizer::new(
                     scene,
                     state,
                     unit_id,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::LoadUnit{passenger_id, to, ..} => {
                 let type_id = state.unit(passenger_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(type_id);
-                vec![event_visualizer::EventLoadUnitVisualizer::new(
+                event_visualizer::visualize_event_load(
                     scene,
                     state,
                     passenger_id,
                     to,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::UnloadUnit{ref unit_info, from, ..} => {
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(unit_info.type_id);
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                vec![event_visualizer::EventUnloadUnitVisualizer::new(
+                event_visualizer::visualize_event_unload(
                     state,
                     scene,
                     unit_info,
@@ -926,7 +926,7 @@ impl TacticalScreen {
                     from,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::Attach{transporter_id, attached_unit_id, ..} => {
                 let transporter_type_id = state.unit(transporter_id).type_id;

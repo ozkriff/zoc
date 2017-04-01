@@ -41,7 +41,7 @@ pub trait Action: Debug {
 //
 // TODO: join with MoveHelper?
 //
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ActionMove {
     node_id: NodeId,
     // TODO: Find all other usages of MoveHelper and replace them with ActionMove
@@ -222,18 +222,18 @@ pub fn visualize_event_create_unit(
     let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = scene.allocate_node_id();
-    let create_action = Box::new(ActionCreateUnit {
+    let action_create = Box::new(ActionCreateUnit {
         pos: from,
         node_id: node_id,
         unit_info: unit_info.clone(),
         mesh_id: mesh_id,
         marker_mesh_id: marker_mesh_id,
     });
-    let move_action = ActionMove::new_from(node_id, from, to, Speed{n: 2.0});
-    vec![create_action, move_action]
+    let action_move = ActionMove::new_from(node_id, from, to, Speed{n: 2.0});
+    vec![action_create, action_move]
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ActionCreateNode {
     node_id: NodeId,
     node: SceneNode,
@@ -246,7 +246,7 @@ impl Action for ActionCreateNode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ActionRemoveNode {
     node_id: NodeId,
 }
@@ -258,8 +258,20 @@ impl Action for ActionRemoveNode {
     }
 }
 
+#[derive(Debug)]
+pub struct ActionRemoveUnit {
+    unit_id: UnitId,
+}
+
+impl Action for ActionRemoveUnit {
+    fn begin(&mut self, scene: &mut Scene) {
+        // TODO: check something?
+        scene.remove_unit(self.unit_id);
+    }
+}
+
 // TODO: Action::CreateSceneNode?
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ActionCreateUnit {
     unit_info: Unit,
     mesh_id: MeshId,
@@ -283,7 +295,7 @@ impl Action for ActionCreateUnit {
 
 // TODO: Remove
 /*
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventAttackUnitVisualizer {
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
@@ -468,7 +480,7 @@ impl Action for EventAttackUnitVisualizer {
 }
 */
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventShowUnitVisualizer;
 
 impl EventShowUnitVisualizer {
@@ -479,7 +491,7 @@ impl EventShowUnitVisualizer {
         mesh_id: MeshId,
         marker_mesh_id: MeshId,
         map_text: &mut MapTextManager,
-    ) -> Box<Action> {
+    ) -> Vec<Box<Action>> {
         map_text.add_text(unit_info.pos.map_pos, "spotted");
         let pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
         show_unit_at(pos, scene, unit_info, mesh_id, marker_mesh_id);
@@ -493,13 +505,13 @@ impl EventShowUnitVisualizer {
                     scene, unit.id, attached_unit_id);
             }
         }
-        Box::new(EventShowUnitVisualizer)
+        vec![Box::new(EventShowUnitVisualizer)]
     }
 }
 
 impl Action for EventShowUnitVisualizer {}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventHideUnitVisualizer;
 
 impl EventHideUnitVisualizer {
@@ -508,7 +520,7 @@ impl EventHideUnitVisualizer {
         _: &State,
         unit_id: UnitId,
         map_text: &mut MapTextManager,
-    ) -> Box<Action> {
+    ) -> Vec<Box<Action>> {
         // passenger doesn't have any scene node
         if let Some(node_id) = scene.unit_id_to_node_id_opt(unit_id) {
             // We can't read 'pos' from `state.unit(unit_id).pos`
@@ -519,103 +531,66 @@ impl EventHideUnitVisualizer {
             map_text.add_text(map_pos, "lost");
             scene.remove_unit(unit_id);
         }
-        Box::new(EventHideUnitVisualizer)
+        vec![Box::new(EventHideUnitVisualizer)]
     }
 }
 
 impl Action for EventHideUnitVisualizer {}
 
-#[derive(Clone, Debug)]
-pub struct EventUnloadUnitVisualizer {
-    node_id: NodeId,
-    move_helper: MoveHelper,
+pub fn visualize_event_unload(
+    state: &State,
+    scene: &mut Scene,
+    unit: &Unit,
+    mesh_id: MeshId,
+    marker_mesh_id: MeshId,
+    transporter_pos: ExactPos,
+    visual_info: &UnitTypeVisualInfo,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    map_text.add_text(unit.pos.map_pos, "unloaded"); // TODO ActionShowText
+    let to = geom::exact_pos_to_world_pos(state, unit.pos);
+    let from = geom::exact_pos_to_world_pos(state, transporter_pos);
+    let node_id = scene.allocate_node_id();
+    let action_create = Box::new(ActionCreateUnit {
+        pos: from,
+        node_id: node_id,
+        unit_info: unit.clone(),
+        mesh_id: mesh_id,
+        marker_mesh_id: marker_mesh_id,
+    });
+
+    // TODO: I need to use `node_id` here
+    // let action_move = ActionMove::new(
+    //     state, scene, unit.id, visual_info, unit.pos);
+
+    let speed = visual_info.move_speed;
+    let action_move = ActionMove::new_from(
+        node_id, from, to, speed);
+    // unit_node.rot = geom::get_rot_angle(from, to);
+    vec![action_create, action_move]
 }
 
-impl EventUnloadUnitVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        unit_info: &Unit,
-        mesh_id: MeshId,
-        marker_mesh_id: MeshId,
-        transporter_pos: ExactPos,
-        unit_type_visual_info: &UnitTypeVisualInfo,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        map_text.add_text(unit_info.pos.map_pos, "unloaded");
-        let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
-        let from = geom::exact_pos_to_world_pos(state, transporter_pos);
-        show_unit_at(to, scene, unit_info, mesh_id, marker_mesh_id);
-        let node_id = scene.unit_id_to_node_id(unit_info.id);
-        let unit_node = scene.node_mut(node_id);
-        unit_node.pos = from;
-        unit_node.rot = geom::get_rot_angle(from, to);
-        let move_speed = unit_type_visual_info.move_speed;
-        Box::new(EventUnloadUnitVisualizer {
-            node_id: node_id,
-            move_helper: MoveHelper::new(from, to, move_speed),
-        })
-    }
+pub fn visualize_event_load(
+    scene: &mut Scene,
+    state: &State,
+    unit_id: UnitId,
+    transporter_pos: ExactPos,
+    unit_type_visual_info: &UnitTypeVisualInfo,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let unit_pos = state.unit(unit_id).pos;
+    map_text.add_text(unit_pos.map_pos, "loaded");
+    let from = geom::exact_pos_to_world_pos(state, unit_pos);
+    let to = geom::exact_pos_to_world_pos(state, transporter_pos);
+    let unit_node_id = scene.unit_id_to_node_id(unit_id);
+    let speed = unit_type_visual_info.move_speed;
+    vec![
+        ActionMove::new_from(unit_node_id, from, to, speed),
+        Box::new(ActionRemoveUnit{unit_id: unit_id}),
+    ]
 }
 
-impl Action for EventUnloadUnitVisualizer {
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
-
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let node = scene.node_mut(self.node_id);
-        node.pos = self.move_helper.step(dtime);
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct EventLoadUnitVisualizer {
-    passenger_id: UnitId,
-    move_helper: MoveHelper,
-}
-
-impl EventLoadUnitVisualizer {
-    pub fn new(
-        scene: &mut Scene,
-        state: &State,
-        unit_id: UnitId,
-        transporter_pos: ExactPos,
-        unit_type_visual_info: &UnitTypeVisualInfo,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let unit_pos = state.unit(unit_id).pos;
-        map_text.add_text(unit_pos.map_pos, "loaded");
-        let from = geom::exact_pos_to_world_pos(state, unit_pos);
-        let to = geom::exact_pos_to_world_pos(state, transporter_pos);
-        let passenger_node_id = scene.unit_id_to_node_id(unit_id);
-        let unit_node = scene.node_mut(passenger_node_id);
-        unit_node.rot = geom::get_rot_angle(from, to);
-        let move_speed = unit_type_visual_info.move_speed;
-        Box::new(EventLoadUnitVisualizer {
-            passenger_id: unit_id,
-            move_helper: MoveHelper::new(from, to, move_speed),
-        })
-    }
-}
-
-impl Action for EventLoadUnitVisualizer {
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
-
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let node_id = scene.unit_id_to_node_id(self.passenger_id);
-        let node = scene.node_mut(node_id);
-        node.pos = self.move_helper.step(dtime);
-    }
-
-    fn end(&mut self, scene: &mut Scene) {
-        scene.remove_unit(self.passenger_id);
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventSetReactionFireModeVisualizer;
 
 impl EventSetReactionFireModeVisualizer {
@@ -640,7 +615,7 @@ impl EventSetReactionFireModeVisualizer {
 
 impl Action for EventSetReactionFireModeVisualizer{}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventSectorOwnerChangedVisualizer;
 
 impl EventSectorOwnerChangedVisualizer {
@@ -677,7 +652,7 @@ impl EventSectorOwnerChangedVisualizer {
 
 impl Action for EventSectorOwnerChangedVisualizer{}
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventVictoryPointVisualizer {
     time: Time,
     duration: Time,
@@ -710,7 +685,7 @@ impl Action for EventVictoryPointVisualizer {
 
 const SMOKE_ALPHA: f32 = 0.7;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventSmokeVisualizer {
     duration: Time,
     time: Time,
@@ -765,7 +740,7 @@ impl Action for EventSmokeVisualizer {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventRemoveSmokeVisualizer {
     duration: Time,
     time: Time,
@@ -807,7 +782,7 @@ impl Action for EventRemoveSmokeVisualizer {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventAttachVisualizer {
     transporter_id: UnitId,
     attached_unit_id: UnitId,
@@ -857,7 +832,7 @@ impl Action for EventAttachVisualizer {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EventDetachVisualizer {
     transporter_id: UnitId,
     move_helper: MoveHelper,
