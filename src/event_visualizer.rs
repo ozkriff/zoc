@@ -119,17 +119,6 @@ impl ActionMove {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct EventEndTurnVisualizer;
-
-impl EventEndTurnVisualizer {
-    pub fn new() -> Box<Action> {
-        Box::new(EventEndTurnVisualizer)
-    }
-}
-
-impl Action for EventEndTurnVisualizer {}
-
 fn try_to_fix_attached_unit_pos(
     scene: &mut Scene,
     transporter_id: UnitId,
@@ -223,147 +212,137 @@ fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
     }
 }
 
+pub fn visualize_event_create_unit(
+    state: &State,
+    scene: &mut Scene,
+    unit_info: &Unit,
+    mesh_id: MeshId,
+    marker_mesh_id: MeshId,
+) -> Vec<Box<Action>> {
+    let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
+    let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+    let node_id = scene.allocate_node_id();
+    let create_action = Box::new(ActionCreate {
+        pos: from,
+        node_id: node_id,
+        unit_info: unit_info.clone(),
+        mesh_id: mesh_id,
+        marker_mesh_id: marker_mesh_id,
+    });
+    let move_action = ActionMove::new_from(node_id, from, to, Speed{n: 2.0});
+    vec![create_action, move_action]
+}
+
 // TODO: Action::CreateSceneNode?
 #[derive(Clone, Debug)]
-pub struct EventCreateUnitVisualizer {
+pub struct ActionCreate {
     unit_info: Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
-
-    // TODO: replace with ActionMove
-    from: WorldPos,
-    to: WorldPos,
+    pos: WorldPos,
     node_id: NodeId,
 }
 
-impl EventCreateUnitVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        unit_info: &Unit,
-        mesh_id: MeshId,
-        marker_mesh_id: MeshId,
-    ) -> Vec<Box<Action>> {
-        let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
-        let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        let node_id = scene.allocate_node_id();
-        let create_action = Box::new(EventCreateUnitVisualizer {
-            from: from,
-            to: to,
-            node_id: node_id,
-            unit_info: unit_info.clone(),
-            mesh_id: mesh_id,
-            marker_mesh_id: marker_mesh_id,
-        });
-        let speed = Speed{n: 2.0};
-        let move_action = ActionMove::new_from(node_id, from, to, speed);
-        vec![create_action, move_action]
-    }
-}
-
-impl Action for EventCreateUnitVisualizer {
+impl Action for ActionCreate {
     fn begin(&mut self, scene: &mut Scene) {
         show_unit_with_node_id(
             self.node_id,
-            self.to,
+            self.pos,
             scene,
             &self.unit_info,
             self.mesh_id,
             self.marker_mesh_id,
         );
-        // TODO: This must be done by ActionMove logic
-        scene.node_mut(self.node_id).pos = self.from;
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
-    // move_helper: MoveHelper,
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
     attack_info: AttackInfo,
 }
 
-impl EventAttackUnitVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        attack_info: &AttackInfo,
-        mesh_ids: &MeshIdManager,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        // let attack_info = attack_info.clone();
-        let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
-        let from = world_target_pos; // TODO: give better name
-        // let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-        // let speed = Speed{n: 1.0};
-        // let move_helper = MoveHelper::new(from, to, speed);
-        let mut shell_move = None;
-        let mut shell_node_id = None;
-        if let Some(attacker_id) = attack_info.attacker_id {
-            let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
-            let attacker_pos = scene.node(attacker_node_id).pos;
-            let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
-            if attack_info.mode == FireMode::Reactive {
-                map_text.add_text(attacker_map_pos, "reaction fire");
-            }
-            shell_node_id = Some(scene.add_node(SceneNode {
-                pos: from,
-                rot: geom::get_rot_angle(attacker_pos, world_target_pos),
-                mesh_id: Some(mesh_ids.shell_mesh_id),
-                color: [1.0, 1.0, 1.0, 1.0],
-                children: Vec::new(),
-            }));
-            let shell_speed = Speed{n: 10.0};
-            shell_move = Some(MoveHelper::new(
-                attacker_pos, world_target_pos, shell_speed));
-        }
-        if attack_info.is_ambush {
-            map_text.add_text(attack_info.target_pos.map_pos, "Ambushed");
-        };
-        /*
-        let is_target_destroyed = defender.count - attack_info.killed <= 0;
-        if attack_info.killed > 0 {
-            map_text.add_text(
-                defender.pos.map_pos,
-                &format!("-{}", attack_info.killed),
-            );
-        } else {
-            map_text.add_text(defender.pos.map_pos, "miss");
-        }
-        let is_target_suppressed = defender.morale < 50
-            && defender.morale + attack_info.suppression >= 50;
-        if is_target_destroyed {
-            if let Some(attached_unit_id) = defender.attached_unit_id {
-                let attached_unit = state.unit(attached_unit_id);
-                let attached_unit_mesh_id = unit_type_visual_info
-                    .get(attached_unit.type_id).mesh_id;
-                show_unit_at(
-                    state,
-                    scene,
-                    attached_unit,
-                    attached_unit_mesh_id,
-                    mesh_ids.marker_mesh_id,
-                );
-                // TODO: fix attached unit pos
-            }
-        } else {
-            map_text.add_text(
-                defender.pos.map_pos,
-                &format!("morale: -{}", attack_info.suppression),
-            );
-            if is_target_suppressed {
-                map_text.add_text(defender.pos.map_pos, "suppressed");
-            }
-        }
-        */
-        Box::new(EventAttackUnitVisualizer {
-            attack_info: attack_info.clone(),
-            // move_helper: move_helper,
-            shell_move: shell_move,
-            shell_node_id: shell_node_id,
-        })
+// this code was removed from `visualize_event_attack`
+/*
+    let attack_info = attack_info.clone();
+    let to = WorldPos{v: from.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+    let speed = Speed{n: 1.0};
+    let move_helper = MoveHelper::new(from, to, speed);
+    let is_target_destroyed = defender.count - attack_info.killed <= 0;
+    if attack_info.killed > 0 {
+        map_text.add_text(
+            defender.pos.map_pos,
+            &format!("-{}", attack_info.killed),
+        );
+    } else {
+        map_text.add_text(defender.pos.map_pos, "miss");
     }
+    let is_target_suppressed = defender.morale < 50
+        && defender.morale + attack_info.suppression >= 50;
+    if is_target_destroyed {
+        if let Some(attached_unit_id) = defender.attached_unit_id {
+            let attached_unit = state.unit(attached_unit_id);
+            let attached_unit_mesh_id = unit_type_visual_info
+                .get(attached_unit.type_id).mesh_id;
+            show_unit_at(
+                state,
+                scene,
+                attached_unit,
+                attached_unit_mesh_id,
+                mesh_ids.marker_mesh_id,
+            );
+            // TODO: fix attached unit pos
+        }
+    } else {
+        map_text.add_text(
+            defender.pos.map_pos,
+            &format!("morale: -{}", attack_info.suppression),
+        );
+        if is_target_suppressed {
+            map_text.add_text(defender.pos.map_pos, "suppressed");
+        }
+    }
+*/
+
+pub fn visualize_event_attack(
+    state: &State,
+    scene: &mut Scene,
+    attack_info: &AttackInfo,
+    mesh_ids: &MeshIdManager,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
+    let from = world_target_pos; // TODO: give better name
+    let mut shell_move = None;
+    let mut shell_node_id = None;
+    if let Some(attacker_id) = attack_info.attacker_id {
+        let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
+        let attacker_pos = scene.node(attacker_node_id).pos;
+        let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
+        if attack_info.mode == FireMode::Reactive {
+            // TODO: ActionShowText
+            map_text.add_text(attacker_map_pos, "reaction fire");
+        }
+        shell_node_id = Some(scene.add_node(SceneNode {
+            pos: from,
+            rot: geom::get_rot_angle(attacker_pos, world_target_pos),
+            mesh_id: Some(mesh_ids.shell_mesh_id),
+            color: [1.0, 1.0, 1.0, 1.0],
+            children: Vec::new(),
+        }));
+        let shell_speed = Speed{n: 10.0};
+        shell_move = Some(MoveHelper::new(
+            attacker_pos, world_target_pos, shell_speed));
+    }
+    if attack_info.is_ambush {
+        map_text.add_text(attack_info.target_pos.map_pos, "Ambushed");
+    };
+    vec![Box::new(EventAttackUnitVisualizer {
+        attack_info: attack_info.clone(),
+        shell_move: shell_move,
+        shell_node_id: shell_node_id,
+    })]
 }
 
 impl Action for EventAttackUnitVisualizer {

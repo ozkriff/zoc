@@ -858,13 +858,11 @@ impl TacticalScreen {
                     to,
                 )]
             },
-            Event::EndTurn{..} => {
-                vec![event_visualizer::EventEndTurnVisualizer::new()]
-            },
+            Event::EndTurn{..} => Vec::new(),
             Event::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::EventCreateUnitVisualizer::new(
+                event_visualizer::visualize_event_create_unit(
                     state,
                     scene,
                     unit_info,
@@ -873,13 +871,13 @@ impl TacticalScreen {
                 )
             },
             Event::AttackUnit{ref attack_info} => {
-                vec![event_visualizer::EventAttackUnitVisualizer::new(
+                event_visualizer::visualize_event_attack(
                     state,
                     scene,
                     attack_info,
                     &self.mesh_ids,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
@@ -955,12 +953,12 @@ impl TacticalScreen {
                 )]
             },
             Event::SetReactionFireMode{unit_id, mode} => {
-                vec!{event_visualizer::EventSetReactionFireModeVisualizer::new(
+                vec![event_visualizer::EventSetReactionFireModeVisualizer::new(
                     state,
                     unit_id,
                     mode,
                     &mut self.map_text_manager,
-                )}
+                )]
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
                 vec![event_visualizer::EventSectorOwnerChangedVisualizer::new(
@@ -1097,8 +1095,9 @@ impl TacticalScreen {
         }
     }
 
-    fn begin_action(&mut self) {
+    fn begin_action(&mut self, context: &mut Context) {
         assert!(self.actions.len() > 0);
+        self.hide_selected_unit_meshes(context);
         let player_info = self.player_info.get_mut(self.core.player_id());
         self.actions.front_mut().unwrap().begin(&mut player_info.scene);
     }
@@ -1109,13 +1108,12 @@ impl TacticalScreen {
             event_visualizer.update(&mut player_info.scene, dtime);
         }
         while let Some(event) = self.core.get_event() {
-            // self.hide_selected_unit_meshes(context);
             let is_new = self.actions.is_empty();
             let actions = self.make_actions(&event);
             self.actions.extend(actions);
             self.current_state_mut().apply_event(&event);
-            if is_new {
-                self.begin_action();
+            if is_new && !self.actions.is_empty() {
+                self.begin_action(context);
             }
         }
         if !self.actions.is_empty()
@@ -1125,7 +1123,7 @@ impl TacticalScreen {
             self.end_event_visualization(context);
             self.actions.pop_front().unwrap();
             if !self.actions.is_empty() {
-                self.begin_action();
+                self.begin_action(context);
             }
         }
         if self.actions.is_empty() {
