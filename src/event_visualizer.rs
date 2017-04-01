@@ -44,79 +44,53 @@ pub trait Action: Debug {
 #[derive(Debug)]
 pub struct ActionMove {
     node_id: NodeId,
-    // TODO: Find all other usages of MoveHelper and replace them with ActionMove
-    move_helper: MoveHelper,
     speed: Speed,
+    to: WorldPos,
+
+    // TODO: use builder pattern?
+    move_helper: Option<MoveHelper>,
 }
 
 impl Action for ActionMove {
     fn begin(&mut self, scene: &mut Scene) {
         let node = scene.node_mut(self.node_id);
-        let move_helper = MoveHelper::new(
-            node.pos, self.move_helper.destination(), self.speed);
-        self.move_helper = move_helper;
+        self.move_helper = Some(MoveHelper::new(
+            node.pos, self.to, self.speed));
 
         // TODO: get from MoveHelper?
-        let rot = geom::get_rot_angle(
-            node.pos, self.move_helper.destination());
+        let rot = geom::get_rot_angle(node.pos, self.to);
         node.rot = rot;
     }
 
     fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let pos = self.move_helper.step(dtime);
+        let pos = self.move_helper.as_mut().unwrap().step(dtime);
         scene.node_mut(self.node_id).pos = pos;
     }
 
     fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
+        self.move_helper.as_ref().unwrap().is_finished()
     }
 
     fn end(&mut self, scene: &mut Scene) {
-        scene.node_mut(self.node_id).pos = self.move_helper.destination();
+        scene.node_mut(self.node_id).pos = self.to;
     }
 }
 
-impl ActionMove {
-    // TODO: rename
-    // TODO: use builder pattern?
-    pub fn new_from(
-        node_id: NodeId,
-        from: WorldPos,
-        to: WorldPos,
-        speed: Speed,
-    ) -> Box<Action> {
-        // TODO: this mov_helper will be overwritten in `begin` method!
-        let move_helper = MoveHelper::new(from, to, speed);
-
+pub fn visualize_event_move(
+    state: &State,
+    scene: &Scene,
+    unit_id: UnitId,
+    visual_info: &UnitTypeVisualInfo,
+    destination: ExactPos,
+) -> Vec<Box<Action>> {
+    vec![
         Box::new(ActionMove {
-            node_id: node_id,
-            move_helper: move_helper,
-            speed: speed,
-        })
-    }
-
-    // TODO: rename to `new_exact_pos`? `move_unit_to`?
-    pub fn new(
-        state: &State,
-        scene: &Scene,
-        unit_id: UnitId,
-        unit_type_visual_info: &UnitTypeVisualInfo,
-        destination: ExactPos,
-    ) -> Box<Action> {
-        let speed = unit_type_visual_info.move_speed;
-        let node_id = scene.unit_id_to_node_id(unit_id);
-
-        // TODO: This causes an error in multitile movement:
-        // for every tile unit teleports to start posotion
-        // and then moves to that tile.
-        //
-        // this `from` must be calculated in `begin`
-        //
-        let from = scene.node(node_id).pos;
-
-        let to = geom::exact_pos_to_world_pos(state, destination);
-        ActionMove::new_from(node_id, from, to, speed)
-    }
+            node_id: scene.unit_id_to_node_id(unit_id),
+            to: geom::exact_pos_to_world_pos(state, destination),
+            speed: visual_info.move_speed,
+            move_helper: None,
+        }),
+    ]
 }
 
 fn try_to_fix_attached_unit_pos(
@@ -222,15 +196,22 @@ pub fn visualize_event_create_unit(
     let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = scene.allocate_node_id();
-    let action_create = Box::new(ActionCreateUnit {
-        pos: from,
-        node_id: node_id,
-        unit_info: unit_info.clone(),
-        mesh_id: mesh_id,
-        marker_mesh_id: marker_mesh_id,
-    });
-    let action_move = ActionMove::new_from(node_id, from, to, Speed{n: 2.0});
-    vec![action_create, action_move]
+    vec![
+        Box::new(ActionCreateUnit {
+            pos: from,
+            node_id: node_id,
+            unit_info: unit_info.clone(),
+            mesh_id: mesh_id,
+            marker_mesh_id: marker_mesh_id,
+        }),
+        Box::new(ActionMove {
+            node_id: node_id,
+            to: to,
+            speed: Speed{n: 2.0},
+            move_helper: None,
+        }),
+
+    ]
 }
 
 #[derive(Debug)]
@@ -323,7 +304,7 @@ pub struct EventAttackUnitVisualizer {
     if is_target_destroyed {
         if let Some(attached_unit_id) = defender.attached_unit_id {
             let attached_unit = state.unit(attached_unit_id);
-            let attached_unit_mesh_id = unit_type_visual_info
+            let attached_unit_mesh_id = visual_info
                 .get(attached_unit.type_id).mesh_id;
             show_unit_at(
                 state,
@@ -378,12 +359,17 @@ pub fn visualize_event_attack(
         // if self.attack_info.is_inderect {
         //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
         // }
-        actions.push(ActionMove::new_from(
-            node_id, attacker_pos, target_pos, Speed{n: 10.0}));
+
+        actions.push(Box::new(ActionMove {
+            node_id: node_id,
+            to: target_pos,
+            speed: Speed{n: 10.0},
+            move_helper: None,
+        }));
 
         actions.push(Box::new(ActionRemoveNode {
             node_id: node_id,
-        }) as Box<Action>);
+        }));
     }
     if attack_info.is_ambush {
         map_text.add_text(attack_info.target_pos.map_pos, "Ambushed");
@@ -564,8 +550,13 @@ pub fn visualize_event_unload(
     //     state, scene, unit.id, visual_info, unit.pos);
 
     let speed = visual_info.move_speed;
-    let action_move = ActionMove::new_from(
-        node_id, from, to, speed);
+
+    let action_move = Box::new(ActionMove {
+        node_id: node_id,
+        to: to,
+        speed: speed,
+        move_helper: None,
+    });
     // unit_node.rot = geom::get_rot_angle(from, to);
     vec![action_create, action_move]
 }
@@ -575,17 +566,22 @@ pub fn visualize_event_load(
     state: &State,
     unit_id: UnitId,
     transporter_pos: ExactPos,
-    unit_type_visual_info: &UnitTypeVisualInfo,
+    visual_info: &UnitTypeVisualInfo,
     map_text: &mut MapTextManager,
 ) -> Vec<Box<Action>> {
     let unit_pos = state.unit(unit_id).pos;
     map_text.add_text(unit_pos.map_pos, "loaded");
-    let from = geom::exact_pos_to_world_pos(state, unit_pos);
+    // let from = geom::exact_pos_to_world_pos(state, unit_pos);
     let to = geom::exact_pos_to_world_pos(state, transporter_pos);
     let unit_node_id = scene.unit_id_to_node_id(unit_id);
-    let speed = unit_type_visual_info.move_speed;
+    let speed = visual_info.move_speed;
     vec![
-        ActionMove::new_from(unit_node_id, from, to, speed),
+        Box::new(ActionMove {
+            node_id: unit_node_id,
+            to: to,
+            speed: speed,
+            move_helper: None,
+        }),
         Box::new(ActionRemoveUnit{unit_id: unit_id}),
     ]
 }
@@ -782,110 +778,107 @@ impl Action for EventRemoveSmokeVisualizer {
     }
 }
 
-#[derive(Debug)]
-pub struct EventAttachVisualizer {
+pub fn visualize_event_attach(
+    state: &State,
+    scene: &mut Scene,
     transporter_id: UnitId,
     attached_unit_id: UnitId,
-    move_helper: MoveHelper,
-}
-
-impl EventAttachVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        transporter_id: UnitId,
-        attached_unit_id: UnitId,
-        unit_type_visual_info: &UnitTypeVisualInfo,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let transporter = state.unit(transporter_id);
-        let attached_unit = state.unit(attached_unit_id);
-        map_text.add_text(transporter.pos.map_pos, "attached");
-        let from = geom::exact_pos_to_world_pos(state, transporter.pos);
-        let to = geom::exact_pos_to_world_pos(state, attached_unit.pos);
-        let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
-        let unit_node = scene.node_mut(transporter_node_id);
-        unit_node.rot = geom::get_rot_angle(from, to);
-        let move_speed = unit_type_visual_info.move_speed;
-        Box::new(EventAttachVisualizer {
+    visual_info: &UnitTypeVisualInfo,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let transporter = state.unit(transporter_id);
+    let attached_unit = state.unit(attached_unit_id);
+    map_text.add_text(transporter.pos.map_pos, "attached"); // TODO: ActionShowText
+    let from = geom::exact_pos_to_world_pos(state, transporter.pos);
+    let to = geom::exact_pos_to_world_pos(state, attached_unit.pos);
+    let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
+    let unit_node = scene.node_mut(transporter_node_id);
+    unit_node.rot = geom::get_rot_angle(from, to);
+    let speed = visual_info.move_speed;
+    vec![
+        Box::new(ActionMove {
+            node_id: transporter_node_id,
+            to: to,
+            speed: speed,
+            move_helper: None,
+        }),
+        Box::new(ActionAttach {
             transporter_id: transporter_id,
             attached_unit_id: attached_unit_id,
-            move_helper: MoveHelper::new(from, to, move_speed),
         })
-    }
+    ]
 }
 
-impl Action for EventAttachVisualizer {
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
+#[derive(Debug)]
+pub struct ActionAttach {
+    transporter_id: UnitId,
+    attached_unit_id: UnitId,
+}
 
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let transporter_node_id = scene.unit_id_to_node_id(self.transporter_id);
-        let node = scene.node_mut(transporter_node_id);
-        node.pos = self.move_helper.step(dtime);
-    }
-
-    fn end(&mut self, scene: &mut Scene) {
+impl Action for ActionAttach {
+    fn begin(&mut self, scene: &mut Scene) {
         try_to_fix_attached_unit_pos(
             scene, self.transporter_id, self.attached_unit_id);
     }
 }
 
-#[derive(Debug)]
-pub struct EventDetachVisualizer {
+pub fn visualize_event_detach(
+    state: &State,
+    scene: &mut Scene,
     transporter_id: UnitId,
-    move_helper: MoveHelper,
+    pos: ExactPos,
+    mesh_ids: &MeshIdManager,
+    visual_info: &UnitTypeVisualInfoManager,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let transporter = state.unit(transporter_id);
+    map_text.add_text(transporter.pos.map_pos, "detached");
+    let attached_unit_id = transporter.attached_unit_id.unwrap();
+    let attached_unit = state.unit(attached_unit_id);
+    let transporter_visual_info
+        = visual_info.get(transporter.type_id);
+    let attached_unit_mesh_id = visual_info
+        .get(attached_unit.type_id).mesh_id;
+    let attached_unit_node_id = scene.allocate_node_id();
+    let from = geom::exact_pos_to_world_pos(state, transporter.pos);
+    let to = geom::exact_pos_to_world_pos(state, pos);
+    let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
+    let speed = transporter_visual_info.move_speed;
+    vec![
+        Box::new(ActionCreateUnit {
+            unit_info: attached_unit.clone(),
+            mesh_id: attached_unit_mesh_id,
+            marker_mesh_id: mesh_ids.marker_mesh_id,
+            pos: geom::exact_pos_to_world_pos(state, attached_unit.pos),
+            node_id: attached_unit_node_id,
+        }),
+        Box::new(ActionDetach {
+            from: from,
+            to: to,
+            transporter_node_id: transporter_node_id,
+        }),
+        Box::new(ActionMove {
+            node_id: transporter_node_id,
+            to: to,
+            speed: speed,
+            move_helper: None,
+        }),
+    ]
 }
 
-impl EventDetachVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        transporter_id: UnitId,
-        pos: ExactPos,
-        mesh_ids: &MeshIdManager,
-        unit_type_visual_info: &UnitTypeVisualInfoManager,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let transporter = state.unit(transporter_id);
-        let attached_unit_id = transporter.attached_unit_id.unwrap();
-        let attached_unit = state.unit(attached_unit_id);
-        let transporter_visual_info
-            = unit_type_visual_info.get(transporter.type_id);
-        let attached_unit_mesh_id = unit_type_visual_info
-            .get(attached_unit.type_id).mesh_id;
-        show_unit_at(
-            geom::exact_pos_to_world_pos(state, attached_unit.pos),
-            scene,
-            attached_unit,
-            attached_unit_mesh_id,
-            mesh_ids.marker_mesh_id,
-        );
-        map_text.add_text(transporter.pos.map_pos, "detached");
-        let from = geom::exact_pos_to_world_pos(state, transporter.pos);
-        let to = geom::exact_pos_to_world_pos(state, pos);
-        let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
-        let transporter_node = scene.node_mut(transporter_node_id);
-        transporter_node.rot = geom::get_rot_angle(from, to);
+#[derive(Debug)]
+pub struct ActionDetach {
+    from: WorldPos,
+    to: WorldPos,
+    transporter_node_id: NodeId,
+    // attached_unit_id: UnitId,
+}
+
+impl Action for ActionDetach {
+    fn begin(&mut self, scene: &mut Scene) {
+        let transporter_node = scene.node_mut(self.transporter_node_id);
+        transporter_node.rot = geom::get_rot_angle(self.from, self.to);
         transporter_node.children[0].pos.v.y = 0.0;
         transporter_node.children.pop();
-        let move_speed = transporter_visual_info.move_speed;
-        Box::new(EventDetachVisualizer {
-            transporter_id: transporter_id,
-            move_helper: MoveHelper::new(from, to, move_speed),
-        })
-    }
-}
-
-impl Action for EventDetachVisualizer {
-    fn is_finished(&self) -> bool {
-        self.move_helper.is_finished()
-    }
-
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
-        let transporter_node_id = scene.unit_id_to_node_id(self.transporter_id);
-        let node = scene.node_mut(transporter_node_id);
-        node.pos = self.move_helper.step(dtime);
     }
 }

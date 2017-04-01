@@ -850,13 +850,13 @@ impl TacticalScreen {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
-                vec![event_visualizer::ActionMove::new(
+                event_visualizer::visualize_event_move(
                     state,
                     scene,
                     unit_id,
                     visual_info,
                     to,
-                )]
+                )
             },
             Event::EndTurn{..} => Vec::new(),
             Event::CreateUnit{ref unit_info} => {
@@ -932,17 +932,17 @@ impl TacticalScreen {
                 let transporter_type_id = state.unit(transporter_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(transporter_type_id);
-                vec![event_visualizer::EventAttachVisualizer::new(
+                event_visualizer::visualize_event_attach(
                     state,
                     scene,
                     transporter_id,
                     attached_unit_id,
                     unit_type_visual_info,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::Detach{transporter_id, to, ..} => {
-                vec![event_visualizer::EventDetachVisualizer::new(
+                event_visualizer::visualize_event_detach(
                     state,
                     scene,
                     transporter_id,
@@ -950,7 +950,7 @@ impl TacticalScreen {
                     &self.mesh_ids,
                     &self.unit_type_visual_info,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::SetReactionFireMode{unit_id, mode} => {
                 vec![event_visualizer::EventSetReactionFireModeVisualizer::new(

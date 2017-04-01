@@ -41,10 +41,6 @@ impl MoveHelper {
         self.current
     }
 
-    pub fn destination(&self) -> WorldPos {
-        self.to
-    }
-
     pub fn step_diff(&mut self, dtime: Time) -> Vector3<f32> {
         let step = self.dir * dtime.n as f32;
         self.current_dist.n += step.magnitude();
