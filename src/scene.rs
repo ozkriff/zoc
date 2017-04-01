@@ -69,6 +69,8 @@ impl Scene {
         &self.object_id_to_node_id_map[&object_id]
     }
 
+    // TODO: Move all Actions to this module and remove all other ways
+    // to directly mutate the scene (methods taking `&mut self`)!
     pub fn remove_node(&mut self, node_id: NodeId) {
         self.nodes.remove(&node_id).unwrap();
         for layer in self.transparent_node_ids.values_mut() {

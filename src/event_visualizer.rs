@@ -78,7 +78,7 @@ impl Action for ActionMove {
 
 impl ActionMove {
     // TODO: rename
-    // TODO: builder pattern?
+    // TODO: use builder pattern?
     pub fn new_from(
         node_id: NodeId,
         from: WorldPos,
@@ -222,7 +222,7 @@ pub fn visualize_event_create_unit(
     let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
     let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = scene.allocate_node_id();
-    let create_action = Box::new(ActionCreate {
+    let create_action = Box::new(ActionCreateUnit {
         pos: from,
         node_id: node_id,
         unit_info: unit_info.clone(),
@@ -233,9 +233,34 @@ pub fn visualize_event_create_unit(
     vec![create_action, move_action]
 }
 
+#[derive(Clone, Debug)]
+pub struct ActionCreateNode {
+    node_id: NodeId,
+    node: SceneNode,
+}
+
+impl Action for ActionCreateNode {
+    fn begin(&mut self, scene: &mut Scene) {
+        // TODO: Can I get rid of this `.clone()` somehow?
+        scene.set_node(self.node_id, self.node.clone());
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ActionRemoveNode {
+    node_id: NodeId,
+}
+
+impl Action for ActionRemoveNode {
+    fn begin(&mut self, scene: &mut Scene) {
+        // TODO: check something?
+        scene.remove_node(self.node_id);
+    }
+}
+
 // TODO: Action::CreateSceneNode?
 #[derive(Clone, Debug)]
-pub struct ActionCreate {
+pub struct ActionCreateUnit {
     unit_info: Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
@@ -243,7 +268,7 @@ pub struct ActionCreate {
     node_id: NodeId,
 }
 
-impl Action for ActionCreate {
+impl Action for ActionCreateUnit {
     fn begin(&mut self, scene: &mut Scene) {
         show_unit_with_node_id(
             self.node_id,
@@ -256,12 +281,15 @@ impl Action for ActionCreate {
     }
 }
 
+// TODO: Remove
+/*
 #[derive(Clone, Debug)]
 pub struct EventAttackUnitVisualizer {
     shell_move: Option<MoveHelper>,
     shell_node_id: Option<NodeId>,
     attack_info: AttackInfo,
 }
+*/
 
 // this code was removed from `visualize_event_attack`
 /*
@@ -312,10 +340,8 @@ pub fn visualize_event_attack(
     mesh_ids: &MeshIdManager,
     map_text: &mut MapTextManager,
 ) -> Vec<Box<Action>> {
-    let world_target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
-    let from = world_target_pos; // TODO: give better name
-    let mut shell_move = None;
-    let mut shell_node_id = None;
+    let mut actions = Vec::new();
+    let target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
     if let Some(attacker_id) = attack_info.attacker_id {
         let attacker_node_id = scene.unit_id_to_node_id(attacker_id);
         let attacker_pos = scene.node(attacker_node_id).pos;
@@ -324,30 +350,38 @@ pub fn visualize_event_attack(
             // TODO: ActionShowText
             map_text.add_text(attacker_map_pos, "reaction fire");
         }
-        shell_node_id = Some(scene.add_node(SceneNode {
-            pos: from,
-            rot: geom::get_rot_angle(attacker_pos, world_target_pos),
-            mesh_id: Some(mesh_ids.shell_mesh_id),
-            color: [1.0, 1.0, 1.0, 1.0],
-            children: Vec::new(),
-        }));
-        let shell_speed = Speed{n: 10.0};
-        shell_move = Some(MoveHelper::new(
-            attacker_pos, world_target_pos, shell_speed));
+        let node_id = scene.allocate_node_id();
+        actions.push(Box::new(ActionCreateNode {
+            node_id: node_id,
+            node: SceneNode {
+                pos: attacker_pos,
+                rot: geom::get_rot_angle(attacker_pos, target_pos),
+                mesh_id: Some(mesh_ids.shell_mesh_id),
+                color: [1.0, 1.0, 1.0, 1.0],
+                children: Vec::new(),
+            },
+        }) as Box<Action>);
+
+        // TODO: simulate arc for inderect fire:
+        // if self.attack_info.is_inderect {
+        //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
+        // }
+        actions.push(ActionMove::new_from(
+            node_id, attacker_pos, target_pos, Speed{n: 10.0}));
+
+        actions.push(Box::new(ActionRemoveNode {
+            node_id: node_id,
+        }) as Box<Action>);
     }
     if attack_info.is_ambush {
         map_text.add_text(attack_info.target_pos.map_pos, "Ambushed");
     };
-    vec![Box::new(EventAttackUnitVisualizer {
-        attack_info: attack_info.clone(),
-        shell_move: shell_move,
-        shell_node_id: shell_node_id,
-    })]
+    actions
 }
 
+/*
 impl Action for EventAttackUnitVisualizer {
     fn is_finished(&self) -> bool {
-        /*
         if self.attack_info.killed > 0 && !self.attack_info.leave_wrecks {
             self.move_helper.is_finished()
         } else if let Some(ref shell_move) = self.shell_move {
@@ -355,7 +389,6 @@ impl Action for EventAttackUnitVisualizer {
         } else {
             true
         }
-        */
 
         // TODO: воскреси старую логику
         // 
@@ -394,7 +427,6 @@ impl Action for EventAttackUnitVisualizer {
             self.shell_move = None;
             self.shell_node_id = None;
         }
-        /*
         if is_shell_ok && self.attack_info.killed > 0 {
             let step = self.move_helper.step_diff(dtime);
             let children = &mut scene.node_mut(self.defender_node_id).children;
@@ -406,11 +438,9 @@ impl Action for EventAttackUnitVisualizer {
                 }
             }
         }
-        */
     }
 
-    fn end(&mut self, _ /*scene*/: &mut Scene) {
-        /*
+    fn end(&mut self, _: &mut Scene) {
         if self.attack_info.killed > 0 {
             let children = &mut scene.node_mut(self.defender_node_id).children;
             let killed = self.attack_info.killed as usize;
@@ -434,9 +464,9 @@ impl Action for EventAttackUnitVisualizer {
                 scene.remove_node(self.defender_node_id);
             }
         }
-        */
     }
 }
+*/
 
 #[derive(Clone, Debug)]
 pub struct EventShowUnitVisualizer;
