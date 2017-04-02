@@ -952,45 +952,45 @@ impl TacticalScreen {
                 )
             },
             Event::SetReactionFireMode{unit_id, mode} => {
-                vec![event_visualizer::EventSetReactionFireModeVisualizer::new(
+                event_visualizer::visualize_event_set_reaction_fire_mode(
                     state,
                     unit_id,
                     mode,
                     &mut self.map_text_manager,
-                )]
+                )
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
-                vec![event_visualizer::EventSectorOwnerChangedVisualizer::new(
+                event_visualizer::visualize_event_sector_owner_changed(
                     scene,
                     state,
                     sector_id,
                     new_owner_id,
                     &mut self.map_text_manager,
-                )]
+                )
             }
             Event::VictoryPoint{pos, count, ..} => {
-                vec![event_visualizer::EventVictoryPointVisualizer::new(
+                event_visualizer::visualize_event_victory_point(
                     pos,
                     count,
                     &mut self.map_text_manager,
-                )]
+                )
             }
             Event::Smoke{pos, unit_id, id} => {
-                vec![event_visualizer::EventSmokeVisualizer::new(
+                event_visualizer::visualize_event_smoke(
                     scene,
                     pos,
                     unit_id,
                     id,
                     self.mesh_ids.smoke_mesh_id,
                     &mut self.map_text_manager,
-                )]
+                )
             }
             Event::RemoveSmoke{id} => {
-                vec![event_visualizer::EventRemoveSmokeVisualizer::new(
+                event_visualizer::visualize_event_remove_smoke(
                     state,
                     id,
                     &mut self.map_text_manager,
-                )]
+                )
             }
             Event::Reveal{..} => unreachable!(),
         }

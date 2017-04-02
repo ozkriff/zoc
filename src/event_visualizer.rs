@@ -563,87 +563,68 @@ pub fn visualize_event_load(
     ]
 }
 
-#[derive(Debug)]
-pub struct EventSetReactionFireModeVisualizer;
-
-impl EventSetReactionFireModeVisualizer {
-    pub fn new(
-        state: &State,
-        unit_id: UnitId,
-        mode: ReactionFireMode,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let unit_pos = state.unit(unit_id).pos.map_pos;
-        match mode {
-            ReactionFireMode::Normal => {
-                map_text.add_text(unit_pos, "Normal fire mode");
-            },
-            ReactionFireMode::HoldFire => {
-                map_text.add_text(unit_pos, "Hold fire");
-            },
-        }
-        Box::new(EventSetReactionFireModeVisualizer)
-    }
+pub fn visualize_event_set_reaction_fire_mode(
+    state: &State,
+    unit_id: UnitId,
+    mode: ReactionFireMode,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let pos = state.unit(unit_id).pos.map_pos;
+    let text = match mode {
+        ReactionFireMode::Normal => "Normal fire mode",
+        ReactionFireMode::HoldFire => "Hold fire",
+    };
+    map_text.add_text(pos, text);
+    vec![]
 }
 
-impl Action for EventSetReactionFireModeVisualizer{}
-
-#[derive(Debug)]
-pub struct EventSectorOwnerChangedVisualizer;
-
-impl EventSectorOwnerChangedVisualizer {
-    pub fn new(
-        scene: &mut Scene,
-        state: &State,
-        sector_id: SectorId,
-        owner_id: Option<PlayerId>,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        // TODO: fix msg
-        // "Sector {} secured by an enemy"
-        // "Sector {} secured"
-        // "Sector {} lost" ??
-        let color = match owner_id {
-            None => [1.0, 1.0, 1.0, 0.5],
-            Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
-            Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
-            Some(_) => unimplemented!(),
-        };
-        let node_id = scene.sector_id_to_node_id(sector_id);
-        let node = scene.node_mut(node_id);
-        node.color = color;
-        let sector = &state.sectors()[&sector_id];
-        let pos = sector.center();
-        let text = match owner_id {
-            Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
-            None => format!("Sector {}: owner changed: None", sector_id.id),
-        };
-        map_text.add_text(pos, &text);
-        Box::new(EventSectorOwnerChangedVisualizer)
-    }
+pub fn visualize_event_sector_owner_changed(
+    scene: &mut Scene,
+    state: &State,
+    sector_id: SectorId,
+    owner_id: Option<PlayerId>,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    // TODO: fix msg
+    // "Sector {} secured by an enemy"
+    // "Sector {} secured"
+    // "Sector {} lost" ??
+    let color = match owner_id {
+        None => [1.0, 1.0, 1.0, 0.5],
+        Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
+        Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
+        Some(_) => unimplemented!(),
+    };
+    let node_id = scene.sector_id_to_node_id(sector_id);
+    let node = scene.node_mut(node_id); // TODO: ActionChangeColor
+    node.color = color;
+    let sector = &state.sectors()[&sector_id];
+    let pos = sector.center();
+    let text = match owner_id {
+        Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
+        None => format!("Sector {}: owner changed: None", sector_id.id),
+    };
+    map_text.add_text(pos, &text);
+    vec![]
 }
 
-impl Action for EventSectorOwnerChangedVisualizer{}
+pub fn visualize_event_victory_point(
+    pos: MapPos,
+    count: i32,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let text = format!("+{} VP!", count);
+    map_text.add_text(pos, &text);
+    vec![Box::new(EventVictoryPointVisualizer{
+        time: Time{n: 0.0},
+        duration: Time{n: 1.0},
+    })]
+}
 
 #[derive(Debug)]
 pub struct EventVictoryPointVisualizer {
     time: Time,
     duration: Time,
-}
-
-impl EventVictoryPointVisualizer {
-    pub fn new(
-        pos: MapPos,
-        count: i32,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let text = format!("+{} VP!", count);
-        map_text.add_text(pos, &text);
-        Box::new(EventVictoryPointVisualizer{
-            time: Time{n: 0.0},
-            duration: Time{n: 1.0},
-        })
-    }
 }
 
 impl Action for EventVictoryPointVisualizer {
@@ -658,44 +639,42 @@ impl Action for EventVictoryPointVisualizer {
 
 const SMOKE_ALPHA: f32 = 0.7;
 
+pub fn visualize_event_smoke(
+    scene: &mut Scene,
+    pos: MapPos,
+    _: Option<UnitId>, // TODO
+    object_id: ObjectId,
+    smoke_mesh_id: MeshId,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    // TODO: show shell animation: ActionMove
+    map_text.add_text(pos, "smoke");
+    let z_step = 0.45; // TODO: magic
+    let mut node = SceneNode {
+        pos: geom::map_pos_to_world_pos(pos),
+        rot: Rad(0.0),
+        mesh_id: Some(smoke_mesh_id),
+        color: [1.0, 1.0, 1.0, 0.0],
+        children: Vec::new(),
+    };
+    node.pos.v.z += z_step;
+    node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
+    scene.add_object(object_id, node.clone());
+    node.pos.v.z += z_step;
+    node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
+    scene.add_object(object_id, node);
+    vec![Box::new(EventSmokeVisualizer {
+        time: Time{n: 0.0},
+        duration: Time{n: 1.0},
+        object_id: object_id,
+    })]
+}
+
 #[derive(Debug)]
 pub struct EventSmokeVisualizer {
     duration: Time,
     time: Time,
     object_id: ObjectId,
-}
-
-impl EventSmokeVisualizer {
-    pub fn new(
-        scene: &mut Scene,
-        pos: MapPos,
-        _: Option<UnitId>, // TODO
-        object_id: ObjectId,
-        smoke_mesh_id: MeshId,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        // TODO: show shell animation
-        map_text.add_text(pos, "smoke");
-        let z_step = 0.45; // TODO: magic
-        let mut node = SceneNode {
-            pos: geom::map_pos_to_world_pos(pos),
-            rot: Rad(0.0),
-            mesh_id: Some(smoke_mesh_id),
-            color: [1.0, 1.0, 1.0, 0.0],
-            children: Vec::new(),
-        };
-        node.pos.v.z += z_step;
-        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
-        scene.add_object(object_id, node.clone());
-        node.pos.v.z += z_step;
-        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
-        scene.add_object(object_id, node);
-        Box::new(EventSmokeVisualizer {
-            time: Time{n: 0.0},
-            duration: Time{n: 1.0},
-            object_id: object_id,
-        })
-    }
 }
 
 impl Action for EventSmokeVisualizer {
@@ -713,27 +692,25 @@ impl Action for EventSmokeVisualizer {
     }
 }
 
+pub fn visualize_event_remove_smoke(
+    state: &State,
+    object_id: ObjectId,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    let pos = state.objects()[&object_id].pos.map_pos;
+    map_text.add_text(pos, "smoke cleared");
+    vec![Box::new(EventRemoveSmokeVisualizer {
+        time: Time{n: 0.0},
+        duration: Time{n: 1.0},
+        object_id: object_id,
+    })]
+}
+
 #[derive(Debug)]
 pub struct EventRemoveSmokeVisualizer {
     duration: Time,
     time: Time,
     object_id: ObjectId,
-}
-
-impl EventRemoveSmokeVisualizer {
-    pub fn new(
-        state: &State,
-        object_id: ObjectId,
-        map_text: &mut MapTextManager,
-    ) -> Box<Action> {
-        let pos = state.objects()[&object_id].pos.map_pos;
-        map_text.add_text(pos, "smoke cleared");
-        Box::new(EventRemoveSmokeVisualizer {
-            time: Time{n: 0.0},
-            duration: Time{n: 1.0},
-            object_id: object_id,
-        })
-    }
 }
 
 impl Action for EventRemoveSmokeVisualizer {
