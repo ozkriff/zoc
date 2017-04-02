@@ -48,6 +48,8 @@ pub struct ActionMove {
     to: WorldPos,
 
     // TODO: use builder pattern?
+    // Or maybe I could fix this by changing the MoveHelper's logic.
+    // Oooor use move_helper's mutability!
     move_helper: Option<MoveHelper>,
 }
 
@@ -93,69 +95,6 @@ pub fn visualize_event_move(
     ]
 }
 
-fn try_to_fix_attached_unit_pos(
-    scene: &mut Scene,
-    transporter_id: UnitId,
-    attached_unit_id: UnitId,
-) {
-    let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
-    let attached_unit_node_id
-        = match scene.unit_id_to_node_id_opt(attached_unit_id)
-    {
-        Some(id) => id,
-        // this unit's scene node is already attached to transporter's scene node
-        None => return,
-    };
-    let mut node = scene.node_mut(attached_unit_node_id)
-        .children.remove(0);
-    scene.remove_unit(attached_unit_id);
-    node.pos.v.y = -0.5; // TODO: get from UnitTypeVisualInfo
-    node.rot += Rad(PI);
-    scene.node_mut(transporter_node_id).children.push(node);
-    scene.node_mut(transporter_node_id).children[0].pos.v.y = 0.5;
-}
-
-// TODO: remove
-fn show_unit_at(
-    pos: WorldPos,
-    scene: &mut Scene,
-    unit: &Unit,
-    mesh_id: MeshId,
-    marker_mesh_id: MeshId,
-) {
-    let node_id = scene.allocate_node_id();
-    show_unit_with_node_id(node_id, pos, scene, unit, mesh_id, marker_mesh_id);
-}
-
-// TODO: rename
-fn show_unit_with_node_id(
-    node_id: NodeId,
-    pos: WorldPos,
-    scene: &mut Scene,
-    unit: &Unit,
-    mesh_id: MeshId,
-    marker_mesh_id: MeshId,
-) {
-    let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-    let mut children = get_unit_scene_nodes(unit, mesh_id);
-    if unit.is_alive {
-        children.push(SceneNode {
-            pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
-            rot: Rad(0.0),
-            mesh_id: Some(marker_mesh_id),
-            color: gen::get_player_color(unit.player_id),
-            children: Vec::new(),
-        });
-    }
-    scene.add_unit(node_id, unit.id, SceneNode {
-        pos: pos,
-        rot: rot,
-        mesh_id: None,
-        color: [1.0, 1.0, 1.0, 1.0],
-        children: children,
-    });
-}
-
 fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
     let color = if unit.is_alive {
         [1.0, 1.0, 1.0, 1.0]
@@ -189,18 +128,18 @@ fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
 pub fn visualize_event_create_unit(
     state: &State,
     scene: &mut Scene,
-    unit_info: &Unit,
+    unit: &Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
 ) -> Vec<Box<Action>> {
-    let to = geom::exact_pos_to_world_pos(state, unit_info.pos);
+    let to = geom::exact_pos_to_world_pos(state, unit.pos);
     let from = WorldPos{v: to.v - vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = scene.allocate_node_id();
     vec![
         Box::new(ActionCreateUnit {
             pos: from,
             node_id: node_id,
-            unit_info: unit_info.clone(),
+            unit: unit.clone(),
             mesh_id: mesh_id,
             marker_mesh_id: marker_mesh_id,
         }),
@@ -254,7 +193,7 @@ impl Action for ActionRemoveUnit {
 // TODO: Action::CreateSceneNode?
 #[derive(Debug)]
 pub struct ActionCreateUnit {
-    unit_info: Unit,
+    unit: Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
     pos: WorldPos,
@@ -263,14 +202,25 @@ pub struct ActionCreateUnit {
 
 impl Action for ActionCreateUnit {
     fn begin(&mut self, scene: &mut Scene) {
-        show_unit_with_node_id(
-            self.node_id,
-            self.pos,
-            scene,
-            &self.unit_info,
-            self.mesh_id,
-            self.marker_mesh_id,
-        );
+        let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
+        let mut children = get_unit_scene_nodes(&self.unit, self.mesh_id);
+        if self.unit.is_alive {
+            children.push(SceneNode {
+                pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
+                rot: Rad(0.0),
+                mesh_id: Some(self.marker_mesh_id),
+                color: gen::get_player_color(self.unit.player_id),
+                children: Vec::new(),
+            });
+        }
+        scene.add_unit(self.node_id, self.unit.id, SceneNode {
+            pos: self.pos,
+            rot: rot,
+            mesh_id: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            children: children,
+        });
+
     }
 }
 
@@ -355,7 +305,7 @@ pub fn visualize_event_attack(
             },
         }) as Box<Action>);
 
-        // TODO: simulate arc for inderect fire:
+        // TODO: simulate arc for inderect fire in ActionMove:
         // if self.attack_info.is_inderect {
         //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
         // }
@@ -389,7 +339,7 @@ impl Action for EventAttackUnitVisualizer {
         }
 
         // TODO: воскреси старую логику
-        // 
+        //
         // Вообще, это странный момент: как визуализировать событие атаки,
         // если оно из засады и я вообще не могу рисовать снаряд?
         //
@@ -466,62 +416,89 @@ impl Action for EventAttackUnitVisualizer {
 }
 */
 
+// TODO: try to remove this hack
+// TODO: rename?
 #[derive(Debug)]
-pub struct EventShowUnitVisualizer;
+pub struct ActionTryFixAttachedUnit {
+    unit_id: UnitId,
+    attached_unit_id: UnitId,
+}
 
-impl EventShowUnitVisualizer {
-    pub fn new(
-        state: &State,
-        scene: &mut Scene,
-        unit_info: &Unit,
-        mesh_id: MeshId,
-        marker_mesh_id: MeshId,
-        map_text: &mut MapTextManager,
-    ) -> Vec<Box<Action>> {
-        map_text.add_text(unit_info.pos.map_pos, "spotted");
-        let pos = geom::exact_pos_to_world_pos(state, unit_info.pos);
-        show_unit_at(pos, scene, unit_info, mesh_id, marker_mesh_id);
-        if let Some(attached_unit_id) = unit_info.attached_unit_id {
-            try_to_fix_attached_unit_pos(
-                scene, unit_info.id, attached_unit_id);
-        }
-        for unit in state.units_at(unit_info.pos.map_pos) {
-            if let Some(attached_unit_id) = unit.attached_unit_id {
-                try_to_fix_attached_unit_pos(
-                    scene, unit.id, attached_unit_id);
-            }
-        }
-        vec![Box::new(EventShowUnitVisualizer)]
+impl Action for ActionTryFixAttachedUnit {
+    fn begin(&mut self, scene: &mut Scene) {
+        let transporter_node_id = scene.unit_id_to_node_id(self.unit_id);
+        let attached_unit_node_id
+            = match scene.unit_id_to_node_id_opt(self.attached_unit_id)
+        {
+            Some(id) => id,
+            // this unit's scene node is already
+            // attached to transporter's scene node
+            None => return,
+        };
+        let mut node = scene.node_mut(attached_unit_node_id)
+            .children.remove(0);
+        scene.remove_unit(self.attached_unit_id);
+        node.pos.v.y = -0.5; // TODO: get from UnitTypeVisualInfo
+        node.rot += Rad(PI);
+        scene.node_mut(transporter_node_id).children.push(node);
+        scene.node_mut(transporter_node_id).children[0].pos.v.y = 0.5;
     }
 }
 
-impl Action for EventShowUnitVisualizer {}
-
-#[derive(Debug)]
-pub struct EventHideUnitVisualizer;
-
-impl EventHideUnitVisualizer {
-    pub fn new(
-        scene: &mut Scene,
-        _: &State,
-        unit_id: UnitId,
-        map_text: &mut MapTextManager,
-    ) -> Vec<Box<Action>> {
-        // passenger doesn't have any scene node
-        if let Some(node_id) = scene.unit_id_to_node_id_opt(unit_id) {
-            // We can't read 'pos' from `state.unit(unit_id).pos`
-            // because this unit may be in a fogged tile now
-            // so State will filter him out.
-            let world_pos = scene.node(node_id).pos;
-            let map_pos = geom::world_pos_to_map_pos(world_pos);
-            map_text.add_text(map_pos, "lost");
-            scene.remove_unit(unit_id);
-        }
-        vec![Box::new(EventHideUnitVisualizer)]
+pub fn visualize_event_show(
+    state: &State,
+    scene: &mut Scene,
+    unit: &Unit,
+    mesh_id: MeshId,
+    marker_mesh_id: MeshId,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    map_text.add_text(unit.pos.map_pos, "spotted");
+    let mut actions = vec![];
+    let pos = geom::exact_pos_to_world_pos(state, unit.pos);
+    let node_id = scene.allocate_node_id();
+    actions.push(Box::new(ActionCreateUnit {
+        pos: pos,
+        node_id: node_id,
+        unit: unit.clone(),
+        mesh_id: mesh_id,
+        marker_mesh_id: marker_mesh_id,
+    }) as Box<Action>);
+    if let Some(attached_unit_id) = unit.attached_unit_id {
+        actions.push(Box::new(ActionTryFixAttachedUnit {
+            unit_id: unit.id,
+            attached_unit_id: attached_unit_id,
+        }));
     }
+    for unit in state.units_at(unit.pos.map_pos) {
+        if let Some(attached_unit_id) = unit.attached_unit_id {
+            actions.push(Box::new(ActionTryFixAttachedUnit {
+                unit_id: unit.id,
+                attached_unit_id: attached_unit_id,
+            }));
+        }
+    }
+    actions
 }
 
-impl Action for EventHideUnitVisualizer {}
+pub fn visualize_event_hide(
+    scene: &mut Scene,
+    unit_id: UnitId,
+    map_text: &mut MapTextManager,
+) -> Vec<Box<Action>> {
+    // passenger doesn't have any scene node
+    if let Some(node_id) = scene.unit_id_to_node_id_opt(unit_id) {
+        // We can't read 'pos' from `state.unit(unit_id).pos`
+        // because this unit may be in a fogged tile now
+        // so State will filter him out.
+        let world_pos = scene.node(node_id).pos;
+        let map_pos = geom::world_pos_to_map_pos(world_pos);
+        map_text.add_text(map_pos, "lost");
+        vec![Box::new(ActionRemoveUnit{unit_id: unit_id})]
+    } else {
+        vec![]
+    }
+}
 
 pub fn visualize_event_unload(
     state: &State,
@@ -540,7 +517,7 @@ pub fn visualize_event_unload(
     let action_create = Box::new(ActionCreateUnit {
         pos: from,
         node_id: node_id,
-        unit_info: unit.clone(),
+        unit: unit.clone(),
         mesh_id: mesh_id,
         marker_mesh_id: marker_mesh_id,
     });
@@ -802,24 +779,11 @@ pub fn visualize_event_attach(
             speed: speed,
             move_helper: None,
         }),
-        Box::new(ActionAttach {
-            transporter_id: transporter_id,
+        Box::new(ActionTryFixAttachedUnit {
+            unit_id: transporter_id,
             attached_unit_id: attached_unit_id,
         })
     ]
-}
-
-#[derive(Debug)]
-pub struct ActionAttach {
-    transporter_id: UnitId,
-    attached_unit_id: UnitId,
-}
-
-impl Action for ActionAttach {
-    fn begin(&mut self, scene: &mut Scene) {
-        try_to_fix_attached_unit_pos(
-            scene, self.transporter_id, self.attached_unit_id);
-    }
 }
 
 pub fn visualize_event_detach(
@@ -846,7 +810,7 @@ pub fn visualize_event_detach(
     let speed = transporter_visual_info.move_speed;
     vec![
         Box::new(ActionCreateUnit {
-            unit_info: attached_unit.clone(),
+            unit: attached_unit.clone(),
             mesh_id: attached_unit_mesh_id,
             marker_mesh_id: mesh_ids.marker_mesh_id,
             pos: geom::exact_pos_to_world_pos(state, attached_unit.pos),

@@ -882,7 +882,7 @@ impl TacticalScreen {
             Event::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::EventShowUnitVisualizer::new(
+                event_visualizer::visualize_event_show(
                     state,
                     scene,
                     unit_info,
@@ -892,9 +892,8 @@ impl TacticalScreen {
                 )
             },
             Event::HideUnit{unit_id} => {
-                event_visualizer::EventHideUnitVisualizer::new(
+                event_visualizer::visualize_event_hide(
                     scene,
-                    state,
                     unit_id,
                     &mut self.map_text_manager,
                 )
