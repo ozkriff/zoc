@@ -308,7 +308,6 @@ impl TacticalScreen {
             gui: gui,
             player_info: player_info,
             core: core,
-            // event: None,
             actions: VecDeque::new(),
             mesh_ids: mesh_ids,
             meshes: meshes,
@@ -725,12 +724,12 @@ impl TacticalScreen {
         }
     }
 
-    // TODO: remove `dtime` argument
     fn draw(&mut self, context: &mut Context) {
         context.clear();
         self.draw_scene(context);
         let player_info = self.player_info.get(self.core.player_id());
 
+        // TODO: Replace with ActionShowText!
         self.map_text_manager.draw(context, &player_info.camera);
 
         context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
@@ -747,106 +746,15 @@ impl TacticalScreen {
     // Action c-tors. There're `update` and `end` methods to do this.
     // Maybe I should add a `start` method to `Action` trait.
     //
-    fn make_actions(&mut self, event: &CoreEvent) -> Vec<Box<Action>> {
-        println!("TacticalScreen::make_actions: event: {:?}\n", event);
+    // Actually, I need `&mut Scene` for calling `allocate_node_id` :(
+    //
+    fn make_event_actions(&mut self, event: &CoreEvent) -> Vec<Box<Action>> {
+        println!("TacticalScreen::make_event_actions: event: {:?}\n", event);
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
-        //
-        // TODO: Как-то визуализировать отложенные эффекты?
-        // Хрен с ними пока что.
-        // Вообще, не уверен что их как-то показывать надо,
-        // скорее там надо над юнитом значок какой-то рисовать.
-        //
-        for (&target_id, target_effects) in &event.effects {
-            println!("TacticalScreen::make_actions: effect <");
-            let target = state.unit(target_id);
-            for effect in target_effects {
-                if effect.time != effect::Time::Instant {
-                    // TODO: don't forget to remove printlnes
-                    println!("TacticalScreen::make_actions: long effect");
-                    continue;
-                }
-                match effect.effect {
-                    Effect::Attacked {
-                        killed,
-                        // suppression,
-                        leave_wrecks,
-                        // remove_move_points,
-                        ..
-                    } => {
-                        self.map_text_manager.add_text(target.pos.map_pos, "attacked");
-                        if killed > 0 {
-                            self.map_text_manager.add_text(
-                                target.pos.map_pos,
-                                &format!("killed: {}", killed),
-                            );
-                        } else {
-                            self.map_text_manager.add_text(
-                                target.pos.map_pos, "miss");
-                        }
-                        // TODO: вертолеты, прицепы?
-                        let target_node_id = scene.unit_id_to_node_id(target_id);
-                        if killed > 0 {
-                            let children = &mut scene.node_mut(target_node_id).children;
-                            let killed = killed as usize;
-                            assert!(killed <= children.len());
-                            for i in 0 .. killed {
-                                if leave_wrecks {
-                                    // TODO: криво как-то :(
-                                    children[i].color = event_visualizer::WRECKS_COLOR;
-                                } else {
-                                    let _ = children.remove(0);
-                                }
-                            }
-                        }
-                        let is_target_destroyed = target.count - killed <= 0;
-                        if is_target_destroyed {
-                            if target.attached_unit_id.is_some() {
-                                scene.node_mut(target_node_id).children.pop().unwrap();
-                            }
-                            // delete unit's marker
-                            scene.node_mut(target_node_id).children.pop().unwrap();
-                            if !leave_wrecks {
-                                assert_eq!(scene.node(target_node_id).children.len(), 0);
-                                scene.remove_node(target_node_id);
-                            }
-                        }
-                        /*
-                        let mut text = String::new();
-                        text += match effect.effect {
-                            Effect::Immobilized => "Immobilized",
-                            Effect::WeaponBroken => "WeaponBroken",
-                            Effect::ReducedMovement => "ReducedMovement",
-                            Effect::ReducedAttackPoints => "ReducedAttackPoints",
-                            Effect::Pinned => "Pinned",
-                        };
-                        text += ": ";
-                        text += match effect.time {
-                            effect::Time::Forever => "Forever",
-                            // TODO: показать число ходов:
-                            effect::Time::Turns(_) => "Turns(n)",
-                            effect::Time::Instant => "Instant",
-                        };
-                        map_text.add_text(unit_pos, &text);
-                        */
-                        // TODO: визуализировать как-то
-                    },
-                    // TODO: Реализовать вот это всякое
-                    Effect::Immobilized => {},
-                    Effect::WeaponBroken => {},
-                    Effect::ReducedMovementPoints(_) => {},
-                    Effect::ReducedAttackPoints(_) => {},
-                    Effect::Pinned => {},
-                    Effect::ReducedAccuracy(_) => {},
-                    Effect::Suppressed(_) => {},
-                    Effect::SoldierKilled(_) => {},
-                    Effect::VehicleDestroyed => {},
-                }
-            }
-        }
-        match event.event {
+        let mut actions = match event.event {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
@@ -993,7 +901,99 @@ impl TacticalScreen {
                 )
             }
             Event::Reveal{..} => unreachable!(),
+        };
+        //
+        // TODO: How should I visualize delayed effects?
+        // Should I show some icon above the unit?
+        //
+        for (&target_id, target_effects) in &event.effects {
+            println!("TacticalScreen::make_event_actions: effect <");
+            let target = state.unit(target_id);
+            for effect in target_effects {
+                if effect.time != effect::Time::Instant {
+                    // TODO: don't forget to remove printlnes
+                    println!("TacticalScreen::make_event_actions: long effect");
+                    continue;
+                }
+                match effect.effect {
+                    Effect::Attacked {
+                        killed,
+                        // suppression, // TODO: print suppression
+                        leave_wrecks,
+                        // remove_move_points,
+                        ..
+                    } => {
+                        self.map_text_manager.add_text(target.pos.map_pos, "attacked");
+                        if killed > 0 {
+                            self.map_text_manager.add_text(
+                                target.pos.map_pos,
+                                &format!("killed: {}", killed),
+                            );
+                        } else {
+                            self.map_text_manager.add_text(
+                                target.pos.map_pos, "miss");
+                        }
+                        // TODO: вертолеты, прицепы?
+                        let target_node_id = scene.unit_id_to_node_id(target_id);
+                        if killed > 0 {
+                            let children = &mut scene.node_mut(target_node_id).children;
+                            let killed = killed as usize;
+                            assert!(killed <= children.len());
+                            for i in 0 .. killed {
+                                if leave_wrecks {
+                                    // TODO: криво как-то :(
+                                    children[i].color = event_visualizer::WRECKS_COLOR;
+                                } else {
+                                    let _ = children.remove(0);
+                                }
+                            }
+                        }
+                        let is_target_destroyed = target.count - killed <= 0;
+                        if is_target_destroyed {
+                            if target.attached_unit_id.is_some() {
+                                scene.node_mut(target_node_id).children.pop().unwrap();
+                            }
+                            // delete unit's marker
+                            scene.node_mut(target_node_id).children.pop().unwrap();
+                            if !leave_wrecks {
+                                assert_eq!(scene.node(target_node_id).children.len(), 0);
+                                scene.remove_node(target_node_id);
+                            }
+                        }
+                        /*
+                        let mut text = String::new();
+                        text += match effect.effect {
+                            Effect::Immobilized => "Immobilized",
+                            Effect::WeaponBroken => "WeaponBroken",
+                            Effect::ReducedMovement => "ReducedMovement",
+                            Effect::ReducedAttackPoints => "ReducedAttackPoints",
+                            Effect::Pinned => "Pinned",
+                        };
+                        text += ": ";
+                        text += match effect.time {
+                            effect::Time::Forever => "Forever",
+                            // TODO: показать число ходов:
+                            effect::Time::Turns(_) => "Turns(n)",
+                            effect::Time::Instant => "Instant",
+                        };
+                        map_text.add_text(unit_pos, &text);
+                        */
+                        // TODO: визуализировать как-то
+                    },
+                    // TODO: Реализовать вот это всякое
+                    Effect::Immobilized => {},
+                    Effect::WeaponBroken => {},
+                    Effect::ReducedMovementPoints(_) => {},
+                    Effect::ReducedAttackPoints(_) => {},
+                    Effect::Pinned => {},
+                    Effect::ReducedAccuracy(_) => {},
+                    Effect::Suppressed(_) => {},
+                    Effect::SoldierKilled(_) => {},
+                    Effect::VehicleDestroyed => {},
+                }
+            }
         }
+        actions
     }
 
     /// handle case when attacker == selected_unit and it dies from reaction fire
@@ -1108,7 +1108,7 @@ impl TacticalScreen {
         }
         while let Some(event) = self.core.get_event() {
             let is_new = self.actions.is_empty();
-            let actions = self.make_actions(&event);
+            let actions = self.make_event_actions(&event);
             self.actions.extend(actions);
             self.current_state_mut().apply_event(&event);
             if is_new && !self.actions.is_empty() {
