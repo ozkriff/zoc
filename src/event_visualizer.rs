@@ -314,12 +314,13 @@ pub fn visualize_effect_attacked(
     // TODO: вертолеты, прицепы?
     let target_node_id = scene.unit_id_to_node_id(target_id);
     if killed > 0 {
+        // TODO: ActionMove (node)
         let children = &mut scene.node_mut(target_node_id).children;
         let killed = killed as usize;
         assert!(killed <= children.len());
         for i in 0 .. killed {
             if leave_wrecks {
-                // TODO: криво как-то :(
+                // TODO: ActionChangeColor
                 children[i].color = WRECKS_COLOR;
             } else {
                 let _ = children.remove(0);
@@ -329,11 +330,13 @@ pub fn visualize_effect_attacked(
     let is_target_destroyed = target.count - killed <= 0;
     if is_target_destroyed {
         if target.attached_unit_id.is_some() {
+            // TODO: Action???
             scene.node_mut(target_node_id).children.pop().unwrap();
         }
         // delete unit's marker
         scene.node_mut(target_node_id).children.pop().unwrap();
         if !leave_wrecks {
+            // TODO: ActionRemoveNode??
             assert_eq!(scene.node(target_node_id).children.len(), 0);
             scene.remove_node(target_node_id);
         }
