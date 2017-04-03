@@ -37,6 +37,22 @@ pub trait Action: Debug {
     fn end(&mut self, _: &mut Scene) {}
 }
 
+#[derive(Debug)]
+pub struct ActionSleep {
+    duration: Time,
+    time: Time,
+}
+
+impl Action for ActionSleep {
+    fn is_finished(&self) -> bool {
+        self.time.n / self.duration.n > 1.0
+    }
+
+    fn update(&mut self, _: &mut Scene, dtime: Time) {
+        self.time.n += dtime.n;
+    }
+}
+
 // TODO: rename to `Move` and use as `action::Move`
 //
 // TODO: join with MoveHelper?
@@ -304,21 +320,22 @@ pub fn visualize_event_attack(
                 children: Vec::new(),
             },
         }) as Box<Action>);
-
         // TODO: simulate arc for inderect fire in ActionMove:
         // if self.attack_info.is_inderect {
         //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
         // }
-
         actions.push(Box::new(ActionMove {
             node_id: node_id,
             to: target_pos,
             speed: Speed{n: 10.0},
             move_helper: None,
         }));
-
         actions.push(Box::new(ActionRemoveNode {
             node_id: node_id,
+        }));
+        actions.push(Box::new(ActionSleep {
+            duration: Time{n: 0.5},
+            time: Time{n: 0.0},
         }));
     }
     if attack_info.is_ambush {
