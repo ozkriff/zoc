@@ -908,7 +908,7 @@ impl TacticalScreen {
         //
         for (&target_id, target_effects) in &event.effects {
             println!("TacticalScreen::make_event_actions: effect <");
-            let target = state.unit(target_id);
+            // let target = state.unit(target_id);
             for effect in target_effects {
                 if effect.time != effect::Time::Instant {
                     // TODO: don't forget to remove printlnes
@@ -923,64 +923,16 @@ impl TacticalScreen {
                         // remove_move_points,
                         ..
                     } => {
-                        self.map_text_manager.add_text(target.pos.map_pos, "attacked");
-                        if killed > 0 {
-                            self.map_text_manager.add_text(
-                                target.pos.map_pos,
-                                &format!("killed: {}", killed),
-                            );
-                        } else {
-                            self.map_text_manager.add_text(
-                                target.pos.map_pos, "miss");
-                        }
-                        // TODO: вертолеты, прицепы?
-                        let target_node_id = scene.unit_id_to_node_id(target_id);
-                        if killed > 0 {
-                            let children = &mut scene.node_mut(target_node_id).children;
-                            let killed = killed as usize;
-                            assert!(killed <= children.len());
-                            for i in 0 .. killed {
-                                if leave_wrecks {
-                                    // TODO: криво как-то :(
-                                    children[i].color = event_visualizer::WRECKS_COLOR;
-                                } else {
-                                    let _ = children.remove(0);
-                                }
-                            }
-                        }
-                        let is_target_destroyed = target.count - killed <= 0;
-                        if is_target_destroyed {
-                            if target.attached_unit_id.is_some() {
-                                scene.node_mut(target_node_id).children.pop().unwrap();
-                            }
-                            // delete unit's marker
-                            scene.node_mut(target_node_id).children.pop().unwrap();
-                            if !leave_wrecks {
-                                assert_eq!(scene.node(target_node_id).children.len(), 0);
-                                scene.remove_node(target_node_id);
-                            }
-                        }
-                        /*
-                        let mut text = String::new();
-                        text += match effect.effect {
-                            Effect::Immobilized => "Immobilized",
-                            Effect::WeaponBroken => "WeaponBroken",
-                            Effect::ReducedMovement => "ReducedMovement",
-                            Effect::ReducedAttackPoints => "ReducedAttackPoints",
-                            Effect::Pinned => "Pinned",
-                        };
-                        text += ": ";
-                        text += match effect.time {
-                            effect::Time::Forever => "Forever",
-                            // TODO: показать число ходов:
-                            effect::Time::Turns(_) => "Turns(n)",
-                            effect::Time::Instant => "Instant",
-                        };
-                        map_text.add_text(unit_pos, &text);
-                        */
-                        // TODO: визуализировать как-то
+                        actions.extend(event_visualizer::visualize_effect_attacked(
+                            state,
+                            scene,
+                            &mut self.map_text_manager,
+                            target_id,
+                            killed,
+                            leave_wrecks,
+                        ));
                     },
-                    // TODO: Реализовать вот это всякое
+                    // TODO: Implement rest of the effects
                     Effect::Immobilized => {},
                     Effect::WeaponBroken => {},
                     Effect::ReducedMovementPoints(_) => {},

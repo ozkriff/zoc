@@ -20,8 +20,7 @@ use move_helper::{MoveHelper};
 use map_text::{MapTextManager};
 use mesh_manager::{MeshIdManager};
 
-// TODO: Move to some other place
-pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
+const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 // TODO: rename to Action? It's not direcly connected to `CoreEvent` anymore
 //
@@ -292,6 +291,75 @@ pub struct EventAttackUnitVisualizer {
     }
 */
 
+// TODO: split this effect into many
+pub fn visualize_effect_attacked(
+    state: &State,
+    scene: &mut Scene,
+    map_text: &mut MapTextManager,
+    target_id: UnitId,
+    killed: i32,
+    leave_wrecks: bool,
+) -> Vec<Box<Action>> {
+    let target = state.unit(target_id);
+    map_text.add_text(target.pos.map_pos, "attacked");
+    if killed > 0 {
+        map_text.add_text(
+            target.pos.map_pos,
+            &format!("killed: {}", killed),
+        );
+    } else {
+        map_text.add_text(
+            target.pos.map_pos, "miss");
+    }
+    // TODO: вертолеты, прицепы?
+    let target_node_id = scene.unit_id_to_node_id(target_id);
+    if killed > 0 {
+        let children = &mut scene.node_mut(target_node_id).children;
+        let killed = killed as usize;
+        assert!(killed <= children.len());
+        for i in 0 .. killed {
+            if leave_wrecks {
+                // TODO: криво как-то :(
+                children[i].color = WRECKS_COLOR;
+            } else {
+                let _ = children.remove(0);
+            }
+        }
+    }
+    let is_target_destroyed = target.count - killed <= 0;
+    if is_target_destroyed {
+        if target.attached_unit_id.is_some() {
+            scene.node_mut(target_node_id).children.pop().unwrap();
+        }
+        // delete unit's marker
+        scene.node_mut(target_node_id).children.pop().unwrap();
+        if !leave_wrecks {
+            assert_eq!(scene.node(target_node_id).children.len(), 0);
+            scene.remove_node(target_node_id);
+        }
+    }
+    /*
+    let mut text = String::new();
+    text += match effect.effect {
+        Effect::Immobilized => "Immobilized",
+        Effect::WeaponBroken => "WeaponBroken",
+        Effect::ReducedMovement => "ReducedMovement",
+        Effect::ReducedAttackPoints => "ReducedAttackPoints",
+        Effect::Pinned => "Pinned",
+    };
+    text += ": ";
+    text += match effect.time {
+        effect::Time::Forever => "Forever",
+        // TODO: показать число ходов:
+        effect::Time::Turns(_) => "Turns(n)",
+        effect::Time::Instant => "Instant",
+    };
+    map_text.add_text(unit_pos, &text);
+    */
+    // TODO: визуализировать как-то
+    vec![]
+}
+
 pub fn visualize_event_attack(
     state: &State,
     scene: &mut Scene,
@@ -321,7 +389,7 @@ pub fn visualize_event_attack(
             },
         }) as Box<Action>);
         // TODO: simulate arc for inderect fire in ActionMove:
-        // if self.attack_info.is_inderect {
+        // if attack_info.is_inderect {
         //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
         // }
         actions.push(Box::new(ActionMove {
