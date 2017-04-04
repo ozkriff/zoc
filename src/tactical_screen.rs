@@ -20,7 +20,10 @@ use core::print_info::{print_pos_info};
 use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode};
-use event_visualizer::{self, Action};
+
+// TODO: really rename event_visualizer.rs to action.rs
+use event_visualizer::{self as action, Action};
+
 use unit_type_visual_info::{
     UnitTypeVisualInfoManager,
     get_unit_type_visual_info
@@ -758,7 +761,7 @@ impl TacticalScreen {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
-                event_visualizer::visualize_event_move(
+                action::visualize_event_move(
                     state,
                     scene,
                     unit_id,
@@ -770,7 +773,7 @@ impl TacticalScreen {
             Event::CreateUnit{ref unit_info} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::visualize_event_create_unit(
+                action::visualize_event_create_unit(
                     state,
                     scene,
                     unit_info,
@@ -779,7 +782,7 @@ impl TacticalScreen {
                 )
             },
             Event::AttackUnit{ref attack_info} => {
-                event_visualizer::visualize_event_attack(
+                action::visualize_event_attack(
                     state,
                     scene,
                     attack_info,
@@ -790,7 +793,7 @@ impl TacticalScreen {
             Event::ShowUnit{ref unit_info, ..} => {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::visualize_event_show(
+                action::visualize_event_show(
                     state,
                     scene,
                     unit_info,
@@ -800,7 +803,7 @@ impl TacticalScreen {
                 )
             },
             Event::HideUnit{unit_id} => {
-                event_visualizer::visualize_event_hide(
+                action::visualize_event_hide(
                     scene,
                     unit_id,
                     &mut self.map_text_manager,
@@ -810,7 +813,7 @@ impl TacticalScreen {
                 let type_id = state.unit(passenger_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(type_id);
-                event_visualizer::visualize_event_load(
+                action::visualize_event_load(
                     scene,
                     state,
                     passenger_id,
@@ -824,7 +827,7 @@ impl TacticalScreen {
                     = self.unit_type_visual_info.get(unit_info.type_id);
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
-                event_visualizer::visualize_event_unload(
+                action::visualize_event_unload(
                     state,
                     scene,
                     unit_info,
@@ -839,7 +842,7 @@ impl TacticalScreen {
                 let transporter_type_id = state.unit(transporter_id).type_id;
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(transporter_type_id);
-                event_visualizer::visualize_event_attach(
+                action::visualize_event_attach(
                     state,
                     scene,
                     transporter_id,
@@ -849,7 +852,7 @@ impl TacticalScreen {
                 )
             },
             Event::Detach{transporter_id, to, ..} => {
-                event_visualizer::visualize_event_detach(
+                action::visualize_event_detach(
                     state,
                     scene,
                     transporter_id,
@@ -860,7 +863,7 @@ impl TacticalScreen {
                 )
             },
             Event::SetReactionFireMode{unit_id, mode} => {
-                event_visualizer::visualize_event_set_reaction_fire_mode(
+                action::visualize_event_set_reaction_fire_mode(
                     state,
                     unit_id,
                     mode,
@@ -868,7 +871,7 @@ impl TacticalScreen {
                 )
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
-                event_visualizer::visualize_event_sector_owner_changed(
+                action::visualize_event_sector_owner_changed(
                     scene,
                     state,
                     sector_id,
@@ -877,14 +880,14 @@ impl TacticalScreen {
                 )
             }
             Event::VictoryPoint{pos, count, ..} => {
-                event_visualizer::visualize_event_victory_point(
+                action::visualize_event_victory_point(
                     pos,
                     count,
                     &mut self.map_text_manager,
                 )
             }
             Event::Smoke{pos, unit_id, id} => {
-                event_visualizer::visualize_event_smoke(
+                action::visualize_event_smoke(
                     scene,
                     pos,
                     unit_id,
@@ -894,7 +897,7 @@ impl TacticalScreen {
                 )
             }
             Event::RemoveSmoke{id} => {
-                event_visualizer::visualize_event_remove_smoke(
+                action::visualize_event_remove_smoke(
                     state,
                     id,
                     &mut self.map_text_manager,
@@ -923,7 +926,7 @@ impl TacticalScreen {
                         // remove_move_points,
                         ..
                     } => {
-                        actions.extend(event_visualizer::visualize_effect_attacked(
+                        actions.extend(action::visualize_effect_attacked(
                             state,
                             scene,
                             &mut self.map_text_manager,
@@ -1028,7 +1031,7 @@ impl TacticalScreen {
         }
     }
 
-    fn end_event_visualization(&mut self, context: &mut Context) {
+    fn end_action(&mut self, context: &mut Context) {
         self.attacker_died_from_reaction_fire();
         {
             let player_info = self.player_info.get_mut(self.core.player_id());
@@ -1054,9 +1057,9 @@ impl TacticalScreen {
     }
 
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
-        if let Some(event_visualizer) = self.actions.front_mut() {
+        if let Some(action) = self.actions.front_mut() {
             let player_info = self.player_info.get_mut(self.core.player_id());
-            event_visualizer.update(&mut player_info.scene, dtime);
+            action.update(&mut player_info.scene, dtime);
         }
         while let Some(event) = self.core.get_event() {
             let is_new = self.actions.is_empty();
@@ -1071,7 +1074,7 @@ impl TacticalScreen {
             && self.actions.front_mut().unwrap().is_finished()
         {
             // TODO: join
-            self.end_event_visualization(context);
+            self.end_action(context);
             self.actions.pop_front().unwrap();
             if !self.actions.is_empty() {
                 self.begin_action(context);
@@ -1079,7 +1082,7 @@ impl TacticalScreen {
         }
         if self.actions.is_empty() {
             // TODO: should this really be exectuted every frame? =\
-            // Maybe it should be moved to end_event_visualization func
+            // Maybe it should be moved to end_action func
             self.update_score_labels(context);
             self.check_game_end(context);
         }
