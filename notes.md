@@ -207,3 +207,8 @@ I need it anyway to generat new mesh with text.
 If I create a Mesh in ActionShowText::begin - where should i save it?
 There's no access to specialized manager anymore.
 Should I put in in the Action itself?
+
+Ooops. I don't know how to make it work with SceneNodes:
+SceneNode assumes that mesh is accesed wit MeshId.
+But if I generate and save Mesh inside the Action there will be
+no MeshId for it :(
