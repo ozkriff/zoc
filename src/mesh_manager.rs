@@ -36,58 +36,47 @@ impl MeshIdManager {
         meshes: &mut MeshManager,
         state: &State,
     ) -> MeshIdManager {
-        let smoke_tex = load_texture(context, &fs::load("smoke.png").into_inner());
-        let floor_tex = load_texture(context, &fs::load("hex.png").into_inner());
+        let smoke_tex = load_texture(
+            context, &fs::load("smoke.png").into_inner());
+        let floor_tex = load_texture(
+            context, &fs::load("hex.png").into_inner());
         let reinforcement_sector_tex = load_texture(
             context, &fs::load("reinforcement_sector.png").into_inner());
-        let chess_grid_tex = load_texture(context, &fs::load("chess_grid.png").into_inner());
-        let map_mesh_id = meshes.add(gen::generate_map_mesh(
-            context, state, floor_tex.clone()));
-        let water_mesh_id = meshes.add(gen::generate_water_mesh(
-            context, state, floor_tex.clone()));
-        let mut sector_mesh_ids = HashMap::new();
-        for (&id, sector) in state.sectors() {
-            let mesh_id = meshes.add(gen::generate_sector_mesh(
-                context, sector, chess_grid_tex.clone()));
-            sector_mesh_ids.insert(id, mesh_id);
-        }
-        let selection_marker_mesh_id = meshes.add(get_selection_mesh(context));
-        let smoke_mesh_id = meshes.add(gen::get_one_tile_mesh(context, smoke_tex));
-        let fow_tile_mesh_id = meshes.add(gen::get_one_tile_mesh(context, floor_tex));
-        let reinforcement_sector_tile_mesh_id = meshes.add(
-            gen::get_one_tile_mesh(context, reinforcement_sector_tex));
-        let big_building_mesh_id = meshes.add(
-            load_object_mesh(context, "big_building"));
-        let building_mesh_id = meshes.add(
-            load_object_mesh(context, "building"));
-        let big_building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "big_building_wire"));
-        let building_mesh_w_id = meshes.add(
-            load_object_mesh(context, "building_wire"));
-        let trees_mesh_id = meshes.add(load_object_mesh(context, "trees"));
-        let shell_mesh_id = meshes.add(gen::get_shell_mesh(context));
-        let road_mesh_id = meshes.add(gen::get_road_mesh(context));
-        let marker_mesh_id = meshes.add(gen::get_marker(context, "white.png"));
-        let walkable_mesh_id = meshes.add(gen::empty_mesh(context));
-        let targets_mesh_id = meshes.add(gen::empty_mesh(context));
+        let chess_grid_tex = load_texture(
+            context, &fs::load("chess_grid.png").into_inner());
         MeshIdManager {
-            big_building_mesh_id: big_building_mesh_id,
-            building_mesh_id: building_mesh_id,
-            big_building_mesh_w_id: big_building_mesh_w_id,
-            building_mesh_w_id: building_mesh_w_id,
-            trees_mesh_id: trees_mesh_id,
-            road_mesh_id: road_mesh_id,
-            shell_mesh_id: shell_mesh_id,
-            marker_mesh_id: marker_mesh_id,
-            walkable_mesh_id: walkable_mesh_id,
-            targets_mesh_id: targets_mesh_id,
-            map_mesh_id: map_mesh_id,
-            water_mesh_id: water_mesh_id,
-            selection_marker_mesh_id: selection_marker_mesh_id,
-            smoke_mesh_id: smoke_mesh_id,
-            fow_tile_mesh_id: fow_tile_mesh_id,
-            reinforcement_sector_tile_mesh_id: reinforcement_sector_tile_mesh_id,
-            sector_mesh_ids: sector_mesh_ids,
+            big_building_mesh_id: meshes.add(
+                load_object_mesh(context, "big_building")),
+            building_mesh_id: meshes.add(
+                load_object_mesh(context, "building")),
+            big_building_mesh_w_id: meshes.add(
+                load_object_mesh(context, "big_building_wire")),
+            building_mesh_w_id: meshes.add(
+                load_object_mesh(context, "building_wire")),
+            trees_mesh_id: meshes.add(load_object_mesh(context, "trees")),
+            road_mesh_id: meshes.add(gen::get_road_mesh(context)),
+            shell_mesh_id: meshes.add(gen::get_shell_mesh(context)),
+            marker_mesh_id: meshes.add(gen::get_marker(context, "white.png")),
+            walkable_mesh_id: meshes.add(gen::empty_mesh(context)),
+            targets_mesh_id: meshes.add(gen::empty_mesh(context)),
+            map_mesh_id: meshes.add(gen::generate_map_mesh(
+                context, state, floor_tex.clone())),
+            water_mesh_id: meshes.add(gen::generate_water_mesh(
+                context, state, floor_tex.clone())),
+            selection_marker_mesh_id: meshes.add(get_selection_mesh(context)),
+            smoke_mesh_id: meshes.add(gen::get_one_tile_mesh(context, smoke_tex)),
+            fow_tile_mesh_id: meshes.add(gen::get_one_tile_mesh(context, floor_tex)),
+            reinforcement_sector_tile_mesh_id: meshes.add(
+                gen::get_one_tile_mesh(context, reinforcement_sector_tex)),
+            sector_mesh_ids: {
+                let mut sector_mesh_ids = HashMap::new();
+                for (&id, sector) in state.sectors() {
+                    let mesh_id = meshes.add(gen::generate_sector_mesh(
+                        context, sector, chess_grid_tex.clone()));
+                    sector_mesh_ids.insert(id, mesh_id);
+                }
+                sector_mesh_ids
+            },
         }
     }
 }
