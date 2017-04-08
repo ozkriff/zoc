@@ -188,3 +188,22 @@ this way my actions will be tied too closely to units
 and I want Action to be useful for all SceneNodes.
 
 In the new event-action architecture NodeId must be reserved somehow I think.
+
+------
+
+`pub struct ActionShowText {...}`
+
+TODO: I need the camera's angle to make it work :-\ Context?
+This ruins the idea of working with SceneGraph only :'-(
+
+I can mark SceneNode as `Sprite` so that scene itself will rotate it.
+Hmm... :(
+
+-------
+
+I'll try to stick with passing Context to Actoin's methods =\
+
+I need it anyway to generat new mesh with text.
+If I create a Mesh in ActionShowText::begin - where should i save it?
+There's no access to specialized manager anymore.
+Should I put in in the Action itself?
