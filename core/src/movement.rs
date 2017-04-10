@@ -1,4 +1,5 @@
 use std::default::{Default};
+use std::collections::{VecDeque};
 use std::rc::{Rc};
 use types::{Size2};
 use db::{Db};
@@ -161,7 +162,7 @@ pub fn tile_cost(db: &Db, state: &State, unit: &Unit, from: ExactPos, pos: Exact
 
 #[derive(Clone, Debug)]
 pub struct Pathfinder {
-    queue: Vec<ExactPos>,
+    queue: VecDeque<ExactPos>,
     map: Map<Tile>,
     db: Rc<Db>,
 }
@@ -169,7 +170,7 @@ pub struct Pathfinder {
 impl Pathfinder {
     pub fn new(db: Rc<Db>, map_size: Size2) -> Pathfinder {
         Pathfinder {
-            queue: Vec::new(),
+            queue: VecDeque::new(),
             map: Map::new(map_size),
             db: db,
         }
@@ -195,7 +196,7 @@ impl Pathfinder {
             tile.parent = Some(Dir::get_dir_from_to(
                 neighbour_pos.map_pos, original_pos.map_pos));
             tile.slot_id = neighbour_pos.slot_id;
-            self.queue.push(neighbour_pos);
+            self.queue.push_back(neighbour_pos);
         }
     }
 
@@ -235,7 +236,7 @@ impl Pathfinder {
         start_tile.cost = MovePoints{n: 0};
         start_tile.parent = None;
         start_tile.slot_id = start_pos.slot_id;
-        self.queue.push(start_pos);
+        self.queue.push_back(start_pos);
     }
 
     pub fn fill_map(&mut self, state: &State, unit: &Unit) {
@@ -243,7 +244,7 @@ impl Pathfinder {
         self.clean_map();
         self.push_start_pos_to_queue(unit.pos);
         while !self.queue.is_empty() {
-            let pos = self.queue.remove(0);
+            let pos = self.queue.pop_front().unwrap();
             self.try_to_push_neighbours(state, unit, pos);
         }
     }
