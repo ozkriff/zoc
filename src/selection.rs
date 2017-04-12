@@ -1,4 +1,3 @@
-use cgmath::{Rad};
 use core::unit::{UnitId};
 use core::game_state::{State};
 use core::dir::{dirs};
@@ -49,10 +48,8 @@ impl SelectionManager {
         }
         let node = SceneNode {
             pos: self.get_pos(state),
-            rot: Rad(0.0),
             mesh_id: Some(self.mesh_id),
-            color: [1.0, 1.0, 1.0, 1.0],
-            children: Vec::new(),
+            .. Default::default()
         };
         self.selection_marker_node_id = Some(scene.add_node(node));
     }

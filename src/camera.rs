@@ -63,6 +63,10 @@ impl Camera {
         self.pos.v.y = clamp(self.pos.v.y, self.max_pos.v.y, 0.0);
     }
 
+    pub fn pos(&self) -> WorldPos {
+        self.pos
+    }
+
     pub fn set_pos(&mut self, pos: WorldPos) {
         self.pos = pos;
         self.clamp_pos();

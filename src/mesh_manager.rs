@@ -95,28 +95,41 @@ pub fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
 
 #[derive(Clone, Debug)]
 pub struct MeshManager {
-    meshes: Vec<Mesh>,
+    // meshes: Vec<Mesh>, // TODO: Use HashMap?!
+    meshes: HashMap<MeshId, Mesh>,
+    next_id: MeshId,
 }
 
 impl MeshManager {
     pub fn new() -> MeshManager {
         MeshManager {
-            meshes: Vec::new(),
+            // meshes: Vec::new(),
+            meshes: HashMap::new(),
+            next_id: MeshId{id: 0},
         }
     }
 
+    pub fn allocate_id(&mut self) -> MeshId {
+        let id = self.next_id;
+        self.next_id.id += 1;
+        id
+    }
+
     pub fn add(&mut self, mesh: Mesh) -> MeshId {
-        self.meshes.push(mesh);
-        MeshId{id: (self.meshes.len() as i32) - 1}
+        let id = self.allocate_id();
+        self.set(id, mesh);
+        id
     }
 
     pub fn set(&mut self, id: MeshId, mesh: Mesh) {
-        let index = id.id as usize;
-        self.meshes[index] = mesh;
+        self.meshes.insert(id, mesh);
+    }
+
+    pub fn remove(&mut self, id: MeshId) {
+        self.meshes.remove(&id).unwrap();
     }
 
     pub fn get(&self, id: MeshId) -> &Mesh {
-        let index = id.id as usize;
-        &self.meshes[index]
+        &self.meshes[&id]
     }
 }

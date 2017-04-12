@@ -14,7 +14,7 @@ use types::{Size2, ScreenPos, Time};
 use texture::{load_texture_raw};
 use pipeline::{pipe};
 use fs;
-use mesh::{Mesh};
+use mesh::{Mesh, MeshType};
 
 fn duration_to_time(duration: time::Duration) -> Time {
     let seconds = duration.as_secs() as f32;
@@ -56,10 +56,15 @@ fn new_pso(
     factory: &mut gfx_gl::Factory,
     program: &Program<gfx_gl::Resources>,
     primitive: gfx::Primitive,
+    depth: gfx::state::Depth,
 ) -> gfx::PipelineState<gfx_gl::Resources, pipe::Meta> {
     let rasterizer = gfx::state::Rasterizer::new_fill();
+    let pso_init = pipe::Init {
+        out_depth: depth,
+        .. pipe::new()
+    };
     let pso = factory.create_pipeline_from_program(
-        program, primitive, rasterizer, pipe::new());
+        program, primitive, rasterizer, pso_init);
     pso.unwrap()
 }
 
@@ -104,11 +109,14 @@ pub struct Context {
     clear_color: [f32; 4],
     device: gfx_gl::Device,
     encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
+
+    data: pipe::Data<gfx_gl::Resources>,
     pso: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
+    pso_nodepth: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
     pso_wire: gfx::PipelineState<gfx_gl::Resources, pipe::Meta>,
+
     factory: gfx_gl::Factory,
     font: rusttype::Font<'static>,
-    data: pipe::Data<gfx_gl::Resources>,
     start_time: time::Instant,
 }
 
@@ -118,8 +126,24 @@ impl Context {
             = gfx_glutin::init(new_window_builder());
         let encoder = factory.create_command_buffer().into();
         let program = new_shader(&window, &mut factory);
-        let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
-        let pso_wire = new_pso(&mut factory, &program, gfx::Primitive::LineList);
+        let pso = new_pso(
+            &mut factory,
+            &program,
+            gfx::Primitive::TriangleList,
+            gfx::preset::depth::LESS_EQUAL_WRITE,
+        );
+        let pso_wire = new_pso(
+            &mut factory,
+            &program,
+            gfx::Primitive::LineList,
+            gfx::preset::depth::LESS_EQUAL_WRITE,
+        );
+        let pso_nodepth = new_pso(
+            &mut factory,
+            &program,
+            gfx::Primitive::TriangleList,
+            gfx::preset::depth::LESS_EQUAL_TEST,
+        );
         let sampler = factory.create_sampler_linear();
         let win_size = get_win_size(&window);
         // fake mesh for pipeline initialization
@@ -143,6 +167,7 @@ impl Context {
             encoder: encoder,
             pso: pso,
             pso_wire: pso_wire,
+            pso_nodepth: pso_nodepth,
             should_close: false,
             commands_tx: tx,
             font: new_font(),
@@ -206,10 +231,11 @@ impl Context {
     pub fn draw_mesh(&mut self, mesh: &Mesh) {
         self.data.texture.0 = mesh.texture().clone();
         self.data.vbuf = mesh.vertex_buffer().clone();
-        let pso = if mesh.is_wire() {
-            &self.pso_wire
-        } else {
-            &self.pso
+        let pso = match mesh.render_type() {
+            MeshType::Normal => &self.pso,
+            MeshType::Wire => &self.pso_wire,
+            MeshType::NoDepth => &self.pso_nodepth,
+            // MeshType::NoDepth => &self.pso,
         };
         self.encoder.draw(mesh.slice(), pso, &self.data);
     }

@@ -19,7 +19,7 @@ use core::misc::{opt_rx_collect};
 use core::print_info::{print_pos_info};
 use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
-use scene::{Scene, NodeId, SceneNode};
+use scene::{Scene, NodeId, SceneNode, SceneNodeType};
 
 // TODO: really rename event_visualizer.rs to action.rs
 use event_visualizer::{self as action, Action};
@@ -164,39 +164,35 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
     let map = state.map();
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.walkable_mesh_id),
         color: [0.0, 0.0, 1.0, 1.0],
-        children: Vec::new(),
+        .. Default::default()
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.targets_mesh_id),
         color: [1.0, 0.0, 0.0, 1.0],
-        children: Vec::new(),
+        .. Default::default()
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.map_mesh_id),
         color: [0.8, 0.9, 0.3, 1.0],
-        children: Vec::new(),
+        .. Default::default()
     });
     scene.add_node(SceneNode {
         pos: WorldPos{v: Vector3::from_value(0.0)},
-        rot: Rad(0.0),
         mesh_id: Some(mesh_ids.water_mesh_id),
         color: [0.6, 0.6, 0.9, 1.0],
-        children: Vec::new(),
+        .. Default::default()
     });
     for (&sector_id, &sector_mesh_id) in &mesh_ids.sector_mesh_ids {
         scene.add_sector(sector_id, SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.015}}, // TODO
-            rot: Rad(0.0),
             mesh_id: Some(sector_mesh_id),
             color: [1.0, 1.0, 1.0, 0.5],
-            children: Vec::new(),
+            node_type: SceneNodeType::Transparent,
+            .. Default::default()
         });
     }
     for tile_pos in map.get_iter() {
@@ -207,8 +203,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                 pos: pos,
                 rot: rot,
                 mesh_id: Some(mesh_ids.trees_mesh_id),
-                color: [1.0, 1.0, 1.0, 1.0],
-                children: Vec::new(),
+                .. Default::default()
             });
         }
     }
@@ -229,7 +224,8 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     rot: Rad(thread_rng().gen_range(0.0, PI * 2.0)),
                     mesh_id: Some(mesh_ids.reinforcement_sector_tile_mesh_id),
                     color: color,
-                    children: Vec::new(),
+                    node_type: SceneNodeType::StaticTransparentPlane,
+                    .. Default::default()
                 });
             },
             ObjectClass::Building => {
@@ -239,8 +235,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     pos: pos,
                     rot: rot,
                     mesh_id: Some(building_mesh_id(mesh_ids, object)),
-                    color: [1.0, 1.0, 1.0, 1.0],
-                    children: Vec::new(),
+                    .. Default::default()
                 });
             }
             ObjectClass::Road => {
@@ -255,8 +250,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     pos: pos,
                     rot: rot,
                     mesh_id: Some(mesh_ids.road_mesh_id),
-                    color: [1.0, 1.0, 1.0, 1.0],
-                    children: Vec::new(),
+                    .. Default::default()
                 });
             }
             ObjectClass::Smoke => unimplemented!(),
@@ -266,9 +260,11 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
 }
 
 pub struct TacticalScreen {
+    // TODO: replace with Actions!
     map_text_manager: MapTextManager,
+
     gui: Gui,
-    player_info: PlayerInfoManager,
+
     core: core::Core,
 
     // TODO: all CoreEvents must be recieved as vectors:
@@ -280,7 +276,22 @@ pub struct TacticalScreen {
     actions: VecDeque<Box<Action>>,
 
     mesh_ids: MeshIdManager,
+
+    // TODO: how can i pass this to Actions?
+    // Actions have access to Scene and Context, but can't add meshes. Why?
+    // 
+    // Scenes are stored in `player_info` and are per-player.
+    // Meshes need not to be per-player.
+    // Hmmmm...
+    //
+    // Can I make tmp struct with this fields?
+    //
     meshes: MeshManager,
+
+    // TODO: The scenes are stored here. Thay are per-player.
+    // Can I somehow mege this with meshes?
+    player_info: PlayerInfoManager,
+
     unit_type_visual_info: UnitTypeVisualInfoManager,
     selected_unit_id: Option<UnitId>,
     selection_manager: SelectionManager,
@@ -379,10 +390,10 @@ impl TacticalScreen {
                 world_pos.v.z += 0.02; // TODO: magic
                 let node_id = player_info.scene.add_node(SceneNode {
                     pos: world_pos,
-                    rot: Rad(0.0),
                     mesh_id: Some(self.mesh_ids.fow_tile_mesh_id),
                     color: [0.0, 0.1, 0.0, 0.0],
-                    children: Vec::new(),
+                    node_type: SceneNodeType::Transparent,
+                    .. Default::default()
                 });
                 *fow.map.tile_mut(pos) = Some(node_id);
                 fow.forthcoming_node_ids.insert(node_id, Time{n: 0.0});
@@ -712,18 +723,25 @@ impl TacticalScreen {
         }
     }
 
+    fn sort_nodes(&mut self) {
+        let i = self.player_info.get_mut(self.core.player_id());
+        i.scene.sort_transparent_nodes(i.camera.pos());
+    }
+
     fn draw_scene(&mut self, context: &mut Context) {
+        self.sort_nodes();
         let m = self.current_player_info().camera.mat();
-        for node in self.scene().nodes().values() {
-            if !(node.color[3] < 1.0) {
-                self.draw_scene_node(context, node, m);
-            }
+        // рисуем обычные объекты
+        for &node_id in self.scene().normal_node_ids() {
+            self.draw_scene_node(context, self.scene().node(node_id), m);
         }
-        for layer in self.scene().transparent_node_ids().values() {
-            for &node_id in layer {
-                let node = self.scene().node(node_id);
-                self.draw_scene_node(context, node, m);
-            }
+        // рисуем слои
+        for &node_id in self.scene().static_plane_node_ids() {
+            self.draw_scene_node(context, self.scene().node(node_id), m);
+        }
+        // рисуем прозрачные объекты
+        for &node_id in self.scene().transparent_node_ids() {
+            self.draw_scene_node(context, self.scene().node(node_id), m);
         }
     }
 
@@ -751,7 +769,11 @@ impl TacticalScreen {
     //
     // Actually, I need `&mut Scene` for calling `allocate_node_id` :(
     //
-    fn make_event_actions(&mut self, event: &CoreEvent) -> Vec<Box<Action>> {
+    fn make_event_actions(
+        &mut self,
+        context: &mut Context,
+        event: &CoreEvent,
+    ) -> Vec<Box<Action>> {
         println!("TacticalScreen::make_event_actions: event: {:?}\n", event);
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
@@ -761,9 +783,15 @@ impl TacticalScreen {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
+                let mut xxx = action::Xxx {
+                    context: context,
+                    scene: scene,
+                    camera: &player_info.camera,
+                    meshes: &mut self.meshes,
+                };
                 action::visualize_event_move(
                     state,
-                    scene,
+                    &mut xxx,
                     unit_id,
                     visual_info,
                     to,
@@ -1036,7 +1064,7 @@ impl TacticalScreen {
         {
             let player_info = self.player_info.get_mut(self.core.player_id());
             let scene = &mut player_info.scene;
-            self.actions.front_mut().unwrap().end(scene);
+            self.actions.front_mut().unwrap().end(context, scene);
         }
         self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {
@@ -1053,17 +1081,34 @@ impl TacticalScreen {
         assert!(self.actions.len() > 0);
         self.hide_selected_unit_meshes(context);
         let player_info = self.player_info.get_mut(self.core.player_id());
-        self.actions.front_mut().unwrap().begin(&mut player_info.scene);
+        // self.actions.front_mut().unwrap().begin(
+        //     context, &mut player_info.scene);
+        let action = self.actions.front_mut().unwrap();
+        action.begin(action::Xxx {
+            context: context,
+            scene: &mut player_info.scene,
+            camera: &player_info.camera,
+            meshes: &mut self.meshes,
+        });
     }
 
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
         if let Some(action) = self.actions.front_mut() {
             let player_info = self.player_info.get_mut(self.core.player_id());
-            action.update(&mut player_info.scene, dtime);
+            action.update(context, &mut player_info.scene, dtime);
+
+            /*
+            // TODO: remove this test line
+            action.do_xxx(action::Xxx {
+                context: context,
+                scene: &mut player_info.scene,
+                meshes: &mut self.meshes,
+            });
+            */
         }
         while let Some(event) = self.core.get_event() {
             let is_new = self.actions.is_empty();
-            let actions = self.make_event_actions(&event);
+            let actions = self.make_event_actions(context, &event);
             self.actions.extend(actions);
             self.current_state_mut().apply_event(&event);
             if is_new && !self.actions.is_empty() {

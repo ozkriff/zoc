@@ -11,29 +11,83 @@ use core::player::{PlayerId};
 use core::object::{ObjectId};
 // use core::effect::{self, Effect, TimedEffect};
 use types::{WorldPos, Time, Speed};
-use mesh::{MeshId};
+use mesh::{MeshId, Mesh};
 use geom::{self, vec3_z};
+use context::{Context};
 use gen;
-use scene::{Scene, SceneNode, NodeId};
+use scene::{Scene, SceneNode, SceneNodeType, NodeId};
 use unit_type_visual_info::{UnitTypeVisualInfo, UnitTypeVisualInfoManager};
 use move_helper::{MoveHelper};
 use map_text::{MapTextManager};
-use mesh_manager::{MeshIdManager};
+use mesh_manager::{MeshIdManager, MeshManager};
+use text;
+use pipeline::{Vertex};
+use texture::{load_texture_raw};
+use camera::{Camera};
 
 const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
-// TODO: rename to Action? It's not direcly connected to `CoreEvent` anymore
-//
-// TODO: Remove default impl. Or not?
-//
+// TODO: RENAME
+pub struct Xxx<'a> {
+    pub scene: &'a mut Scene,
+    pub camera: &'a Camera,
+    pub context: &'a mut Context,
+    pub meshes: &'a mut MeshManager,
+}
+
 pub trait Action: Debug {
     fn is_finished(&self) -> bool { true }
 
     // TODO: I'm not sure that `begin\end` must mutate the scene
     // TODO: Can I get rid of begin and end somehow? Should I?
-    fn begin(&mut self, _: &mut Scene) {}
-    fn update(&mut self, _: &mut Scene, _: Time) {} // TODO: fix arg (what is wrong with the args?)
-    fn end(&mut self, _: &mut Scene) {}
+    fn begin(&mut self, _: Xxx) {}
+    fn update(&mut self, _: &Context, _: &mut Scene, _: Time) {}
+    fn end(&mut self, _: &Context, _: &mut Scene) {}
+}
+
+// TODO: implement
+//
+// TODO: I need the camera's angle to make it work :-\ Context?
+// This ruins the idea of working with SceneGraph only :'-(
+// But I can mark SceneNode as `Sprite` so that scene itself will rotate it... Hmm...
+//
+#[derive(Debug)]
+pub struct ActionCreateTextMesh {
+    text: String,
+    mesh_id: MeshId,
+}
+
+impl Action for ActionCreateTextMesh {
+    fn begin(&mut self, xxx: Xxx) {
+        let text_size = 80.0; // TODO: ???
+        let (size, texture_data) = text::text_to_texture(
+            xxx.context.font(), text_size, &self.text);
+        let texture = load_texture_raw(
+            xxx.context.factory_mut(), size, &texture_data);
+        let scale_factor = 200.0; // TODO: take camera zoom into account
+        let h_2 = (size.h as f32 / scale_factor) / 2.0;
+        let w_2 = (size.w as f32 / scale_factor) / 2.0;
+        let vertices = &[
+            Vertex{pos: [-w_2, -h_2, 0.0], uv: [0.0, 1.0]},
+            Vertex{pos: [-w_2, h_2, 0.0], uv: [0.0, 0.0]},
+            Vertex{pos: [w_2, -h_2, 0.0], uv: [1.0, 1.0]},
+            Vertex{pos: [w_2, h_2, 0.0], uv: [1.0, 0.0]},
+        ];
+        let indices = &[0,  1,  2,  1,  2,  3];
+        let mesh = Mesh::new_nodepth(xxx.context, vertices, indices, texture);
+        xxx.meshes.set(self.mesh_id, mesh);
+    }
+}
+
+#[derive(Debug)]
+pub struct ActionRemoveMesh {
+    mesh_id: MeshId,
+}
+
+impl Action for ActionRemoveMesh {
+    fn begin(&mut self, xxx: Xxx) {
+        xxx.meshes.remove(self.mesh_id);
+    }
 }
 
 #[derive(Debug)]
@@ -47,8 +101,22 @@ impl Action for ActionSleep {
         self.time.n / self.duration.n > 1.0
     }
 
-    fn update(&mut self, _: &mut Scene, dtime: Time) {
+    fn update(&mut self, _: &Context, _: &mut Scene, dtime: Time) {
         self.time.n += dtime.n;
+    }
+}
+
+#[derive(Debug)]
+pub struct ActionRotateTo {
+    node_id: NodeId,
+    to: WorldPos,
+}
+
+impl Action for ActionRotateTo {
+    fn begin(&mut self, xxx: Xxx) {
+        let node = xxx.scene.node_mut(self.node_id);
+        let rot = geom::get_rot_angle(node.pos, self.to);
+        node.rot = rot;
     }
 }
 
@@ -69,17 +137,20 @@ pub struct ActionMove {
 }
 
 impl Action for ActionMove {
-    fn begin(&mut self, scene: &mut Scene) {
-        let node = scene.node_mut(self.node_id);
+    fn begin(&mut self, xxx: Xxx) {
+        let node = xxx.scene.node_mut(self.node_id);
         self.move_helper = Some(MoveHelper::new(
             node.pos, self.to, self.speed));
 
         // TODO: get from MoveHelper?
-        let rot = geom::get_rot_angle(node.pos, self.to);
-        node.rot = rot;
+        //
+        // TODO: не факт, что это тут стит делать,
+        // пущай отдельное действие поворотом занимается
+        // let rot = geom::get_rot_angle(node.pos, self.to);
+        // node.rot = rot;
     }
 
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, _: &Context, scene: &mut Scene, dtime: Time) {
         let pos = self.move_helper.as_mut().unwrap().step(dtime);
         scene.node_mut(self.node_id).pos = pos;
     }
@@ -88,26 +159,93 @@ impl Action for ActionMove {
         self.move_helper.as_ref().unwrap().is_finished()
     }
 
-    fn end(&mut self, scene: &mut Scene) {
+    fn end(&mut self, _: &Context, scene: &mut Scene) {
         scene.node_mut(self.node_id).pos = self.to;
     }
 }
 
-pub fn visualize_event_move(
-    state: &State,
-    scene: &Scene,
-    unit_id: UnitId,
-    visual_info: &UnitTypeVisualInfo,
+// TODO Черт, меня бесит что теперь повсюду будут летать
+// изменяемые ссылки на Xxx, в котором ВСЕ.
+//
+// По хорошему, при создании новых действий,
+// ссылка должна быть только на чтение для всего,
+// кроме выделение nide_id, mesh_id.
+// Тут без имзеняемости, видимо, никак.
+//
+// Что в Action::begin и т.п. будет изменяемый &mut Xxx
+// меня уже не так волнует.
+//
+// Может, есть способ избавиться от mut тут?
+// Эти айдишники мне нужны только же для связи Action'ов
+// между собой. Хмм, могу я что-то другое использовать для этого?
+//
+pub fn visualize_show_text(
+    xxx: &mut Xxx,
     destination: ExactPos,
 ) -> Vec<Box<Action>> {
+    let node_id = xxx.scene.allocate_node_id();
+    let mesh_id = xxx.meshes.allocate_id();
+    let mut from = geom::map_pos_to_world_pos(destination.map_pos);
+    from.v.z += 0.3;
+    let mut to = geom::map_pos_to_world_pos(destination.map_pos);
+    to.v.z += 1.5;
     vec![
+        Box::new(ActionCreateTextMesh {
+            text: "MOVE!1".into(),
+            mesh_id: mesh_id,
+        }),
+        Box::new(ActionCreateNode {
+            node_id: node_id,
+            node: SceneNode {
+                pos: from,
+                rot: xxx.camera.get_z_angle(), // TODO: !?
+                mesh_id: Some(mesh_id),
+                color: [0.0, 0.0, 1.0, 1.0],
+                node_type: SceneNodeType::Transparent,
+                .. Default::default()
+            },
+        }),
         Box::new(ActionMove {
-            node_id: scene.unit_id_to_node_id(unit_id),
-            to: geom::exact_pos_to_world_pos(state, destination),
-            speed: visual_info.move_speed,
+            node_id: node_id,
+            to: to,
+            speed: Speed{n: 1.0},
             move_helper: None,
         }),
+        // Box::new(ActionSleep {
+        //     duration: Time{n: 0.5},
+        //     time: Time{n: 0.0},
+        // }),
+        Box::new(ActionRemoveNode {
+            node_id: node_id,
+        }),
+        Box::new(ActionRemoveMesh {
+            mesh_id: mesh_id,
+        }),
     ]
+}
+
+pub fn visualize_event_move(
+    state: &State,
+    xxx: &mut Xxx,
+    unit_id: UnitId,
+    visual_info: &UnitTypeVisualInfo, // TODO: get from Xxx?
+    destination: ExactPos,
+) -> Vec<Box<Action>> {
+    let mut actions = Vec::new();
+    let node_id = xxx.scene.unit_id_to_node_id(unit_id);
+    let to = geom::exact_pos_to_world_pos(state, destination);
+    actions.push(Box::new(ActionRotateTo {
+        node_id: node_id,
+        to: to,
+    }) as Box<Action>);
+    actions.push(Box::new(ActionMove {
+        node_id: node_id,
+        to: to,
+        speed: visual_info.move_speed,
+        move_helper: None,
+    }) as Box<Action>);
+    actions.extend(visualize_show_text(xxx, destination));
+    actions
 }
 
 fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
@@ -120,20 +258,18 @@ fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
     if unit.count == 1 {
         vec![SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
-            rot: Rad(0.0),
             mesh_id: Some(mesh_id),
             color: color,
-            children: vec![],
+            .. Default::default()
         }]
     } else {
         for i in 0 .. unit.count {
             let pos = geom::index_to_circle_vertex(unit.count, i).v * 0.15;
             vec.push(SceneNode {
                 pos: WorldPos{v: pos},
-                rot: Rad(0.0),
                 mesh_id: Some(mesh_id),
                 color: color,
-                children: vec![],
+                .. Default::default()
             });
         }
         vec
@@ -164,7 +300,6 @@ pub fn visualize_event_create_unit(
             speed: Speed{n: 2.0},
             move_helper: None,
         }),
-
     ]
 }
 
@@ -175,9 +310,9 @@ pub struct ActionCreateNode {
 }
 
 impl Action for ActionCreateNode {
-    fn begin(&mut self, scene: &mut Scene) {
+    fn begin(&mut self, xxx: Xxx) {
         // TODO: Can I get rid of this `.clone()` somehow?
-        scene.set_node(self.node_id, self.node.clone());
+        xxx.scene.set_node(self.node_id, self.node.clone());
     }
 }
 
@@ -187,9 +322,9 @@ pub struct ActionRemoveNode {
 }
 
 impl Action for ActionRemoveNode {
-    fn begin(&mut self, scene: &mut Scene) {
+    fn begin(&mut self, xxx: Xxx) {
         // TODO: check something?
-        scene.remove_node(self.node_id);
+        xxx.scene.remove_node(self.node_id);
     }
 }
 
@@ -199,9 +334,9 @@ pub struct ActionRemoveUnit {
 }
 
 impl Action for ActionRemoveUnit {
-    fn begin(&mut self, scene: &mut Scene) {
+    fn begin(&mut self, xxx: Xxx) {
         // TODO: check something?
-        scene.remove_unit(self.unit_id);
+        xxx.scene.remove_unit(self.unit_id);
     }
 }
 
@@ -216,26 +351,23 @@ pub struct ActionCreateUnit {
 }
 
 impl Action for ActionCreateUnit {
-    fn begin(&mut self, scene: &mut Scene) {
+    fn begin(&mut self, xxx: Xxx) {
         let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
         let mut children = get_unit_scene_nodes(&self.unit, self.mesh_id);
         if self.unit.is_alive {
             children.push(SceneNode {
                 pos: WorldPos{v: vec3_z(geom::HEX_EX_RADIUS / 2.0)},
-                rot: Rad(0.0),
                 mesh_id: Some(self.marker_mesh_id),
                 color: gen::get_player_color(self.unit.player_id),
-                children: Vec::new(),
+                .. Default::default()
             });
         }
-        scene.add_unit(self.node_id, self.unit.id, SceneNode {
+        xxx.scene.add_unit(self.node_id, self.unit.id, SceneNode {
             pos: self.pos,
             rot: rot,
-            mesh_id: None,
-            color: [1.0, 1.0, 1.0, 1.0],
             children: children,
+            .. Default::default()
         });
-
     }
 }
 
@@ -309,7 +441,7 @@ pub fn visualize_effect_attacked(
         );
     } else {
         map_text.add_text(
-            target.pos.map_pos, "miss");
+            target.pos.map_pos, "miss"); // TODO: check position
     }
     // TODO: вертолеты, прицепы?
     let target_node_id = scene.unit_id_to_node_id(target_id);
@@ -377,7 +509,7 @@ pub fn visualize_event_attack(
         let attacker_pos = scene.node(attacker_node_id).pos;
         let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
         if attack_info.mode == FireMode::Reactive {
-            // TODO: ActionShowText
+            // TODO: ActionText
             map_text.add_text(attacker_map_pos, "reaction fire");
         }
         let node_id = scene.allocate_node_id();
@@ -387,8 +519,7 @@ pub fn visualize_event_attack(
                 pos: attacker_pos,
                 rot: geom::get_rot_angle(attacker_pos, target_pos),
                 mesh_id: Some(mesh_ids.shell_mesh_id),
-                color: [1.0, 1.0, 1.0, 1.0],
-                children: Vec::new(),
+                .. Default::default()
             },
         }) as Box<Action>);
         // TODO: simulate arc for inderect fire in ActionMove:
@@ -442,7 +573,7 @@ impl Action for EventAttackUnitVisualizer {
         }
     }
 
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, _: &Context, scene: &mut Scene, dtime: Time) {
         if let Some(ref mut shell_move) = self.shell_move {
             let shell_node_id = self.shell_node_id.unwrap();
             let mut pos = shell_move.step(dtime);
@@ -513,23 +644,23 @@ pub struct ActionTryFixAttachedUnit {
 }
 
 impl Action for ActionTryFixAttachedUnit {
-    fn begin(&mut self, scene: &mut Scene) {
-        let transporter_node_id = scene.unit_id_to_node_id(self.unit_id);
+    fn begin(&mut self, xxx: Xxx) {
+        let transporter_node_id = xxx.scene.unit_id_to_node_id(self.unit_id);
         let attached_unit_node_id
-            = match scene.unit_id_to_node_id_opt(self.attached_unit_id)
+            = match xxx.scene.unit_id_to_node_id_opt(self.attached_unit_id)
         {
             Some(id) => id,
             // this unit's scene node is already
             // attached to transporter's scene node
             None => return,
         };
-        let mut node = scene.node_mut(attached_unit_node_id)
+        let mut node = xxx.scene.node_mut(attached_unit_node_id)
             .children.remove(0);
-        scene.remove_unit(self.attached_unit_id);
+        xxx.scene.remove_unit(self.attached_unit_id);
         node.pos.v.y = -0.5; // TODO: get from UnitTypeVisualInfo
         node.rot += Rad(PI);
-        scene.node_mut(transporter_node_id).children.push(node);
-        scene.node_mut(transporter_node_id).children[0].pos.v.y = 0.5;
+        xxx.scene.node_mut(transporter_node_id).children.push(node);
+        xxx.scene.node_mut(transporter_node_id).children[0].pos.v.y = 0.5;
     }
 }
 
@@ -598,7 +729,7 @@ pub fn visualize_event_unload(
     visual_info: &UnitTypeVisualInfo,
     map_text: &mut MapTextManager,
 ) -> Vec<Box<Action>> {
-    map_text.add_text(unit.pos.map_pos, "unloaded"); // TODO ActionShowText
+    map_text.add_text(unit.pos.map_pos, "unloaded"); // TODO ActionText
     let to = geom::exact_pos_to_world_pos(state, unit.pos);
     let from = geom::exact_pos_to_world_pos(state, transporter_pos);
     let node_id = scene.allocate_node_id();
@@ -720,7 +851,7 @@ impl Action for EventVictoryPointVisualizer {
         self.time.n >= self.duration.n
     }
 
-    fn update(&mut self, _: &mut Scene, dt: Time) {
+    fn update(&mut self, _: &Context, _: &mut Scene, dt: Time) {
         self.time.n += dt.n;
     }
 }
@@ -740,10 +871,9 @@ pub fn visualize_event_smoke(
     let z_step = 0.45; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
-        rot: Rad(0.0),
         mesh_id: Some(smoke_mesh_id),
-        color: [1.0, 1.0, 1.0, 0.0],
-        children: Vec::new(),
+        node_type: SceneNodeType::Transparent,
+        .. Default::default()
     };
     node.pos.v.z += z_step;
     node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
@@ -770,7 +900,7 @@ impl Action for EventSmokeVisualizer {
         self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, _: &Context, scene: &mut Scene, dtime: Time) {
         self.time.n += dtime.n;
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
@@ -806,7 +936,7 @@ impl Action for EventRemoveSmokeVisualizer {
         self.time.n / self.duration.n > SMOKE_ALPHA
     }
 
-    fn update(&mut self, scene: &mut Scene, dtime: Time) {
+    fn update(&mut self, _: &Context, scene: &mut Scene, dtime: Time) {
         self.time.n += dtime.n;
         let node_ids = scene.object_id_to_node_id(self.object_id).clone();
         for node_id in node_ids {
@@ -815,7 +945,7 @@ impl Action for EventRemoveSmokeVisualizer {
         }
     }
 
-    fn end(&mut self, scene: &mut Scene) {
+    fn end(&mut self, _: &Context, scene: &mut Scene) {
         scene.remove_object(self.object_id);
     }
 }
@@ -830,7 +960,7 @@ pub fn visualize_event_attach(
 ) -> Vec<Box<Action>> {
     let transporter = state.unit(transporter_id);
     let attached_unit = state.unit(attached_unit_id);
-    map_text.add_text(transporter.pos.map_pos, "attached"); // TODO: ActionShowText
+    map_text.add_text(transporter.pos.map_pos, "attached"); // TODO: ActionText
     let from = geom::exact_pos_to_world_pos(state, transporter.pos);
     let to = geom::exact_pos_to_world_pos(state, attached_unit.pos);
     let transporter_node_id = scene.unit_id_to_node_id(transporter_id);
@@ -904,8 +1034,8 @@ pub struct ActionDetach {
 }
 
 impl Action for ActionDetach {
-    fn begin(&mut self, scene: &mut Scene) {
-        let transporter_node = scene.node_mut(self.transporter_node_id);
+    fn begin(&mut self, xxx: Xxx) {
+        let transporter_node = xxx.scene.node_mut(self.transporter_node_id);
         transporter_node.rot = geom::get_rot_angle(self.from, self.to);
         transporter_node.children[0].pos.v.y = 0.0;
         transporter_node.children.pop();

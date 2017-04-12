@@ -209,6 +209,61 @@ There's no access to specialized manager anymore.
 Should I put in in the Action itself?
 
 Ooops. I don't know how to make it work with SceneNodes:
-SceneNode assumes that mesh is accesed wit MeshId.
+SceneNode assumes that mesh is accesed with MeshId.
 But if I generate and save Mesh inside the Action there will be
 no MeshId for it :(
+
+Can I put my generated mesh into MeshManager somehow?
+
+------
+
+One solution is to create a tmp struct like
+
+```
+pub struct NameMe<'a> {
+    pub scene: &'a mut Scene,
+    pub context: &'a mut Context,
+    pub meshes: &'a mut MeshManager,
+}
+```
+
+and pass it to every Action's method.
+The downside is that whole Context is mutable for some reason =\
+
+And, by the way, I have no idea how to name it.
+
+------
+
+Ok, next problem is transparacy.
+Omg. I need real z-sorting of scene nodes.
+
+...
+
+Done. I've created three lists of NodeId: normal, transparent and planes.
+Second list is resorted on every frame.
+
+
+------
+
+Now I need to employ ActionMove and ActionNodeRemove somehow.
+I don't want to duplicate their logic in ActionText.
+And the question is - do i really need ActionText?
+
+------
+
+TODO Черт, меня бесит что теперь повсюду будут летать
+изменяемые ссылки на Xxx, в котором ВСЕ.
+
+По хорошему, при создании новых действий,
+ссылка должна быть только на чтение для всего,
+кроме выделение `node_id`, `mesh_id`.
+Тут без имзеняемости, видимо, никак.
+
+Что в Action::begin и т.п. будет изменяемый &mut Xxx
+меня уже не так волнует.
+
+Может, есть способ избавиться от mut тут?
+Эти айдишники мне нужны только же для связи Action'ов
+между собой. Хмм, могу я что-то другое использовать для этого?
+
+

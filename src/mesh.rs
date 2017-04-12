@@ -6,25 +6,41 @@ use context::{Context};
 use texture::{Texture, load_texture};
 use pipeline::{Vertex};
 
+// TODO: Move to mesh_manager.rs
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct MeshId{pub id: i32}
+
+#[derive(Clone, Copy, Debug)]
+pub enum MeshType {
+    Normal,
+    Wire,
+    NoDepth,
+}
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
     slice: gfx::Slice<gfx_gl::Resources>,
     vertex_buffer: gfx::handle::Buffer<gfx_gl::Resources, Vertex>,
     texture: Texture,
-    is_wire: bool,
+    render_type: MeshType, // TODO: ?!?!?!?!?
 }
 
 impl Mesh {
+    // TODO: typedef u16 -> VertexIndex
     pub fn new(context: &mut Context, vertices: &[Vertex], indices: &[u16], tex: Texture) -> Mesh {
         let (v, s) = context.factory_mut().create_vertex_buffer_with_slice(vertices, indices);
         Mesh {
             slice: s,
             vertex_buffer: v,
             texture: tex,
-            is_wire: false,
+            render_type: MeshType::Normal,
+        }
+    }
+
+    pub fn new_nodepth(context: &mut Context, vertices: &[Vertex], indices: &[u16], tex: Texture) -> Mesh {
+        Mesh {
+            render_type: MeshType::NoDepth,
+            .. Mesh::new(context, vertices, indices, tex)
         }
     }
 
@@ -36,7 +52,7 @@ impl Mesh {
             slice: s,
             vertex_buffer: v,
             texture: texture,
-            is_wire: true,
+            render_type: MeshType::Wire,
         }
     }
 
@@ -52,7 +68,7 @@ impl Mesh {
         &self.texture
     }
 
-    pub fn is_wire(&self) -> bool {
-        self.is_wire
+    pub fn render_type(&self) -> MeshType {
+        self.render_type
     }
 }

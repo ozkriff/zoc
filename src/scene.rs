@@ -1,6 +1,7 @@
-use std::collections::{HashMap, HashSet, BTreeMap};
-use std::cmp::{Ord, Ordering};
-use cgmath::{Rad};
+use std::default::{Default};
+use std::collections::{HashMap, HashSet};
+use std::cmp::{Ordering};
+use cgmath::{Rad, Vector3, Array, InnerSpace};
 use core::object::{ObjectId};
 use core::unit::{UnitId};
 use core::sector::{SectorId};
@@ -10,24 +11,42 @@ use mesh::{MeshId};
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct NodeId{pub id: i32}
 
+#[derive(Clone, Copy, Debug)]
+pub enum SceneNodeType {
+    Normal,
+    Transparent,
+    StaticTransparentPlane,
+}
+
 // TODO: Builder constructor
 #[derive(Clone, Debug)]
 pub struct SceneNode {
     pub pos: WorldPos,
-    pub rot: Rad<f32>,
+    pub rot: Rad<f32>, // TODO: Store Matrix3 here?
     pub mesh_id: Option<MeshId>,
     pub color: [f32; 4],
-    pub children: Vec<SceneNode>,
+    pub children: Vec<SceneNode>, // TODO: NodeId
+
+    // TODO: прямо при создании спрашивать это дело
+    // а не только на основе color.
+    //
+    // Только проверять что is_transparent == false для всех у кого color.3 == 1.0
+    //
+    pub node_type: SceneNodeType,
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
-pub struct Z(f32);
+impl Default for SceneNode {
+    fn default() -> Self {
+        SceneNode {
+            rot: Rad(0.0),
+            mesh_id: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            children: vec![],
 
-impl Eq for Z {}
-
-impl Ord for Z {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+            // TODO: there's not much sence in making this fields optional..
+            pos: WorldPos{v: Vector3::from_value(0.0)},
+            node_type: SceneNodeType::Normal,
+        }
     }
 }
 
@@ -37,7 +56,29 @@ pub struct Scene {
     sector_id_to_node_id_map: HashMap<SectorId, NodeId>,
     object_id_to_node_id_map: HashMap<ObjectId, HashSet<NodeId>>,
     nodes: HashMap<NodeId, SceneNode>,
-    transparent_node_ids: BTreeMap<Z, HashSet<NodeId>>,
+
+    // TODO: удалить к черту
+    // TODO: заменить на честную покадровую сортировку
+    // TODO: прямо при создании узла спрашивать - прозрачный он или нет
+    //
+    // сначала рисовать все обычные узлы,
+    // затем, отдельным проходом - прозрачные
+    //
+    // обычные узлы хранить тупо вектором,
+    // прозрачные - btreemap с ежекадровым пересчетом по Z узла
+    //
+    // отказаться от слоев. нафиг они вообще?
+    //
+    // даже не так - хранить сами SceneNode в огромном хэшмапе или векторе,
+    // а айдишники хранить в отдельных мапах - прозрачные и непрозрачные.
+    // это могут быть даже не мапы а просто веткора.
+    // и вот этот вектор уже деструктивно сортировать каждый кадр.
+    // поточиеще мыслей
+    //
+    normal_node_ids: Vec<NodeId>,
+    transparent_node_ids: Vec<NodeId>,
+    static_plane_node_ids: Vec<NodeId>,
+
     next_id: NodeId,
 }
 
@@ -48,7 +89,9 @@ impl Scene {
             sector_id_to_node_id_map: HashMap::new(),
             object_id_to_node_id_map: HashMap::new(),
             nodes: HashMap::new(),
-            transparent_node_ids: BTreeMap::new(),
+            normal_node_ids: Vec::new(),
+            transparent_node_ids: Vec::new(),
+            static_plane_node_ids: Vec::new(),
             next_id: NodeId{id: 0},
         }
     }
@@ -72,28 +115,69 @@ impl Scene {
     // TODO: Move all Actions to this module and remove all other ways
     // to directly mutate the scene (methods taking `&mut self`)!
     pub fn remove_node(&mut self, node_id: NodeId) {
+        let node_type = self.node(node_id).node_type;
         self.nodes.remove(&node_id).unwrap();
-        for layer in self.transparent_node_ids.values_mut() {
-            layer.remove(&node_id);
+        match node_type {
+            // TODO: remove from specialized vectors
+            SceneNodeType::Normal => {
+                self.normal_node_ids.iter()
+                    .position(|&n| n == node_id)
+                    .map(|e| self.normal_node_ids.swap_remove(e))
+                    .unwrap();
+            },
+            SceneNodeType::Transparent => {
+                self.transparent_node_ids.iter()
+                    .position(|&n| n == node_id)
+                    .map(|e| self.transparent_node_ids.swap_remove(e))
+                    .unwrap();
+            },
+            SceneNodeType::StaticTransparentPlane => {
+                // Thay are not removable!
+                unimplemented!();
+            },
         }
     }
 
-    // In the new event-action architecture NodeId must be reserved somehow I think
     pub fn allocate_node_id(&mut self) -> NodeId {
         let node_id = self.next_id;
         self.next_id.id += 1;
         node_id
     }
 
+    pub fn sort_transparent_nodes(&mut self, pos: WorldPos) {
+        let nodes = &self.nodes;
+        self.transparent_node_ids.sort_by(|a, b| {
+            let dist_a = (pos.v - nodes[a].pos.v).magnitude();
+            let dist_b = (pos.v - nodes[b].pos.v).magnitude();
+            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+        });
+    }
+
     pub fn set_node(&mut self, node_id: NodeId, node: SceneNode) {
         assert!(!self.nodes.contains_key(&node_id));
-        if node.color[3] < 1.0 {
-            let z = Z(node.pos.v.z);
-            self.transparent_node_ids.entry(z).or_insert_with(HashSet::new);
-            let layer = self.transparent_node_ids.get_mut(&z).unwrap();
-            layer.insert(node_id);
-        }
+        // TODO: node.color[3] < 1.0;
+        let node_type = node.node_type;
         self.nodes.insert(node_id, node);
+        match node_type {
+            SceneNodeType::Normal => {
+                // Need no sorting
+                self.normal_node_ids.push(node_id);
+            },
+            SceneNodeType::Transparent => {
+                // TODO: I don't need any sorting here
+                // because it'll be done on next frame anyway
+                self.transparent_node_ids.push(node_id);
+            },
+            SceneNodeType::StaticTransparentPlane => {
+                self.static_plane_node_ids.push(node_id);
+                let nodes = &self.nodes;
+                self.static_plane_node_ids.sort_by(|a, b| {
+                    let a_z = nodes[a].pos.v.z;
+                    let b_z = nodes[b].pos.v.z;
+                    b_z.partial_cmp(&a_z).unwrap_or(Ordering::Equal)
+                });
+            },
+        }
     }
 
     // TODO: deprecate?
@@ -150,7 +234,15 @@ impl Scene {
         &self.nodes
     }
 
-    pub fn transparent_node_ids(&self) -> &BTreeMap<Z, HashSet<NodeId>> {
+    pub fn normal_node_ids(&self) -> &[NodeId] {
+        &self.normal_node_ids
+    }
+
+    pub fn static_plane_node_ids(&self) -> &[NodeId] {
+        &self.static_plane_node_ids
+    }
+
+    pub fn transparent_node_ids(&self) -> &[NodeId] {
         &self.transparent_node_ids
     }
 
