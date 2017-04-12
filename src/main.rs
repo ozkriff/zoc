@@ -21,7 +21,7 @@ mod gen;
 mod gui;
 mod obj;
 mod scene;
-mod event_visualizer;
+mod action;
 mod unit_type_visual_info;
 mod mesh_manager;
 mod player_info;

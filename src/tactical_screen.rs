@@ -20,9 +20,7 @@ use core::print_info::{print_pos_info};
 use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode, SceneNodeType};
-
-// TODO: really rename event_visualizer.rs to action.rs
-use event_visualizer::{self as action, Action};
+use action::{self, Action};
 
 use unit_type_visual_info::{
     UnitTypeVisualInfoManager,
