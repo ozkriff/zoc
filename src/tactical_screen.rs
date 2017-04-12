@@ -775,18 +775,17 @@ impl TacticalScreen {
         println!("TacticalScreen::make_event_actions: event: {:?}\n", event);
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
-        let scene = &mut player_info.scene;
         let state = &player_info.game_state;
+        let mut xxx = action::Xxx {
+            context: context,
+            scene: &mut player_info.scene,
+            camera: &player_info.camera,
+            meshes: &mut self.meshes,
+        };
         let mut actions = match event.event {
             Event::Move{unit_id, to, ..} => {
                 let type_id = state.unit(unit_id).type_id;
                 let visual_info = self.unit_type_visual_info.get(type_id);
-                let mut xxx = action::Xxx {
-                    context: context,
-                    scene: scene,
-                    camera: &player_info.camera,
-                    meshes: &mut self.meshes,
-                };
                 action::visualize_event_move(
                     state,
                     &mut xxx,
@@ -801,7 +800,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 action::visualize_event_create_unit(
                     state,
-                    scene,
+                    xxx.scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
@@ -810,7 +809,7 @@ impl TacticalScreen {
             Event::AttackUnit{ref attack_info} => {
                 action::visualize_event_attack(
                     state,
-                    scene,
+                    xxx.scene,
                     attack_info,
                     &self.mesh_ids,
                     &mut self.map_text_manager,
@@ -820,17 +819,16 @@ impl TacticalScreen {
                 let mesh_id = self.unit_type_visual_info
                     .get(unit_info.type_id).mesh_id;
                 action::visualize_event_show(
+                    &mut xxx,
                     state,
-                    scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
-                    &mut self.map_text_manager,
                 )
             },
             Event::HideUnit{unit_id} => {
                 action::visualize_event_hide(
-                    scene,
+                    xxx.scene,
                     unit_id,
                     &mut self.map_text_manager,
                 )
@@ -840,7 +838,7 @@ impl TacticalScreen {
                 let unit_type_visual_info
                     = self.unit_type_visual_info.get(type_id);
                 action::visualize_event_load(
-                    scene,
+                    xxx.scene,
                     state,
                     passenger_id,
                     to,
@@ -855,7 +853,7 @@ impl TacticalScreen {
                     .get(unit_info.type_id).mesh_id;
                 action::visualize_event_unload(
                     state,
-                    scene,
+                    xxx.scene,
                     unit_info,
                     mesh_id,
                     self.mesh_ids.marker_mesh_id,
@@ -870,7 +868,7 @@ impl TacticalScreen {
                     = self.unit_type_visual_info.get(transporter_type_id);
                 action::visualize_event_attach(
                     state,
-                    scene,
+                    xxx.scene,
                     transporter_id,
                     attached_unit_id,
                     unit_type_visual_info,
@@ -880,7 +878,7 @@ impl TacticalScreen {
             Event::Detach{transporter_id, to, ..} => {
                 action::visualize_event_detach(
                     state,
-                    scene,
+                    xxx.scene,
                     transporter_id,
                     to,
                     &self.mesh_ids,
@@ -898,7 +896,7 @@ impl TacticalScreen {
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
                 action::visualize_event_sector_owner_changed(
-                    scene,
+                    xxx.scene,
                     state,
                     sector_id,
                     new_owner_id,
@@ -914,7 +912,7 @@ impl TacticalScreen {
             }
             Event::Smoke{pos, unit_id, id} => {
                 action::visualize_event_smoke(
-                    scene,
+                    xxx.scene,
                     pos,
                     unit_id,
                     id,
@@ -954,7 +952,7 @@ impl TacticalScreen {
                     } => {
                         actions.extend(action::visualize_effect_attacked(
                             state,
-                            scene,
+                            xxx.scene,
                             &mut self.map_text_manager,
                             target_id,
                             killed,

@@ -29,8 +29,8 @@ const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 // TODO: RENAME
 pub struct Xxx<'a> {
-    pub scene: &'a mut Scene,
     pub camera: &'a Camera,
+    pub scene: &'a mut Scene,
     pub context: &'a mut Context,
     pub meshes: &'a mut MeshManager,
 }
@@ -181,17 +181,18 @@ impl Action for ActionMove {
 //
 pub fn visualize_show_text(
     xxx: &mut Xxx,
-    destination: ExactPos,
+    destination: MapPos,
+    text: &str,
 ) -> Vec<Box<Action>> {
     let node_id = xxx.scene.allocate_node_id();
     let mesh_id = xxx.meshes.allocate_id();
-    let mut from = geom::map_pos_to_world_pos(destination.map_pos);
+    let mut from = geom::map_pos_to_world_pos(destination);
     from.v.z += 0.3;
-    let mut to = geom::map_pos_to_world_pos(destination.map_pos);
+    let mut to = geom::map_pos_to_world_pos(destination);
     to.v.z += 1.5;
     vec![
         Box::new(ActionCreateTextMesh {
-            text: "MOVE!1".into(),
+            text: text.into(),
             mesh_id: mesh_id,
         }),
         Box::new(ActionCreateNode {
@@ -244,7 +245,6 @@ pub fn visualize_event_move(
         speed: visual_info.move_speed,
         move_helper: None,
     }) as Box<Action>);
-    actions.extend(visualize_show_text(xxx, destination));
     actions
 }
 
@@ -665,17 +665,17 @@ impl Action for ActionTryFixAttachedUnit {
 }
 
 pub fn visualize_event_show(
+    xxx: &mut Xxx,
     state: &State,
-    scene: &mut Scene,
     unit: &Unit,
     mesh_id: MeshId,
     marker_mesh_id: MeshId,
-    map_text: &mut MapTextManager,
 ) -> Vec<Box<Action>> {
-    map_text.add_text(unit.pos.map_pos, "spotted");
     let mut actions = vec![];
+    actions.extend(visualize_show_text(
+        xxx, unit.pos.map_pos, "spotted"));
     let pos = geom::exact_pos_to_world_pos(state, unit.pos);
-    let node_id = scene.allocate_node_id();
+    let node_id = xxx.scene.allocate_node_id();
     actions.push(Box::new(ActionCreateUnit {
         pos: pos,
         node_id: node_id,
