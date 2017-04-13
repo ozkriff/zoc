@@ -776,156 +776,65 @@ impl TacticalScreen {
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let state = &player_info.game_state;
-        let mut xxx = action::Xxx {
+        let mut xxx = &mut action::Xxx {
             context: context,
             scene: &mut player_info.scene,
             camera: &player_info.camera,
             meshes: &mut self.meshes,
+            mesh_ids: &self.mesh_ids,
+            visual_info: &self.unit_type_visual_info,
+            text: &mut self.map_text_manager,
         };
         let mut actions = match event.event {
             Event::Move{unit_id, to, ..} => {
-                let type_id = state.unit(unit_id).type_id;
-                let visual_info = self.unit_type_visual_info.get(type_id);
-                action::visualize_event_move(
-                    state,
-                    &mut xxx,
-                    unit_id,
-                    visual_info,
-                    to,
-                )
+                action::visualize_event_move(state, xxx, unit_id, to)
             },
             Event::EndTurn{..} => Vec::new(),
             Event::CreateUnit{ref unit_info} => {
-                let mesh_id = self.unit_type_visual_info
-                    .get(unit_info.type_id).mesh_id;
-                action::visualize_event_create_unit(
-                    state,
-                    xxx.scene,
-                    unit_info,
-                    mesh_id,
-                    self.mesh_ids.marker_mesh_id,
-                )
+                action::visualize_event_create_unit(state, xxx, unit_info)
             },
             Event::AttackUnit{ref attack_info} => {
-                action::visualize_event_attack(
-                    state,
-                    xxx.scene,
-                    attack_info,
-                    &self.mesh_ids,
-                    &mut self.map_text_manager,
-                )
+                action::visualize_event_attack(state, xxx, attack_info)
             },
             Event::ShowUnit{ref unit_info, ..} => {
-                let mesh_id = self.unit_type_visual_info
-                    .get(unit_info.type_id).mesh_id;
-                action::visualize_event_show(
-                    &mut xxx,
-                    state,
-                    unit_info,
-                    mesh_id,
-                    self.mesh_ids.marker_mesh_id,
-                )
+                action::visualize_event_show(state, xxx, unit_info)
             },
             Event::HideUnit{unit_id} => {
-                action::visualize_event_hide(
-                    xxx.scene,
-                    unit_id,
-                    &mut self.map_text_manager,
-                )
+                action::visualize_event_hide(xxx, unit_id)
             },
             Event::LoadUnit{passenger_id, to, ..} => {
-                let type_id = state.unit(passenger_id).type_id;
-                let unit_type_visual_info
-                    = self.unit_type_visual_info.get(type_id);
-                action::visualize_event_load(
-                    xxx.scene,
-                    state,
-                    passenger_id,
-                    to,
-                    unit_type_visual_info,
-                    &mut self.map_text_manager,
-                )
+                action::visualize_event_load(state, xxx, passenger_id, to)
             },
             Event::UnloadUnit{ref unit_info, from, ..} => {
-                let unit_type_visual_info
-                    = self.unit_type_visual_info.get(unit_info.type_id);
-                let mesh_id = self.unit_type_visual_info
-                    .get(unit_info.type_id).mesh_id;
-                action::visualize_event_unload(
-                    state,
-                    xxx.scene,
-                    unit_info,
-                    mesh_id,
-                    self.mesh_ids.marker_mesh_id,
-                    from,
-                    unit_type_visual_info,
-                    &mut self.map_text_manager,
-                )
+                action::visualize_event_unload(state, xxx, unit_info, from)
             },
             Event::Attach{transporter_id, attached_unit_id, ..} => {
-                let transporter_type_id = state.unit(transporter_id).type_id;
-                let unit_type_visual_info
-                    = self.unit_type_visual_info.get(transporter_type_id);
                 action::visualize_event_attach(
-                    state,
-                    xxx.scene,
-                    transporter_id,
-                    attached_unit_id,
-                    unit_type_visual_info,
-                    &mut self.map_text_manager,
-                )
+                    state, xxx, transporter_id, attached_unit_id)
             },
             Event::Detach{transporter_id, to, ..} => {
                 action::visualize_event_detach(
-                    state,
-                    xxx.scene,
-                    transporter_id,
-                    to,
-                    &self.mesh_ids,
-                    &self.unit_type_visual_info,
-                    &mut self.map_text_manager,
-                )
+                    state, xxx, transporter_id, to)
             },
             Event::SetReactionFireMode{unit_id, mode} => {
                 action::visualize_event_set_reaction_fire_mode(
-                    state,
-                    unit_id,
-                    mode,
-                    &mut self.map_text_manager,
-                )
+                    state, xxx, unit_id, mode)
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
                 action::visualize_event_sector_owner_changed(
-                    xxx.scene,
-                    state,
-                    sector_id,
-                    new_owner_id,
-                    &mut self.map_text_manager,
-                )
+                    state, xxx, sector_id, new_owner_id)
             }
             Event::VictoryPoint{pos, count, ..} => {
                 action::visualize_event_victory_point(
-                    pos,
-                    count,
-                    &mut self.map_text_manager,
-                )
+                    xxx, pos, count)
             }
             Event::Smoke{pos, unit_id, id} => {
                 action::visualize_event_smoke(
-                    xxx.scene,
-                    pos,
-                    unit_id,
-                    id,
-                    self.mesh_ids.smoke_mesh_id,
-                    &mut self.map_text_manager,
-                )
+                    xxx, pos, unit_id, id)
             }
             Event::RemoveSmoke{id} => {
                 action::visualize_event_remove_smoke(
-                    state,
-                    id,
-                    &mut self.map_text_manager,
-                )
+                    state, xxx, id)
             }
             Event::Reveal{..} => unreachable!(),
         };
@@ -952,8 +861,7 @@ impl TacticalScreen {
                     } => {
                         actions.extend(action::visualize_effect_attacked(
                             state,
-                            xxx.scene,
-                            &mut self.map_text_manager,
+                            xxx,
                             target_id,
                             killed,
                             leave_wrecks,
@@ -1080,11 +988,15 @@ impl TacticalScreen {
         // self.actions.front_mut().unwrap().begin(
         //     context, &mut player_info.scene);
         let action = self.actions.front_mut().unwrap();
+        // TODO: try to remove duplication of Xxx c-tor
         action.begin(action::Xxx {
             context: context,
             scene: &mut player_info.scene,
             camera: &player_info.camera,
             meshes: &mut self.meshes,
+            mesh_ids: &self.mesh_ids,
+            visual_info: &self.unit_type_visual_info,
+            text: &mut self.map_text_manager,
         });
     }
 
@@ -1092,15 +1004,6 @@ impl TacticalScreen {
         if let Some(action) = self.actions.front_mut() {
             let player_info = self.player_info.get_mut(self.core.player_id());
             action.update(context, &mut player_info.scene, dtime);
-
-            /*
-            // TODO: remove this test line
-            action.do_xxx(action::Xxx {
-                context: context,
-                scene: &mut player_info.scene,
-                meshes: &mut self.meshes,
-            });
-            */
         }
         while let Some(event) = self.core.get_event() {
             let is_new = self.actions.is_empty();
