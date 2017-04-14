@@ -776,7 +776,7 @@ impl TacticalScreen {
         let current_player_id = self.core.player_id();
         let mut player_info = self.player_info.get_mut(current_player_id);
         let state = &player_info.game_state;
-        let mut xxx = &mut action::Xxx {
+        let mut action_context = &mut action::ActionContext {
             context: context,
             scene: &mut player_info.scene,
             camera: &player_info.camera,
@@ -787,54 +787,54 @@ impl TacticalScreen {
         };
         let mut actions = match event.event {
             Event::Move{unit_id, to, ..} => {
-                action::visualize_event_move(state, xxx, unit_id, to)
+                action::visualize_event_move(state, action_context, unit_id, to)
             },
             Event::EndTurn{..} => Vec::new(),
             Event::CreateUnit{ref unit_info} => {
-                action::visualize_event_create_unit(state, xxx, unit_info)
+                action::visualize_event_create_unit(state, action_context, unit_info)
             },
             Event::AttackUnit{ref attack_info} => {
-                action::visualize_event_attack(state, xxx, attack_info)
+                action::visualize_event_attack(state, action_context, attack_info)
             },
             Event::ShowUnit{ref unit_info, ..} => {
-                action::visualize_event_show(state, xxx, unit_info)
+                action::visualize_event_show(state, action_context, unit_info)
             },
             Event::HideUnit{unit_id} => {
-                action::visualize_event_hide(xxx, unit_id)
+                action::visualize_event_hide(action_context, unit_id)
             },
             Event::LoadUnit{passenger_id, to, ..} => {
-                action::visualize_event_load(state, xxx, passenger_id, to)
+                action::visualize_event_load(state, action_context, passenger_id, to)
             },
             Event::UnloadUnit{ref unit_info, from, ..} => {
-                action::visualize_event_unload(state, xxx, unit_info, from)
+                action::visualize_event_unload(state, action_context, unit_info, from)
             },
             Event::Attach{transporter_id, attached_unit_id, ..} => {
                 action::visualize_event_attach(
-                    state, xxx, transporter_id, attached_unit_id)
+                    state, action_context, transporter_id, attached_unit_id)
             },
             Event::Detach{transporter_id, to, ..} => {
                 action::visualize_event_detach(
-                    state, xxx, transporter_id, to)
+                    state, action_context, transporter_id, to)
             },
             Event::SetReactionFireMode{unit_id, mode} => {
                 action::visualize_event_set_reaction_fire_mode(
-                    state, xxx, unit_id, mode)
+                    state, action_context, unit_id, mode)
             },
             Event::SectorOwnerChanged{sector_id, new_owner_id} => {
                 action::visualize_event_sector_owner_changed(
-                    state, xxx, sector_id, new_owner_id)
+                    state, action_context, sector_id, new_owner_id)
             }
             Event::VictoryPoint{pos, count, ..} => {
                 action::visualize_event_victory_point(
-                    xxx, pos, count)
+                    action_context, pos, count)
             }
             Event::Smoke{pos, unit_id, id} => {
                 action::visualize_event_smoke(
-                    xxx, pos, unit_id, id)
+                    action_context, pos, unit_id, id)
             }
             Event::RemoveSmoke{id} => {
                 action::visualize_event_remove_smoke(
-                    state, xxx, id)
+                    state, action_context, id)
             }
             Event::Reveal{..} => unreachable!(),
         };
@@ -861,7 +861,7 @@ impl TacticalScreen {
                     } => {
                         actions.extend(action::visualize_effect_attacked(
                             state,
-                            xxx,
+                            action_context,
                             target_id,
                             killed,
                             leave_wrecks,
@@ -988,8 +988,8 @@ impl TacticalScreen {
         // self.actions.front_mut().unwrap().begin(
         //     context, &mut player_info.scene);
         let action = self.actions.front_mut().unwrap();
-        // TODO: try to remove duplication of Xxx c-tor
-        action.begin(action::Xxx {
+        // TODO: try to remove duplication of ActionContext c-tor
+        action.begin(action::ActionContext {
             context: context,
             scene: &mut player_info.scene,
             camera: &player_info.camera,
