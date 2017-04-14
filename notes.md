@@ -251,19 +251,15 @@ And the question is - do i really need ActionText?
 
 ------
 
-TODO Черт, меня бесит что теперь повсюду будут летать
-изменяемые ссылки на Xxx, в котором ВСЕ.
+I hate all this mutable references to Xxx everywhere!
+Xxx contains all tactical screen state :-\
 
-По хорошему, при создании новых действий,
-ссылка должна быть только на чтение для всего,
-кроме выделение `node_id`, `mesh_id`.
-Тут без имзеняемости, видимо, никак.
+I want the creation of new actions to be fully declarative
+and non-destroying.
+But how can I allocate new `mesh_id` or `node_id` withut mutability?
 
-Что в Action::begin и т.п. будет изменяемый &mut Xxx
-меня уже не так волнует.
+I don't care much about `&mut Xxx` in Action::begin/update/end.
 
-Может, есть способ избавиться от mut тут?
-Эти айдишники мне нужны только же для связи Action'ов
-между собой. Хмм, могу я что-то другое использовать для этого?
-
-
+How can I get rid of the mut here?
+This IDs are needed only to connect Actions.
+Can I use something else to do it?..
