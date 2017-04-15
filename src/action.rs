@@ -103,6 +103,18 @@ impl Action for ActionSleep {
 }
 
 #[derive(Debug)]
+pub struct ActionChangeColor {
+    node_id: NodeId,
+    color: [f32; 4],
+}
+
+impl Action for ActionChangeColor {
+    fn begin(&mut self, context: ActionContext) {
+        context.scene.node_mut(self.node_id).color = self.color;
+    }
+}
+
+#[derive(Debug)]
 pub struct ActionRotateTo {
     node_id: NodeId,
     to: WorldPos,
@@ -736,11 +748,10 @@ pub fn visualize_event_unload(
         mesh_id: mesh_id,
         marker_mesh_id: marker_mesh_id,
     }) as Box<Action>);
-    //
-    // TODO: I need to use `node_id` here
-    // let action_move = ActionMove::new(
-    //     state, scene, unit.id, visual_info, unit.pos);
-    //
+    actions.push(Box::new(ActionRotateTo {
+        node_id: node_id,
+        to: to,
+    }));
     actions.push(Box::new(ActionMove {
         node_id: node_id,
         to: to,
@@ -749,7 +760,6 @@ pub fn visualize_event_unload(
     }));
     actions.extend(visualize_show_text(
         context, unit.pos.map_pos, "unloaded"));
-    // unit_node.rot = geom::get_rot_angle(from, to);
     actions
 }
 
@@ -764,15 +774,22 @@ pub fn visualize_event_load(
     let visual_info = context.visual_info.get(type_id);
     let passenger_pos = state.unit(passenger_id).pos;
     let to = geom::exact_pos_to_world_pos(state, transporter_pos);
-    let unit_node_id = context.scene.unit_id_to_node_id(passenger_id);
+    let node_id = context.scene.unit_id_to_node_id(passenger_id);
+    actions.push(Box::new(ActionRotateTo {
+        node_id: node_id,
+        to: to,
+    }) as Box<Action>);
     actions.push(Box::new(ActionMove {
-        node_id: unit_node_id,
+        node_id: node_id,
         to: to,
         speed: visual_info.move_speed,
         move_helper: None,
-    }) as Box<Action>);
-    actions.push(Box::new(ActionRemoveUnit{unit_id: passenger_id}));
-    actions.extend(visualize_show_text(context, passenger_pos.map_pos, "loaded"));
+    }));
+    actions.push(Box::new(ActionRemoveUnit {
+        unit_id: passenger_id,
+    }));
+    actions.extend(visualize_show_text(
+        context, passenger_pos.map_pos, "loaded"));
     actions
 }
 
@@ -796,6 +813,7 @@ pub fn visualize_event_sector_owner_changed(
     sector_id: SectorId,
     owner_id: Option<PlayerId>,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     // TODO: fix msg
     // "Sector {} secured by an enemy"
     // "Sector {} secured"
@@ -807,18 +825,18 @@ pub fn visualize_event_sector_owner_changed(
         Some(_) => unimplemented!(),
     };
     let node_id = context.scene.sector_id_to_node_id(sector_id);
-    // TODO: ActionChangeColor
-    {
-        let node = context.scene.node_mut(node_id); // TODO: ActionChangeColor
-        node.color = color;
-    }
+    actions.push(Box::new(ActionChangeColor {
+        node_id: node_id,
+        color: color,
+    }) as Box<Action>);
     let sector = &state.sectors()[&sector_id];
     let pos = sector.center();
     let text = match owner_id {
         Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
         None => format!("Sector {}: owner changed: None", sector_id.id),
     };
-    visualize_show_text(context, pos, &text)
+    actions.extend(visualize_show_text(context, pos, &text));
+    actions
 }
 
 pub fn visualize_event_victory_point(
