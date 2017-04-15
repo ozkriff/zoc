@@ -27,7 +27,6 @@ use unit_type_visual_info::{
     get_unit_type_visual_info
 };
 use selection::{SelectionManager};
-use map_text::{MapTextManager};
 use context::{Context};
 use mesh::{MeshId};
 use geom;
@@ -258,9 +257,6 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
 }
 
 pub struct TacticalScreen {
-    // TODO: replace with Actions!
-    map_text_manager: MapTextManager,
-
     gui: Gui,
 
     core: core::Core,
@@ -310,7 +306,6 @@ impl TacticalScreen {
         );
         let unit_type_visual_info
             = get_unit_type_visual_info(core.db(), context, &mut meshes);
-        let map_text_manager = MapTextManager::new();
         let gui = Gui::new(context, &player_info.get(core.player_id()).game_state);
         let selection_manager = SelectionManager::new(mesh_ids.selection_marker_mesh_id);
         for player_info in player_info.info.values_mut() {
@@ -326,7 +321,6 @@ impl TacticalScreen {
             unit_type_visual_info: unit_type_visual_info,
             selected_unit_id: None,
             selection_manager: selection_manager,
-            map_text_manager: map_text_manager,
             context_menu_popup_rx: None,
             reinforcements_popup_rx: None,
         };
@@ -746,11 +740,6 @@ impl TacticalScreen {
     fn draw(&mut self, context: &mut Context) {
         context.clear();
         self.draw_scene(context);
-        let player_info = self.player_info.get(self.core.player_id());
-
-        // TODO: Replace with ActionShowText!
-        self.map_text_manager.draw(context, &player_info.camera);
-
         context.set_basic_color([0.0, 0.0, 0.0, 1.0]);
         self.gui.button_manager.draw(context);
     }
@@ -783,7 +772,6 @@ impl TacticalScreen {
             meshes: &mut self.meshes,
             mesh_ids: &self.mesh_ids,
             visual_info: &self.unit_type_visual_info,
-            text: &mut self.map_text_manager,
         };
         let mut actions = match event.event {
             Event::Move{unit_id, to, ..} => {
@@ -996,7 +984,6 @@ impl TacticalScreen {
             meshes: &mut self.meshes,
             mesh_ids: &self.mesh_ids,
             visual_info: &self.unit_type_visual_info,
-            text: &mut self.map_text_manager,
         });
     }
 
@@ -1033,10 +1020,10 @@ impl TacticalScreen {
     }
 
     fn update(&mut self, context: &mut Context, dtime: Time) {
-        self.map_text_manager.update(context, dtime);
         self.update_actions(context, dtime);
         self.bobble_helicopters(context, dtime);
         self.update_fow(dtime);
+        // TODO: sort transparent nodes HERE, not in draw()
     }
 
     fn handle_context_menu_popup_command(

@@ -24,9 +24,10 @@ impl MoveHelper {
         }
     }
 
-    pub fn progress(&self) -> f32 {
-        self.current_dist.n / self.dist.n
-    }
+    // TODO: ?
+    // pub fn progress(&self) -> f32 {
+    //     self.current_dist.n / self.dist.n
+    // }
 
     pub fn is_finished(&self) -> bool {
         self.current_dist.n >= self.dist.n
@@ -37,9 +38,10 @@ impl MoveHelper {
         self.current
     }
 
-    pub fn current(&self) -> WorldPos {
-        self.current
-    }
+    // TODO: ?
+    // pub fn current(&self) -> WorldPos {
+    //     self.current
+    // }
 
     pub fn step_diff(&mut self, dtime: Time) -> Vector3<f32> {
         let step = self.dir * dtime.n as f32;

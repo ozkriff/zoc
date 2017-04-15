@@ -28,7 +28,6 @@ mod player_info;
 mod selection;
 mod types;
 mod pipeline;
-mod map_text;
 mod move_helper;
 mod camera;
 mod geom;

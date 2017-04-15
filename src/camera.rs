@@ -85,9 +85,10 @@ impl Camera {
         self.z_angle
     }
 
-    pub fn get_x_angle(&self) -> Rad<f32> {
-        self.x_angle
-    }
+    // TODO: Do I need this getter?
+    // pub fn get_x_angle(&self) -> Rad<f32> {
+    //     self.x_angle
+    // }
 
     pub fn move_in_direction(&mut self, direction: Rad<f32>, speed: f32) {
         let diff = self.z_angle - direction;

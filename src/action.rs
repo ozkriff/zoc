@@ -18,7 +18,6 @@ use gen;
 use scene::{Scene, SceneNode, SceneNodeType, NodeId};
 use unit_type_visual_info::{UnitTypeVisualInfoManager};
 use move_helper::{MoveHelper};
-use map_text::{MapTextManager};
 use mesh_manager::{MeshIdManager, MeshManager};
 use text;
 use pipeline::{Vertex};
@@ -36,9 +35,6 @@ pub struct ActionContext<'a> {
     pub context: &'a mut Context,
     pub meshes: &'a mut MeshManager,
     pub visual_info: &'a UnitTypeVisualInfoManager,
-
-    // TODO: REPLACE WITH `visualize_show_text`!!111
-    pub text: &'a mut MapTextManager,
 }
 
 pub trait Action: Debug {
@@ -51,12 +47,6 @@ pub trait Action: Debug {
     fn end(&mut self, _: &Context, _: &mut Scene) {}
 }
 
-// TODO: implement
-//
-// TODO: I need the camera's angle to make it work :-\ Context?
-// This ruins the idea of working with SceneGraph only :'-(
-// But I can mark SceneNode as `Sprite` so that scene itself will rotate it... Hmm...
-//
 #[derive(Debug)]
 pub struct ActionCreateTextMesh {
     text: String,
@@ -439,16 +429,16 @@ pub fn visualize_effect_attacked(
     killed: i32,
     leave_wrecks: bool,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let target = state.unit(target_id);
-    context.text.add_text(target.pos.map_pos, "attacked");
+    actions.extend(visualize_show_text(
+        context, target.pos.map_pos, "attacked"));
     if killed > 0 {
-        context.text.add_text(
-            target.pos.map_pos,
-            &format!("killed: {}", killed),
-        );
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, &format!("killed: {}", killed)));
     } else {
-        context.text.add_text(
-            target.pos.map_pos, "miss"); // TODO: check position
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, "miss")); // TODO: check position
     }
     // TODO: вертолеты, прицепы?
     let target_node_id = context.scene.unit_id_to_node_id(target_id);
@@ -499,7 +489,7 @@ pub fn visualize_effect_attacked(
     context.text.add_text(unit_pos, &text);
     */
     // TODO: визуализировать как-то
-    vec![]
+    actions
 }
 
 pub fn visualize_event_attack(
@@ -514,8 +504,8 @@ pub fn visualize_event_attack(
         let attacker_pos = context.scene.node(attacker_node_id).pos;
         let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
         if attack_info.mode == FireMode::Reactive {
-            // TODO: ActionText
-            context.text.add_text(attacker_map_pos, "reaction fire");
+            actions.extend(visualize_show_text(
+                context, attacker_map_pos, "reaction fire"));
         }
         let node_id = context.scene.allocate_node_id();
         actions.push(Box::new(ActionCreateNode {
@@ -546,7 +536,8 @@ pub fn visualize_event_attack(
         }));
     }
     if attack_info.is_ambush {
-        context.text.add_text(attack_info.target_pos.map_pos, "Ambushed");
+        actions.extend(visualize_show_text(
+            context, attack_info.target_pos.map_pos, "Ambushed"));
     };
     actions
 }
@@ -709,6 +700,7 @@ pub fn visualize_event_hide(
     context: &mut ActionContext,
     unit_id: UnitId,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     // passenger doesn't have any scene node
     if let Some(node_id) = context.scene.unit_id_to_node_id_opt(unit_id) {
         // We can't read 'pos' from `state.unit(unit_id).pos`
@@ -716,11 +708,12 @@ pub fn visualize_event_hide(
         // so State will filter him out.
         let world_pos = context.scene.node(node_id).pos;
         let map_pos = geom::world_pos_to_map_pos(world_pos);
-        context.text.add_text(map_pos, "lost");
-        vec![Box::new(ActionRemoveUnit{unit_id: unit_id})]
-    } else {
-        vec![]
+        actions.push(Box::new(ActionRemoveUnit {
+            unit_id: unit_id,
+        }) as Box<Action>);
+        actions.extend(visualize_show_text(context, map_pos, "lost"));
     }
+    actions
 }
 
 pub fn visualize_event_unload(
@@ -729,33 +722,35 @@ pub fn visualize_event_unload(
     unit: &Unit,
     transporter_pos: ExactPos,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let marker_mesh_id = context.mesh_ids.marker_mesh_id;
     let unit_visual_info = context.visual_info.get(unit.type_id);
     let mesh_id = context.visual_info.get(unit.type_id).mesh_id;
-    context.text.add_text(unit.pos.map_pos, "unloaded"); // TODO ActionText
     let to = geom::exact_pos_to_world_pos(state, unit.pos);
     let from = geom::exact_pos_to_world_pos(state, transporter_pos);
     let node_id = context.scene.allocate_node_id();
-    let action_create = Box::new(ActionCreateUnit {
+    actions.push(Box::new(ActionCreateUnit {
         pos: from,
         node_id: node_id,
         unit: unit.clone(),
         mesh_id: mesh_id,
         marker_mesh_id: marker_mesh_id,
-    });
+    }) as Box<Action>);
     //
     // TODO: I need to use `node_id` here
     // let action_move = ActionMove::new(
     //     state, scene, unit.id, visual_info, unit.pos);
     //
-    let action_move = Box::new(ActionMove {
+    actions.push(Box::new(ActionMove {
         node_id: node_id,
         to: to,
         speed: unit_visual_info.move_speed,
         move_helper: None,
-    });
+    }));
+    actions.extend(visualize_show_text(
+        context, unit.pos.map_pos, "unloaded"));
     // unit_node.rot = geom::get_rot_angle(from, to);
-    vec![action_create, action_move]
+    actions
 }
 
 pub fn visualize_event_load(
@@ -764,23 +759,21 @@ pub fn visualize_event_load(
     passenger_id: UnitId,
     transporter_pos: ExactPos,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let type_id = state.unit(passenger_id).type_id;
     let visual_info = context.visual_info.get(type_id);
-    let unit_pos = state.unit(passenger_id).pos;
-    context.text.add_text(unit_pos.map_pos, "loaded");
-    // let from = geom::exact_pos_to_world_pos(state, unit_pos);
+    let passenger_pos = state.unit(passenger_id).pos;
     let to = geom::exact_pos_to_world_pos(state, transporter_pos);
     let unit_node_id = context.scene.unit_id_to_node_id(passenger_id);
-    let speed = visual_info.move_speed;
-    vec![
-        Box::new(ActionMove {
-            node_id: unit_node_id,
-            to: to,
-            speed: speed,
-            move_helper: None,
-        }),
-        Box::new(ActionRemoveUnit{unit_id: passenger_id}),
-    ]
+    actions.push(Box::new(ActionMove {
+        node_id: unit_node_id,
+        to: to,
+        speed: visual_info.move_speed,
+        move_helper: None,
+    }) as Box<Action>);
+    actions.push(Box::new(ActionRemoveUnit{unit_id: passenger_id}));
+    actions.extend(visualize_show_text(context, passenger_pos.map_pos, "loaded"));
+    actions
 }
 
 pub fn visualize_event_set_reaction_fire_mode(
@@ -794,8 +787,7 @@ pub fn visualize_event_set_reaction_fire_mode(
         ReactionFireMode::Normal => "Normal fire mode",
         ReactionFireMode::HoldFire => "Hold fire",
     };
-    context.text.add_text(pos, text);
-    vec![]
+    visualize_show_text(context, pos, text)
 }
 
 pub fn visualize_event_sector_owner_changed(
@@ -815,16 +807,18 @@ pub fn visualize_event_sector_owner_changed(
         Some(_) => unimplemented!(),
     };
     let node_id = context.scene.sector_id_to_node_id(sector_id);
-    let node = context.scene.node_mut(node_id); // TODO: ActionChangeColor
-    node.color = color;
+    // TODO: ActionChangeColor
+    {
+        let node = context.scene.node_mut(node_id); // TODO: ActionChangeColor
+        node.color = color;
+    }
     let sector = &state.sectors()[&sector_id];
     let pos = sector.center();
     let text = match owner_id {
         Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
         None => format!("Sector {}: owner changed: None", sector_id.id),
     };
-    context.text.add_text(pos, &text);
-    vec![]
+    visualize_show_text(context, pos, &text)
 }
 
 pub fn visualize_event_victory_point(
@@ -833,27 +827,8 @@ pub fn visualize_event_victory_point(
     count: i32,
 ) -> Vec<Box<Action>> {
     let text = format!("+{} VP!", count);
-    context.text.add_text(pos, &text);
-    vec![Box::new(EventVictoryPointVisualizer{
-        time: Time{n: 0.0},
-        duration: Time{n: 1.0},
-    })]
-}
-
-#[derive(Debug)]
-pub struct EventVictoryPointVisualizer {
-    time: Time,
-    duration: Time,
-}
-
-impl Action for EventVictoryPointVisualizer {
-    fn is_finished(&self) -> bool {
-        self.time.n >= self.duration.n
-    }
-
-    fn update(&mut self, _: &Context, _: &mut Scene, dt: Time) {
-        self.time.n += dt.n;
-    }
+    // TODO: Sleep for 1 second
+    visualize_show_text(context, pos, &text)
 }
 
 const SMOKE_ALPHA: f32 = 0.7;
@@ -864,9 +839,10 @@ pub fn visualize_event_smoke(
     _: Option<UnitId>, // TODO
     object_id: ObjectId,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: ActionMove
-    context.text.add_text(pos, "smoke");
+    actions.extend(visualize_show_text(context, pos, "smoke"));
     let z_step = 0.45; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
@@ -880,13 +856,12 @@ pub fn visualize_event_smoke(
     node.pos.v.z += z_step;
     node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
     context.scene.add_object(object_id, node);
-    vec![
-        Box::new(EventSmokeVisualizer {
-            time: Time{n: 0.0},
-            duration: Time{n: 1.0},
-            object_id: object_id,
-        }),
-    ]
+    actions.push(Box::new(EventSmokeVisualizer {
+        time: Time{n: 0.0},
+        duration: Time{n: 1.0},
+        object_id: object_id,
+    }));
+    actions
 }
 
 #[derive(Debug)]
@@ -916,13 +891,15 @@ pub fn visualize_event_remove_smoke(
     context: &mut ActionContext,
     object_id: ObjectId,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let pos = state.objects()[&object_id].pos.map_pos;
-    context.text.add_text(pos, "smoke cleared");
-    vec![Box::new(EventRemoveSmokeVisualizer {
+    actions.push(Box::new(EventRemoveSmokeVisualizer {
         time: Time{n: 0.0},
         duration: Time{n: 1.0},
         object_id: object_id,
-    })]
+    }) as Box<Action>);
+    actions.extend(visualize_show_text(context, pos, "smoke cleared"));
+    actions
 }
 
 #[derive(Debug)]
@@ -957,29 +934,32 @@ pub fn visualize_event_attach(
     transporter_id: UnitId,
     attached_unit_id: UnitId,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let transporter_type_id = state.unit(transporter_id).type_id;
     let visual_info = context.visual_info.get(transporter_type_id);
     let transporter = state.unit(transporter_id);
     let attached_unit = state.unit(attached_unit_id);
-    context.text.add_text(transporter.pos.map_pos, "attached"); // TODO: ActionText
-    let from = geom::exact_pos_to_world_pos(state, transporter.pos);
+    // let from = geom::exact_pos_to_world_pos(state, transporter.pos);
     let to = geom::exact_pos_to_world_pos(state, attached_unit.pos);
+    let text_pos = transporter.pos.map_pos;
     let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
-    let unit_node = context.scene.node_mut(transporter_node_id);
-    unit_node.rot = geom::get_rot_angle(from, to);
-    let speed = visual_info.move_speed;
-    vec![
-        Box::new(ActionMove {
-            node_id: transporter_node_id,
-            to: to,
-            speed: speed,
-            move_helper: None,
-        }),
-        Box::new(ActionTryFixAttachedUnit {
-            unit_id: transporter_id,
-            attached_unit_id: attached_unit_id,
-        }),
-    ]
+    actions.push(Box::new(ActionMove {
+        node_id: transporter_node_id,
+        to: to,
+        speed: visual_info.move_speed,
+        move_helper: None,
+    }) as Box<Action>);
+    actions.extend(visualize_show_text(
+        context, text_pos, "attached"));
+    actions.push(Box::new(ActionTryFixAttachedUnit {
+        unit_id: transporter_id,
+        attached_unit_id: attached_unit_id,
+    }));
+    actions.push(Box::new(ActionRotateTo {
+        node_id: transporter_node_id,
+        to: to,
+    }) as Box<Action>);
+    actions
 }
 
 pub fn visualize_event_detach(
@@ -988,8 +968,8 @@ pub fn visualize_event_detach(
     transporter_id: UnitId,
     pos: ExactPos,
 ) -> Vec<Box<Action>> {
+    let mut actions = vec![];
     let transporter = state.unit(transporter_id);
-    context.text.add_text(transporter.pos.map_pos, "detached");
     let attached_unit_id = transporter.attached_unit_id.unwrap();
     let attached_unit = state.unit(attached_unit_id);
     let transporter_visual_info
@@ -1001,26 +981,26 @@ pub fn visualize_event_detach(
     let to = geom::exact_pos_to_world_pos(state, pos);
     let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
     let speed = transporter_visual_info.move_speed;
-    vec![
-        Box::new(ActionCreateUnit {
-            unit: attached_unit.clone(),
-            mesh_id: attached_unit_mesh_id,
-            marker_mesh_id: context.mesh_ids.marker_mesh_id,
-            pos: geom::exact_pos_to_world_pos(state, attached_unit.pos),
-            node_id: attached_unit_node_id,
-        }),
-        Box::new(ActionDetach {
-            from: from,
-            to: to,
-            transporter_node_id: transporter_node_id,
-        }),
-        Box::new(ActionMove {
-            node_id: transporter_node_id,
-            to: to,
-            speed: speed,
-            move_helper: None,
-        }),
-    ]
+    actions.push(Box::new(ActionCreateUnit {
+        unit: attached_unit.clone(),
+        mesh_id: attached_unit_mesh_id,
+        marker_mesh_id: context.mesh_ids.marker_mesh_id,
+        pos: geom::exact_pos_to_world_pos(state, attached_unit.pos),
+        node_id: attached_unit_node_id,
+    }) as Box<Action>);
+    actions.push(Box::new(ActionDetach {
+        from: from,
+        to: to,
+        transporter_node_id: transporter_node_id,
+    }));
+    actions.push(Box::new(ActionMove {
+        node_id: transporter_node_id,
+        to: to,
+        speed: speed,
+        move_helper: None,
+    }));
+    actions.extend(visualize_show_text(context, pos.map_pos, "detached"));
+    actions
 }
 
 #[derive(Debug)]
