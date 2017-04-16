@@ -9,7 +9,7 @@ use glutin::ElementState::{Released};
 use core;
 use core::map::{Terrain};
 use core::game_state::{State};
-use core::event::{CoreEvent, Event, Command, MoveMode, ReactionFireMode};
+use core::event::{Command, MoveMode, ReactionFireMode};
 use core::player::{PlayerId};
 use core::object::{Object, ObjectClass};
 use core::options::Options as CoreOptions;
@@ -17,11 +17,9 @@ use core::position::{self, MapPos, ExactPos, SlotId};
 use core::unit::{UnitId, UnitTypeId};
 use core::misc::{opt_rx_collect};
 use core::print_info::{print_pos_info};
-use core::effect::{self, /*Time, TimedEffect,*/ Effect};
 use gui::{ButtonManager, Button, ButtonId, is_tap};
 use scene::{Scene, NodeId, SceneNode, SceneNodeType};
 use action::{self, Action};
-
 use unit_type_visual_info::{
     UnitTypeVisualInfoManager,
     get_unit_type_visual_info
@@ -40,6 +38,7 @@ use gen;
 use pick;
 use player_info::{PlayerInfoManager, PlayerInfo};
 use mesh_manager::{MeshIdManager, MeshManager};
+use event_visualizer::{visualize_event};
 
 const FOW_FADING_TIME: f32 = 0.6;
 
@@ -156,6 +155,7 @@ impl Gui {
     }
 }
 
+// TODO: Use Actions?
 fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
     let mut scene = Scene::new();
     let map = state.map();
@@ -750,127 +750,6 @@ impl TacticalScreen {
         pick::pick_tile(context, state, camera)
     }
 
-    // TODO: Make this a standalone function and don't pass `&mut Scene` to
-    // Action c-tors. There're `update` and `end` methods to do this.
-    // Maybe I should add a `start` method to `Action` trait.
-    //
-    // Actually, I need `&mut Scene` for calling `allocate_node_id` :(
-    //
-    fn make_event_actions(
-        &mut self,
-        context: &mut Context,
-        event: &CoreEvent,
-    ) -> Vec<Box<Action>> {
-        println!("TacticalScreen::make_event_actions: event: {:?}\n", event);
-        let current_player_id = self.core.player_id();
-        let mut player_info = self.player_info.get_mut(current_player_id);
-        let state = &player_info.game_state;
-        let mut action_context = &mut action::ActionContext {
-            context: context,
-            scene: &mut player_info.scene,
-            camera: &player_info.camera,
-            meshes: &mut self.meshes,
-            mesh_ids: &self.mesh_ids,
-            visual_info: &self.unit_type_visual_info,
-        };
-        let mut actions = match event.event {
-            Event::Move{unit_id, to, ..} => {
-                action::visualize_event_move(state, action_context, unit_id, to)
-            },
-            Event::EndTurn{..} => Vec::new(),
-            Event::CreateUnit{ref unit_info} => {
-                action::visualize_event_create_unit(state, action_context, unit_info)
-            },
-            Event::AttackUnit{ref attack_info} => {
-                action::visualize_event_attack(state, action_context, attack_info)
-            },
-            Event::ShowUnit{ref unit_info, ..} => {
-                action::visualize_event_show(state, action_context, unit_info)
-            },
-            Event::HideUnit{unit_id} => {
-                action::visualize_event_hide(action_context, unit_id)
-            },
-            Event::LoadUnit{passenger_id, to, ..} => {
-                action::visualize_event_load(state, action_context, passenger_id, to)
-            },
-            Event::UnloadUnit{ref unit_info, from, ..} => {
-                action::visualize_event_unload(state, action_context, unit_info, from)
-            },
-            Event::Attach{transporter_id, attached_unit_id, ..} => {
-                action::visualize_event_attach(
-                    state, action_context, transporter_id, attached_unit_id)
-            },
-            Event::Detach{transporter_id, to, ..} => {
-                action::visualize_event_detach(
-                    state, action_context, transporter_id, to)
-            },
-            Event::SetReactionFireMode{unit_id, mode} => {
-                action::visualize_event_set_reaction_fire_mode(
-                    state, action_context, unit_id, mode)
-            },
-            Event::SectorOwnerChanged{sector_id, new_owner_id} => {
-                action::visualize_event_sector_owner_changed(
-                    state, action_context, sector_id, new_owner_id)
-            }
-            Event::VictoryPoint{pos, count, ..} => {
-                action::visualize_event_victory_point(
-                    action_context, pos, count)
-            }
-            Event::Smoke{pos, unit_id, id} => {
-                action::visualize_event_smoke(
-                    action_context, pos, unit_id, id)
-            }
-            Event::RemoveSmoke{id} => {
-                action::visualize_event_remove_smoke(
-                    state, action_context, id)
-            }
-            Event::Reveal{..} => unreachable!(),
-        };
-        //
-        // TODO: How should I visualize delayed effects?
-        // Should I show some icon above the unit?
-        //
-        for (&target_id, target_effects) in &event.effects {
-            println!("TacticalScreen::make_event_actions: effect <");
-            // let target = state.unit(target_id);
-            for effect in target_effects {
-                if effect.time != effect::Time::Instant {
-                    // TODO: don't forget to remove printlnes
-                    println!("TacticalScreen::make_event_actions: long effect");
-                    continue;
-                }
-                match effect.effect {
-                    Effect::Attacked {
-                        killed,
-                        // suppression, // TODO: print suppression
-                        leave_wrecks,
-                        // remove_move_points,
-                        ..
-                    } => {
-                        actions.extend(action::visualize_effect_attacked(
-                            state,
-                            action_context,
-                            target_id,
-                            killed,
-                            leave_wrecks,
-                        ));
-                    },
-                    // TODO: Implement rest of the effects
-                    Effect::Immobilized => {},
-                    Effect::WeaponBroken => {},
-                    Effect::ReducedMovementPoints(_) => {},
-                    Effect::ReducedAttackPoints(_) => {},
-                    Effect::Pinned => {},
-                    Effect::ReducedAccuracy(_) => {},
-                    Effect::Suppressed(_) => {},
-                    Effect::SoldierKilled(_) => {},
-                    Effect::VehicleDestroyed => {},
-                }
-            }
-        }
-        actions
-    }
-
     /// handle case when attacker == selected_unit and it dies from reaction fire
     fn attacker_died_from_reaction_fire(&mut self) {
         // TODO: ressurect this
@@ -955,8 +834,16 @@ impl TacticalScreen {
         self.attacker_died_from_reaction_fire();
         {
             let player_info = self.player_info.get_mut(self.core.player_id());
-            let scene = &mut player_info.scene;
-            self.actions.front_mut().unwrap().end(context, scene);
+            let action = self.actions.front_mut().unwrap();
+            let action_context = &mut action::ActionContext {
+                context: context,
+                scene: &mut player_info.scene,
+                camera: &player_info.camera,
+                meshes: &mut self.meshes,
+                mesh_ids: &self.mesh_ids,
+                visual_info: &self.unit_type_visual_info,
+            };
+            action.end(action_context);
         }
         self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {
@@ -977,24 +864,46 @@ impl TacticalScreen {
         //     context, &mut player_info.scene);
         let action = self.actions.front_mut().unwrap();
         // TODO: try to remove duplication of ActionContext c-tor
-        action.begin(action::ActionContext {
+        let action_context = &mut action::ActionContext {
             context: context,
             scene: &mut player_info.scene,
             camera: &player_info.camera,
             meshes: &mut self.meshes,
             mesh_ids: &self.mesh_ids,
             visual_info: &self.unit_type_visual_info,
-        });
+        };
+        action.begin(action_context);
     }
 
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
         if let Some(action) = self.actions.front_mut() {
             let player_info = self.player_info.get_mut(self.core.player_id());
-            action.update(context, &mut player_info.scene, dtime);
+            let action_context = &mut action::ActionContext {
+                context: context,
+                scene: &mut player_info.scene,
+                camera: &player_info.camera,
+                meshes: &mut self.meshes,
+                mesh_ids: &self.mesh_ids,
+                visual_info: &self.unit_type_visual_info,
+            };
+            action.update(action_context, dtime);
         }
         while let Some(event) = self.core.get_event() {
             let is_new = self.actions.is_empty();
-            let actions = self.make_event_actions(context, &event);
+            let actions = {
+                let current_player_id = self.core.player_id();
+                let mut player_info = self.player_info.get_mut(current_player_id);
+                let state = &player_info.game_state;
+                let mut action_context = &mut action::ActionContext {
+                    context: context,
+                    scene: &mut player_info.scene,
+                    camera: &player_info.camera,
+                    meshes: &mut self.meshes,
+                    mesh_ids: &self.mesh_ids,
+                    visual_info: &self.unit_type_visual_info,
+                };
+                visualize_event(state, &mut action_context, &event)
+            };
             self.actions.extend(actions);
             self.current_state_mut().apply_event(&event);
             if is_new && !self.actions.is_empty() {
