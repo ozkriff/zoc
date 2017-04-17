@@ -11,6 +11,7 @@ use unit_type_visual_info::{UnitTypeVisualInfoManager};
 use mesh_manager::{MeshIdManager, MeshManager};
 use camera::{Camera};
 
+mod remove_child;
 mod add_object;
 mod remove_object;
 mod create_unit;
@@ -27,6 +28,7 @@ mod create_text_mesh;
 mod create_node;
 mod remove_node;
 
+pub use self::remove_child::RemoveChild;
 pub use self::add_object::AddObject;
 pub use self::remove_object::RemoveObject;
 pub use self::create_unit::CreateUnit;
@@ -174,12 +176,7 @@ pub fn visualize_effect_attacked(
     state: &State,
     context: &mut ActionContext,
     target_id: UnitId,
-
     effect: &effect::Attacked,
-
-    // // TODO: pass arguments packed in EffectAttacked struct
-    // killed: i32,
-    // leave_wrecks: bool,
 ) -> Vec<Box<Action>> {
     let mut actions = vec![];
     let target = state.unit(target_id);
@@ -196,31 +193,37 @@ pub fn visualize_effect_attacked(
     let target_node_id = context.scene.unit_id_to_node_id(target_id);
     if effect.killed > 0 {
         // TODO: MoveTo (node)
-        let children = &mut context.scene.node_mut(target_node_id).children;
+        // let children = &mut context.scene.node_mut(target_node_id).children;
         let killed = effect.killed as usize;
-        assert!(killed <= children.len());
-        for i in 0 .. killed {
+        // assert!(killed <= children.len());
+        // for i in 0 .. killed {
+        for _ in 0 .. killed {
             if effect.leave_wrecks {
+                /*
                 // TODO: &mut ActionChangeColor
                 children[i].color = WRECKS_COLOR;
+                actions.push(SetColor::new(children[i], [1.0, 0.0, 0.0, 1.0]));
+                */
             } else {
-                let _ = children.remove(0);
+                actions.push(RemoveChild::new(target_node_id, 0)); // TODO: 0?
             }
         }
-    }
-    let is_target_destroyed = target.count - effect.killed <= 0;
-    if is_target_destroyed {
-        if target.attached_unit_id.is_some() {
-            // TODO: Action???
+        // /* // TODO: для начала реализую только пехоту
+        let is_target_destroyed = target.count - effect.killed <= 0;
+        if is_target_destroyed {
+            if target.attached_unit_id.is_some() {
+                // TODO: Action???
+                context.scene.node_mut(target_node_id).children.pop().unwrap();
+            }
+            // delete unit's marker
             context.scene.node_mut(target_node_id).children.pop().unwrap();
+            if !effect.leave_wrecks {
+                // TODO: ActionRemoveNode??
+                assert_eq!(context.scene.node(target_node_id).children.len(), 0);
+                context.scene.remove_node(target_node_id);
+            }
         }
-        // delete unit's marker
-        context.scene.node_mut(target_node_id).children.pop().unwrap();
-        if !effect.leave_wrecks {
-            // TODO: ActionRemoveNode??
-            assert_eq!(context.scene.node(target_node_id).children.len(), 0);
-            context.scene.remove_node(target_node_id);
-        }
+        // */
     }
     /*
     let mut text = String::new();

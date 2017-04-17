@@ -13,7 +13,6 @@ use action::{Action, ActionContext, WRECKS_COLOR};
 #[derive(Debug)]
 pub struct CreateUnit {
     unit: Unit,
-    mesh_id: MeshId,
     pos: WorldPos,
     node_id: NodeId,
 }
@@ -21,13 +20,11 @@ pub struct CreateUnit {
 impl CreateUnit {
     pub fn new(
         unit: Unit,
-        mesh_id: MeshId,
-        pos: WorldPos,
+        pos: WorldPos, // TODO: этот аргумент тоже не пердавать, заменить на SetPos
         node_id: NodeId,
     ) -> Box<Action> {
         Box::new(Self {
             unit: unit,
-            mesh_id: mesh_id,
             pos: pos,
             node_id: node_id,
         })
@@ -36,8 +33,9 @@ impl CreateUnit {
 
 impl Action for CreateUnit {
     fn begin(&mut self, context: &mut ActionContext) {
+        let mesh_id = context.visual_info.get(self.unit.type_id).mesh_id;
         let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-        let mut children = get_unit_scene_nodes(&self.unit, self.mesh_id);
+        let mut children = get_unit_scene_nodes(&self.unit, mesh_id);
         if self.unit.is_alive {
             children.push(SceneNode {
                 pos: WorldPos{v: geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)},

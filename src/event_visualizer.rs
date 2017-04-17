@@ -119,13 +119,11 @@ fn visualize_event_create_unit(
     context: &mut ActionContext,
     unit: &Unit,
 ) -> Vec<Box<Action>> {
-    let mesh_id = context.visual_info
-        .get(unit.type_id).mesh_id;
     let to = geom::exact_pos_to_world_pos(state, unit.pos);
     let from = WorldPos{v: to.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = context.scene.allocate_node_id();
     vec![
-        action::CreateUnit::new(unit.clone(), mesh_id, from, node_id),
+        action::CreateUnit::new(unit.clone(), from, node_id),
         action::MoveTo::new(node_id, Speed{n: 2.0}, to),
     ]
 }
@@ -215,11 +213,9 @@ fn visualize_event_show(
     unit: &Unit,
 ) -> Vec<Box<Action>> {
     let mut actions = vec![];
-    let mesh_id = context.visual_info.get(unit.type_id).mesh_id;
     let pos = geom::exact_pos_to_world_pos(state, unit.pos);
     let node_id = context.scene.allocate_node_id();
-    actions.push(action::CreateUnit::new(
-        unit.clone(), mesh_id, pos, node_id));
+    actions.push(action::CreateUnit::new(unit.clone(), pos, node_id));
     if let Some(attached_unit_id) = unit.attached_unit_id {
         actions.push(action::TryFixAttachedUnit::new(
             unit.id, attached_unit_id));
@@ -261,14 +257,13 @@ fn visualize_event_unload(
 ) -> Vec<Box<Action>> {
     let unit = unit.clone();
     let visual_info = context.visual_info.get(unit.type_id);
-    let mesh_id = context.visual_info.get(unit.type_id).mesh_id;
     let to = geom::exact_pos_to_world_pos(state, unit.pos);
     let from = geom::exact_pos_to_world_pos(state, transporter_pos);
     let node_id = context.scene.allocate_node_id();
     let speed = visual_info.move_speed;
     let text_pos = unit.pos.map_pos;
     let mut actions = vec![];
-    actions.push(action::CreateUnit::new(unit, mesh_id, from, node_id));
+    actions.push(action::CreateUnit::new(unit, from, node_id));
     actions.push(action::RotateTo::new(node_id, to));
     actions.push(action::MoveTo::new(node_id, speed, to));
     actions.extend(action::visualize_show_text(context, text_pos, "unloaded"));
@@ -418,8 +413,6 @@ fn visualize_event_detach(
     let attached_unit = state.unit(attached_unit_id);
     let transporter_visual_info
         = context.visual_info.get(transporter.type_id);
-    let attached_unit_mesh_id = context.visual_info
-        .get(attached_unit.type_id).mesh_id;
     let attached_unit_node_id = context.scene.allocate_node_id();
     let from = geom::exact_pos_to_world_pos(state, transporter.pos);
     let to = geom::exact_pos_to_world_pos(state, pos);
@@ -427,7 +420,6 @@ fn visualize_event_detach(
     let speed = transporter_visual_info.move_speed;
     actions.push(action::CreateUnit::new(
         attached_unit.clone(),
-        attached_unit_mesh_id,
         geom::exact_pos_to_world_pos(state, attached_unit.pos),
         attached_unit_node_id,
     ));
