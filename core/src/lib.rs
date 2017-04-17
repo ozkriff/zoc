@@ -210,12 +210,12 @@ impl Core {
                 let mut effects = HashMap::new();
                 let effect = TimedEffect {
                     time: Time::Instant,
-                    effect: Effect::Attacked {
+                    effect: Effect::Attacked(effect::Attacked {
                         killed: killed,
                         suppression: suppression + per_death_suppression * killed,
                         remove_move_points: false,
                         leave_wrecks: is_ground_vehicle,
-                    },
+                    }),
                 };
                 effects.insert(defender_id, vec![effect]);
                 effects

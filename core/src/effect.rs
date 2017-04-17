@@ -36,6 +36,8 @@ pub enum Effect {
     // применимо только к пехоте
     Pinned,
 
+    // Smoke(MapPos), // TODO ???
+
     ReducedAccuracy(i32), // TODO: ReducedAccuracy(i32, WeaponId)
 
     Suppressed(i32), // TODO: i32 -> Morale?
@@ -48,26 +50,25 @@ pub enum Effect {
     // применимо только к технике
     VehicleDestroyed,
 
-    // TODO: это временное событие
-    // потом надо будет разбить его на части
-    Attacked {
-        // TODO для начала можно все эти поля сложить в один эффект,
-        // Damage{...}, Time::Instant
-        // а уже потом бить его на части
+    Attacked(Attacked),
+}
 
-        // TODO в эффект "убито людей"
-        killed: i32,
+// TODO: это временное событие
+// потом надо будет разбить его на части
+#[derive(Clone, Debug, PartialEq)]
+pub struct Attacked {
+    // TODO в эффект "убито людей"
+    pub killed: i32,
 
-        // TODO в эффект "подавление"
-        suppression: i32,
+    // TODO в эффект "подавление"
+    pub suppression: i32,
 
-        // это точно нужно хранить?
-        // TODO: в эффект "юнит уничтожен"?
-        leave_wrecks: bool,
+    // это точно нужно хранить?
+    // TODO: в эффект "юнит уничтожен"?
+    pub leave_wrecks: bool,
 
-        remove_move_points: bool, // TODO: заменить на Effect::Pinned
-
-    },
+    // TODO: заменить на Effect::Pinned
+    pub remove_move_points: bool,
 }
 
 // TODO: если тут не будет методов, то затолкать содержимое effect.rs м event.rs

@@ -96,22 +96,11 @@ fn visualize_effect(
         return vec![];
     }
     match effect.effect {
-        Effect::Attacked {
-            killed,
-            // suppression, // TODO: print suppression
-            leave_wrecks,
-            // remove_move_points,
-            ..
-        } => {
+        Effect::Attacked(ref e) => {
             actions.extend(action::visualize_effect_attacked(
-                state,
-                context,
-                target_id,
-                killed,
-                leave_wrecks,
-            ));
+                state, context, target_id, e));
         },
-        // TODO: Implement rest of the effects
+        // TODO: Implement the rest of the effects
         Effect::Immobilized => {},
         Effect::WeaponBroken => {},
         Effect::ReducedMovementPoints(_) => {},

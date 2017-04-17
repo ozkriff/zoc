@@ -338,7 +338,8 @@ impl State {
     pub fn apply_effect(&mut self, effect: &Effect, target_id: UnitId) {
         match *effect {
             Effect::Immobilized => {},
-            Effect::Attacked{killed, suppression, leave_wrecks, remove_move_points} => {
+            // Effect::Attacked{killed, suppression, leave_wrecks, remove_move_points} => {
+            Effect::Attacked(ref e) => {
                 println!("State::apply_effect: Effect::Attacked");
                 // TODO: избавиться от всей этой акробатики с count,
                 // разбив на несколько эффектов
@@ -346,9 +347,9 @@ impl State {
                 {
                     let unit = self.units.get_mut(&target_id)
                         .expect("Can`t find defender");
-                    unit.count -= killed;
-                    unit.morale -= suppression;
-                    if remove_move_points {
+                    unit.count -= e.killed;
+                    unit.morale -= e.suppression;
+                    if e.remove_move_points {
                         if let Some(ref mut move_points) = unit.move_points {
                             move_points.n = 0;
                         }
@@ -369,7 +370,7 @@ impl State {
                         attached_unit.reactive_attack_points = Some(AttackPoints{n: 0});
                         attached_unit.move_points = Some(MovePoints{n: 0});
                     }
-                    if leave_wrecks {
+                    if e.leave_wrecks {
                         let unit = self.units.get_mut(&target_id).unwrap();
                         unit.attached_unit_id = None;
                         unit.passenger_id = None;

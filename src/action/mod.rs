@@ -2,6 +2,7 @@ use std::fmt::{Debug};
 use core::game_state::{State};
 use core::unit::{UnitId};
 use core::position::{MapPos};
+use core::effect;
 use types::{Time, Speed};
 use geom;
 use context::{Context};
@@ -42,6 +43,7 @@ pub use self::create_text_mesh::CreateTextMesh;
 pub use self::create_node::CreateNode;
 pub use self::remove_node::RemoveNode;
 
+// TODO: Move to some other place
 pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 // TODO: RENAME
@@ -172,29 +174,33 @@ pub fn visualize_effect_attacked(
     state: &State,
     context: &mut ActionContext,
     target_id: UnitId,
-    killed: i32,
-    leave_wrecks: bool,
+
+    effect: &effect::Attacked,
+
+    // // TODO: pass arguments packed in EffectAttacked struct
+    // killed: i32,
+    // leave_wrecks: bool,
 ) -> Vec<Box<Action>> {
     let mut actions = vec![];
     let target = state.unit(target_id);
     actions.extend(visualize_show_text(
         context, target.pos.map_pos, "attacked"));
-    if killed > 0 {
+    if effect.killed > 0 {
         actions.extend(visualize_show_text(
-            context, target.pos.map_pos, &format!("killed: {}", killed)));
+            context, target.pos.map_pos, &format!("killed: {}", effect.killed)));
     } else {
         actions.extend(visualize_show_text(
             context, target.pos.map_pos, "miss")); // TODO: check position
     }
     // TODO: вертолеты, прицепы?
     let target_node_id = context.scene.unit_id_to_node_id(target_id);
-    if killed > 0 {
+    if effect.killed > 0 {
         // TODO: MoveTo (node)
         let children = &mut context.scene.node_mut(target_node_id).children;
-        let killed = killed as usize;
+        let killed = effect.killed as usize;
         assert!(killed <= children.len());
         for i in 0 .. killed {
-            if leave_wrecks {
+            if effect.leave_wrecks {
                 // TODO: &mut ActionChangeColor
                 children[i].color = WRECKS_COLOR;
             } else {
@@ -202,7 +208,7 @@ pub fn visualize_effect_attacked(
             }
         }
     }
-    let is_target_destroyed = target.count - killed <= 0;
+    let is_target_destroyed = target.count - effect.killed <= 0;
     if is_target_destroyed {
         if target.attached_unit_id.is_some() {
             // TODO: Action???
@@ -210,7 +216,7 @@ pub fn visualize_effect_attacked(
         }
         // delete unit's marker
         context.scene.node_mut(target_node_id).children.pop().unwrap();
-        if !leave_wrecks {
+        if !effect.leave_wrecks {
             // TODO: ActionRemoveNode??
             assert_eq!(context.scene.node(target_node_id).children.len(), 0);
             context.scene.remove_node(target_node_id);
