@@ -1,11 +1,17 @@
+use std::f32::consts::{PI};
+use rand::{thread_rng, Rng};
+use cgmath::{Rad};
 use core::game_state::{State};
+use core::sector::{SectorId};
 use core::effect::{self, TimedEffect, Effect};
+use core::player::{PlayerId};
 use core::event::{CoreEvent, Event, FireMode, AttackInfo, ReactionFireMode};
 use core::unit::{Unit, UnitId};
-use core::position::{ExactPos};
+use core::position::{ExactPos, MapPos};
+use core::object::{ObjectId};
 use types::{WorldPos, Time, Speed};
 use geom;
-use scene::{/*Scene,*/ SceneNode, /*SceneNodeType, NodeId*/};
+use scene::{SceneNode, SceneNodeType};
 use action::{self, Action, ActionContext};
 
 // TODO: Make this a standalone function and don't pass `&mut Scene` to
@@ -44,11 +50,11 @@ pub fn visualize_event(
             visualize_event_unload(state, context, unit_info, from)
         },
         Event::Attach{transporter_id, attached_unit_id, ..} => {
-            action::visualize_event_attach(
+            visualize_event_attach(
                 state, context, transporter_id, attached_unit_id)
         },
         Event::Detach{transporter_id, to, ..} => {
-            action::visualize_event_detach(
+            visualize_event_detach(
                 state, context, transporter_id, to)
         },
         Event::SetReactionFireMode{unit_id, mode} => {
@@ -56,19 +62,19 @@ pub fn visualize_event(
                 state, context, unit_id, mode)
         },
         Event::SectorOwnerChanged{sector_id, new_owner_id} => {
-            action::visualize_event_sector_owner_changed(
+            visualize_event_sector_owner_changed(
                 state, context, sector_id, new_owner_id)
         }
         Event::VictoryPoint{pos, count, ..} => {
-            action::visualize_event_victory_point(
+            visualize_event_victory_point(
                 context, pos, count)
         }
         Event::Smoke{pos, unit_id, id} => {
-            action::visualize_event_smoke(
+            visualize_event_smoke(
                 context, pos, unit_id, id)
         }
         Event::RemoveSmoke{id} => {
-            action::visualize_event_remove_smoke(
+            visualize_event_remove_smoke(
                 state, context, id)
         }
         Event::Reveal{..} => unreachable!(),
@@ -76,6 +82,7 @@ pub fn visualize_event(
     actions.extend(visualize_effects(state, context, event));
     actions
 }
+
 fn visualize_effect(
     state: &State,
     context: &mut ActionContext,
@@ -172,7 +179,7 @@ fn visualize_event_move(
     actions
 }
 
-pub fn visualize_event_attack(
+fn visualize_event_attack(
     state: &State,
     context: &mut ActionContext,
     attack_info: &AttackInfo,
@@ -213,7 +220,7 @@ pub fn visualize_event_attack(
     actions
 }
 
-pub fn visualize_event_show(
+fn visualize_event_show(
     state: &State,
     context: &mut ActionContext,
     unit: &Unit,
@@ -239,7 +246,7 @@ pub fn visualize_event_show(
     actions
 }
 
-pub fn visualize_event_hide(
+fn visualize_event_hide(
     context: &mut ActionContext,
     unit_id: UnitId,
 ) -> Vec<Box<Action>> {
@@ -257,7 +264,7 @@ pub fn visualize_event_hide(
     actions
 }
 
-pub fn visualize_event_unload(
+fn visualize_event_unload(
     state: &State,
     context: &mut ActionContext,
     unit: &Unit,
@@ -279,7 +286,7 @@ pub fn visualize_event_unload(
     actions
 }
 
-pub fn visualize_event_load(
+fn visualize_event_load(
     state: &State,
     context: &mut ActionContext,
     passenger_id: UnitId,
@@ -300,7 +307,7 @@ pub fn visualize_event_load(
     actions
 }
 
-pub fn visualize_event_set_reaction_fire_mode(
+fn visualize_event_set_reaction_fire_mode(
     state: &State,
     context: &mut ActionContext,
     unit_id: UnitId,
@@ -312,4 +319,160 @@ pub fn visualize_event_set_reaction_fire_mode(
         ReactionFireMode::HoldFire => "Hold fire",
     };
     action::visualize_show_text(context, pos, text)
+}
+
+fn visualize_event_victory_point(
+    context: &mut ActionContext,
+    pos: MapPos,
+    count: i32,
+) -> Vec<Box<Action>> {
+    let text = format!("+{} VP!", count);
+    // TODO: Sleep for 1 second
+    action::visualize_show_text(context, pos, &text)
+}
+
+fn visualize_event_smoke(
+    context: &mut ActionContext,
+    pos: MapPos,
+
+    // TODO: I would be glad to show shell from the unit,
+    // BUT there should be only one shell for multiple events...
+    //
+    // Should I convert EventSmoke to effect? What whould be the event then? 
+    _: Option<UnitId>, // TODO
+
+    object_id: ObjectId,
+) -> Vec<Box<Action>> {
+    let mut actions = vec![];
+    let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
+    // TODO: show shell animation: MoveTo
+    actions.extend(action::visualize_show_text(context, pos, "smoke"));
+    let z_step = 0.45; // TODO: magic
+    let mut node = SceneNode {
+        pos: geom::map_pos_to_world_pos(pos),
+        mesh_id: Some(smoke_mesh_id),
+        node_type: SceneNodeType::Transparent,
+        color: [1.0, 1.0, 1.0, 0.0],
+        .. Default::default()
+    };
+    let final_color = [1.0, 1.0, 1.0, 0.7];
+    let time = Time{n: 0.5};
+    {
+        node.pos.v.z += z_step;
+        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
+        let node_id = context.scene.allocate_node_id();
+        actions.push(action::AddObject::new(object_id, node.clone(), node_id));
+        actions.push(action::ChangeColor::new(node_id, final_color, time));
+    }
+    {
+        node.pos.v.z += z_step;
+        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
+        let node_id = context.scene.allocate_node_id();
+        actions.push(action::AddObject::new(object_id, node, node_id));
+        actions.push(action::ChangeColor::new(node_id, final_color, time));
+    }
+    actions
+}
+
+fn visualize_event_remove_smoke(
+    state: &State,
+    context: &mut ActionContext,
+    object_id: ObjectId,
+) -> Vec<Box<Action>> {
+    let mut actions = vec![];
+    let pos = state.objects()[&object_id].pos.map_pos;
+    let node_ids = context.scene.object_id_to_node_id(object_id).clone();
+    let final_color = [1.0, 1.0, 1.0, 0.0];
+    let time = Time{n: 0.5};
+    for node_id in node_ids {
+        actions.push(action::ChangeColor::new(node_id, final_color, time));
+    }
+    actions.push(action::RemoveObject::new(object_id));
+    actions.extend(action::visualize_show_text(context, pos, "smoke cleared"));
+    actions
+}
+
+fn visualize_event_attach(
+    state: &State,
+    context: &mut ActionContext,
+    transporter_id: UnitId,
+    attached_unit_id: UnitId,
+) -> Vec<Box<Action>> {
+    let transporter_type_id = state.unit(transporter_id).type_id;
+    let visual_info = context.visual_info.get(transporter_type_id);
+    let transporter = state.unit(transporter_id);
+    let attached_unit = state.unit(attached_unit_id);
+    // let from = geom::exact_pos_to_world_pos(state, transporter.pos);
+    let to = geom::exact_pos_to_world_pos(state, attached_unit.pos);
+    let text_pos = transporter.pos.map_pos;
+    let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
+    let speed = visual_info.move_speed;
+    let mut actions = vec![];
+    actions.push(action::MoveTo::new(transporter_node_id, speed, to));
+    actions.extend(action::visualize_show_text(
+        context, text_pos, "attached"));
+    actions.push(action::TryFixAttachedUnit::new(
+        transporter_id, attached_unit_id));
+    actions.push(action::RotateTo::new(transporter_node_id, to));
+    actions
+}
+
+fn visualize_event_detach(
+    state: &State,
+    context: &mut ActionContext,
+    transporter_id: UnitId,
+    pos: ExactPos,
+) -> Vec<Box<Action>> {
+    let mut actions = vec![];
+    let transporter = state.unit(transporter_id);
+    let attached_unit_id = transporter.attached_unit_id.unwrap();
+    let attached_unit = state.unit(attached_unit_id);
+    let transporter_visual_info
+        = context.visual_info.get(transporter.type_id);
+    let attached_unit_mesh_id = context.visual_info
+        .get(attached_unit.type_id).mesh_id;
+    let attached_unit_node_id = context.scene.allocate_node_id();
+    let from = geom::exact_pos_to_world_pos(state, transporter.pos);
+    let to = geom::exact_pos_to_world_pos(state, pos);
+    let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
+    let speed = transporter_visual_info.move_speed;
+    actions.push(action::CreateUnit::new(
+        attached_unit.clone(),
+        attached_unit_mesh_id,
+        geom::exact_pos_to_world_pos(state, attached_unit.pos),
+        attached_unit_node_id,
+    ));
+    actions.push(action::Detach::new(from, to, transporter_node_id));
+    actions.push(action::MoveTo::new(transporter_node_id, speed, to));
+    actions.extend(action::visualize_show_text(context, pos.map_pos, "detached"));
+    actions
+}
+
+fn visualize_event_sector_owner_changed(
+    state: &State,
+    context: &mut ActionContext,
+    sector_id: SectorId,
+    owner_id: Option<PlayerId>,
+) -> Vec<Box<Action>> {
+    let mut actions = vec![];
+    // TODO: fix msg
+    // "Sector {} secured by an enemy"
+    // "Sector {} secured"
+    // "Sector {} lost" ??
+    let color = match owner_id {
+        None => [1.0, 1.0, 1.0, 0.5],
+        Some(PlayerId{id: 0}) => [0.0, 0.0, 0.8, 0.5],
+        Some(PlayerId{id: 1}) => [0.0, 0.8, 0.0, 0.5],
+        Some(_) => unimplemented!(),
+    };
+    let node_id = context.scene.sector_id_to_node_id(sector_id);
+    actions.push(action::SetColor::new(node_id, color));
+    let sector = &state.sectors()[&sector_id];
+    let pos = sector.center();
+    let text = match owner_id {
+        Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
+        None => format!("Sector {}: owner changed: None", sector_id.id),
+    };
+    actions.extend(action::visualize_show_text(context, pos, &text));
+    actions
 }

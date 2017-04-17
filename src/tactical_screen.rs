@@ -216,7 +216,8 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     None => [1.0, 1.0, 1.0, 1.0],
                 };
                 color[3] = 0.6;
-                scene.add_object(object_id, SceneNode {
+                let node_id = scene.allocate_node_id();
+                scene.add_object(node_id, object_id, SceneNode {
                     pos: pos,
                     rot: Rad(thread_rng().gen_range(0.0, PI * 2.0)),
                     mesh_id: Some(mesh_ids.reinforcement_sector_tile_mesh_id),
@@ -228,7 +229,8 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
             ObjectClass::Building => {
                 let pos = geom::exact_pos_to_world_pos(state, object.pos);
                 let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-                scene.add_object(object_id, SceneNode {
+                let node_id = scene.allocate_node_id();
+                scene.add_object(node_id, object_id, SceneNode {
                     pos: pos,
                     rot: rot,
                     mesh_id: Some(building_mesh_id(mesh_ids, object)),

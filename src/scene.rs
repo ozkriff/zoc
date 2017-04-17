@@ -222,12 +222,18 @@ impl Scene {
         node_id
     }
 
-    pub fn add_object(&mut self, object_id: ObjectId, node: SceneNode) -> NodeId {
-        let node_id = self.add_node(node);
+    pub fn add_object(
+        &mut self,
+        node_id: NodeId,
+        object_id: ObjectId,
+        node: SceneNode
+    ) {
+        // let node_id = self.add_node(node);
+        self.set_node(node_id, node);
         self.object_id_to_node_id_map.entry(object_id).or_insert_with(HashSet::new);
         let node_ids = self.object_id_to_node_id_map.get_mut(&object_id).unwrap();
         node_ids.insert(node_id);
-        node_id
+        // node_id
     }
 
     pub fn nodes(&self) -> &HashMap<NodeId, SceneNode> {
