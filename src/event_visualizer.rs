@@ -178,7 +178,9 @@ fn visualize_event_attack(
         // TODO: do this in some begin method?
         let attacker_node_id = context.scene.unit_id_to_node_id(attacker_id);
 
+        // TODO: this position is wrong in the other player's replay!
         let attacker_pos = context.scene.node(attacker_node_id).pos;
+
         let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
         if attack_info.mode == FireMode::Reactive {
             actions.extend(action::visualize_show_text(
@@ -392,12 +394,12 @@ fn visualize_event_attach(
     let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
     let speed = visual_info.move_speed;
     let mut actions = vec![];
+    actions.push(action::RotateTo::new(transporter_node_id, to));
     actions.push(action::MoveTo::new(transporter_node_id, speed, to));
-    actions.extend(action::visualize_show_text(
-        context, text_pos, "attached"));
     actions.push(action::TryFixAttachedUnit::new(
         transporter_id, attached_unit_id));
-    actions.push(action::RotateTo::new(transporter_node_id, to));
+    actions.extend(action::visualize_show_text(
+        context, text_pos, "attached"));
     actions
 }
 
@@ -423,7 +425,8 @@ fn visualize_event_detach(
         geom::exact_pos_to_world_pos(state, attached_unit.pos),
         attached_unit_node_id,
     ));
-    actions.push(action::Detach::new(from, to, transporter_node_id));
+    actions.push(action::Detach::new_from_to(transporter_node_id, from, to));
+    // TODO: action::RotateTo?
     actions.push(action::MoveTo::new(transporter_node_id, speed, to));
     actions.extend(action::visualize_show_text(context, pos.map_pos, "detached"));
     actions

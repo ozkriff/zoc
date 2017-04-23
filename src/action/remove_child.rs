@@ -4,7 +4,7 @@ use action::{Action, ActionContext};
 #[derive(Debug)]
 pub struct RemoveChild {
     parent_id: NodeId,
-    child_id: i32,
+    child_id: i32, // TODO: `ChildId`?
 }
 
 impl RemoveChild {

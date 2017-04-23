@@ -273,19 +273,8 @@ pub struct TacticalScreen {
 
     mesh_ids: MeshIdManager,
 
-    // TODO: how can i pass this to Actions?
-    // Actions have access to Scene and Context, but can't add meshes. Why?
-    // 
-    // Scenes are stored in `player_info` and are per-player.
-    // Meshes need not to be per-player.
-    // Hmmmm...
-    //
-    // Can I make tmp struct with this fields?
-    //
     meshes: MeshManager,
 
-    // TODO: The scenes are stored here. Thay are per-player.
-    // Can I somehow mege this with meshes?
     player_info: PlayerInfoManager,
 
     unit_type_visual_info: UnitTypeVisualInfoManager,
@@ -712,7 +701,8 @@ impl TacticalScreen {
             context.set_basic_color(node.color);
             context.draw_mesh(self.meshes.get(mesh_id));
         }
-        for node in &node.children {
+        for &node_id in &node.children {
+            let node = self.scene().node(node_id);
             self.draw_scene_node(context, node, m);
         }
     }
@@ -862,9 +852,8 @@ impl TacticalScreen {
         assert!(self.actions.len() > 0);
         self.hide_selected_unit_meshes(context);
         let player_info = self.player_info.get_mut(self.core.player_id());
-        // self.actions.front_mut().unwrap().begin(
-        //     context, &mut player_info.scene);
         let action = self.actions.front_mut().unwrap();
+        println!("begin_action: {:?}", action); // TODO
         // TODO: try to remove duplication of ActionContext c-tor
         let action_context = &mut action::ActionContext {
             context: context,

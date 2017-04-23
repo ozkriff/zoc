@@ -3,7 +3,7 @@ use core::game_state::{State};
 use core::unit::{UnitId};
 use core::position::{MapPos};
 use core::effect;
-use types::{Time, Speed};
+use types::{WorldPos, Time, Speed};
 use geom;
 use context::{Context};
 use scene::{Scene, SceneNode, SceneNodeType};
@@ -192,38 +192,33 @@ pub fn visualize_effect_attacked(
     // TODO: вертолеты, прицепы?
     let target_node_id = context.scene.unit_id_to_node_id(target_id);
     if effect.killed > 0 {
-        // TODO: MoveTo (node)
-        // let children = &mut context.scene.node_mut(target_node_id).children;
+        let children = context.scene.node_mut(target_node_id).children.clone(); // TODO: remove clone
         let killed = effect.killed as usize;
-        // assert!(killed <= children.len());
-        // for i in 0 .. killed {
-        for _ in 0 .. killed {
+        assert!(killed <= children.len());
+        for i in 0 .. killed {
             if effect.leave_wrecks {
-                /*
-                // TODO: &mut ActionChangeColor
-                children[i].color = WRECKS_COLOR;
-                actions.push(SetColor::new(children[i], [1.0, 0.0, 0.0, 1.0]));
-                */
+                actions.push(SetColor::new(children[i], WRECKS_COLOR));
             } else {
-                actions.push(RemoveChild::new(target_node_id, 0)); // TODO: 0?
+                {
+                    let pos = context.scene.node(children[i]).pos;
+                    let to = WorldPos{v: pos.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+                    actions.push(MoveTo::new(children[i], Speed{n: 1.0}, to));
+                }
+                actions.push(RemoveChild::new(target_node_id, 0));
             }
         }
-        // /* // TODO: для начала реализую только пехоту
         let is_target_destroyed = target.count - effect.killed <= 0;
         if is_target_destroyed {
             if target.attached_unit_id.is_some() {
-                // TODO: Action???
-                context.scene.node_mut(target_node_id).children.pop().unwrap();
+                actions.push(RemoveChild::new(target_node_id, 0));
             }
-            // delete unit's marker
-            context.scene.node_mut(target_node_id).children.pop().unwrap();
+            let marker_child_id = (children.len() - killed) as i32 - 1;
+            actions.push(RemoveChild::new(target_node_id, marker_child_id));
             if !effect.leave_wrecks {
-                // TODO: ActionRemoveNode??
-                assert_eq!(context.scene.node(target_node_id).children.len(), 0);
-                context.scene.remove_node(target_node_id);
+                // assert_eq!(children.len(), 0); // TODO: how can i check this now?
+                actions.push(RemoveUnit::new(target_id));
             }
         }
-        // */
     }
     /*
     let mut text = String::new();

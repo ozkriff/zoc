@@ -160,15 +160,13 @@ fn logic(&mut self, context: &mut Context) {
     // NOTE: если я буду много удалять из начала вектора, то, наверное
     // лучше взять тут VecDeque?
     //
-    /*
-    if self.event_visualizer.is_none() {
-        if let Some(event) = self.core.get_event() {
-            self.start_event_visualization(context, event);
-        }
-    } else if self.is_event_visualization_finished() {
-        self.end_event_visualization(context);
-    }
-    */
+    // if self.event_visualizer.is_none() {
+    //     if let Some(event) = self.core.get_event() {
+    //         self.start_event_visualization(context, event);
+    //     }
+    // } else if self.is_event_visualization_finished() {
+    //     self.end_event_visualization(context);
+    // }
 }
 ```
 
@@ -263,3 +261,15 @@ I don't care much about `&mut Xxx` in Action::begin/update/end.
 How can I get rid of the mut here?
 This IDs are needed only to connect Actions.
 Can I use something else to do it?..
+
+------
+
+TODO:
+
+- src/screens/tactical/mod.rs
+  - .../action/mod.rs
+- src/screens/main/mod.rs
+- src/screens/end_turn/mod.rs
+- независимость гуя от размера экрана!111
+- тени!11
+- update gfx

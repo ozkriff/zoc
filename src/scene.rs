@@ -8,9 +8,21 @@ use core::sector::{SectorId};
 use types::{WorldPos};
 use mesh::{MeshId};
 
+// TODO: rename and move to some better place
+// TODO: functuin -> trait method, implemented for Vec
+fn vec_rem_opt<T: PartialEq>(vec: &mut Vec<T>, value: T) -> Option<T> {
+    // TODO: separate two steps: 1-find, 2-remove
+    vec.iter().position(|n| *n == value).map(|pos| vec.swap_remove(pos))
+}
+
+fn vec_rem<T: PartialEq>(vec: &mut Vec<T>, value: T) {
+    vec_rem_opt(vec, value).unwrap();
+}
+
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct NodeId{pub id: i32}
 
+// TODO: Rename to NodeType
 #[derive(Clone, Copy, Debug)]
 pub enum SceneNodeType {
     Normal,
@@ -18,6 +30,7 @@ pub enum SceneNodeType {
     StaticTransparentPlane,
 }
 
+// TODO: Rename to Node
 // TODO: Builder constructor
 #[derive(Clone, Debug)]
 pub struct SceneNode {
@@ -25,7 +38,7 @@ pub struct SceneNode {
     pub rot: Rad<f32>, // TODO: Store Matrix3 here?
     pub mesh_id: Option<MeshId>,
     pub color: [f32; 4],
-    pub children: Vec<SceneNode>, // TODO: NodeId
+    pub children: Vec<NodeId>,
 
     // TODO: прямо при создании спрашивать это дело
     // а не только на основе color.
@@ -56,29 +69,9 @@ pub struct Scene {
     sector_id_to_node_id_map: HashMap<SectorId, NodeId>,
     object_id_to_node_id_map: HashMap<ObjectId, HashSet<NodeId>>,
     nodes: HashMap<NodeId, SceneNode>,
-
-    // TODO: удалить к черту
-    // TODO: заменить на честную покадровую сортировку
-    // TODO: прямо при создании узла спрашивать - прозрачный он или нет
-    //
-    // сначала рисовать все обычные узлы,
-    // затем, отдельным проходом - прозрачные
-    //
-    // обычные узлы хранить тупо вектором,
-    // прозрачные - btreemap с ежекадровым пересчетом по Z узла
-    //
-    // отказаться от слоев. нафиг они вообще?
-    //
-    // даже не так - хранить сами SceneNode в огромном хэшмапе или векторе,
-    // а айдишники хранить в отдельных мапах - прозрачные и непрозрачные.
-    // это могут быть даже не мапы а просто веткора.
-    // и вот этот вектор уже деструктивно сортировать каждый кадр.
-    // поточиеще мыслей
-    //
     normal_node_ids: Vec<NodeId>,
     transparent_node_ids: Vec<NodeId>,
     static_plane_node_ids: Vec<NodeId>,
-
     next_id: NodeId,
 }
 
@@ -115,21 +108,15 @@ impl Scene {
     // TODO: Move all Actions to this module and remove all other ways
     // to directly mutate the scene (methods taking `&mut self`)!
     pub fn remove_node(&mut self, node_id: NodeId) {
+        // TODO: remove children?
         let node_type = self.node(node_id).node_type;
         self.nodes.remove(&node_id).unwrap();
         match node_type {
-            // TODO: remove from specialized vectors
             SceneNodeType::Normal => {
-                self.normal_node_ids.iter()
-                    .position(|&n| n == node_id)
-                    .map(|e| self.normal_node_ids.swap_remove(e))
-                    .unwrap();
+                vec_rem(&mut self.normal_node_ids, node_id);
             },
             SceneNodeType::Transparent => {
-                self.transparent_node_ids.iter()
-                    .position(|&n| n == node_id)
-                    .map(|e| self.transparent_node_ids.swap_remove(e))
-                    .unwrap();
+                vec_rem(&mut self.transparent_node_ids, node_id);
             },
             SceneNodeType::StaticTransparentPlane => {
                 // Thay are not removable!
@@ -153,11 +140,35 @@ impl Scene {
         });
     }
 
-    pub fn set_node(&mut self, node_id: NodeId, node: SceneNode) {
+    fn set_node_internal(&mut self, node_id: NodeId, node: SceneNode) {
         assert!(!self.nodes.contains_key(&node_id));
         // TODO: node.color[3] < 1.0;
-        let node_type = node.node_type;
         self.nodes.insert(node_id, node);
+    }
+
+    pub fn attach_node(&mut self, parent_id: NodeId, child_id: NodeId) {
+        self.node_mut(parent_id).children.push(child_id);
+        let _ = vec_rem_opt(&mut self.normal_node_ids, child_id);
+    }
+
+    pub fn detach_node(&mut self, parent_id: NodeId, node_id: NodeId) {
+        vec_rem(&mut self.node_mut(parent_id).children, node_id);
+        self.normal_node_ids.push(node_id);
+    }
+
+    pub fn set_child_node(
+        &mut self,
+        parent_id: NodeId,
+        child_id: NodeId,
+        node: SceneNode,
+    ) {
+        self.set_node_internal(child_id, node);
+        self.attach_node(parent_id, child_id);
+    }
+
+    pub fn set_node(&mut self, node_id: NodeId, node: SceneNode) {
+        let node_type = node.node_type;
+        self.set_node_internal(node_id, node);
         match node_type {
             SceneNodeType::Normal => {
                 // Need no sorting
@@ -209,7 +220,6 @@ impl Scene {
         unit_id: UnitId,
         node: SceneNode,
     ) {
-        // let node_id = self.add_node(node);
         self.set_node(node_id, node);
         assert!(!self.unit_id_to_node_id_map.contains_key(&unit_id));
         self.unit_id_to_node_id_map.insert(unit_id, node_id);
@@ -228,12 +238,10 @@ impl Scene {
         object_id: ObjectId,
         node: SceneNode
     ) {
-        // let node_id = self.add_node(node);
         self.set_node(node_id, node);
         self.object_id_to_node_id_map.entry(object_id).or_insert_with(HashSet::new);
         let node_ids = self.object_id_to_node_id_map.get_mut(&object_id).unwrap();
         node_ids.insert(node_id);
-        // node_id
     }
 
     pub fn nodes(&self) -> &HashMap<NodeId, SceneNode> {

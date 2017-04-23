@@ -20,7 +20,7 @@ pub struct CreateUnit {
 impl CreateUnit {
     pub fn new(
         unit: Unit,
-        pos: WorldPos, // TODO: этот аргумент тоже не пердавать, заменить на SetPos
+        pos: WorldPos, // TODO: этот аргумент не пердавать, заменить на action::SetPos
         node_id: NodeId,
     ) -> Box<Action> {
         Box::new(Self {
@@ -34,49 +34,59 @@ impl CreateUnit {
 impl Action for CreateUnit {
     fn begin(&mut self, context: &mut ActionContext) {
         let mesh_id = context.visual_info.get(self.unit.type_id).mesh_id;
-        let rot = Rad(thread_rng().gen_range(0.0, PI * 2.0));
-        let mut children = get_unit_scene_nodes(&self.unit, mesh_id);
+        context.scene.add_unit(self.node_id, self.unit.id, SceneNode {
+            pos: self.pos,
+            rot: Rad(thread_rng().gen_range(0.0, PI * 2.0)),
+            .. Default::default()
+        });
+        set_children(context, self.node_id, &self.unit, mesh_id);
         if self.unit.is_alive {
-            children.push(SceneNode {
+            let id = context.scene.allocate_node_id();
+            context.scene.set_child_node(self.node_id, id, SceneNode {
                 pos: WorldPos{v: geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)},
                 mesh_id: Some(context.mesh_ids.marker_mesh_id),
                 color: gen::get_player_color(self.unit.player_id),
                 .. Default::default()
             });
         }
-        context.scene.add_unit(self.node_id, self.unit.id, SceneNode {
-            pos: self.pos,
-            rot: rot,
-            children: children,
-            .. Default::default()
-        });
     }
 }
 
-fn get_unit_scene_nodes(unit: &Unit, mesh_id: MeshId) -> Vec<SceneNode> {
+// TODO: rename
+// TODO: BLOB SHADOWS
+fn set_children(
+    context: &mut ActionContext,
+    parent_id: NodeId,
+    unit: &Unit,
+    mesh_id: MeshId,
+) {
     let color = if unit.is_alive {
         [1.0, 1.0, 1.0, 1.0]
     } else {
         WRECKS_COLOR
     };
-    let mut vec = Vec::new();
+    let base_node = SceneNode {
+        mesh_id: Some(mesh_id),
+        color: color,
+        .. Default::default()
+    };
     if unit.count == 1 {
-        vec![SceneNode {
+        let id = context.scene.allocate_node_id();
+        let node = SceneNode {
             pos: WorldPos{v: Vector3{x: 0.0, y: 0.0, z: 0.0}},
-            mesh_id: Some(mesh_id),
-            color: color,
-            .. Default::default()
-        }]
+            ..base_node.clone()
+        };
+        context.scene.set_child_node(parent_id, id, node);
     } else {
         for i in 0 .. unit.count {
+            let id = context.scene.allocate_node_id();
             let pos = geom::index_to_circle_vertex(unit.count, i).v * 0.15;
-            vec.push(SceneNode {
-                pos: WorldPos{v: pos},
-                mesh_id: Some(mesh_id),
-                color: color,
-                .. Default::default()
-            });
+            let world_pos = WorldPos{v: pos};
+            let node = SceneNode {
+                pos: world_pos,
+                ..base_node.clone()
+            };
+            context.scene.set_child_node(parent_id, id, node);
         }
-        vec
     }
 }
