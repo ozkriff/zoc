@@ -222,7 +222,7 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     rot: Rad(thread_rng().gen_range(0.0, PI * 2.0)),
                     mesh_id: Some(mesh_ids.reinforcement_sector_tile_mesh_id),
                     color: color,
-                    node_type: SceneNodeType::StaticTransparentPlane,
+                    node_type: SceneNodeType::Transparent,
                     .. Default::default()
                 });
             },
@@ -351,6 +351,7 @@ impl TacticalScreen {
         self.regenerate_fow();
     }
 
+    // TODO: use Actions!
     fn regenerate_fow(&mut self) {
         let player_info = self.player_info.get_mut(self.core.player_id());
         let fow = &mut player_info.fow_info;

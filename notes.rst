@@ -273,3 +273,5 @@ TODO:
 - независимость гуя от размера экрана!111
 - тени!11
 - update gfx
+- SceneNode -> Node
+- logging

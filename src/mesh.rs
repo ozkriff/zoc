@@ -14,6 +14,8 @@ pub struct MeshId{pub id: i32}
 pub enum MeshType {
     Normal,
     Wire,
+
+    // TODO: эта хрень точно не должна быть свойством узла?
     NoDepth,
 }
 
@@ -66,6 +68,10 @@ impl Mesh {
 
     pub fn texture(&self) -> &Texture {
         &self.texture
+    }
+
+    pub fn set_render_type(&mut self, render_type: MeshType) {
+        self.render_type = render_type;
     }
 
     pub fn render_type(&self) -> MeshType {

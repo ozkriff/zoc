@@ -27,7 +27,6 @@ pub struct NodeId{pub id: i32}
 pub enum SceneNodeType {
     Normal,
     Transparent,
-    StaticTransparentPlane,
 }
 
 // TODO: Rename to Node
@@ -118,10 +117,6 @@ impl Scene {
             SceneNodeType::Transparent => {
                 vec_rem(&mut self.transparent_node_ids, node_id);
             },
-            SceneNodeType::StaticTransparentPlane => {
-                // Thay are not removable!
-                unimplemented!();
-            },
         }
     }
 
@@ -171,22 +166,10 @@ impl Scene {
         self.set_node_internal(node_id, node);
         match node_type {
             SceneNodeType::Normal => {
-                // Need no sorting
                 self.normal_node_ids.push(node_id);
             },
             SceneNodeType::Transparent => {
-                // TODO: I don't need any sorting here
-                // because it'll be done on next frame anyway
                 self.transparent_node_ids.push(node_id);
-            },
-            SceneNodeType::StaticTransparentPlane => {
-                self.static_plane_node_ids.push(node_id);
-                let nodes = &self.nodes;
-                self.static_plane_node_ids.sort_by(|a, b| {
-                    let a_z = nodes[a].pos.v.z;
-                    let b_z = nodes[b].pos.v.z;
-                    b_z.partial_cmp(&a_z).unwrap_or(Ordering::Equal)
-                });
             },
         }
     }

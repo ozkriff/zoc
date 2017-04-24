@@ -12,7 +12,7 @@ use core::game_state::{State};
 use core::check::{check_command};
 use context::{Context};
 use texture::{Texture, load_texture};
-use mesh::{Mesh};
+use mesh::{Mesh, MeshType};
 use pipeline::{Vertex};
 use core::dir::{Dir, dirs};
 use geom;
@@ -127,7 +127,12 @@ pub fn build_walkable_mesh(
     Mesh::new_wireframe(context, &vertices, &indices)
 }
 
-pub fn build_targets_mesh(db: &Db, context: &mut Context, state: &State, unit_id: UnitId) -> Mesh {
+pub fn build_targets_mesh(
+    db: &Db,
+    context: &mut Context,
+    state: &State,
+    unit_id: UnitId,
+) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let unit = state.unit(unit_id);
@@ -202,6 +207,12 @@ pub fn get_marker<P: AsRef<Path>>(context: &mut Context, tex_path: P) -> Mesh {
     let texture_data = fs::load(tex_path).into_inner();
     let texture = load_texture(context, &texture_data);
     Mesh::new(context, &vertices, &indices, texture)
+}
+
+pub fn get_one_tile_mesh_transparent(context: &mut Context, texture: Texture) -> Mesh {
+    let mut mesh = get_one_tile_mesh(context, texture);
+    mesh.set_render_type(MeshType::NoDepth);
+    mesh
 }
 
 pub fn get_one_tile_mesh(context: &mut Context, texture: Texture) -> Mesh {

@@ -64,10 +64,12 @@ impl MeshIdManager {
             water_mesh_id: meshes.add(gen::generate_water_mesh(
                 context, state, floor_tex.clone())),
             selection_marker_mesh_id: meshes.add(get_selection_mesh(context)),
-            smoke_mesh_id: meshes.add(gen::get_one_tile_mesh(context, smoke_tex)),
-            fow_tile_mesh_id: meshes.add(gen::get_one_tile_mesh(context, floor_tex)),
+            smoke_mesh_id: meshes.add(
+                gen::get_one_tile_mesh_transparent(context, smoke_tex)),
+            fow_tile_mesh_id: meshes.add(
+                gen::get_one_tile_mesh_transparent(context, floor_tex)),
             reinforcement_sector_tile_mesh_id: meshes.add(
-                gen::get_one_tile_mesh(context, reinforcement_sector_tex)),
+                gen::get_one_tile_mesh_transparent(context, reinforcement_sector_tex)),
             sector_mesh_ids: {
                 let mut sector_mesh_ids = HashMap::new();
                 for (&id, sector) in state.sectors() {
@@ -95,7 +97,6 @@ pub fn load_object_mesh(context: &mut Context, name: &str) -> Mesh {
 
 #[derive(Clone, Debug)]
 pub struct MeshManager {
-    // meshes: Vec<Mesh>, // TODO: Use HashMap?!
     meshes: HashMap<MeshId, Mesh>,
     next_id: MeshId,
 }
@@ -103,7 +104,6 @@ pub struct MeshManager {
 impl MeshManager {
     pub fn new() -> MeshManager {
         MeshManager {
-            // meshes: Vec::new(),
             meshes: HashMap::new(),
             next_id: MeshId{id: 0},
         }

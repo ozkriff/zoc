@@ -333,7 +333,7 @@ fn visualize_event_smoke(
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: MoveTo
     actions.extend(action::visualize_show_text(context, pos, "smoke"));
-    let z_step = 0.45; // TODO: magic
+    let z_step = 0.30; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
         mesh_id: Some(smoke_mesh_id),
@@ -343,18 +343,11 @@ fn visualize_event_smoke(
     };
     let final_color = [1.0, 1.0, 1.0, 0.7];
     let time = Time{n: 0.5};
-    {
+    for _ in 0..2 {
         node.pos.v.z += z_step;
         node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
         let node_id = context.scene.allocate_node_id();
         actions.push(action::AddObject::new(object_id, node.clone(), node_id));
-        actions.push(action::ChangeColor::new(node_id, final_color, time));
-    }
-    {
-        node.pos.v.z += z_step;
-        node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
-        let node_id = context.scene.allocate_node_id();
-        actions.push(action::AddObject::new(object_id, node, node_id));
         actions.push(action::ChangeColor::new(node_id, final_color, time));
     }
     actions
