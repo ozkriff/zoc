@@ -172,6 +172,7 @@ pub struct EventAttackUnitVisualizer {
 */
 
 // TODO: split this effect into many
+// TODO: move to event_visualizer.rs
 pub fn visualize_effect_attacked(
     state: &State,
     context: &mut ActionContext,
@@ -212,7 +213,11 @@ pub fn visualize_effect_attacked(
             if target.attached_unit_id.is_some() {
                 actions.push(RemoveChild::new(target_node_id, 0));
             }
-            let marker_child_id = (children.len() - killed) as i32 - 1;
+            let marker_child_id = if effect.leave_wrecks {
+                children.len() as i32
+            } else {
+                (children.len() - killed) as i32
+            } - 1;
             actions.push(RemoveChild::new(target_node_id, marker_child_id));
             if !effect.leave_wrecks {
                 // assert_eq!(children.len(), 0); // TODO: how can i check this now?

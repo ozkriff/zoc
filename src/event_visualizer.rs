@@ -243,6 +243,9 @@ fn visualize_event_hide(
         // We can't read 'pos' from `state.unit(unit_id).pos`
         // because this unit may be in a fogged tile now
         // so State will filter him out.
+        //
+        // TODO: Read the position in begin action!
+        //
         let world_pos = context.scene.node(node_id).pos;
         let map_pos = geom::world_pos_to_map_pos(world_pos);
         actions.push(action::RemoveUnit::new(unit_id));
