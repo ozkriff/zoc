@@ -266,12 +266,21 @@ Can I use something else to do it?..
 
 TODO:
 
-- src/screens/tactical/mod.rs
-  - .../action/mod.rs
-- src/screens/main/mod.rs
-- src/screens/end_turn/mod.rs
-- независимость гуя от размера экрана!111
-- тени!11
-- update gfx
-- SceneNode -> Node
-- logging
+- before:
+  - [ ] fix smoke transparacy
+  - [ ] fix FoW
+  - [ ] fork action
+  - [ ] fix text labels
+  - [ ] arc trajectory for mortar
+  - [ ] smoke event -> smoke effect + shell visualization
+  - [ ] `new -> Box<Action>` -> `new -> Self`
+- after:
+  - src/screens/tactical/mod.rs
+    - .../action/mod.rs
+  - src/screens/main/mod.rs
+  - src/screens/end_turn/mod.rs
+  - независимость гуя от размера экрана!111
+  - тени!11
+  - update gfx
+  - SceneNode -> Node
+  - logging
