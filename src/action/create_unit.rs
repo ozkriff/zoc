@@ -6,7 +6,7 @@ use types::{WorldPos};
 use mesh::{MeshId};
 use geom;
 use gen;
-use scene::{SceneNode, NodeId};
+use scene::{self, SceneNode, NodeId};
 use action::{Action, ActionContext, WRECKS_COLOR};
 
 // TODO: Action::CreateSceneNode?
@@ -34,6 +34,7 @@ impl CreateUnit {
 impl Action for CreateUnit {
     fn begin(&mut self, context: &mut ActionContext) {
         let mesh_id = context.visual_info.get(self.unit.type_id).mesh_id;
+        let size = context.visual_info.get(self.unit.type_id).size;
         context.scene.add_unit(self.node_id, self.unit.id, SceneNode {
             pos: self.pos,
             rot: Rad(thread_rng().gen_range(0.0, PI * 2.0)),
@@ -46,6 +47,15 @@ impl Action for CreateUnit {
                 pos: WorldPos{v: geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)},
                 mesh_id: Some(context.mesh_ids.marker_mesh_id),
                 color: gen::get_player_color(self.unit.player_id),
+                .. Default::default()
+            });
+            let shadow_node_id = context.scene.allocate_node_id();
+            context.scene.set_child_node(self.node_id, shadow_node_id, SceneNode {
+                pos: WorldPos{v: geom::vec3_z(0.01)},
+                scale: 0.5 * size, // TODO: magic?
+                mesh_id: Some(context.mesh_ids.shadow_mesh_id),
+                color: [1.0, 0.0, 0.0, 0.8],
+                node_type: scene::SceneNodeType::Transparent,
                 .. Default::default()
             });
         }

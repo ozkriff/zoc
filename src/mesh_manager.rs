@@ -25,6 +25,7 @@ pub struct MeshIdManager {
     pub water_mesh_id: MeshId,
     pub selection_marker_mesh_id: MeshId,
     pub smoke_mesh_id: MeshId,
+    pub shadow_mesh_id: MeshId,
     pub fow_tile_mesh_id: MeshId,
     pub reinforcement_sector_tile_mesh_id: MeshId,
     pub sector_mesh_ids: HashMap<SectorId, MeshId>,
@@ -38,6 +39,8 @@ impl MeshIdManager {
     ) -> MeshIdManager {
         let smoke_tex = load_texture(
             context, &fs::load("smoke.png").into_inner());
+        let shadow_tex = load_texture(
+            context, &fs::load("blob_shadow.png").into_inner());
         let floor_tex = load_texture(
             context, &fs::load("hex.png").into_inner());
         let reinforcement_sector_tex = load_texture(
@@ -66,6 +69,8 @@ impl MeshIdManager {
             selection_marker_mesh_id: meshes.add(get_selection_mesh(context)),
             smoke_mesh_id: meshes.add(
                 gen::get_one_tile_mesh_transparent(context, smoke_tex)),
+            shadow_mesh_id: meshes.add(
+                gen::get_one_tile_mesh_transparent(context, shadow_tex)),
             fow_tile_mesh_id: meshes.add(
                 gen::get_one_tile_mesh_transparent(context, floor_tex)),
             reinforcement_sector_tile_mesh_id: meshes.add(

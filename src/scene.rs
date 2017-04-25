@@ -37,6 +37,7 @@ pub struct SceneNode {
     pub rot: Rad<f32>, // TODO: Store Matrix3 here?
     pub mesh_id: Option<MeshId>,
     pub color: [f32; 4],
+    pub scale: f32, // TODO: Scale
     pub children: Vec<NodeId>,
 
     // TODO: прямо при создании спрашивать это дело
@@ -53,6 +54,7 @@ impl Default for SceneNode {
             rot: Rad(0.0),
             mesh_id: None,
             color: [1.0, 1.0, 1.0, 1.0],
+            scale: 1.0,
             children: vec![],
 
             // TODO: there's not much sence in making this fields optional..

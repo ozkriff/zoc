@@ -74,7 +74,7 @@ impl MainMenuScreen {
     fn handle_event_button_press(
         &mut self,
         context: &mut Context,
-        button_id: ButtonId
+        button_id: ButtonId,
     ) {
         let map_name = self.map_names[self.selected_map_index].to_string();
         let mut core_options = Options {

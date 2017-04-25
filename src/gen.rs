@@ -57,7 +57,9 @@ pub fn generate_tiles_mesh<I: IntoIterator<Item=MapPos>>(
 }
 
 pub fn generate_sector_mesh(context: &mut Context, sector: &Sector, tex: Texture) -> Mesh {
-    generate_tiles_mesh(context, tex, sector.positions.to_vec())
+    let mut mesh = generate_tiles_mesh(context, tex, sector.positions.to_vec());
+    mesh.set_render_type(MeshType::NoDepth);
+    mesh
 }
 
 pub fn generate_map_mesh(context: &mut Context, state: &State, tex: Texture) -> Mesh {

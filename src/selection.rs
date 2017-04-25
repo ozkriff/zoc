@@ -34,6 +34,7 @@ impl SelectionManager {
         WorldPos{v: geom::lift(geom::exact_pos_to_world_pos(state, map_pos).v)}
     }
 
+    // TODO: учитывать размер выделенного отряда!
     pub fn create_selection_marker(
         &mut self,
         state: &State,

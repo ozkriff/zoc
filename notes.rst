@@ -273,6 +273,8 @@ TODO:
     - Convert to Actions. How?
       Add some specialized actions? Like `FogTile`\`UnfogTile`?
       Но для начала мне нужно реализовать одновременные действия.
+  - [ ] shadows
+    I need to rework map creation in order to implement this properly
   - [ ] fork action
   - [ ] fix text labels
   - [ ] arc trajectory for mortar
@@ -288,7 +290,7 @@ TODO:
   - src/screens/main/mod.rs
   - src/screens/end_turn/mod.rs
   - независимость гуя от размера экрана
-  - shadows
+    - для этого мне надо сначала избавиться от Size2 как-то
   - update gfx
   - rename `SceneNode` to just `Node`
   - logging

@@ -202,13 +202,23 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                 mesh_id: Some(mesh_ids.trees_mesh_id),
                 .. Default::default()
             });
+            // TODO: эта тень - просто эксперимент, надо бы ее как ребенка добавлять, думаю
+            // TODO: И к остальным объектам тоже добавить
+            scene.add_node(SceneNode {
+                pos: WorldPos{v: pos.v + geom::vec3_z(0.01)},
+                mesh_id: Some(mesh_ids.shadow_mesh_id),
+                color: [1.0, 0.0, 0.0, 0.9],
+                scale: 1.5,
+                node_type: SceneNodeType::Transparent,
+                .. Default::default()
+            });
         }
     }
     for (&object_id, object) in state.objects() {
         match object.class {
             ObjectClass::ReinforcementSector => {
                 let mut pos = geom::map_pos_to_world_pos(object.pos.map_pos);
-                pos.v.z += 0.03; // TODO: layers
+                pos.v.z += 0.01; // TODO: layers
                 let mut color = match object.owner_id {
                     Some(player_id) => {
                         gen::get_player_color(player_id)
@@ -234,6 +244,15 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     pos: pos,
                     rot: rot,
                     mesh_id: Some(building_mesh_id(mesh_ids, object)),
+                    .. Default::default()
+                });
+                // TODO: эта тень - тоже эксперимент, см. комент к деревьям
+                scene.add_node(SceneNode {
+                    pos: WorldPos{v: pos.v + geom::vec3_z(0.01)},
+                    mesh_id: Some(mesh_ids.shadow_mesh_id),
+                    color: [1.0, 0.0, 0.0, 0.9],
+                    scale: 1.5, // TODO: учесть, большое это здание или нет
+                    node_type: SceneNodeType::Transparent,
                     .. Default::default()
                 });
             }
@@ -353,6 +372,10 @@ impl TacticalScreen {
 
     // TODO: use Actions!
     fn regenerate_fow(&mut self) {
+        // TODO: Convert to Actions. How?
+        // Add some specialized actions? Like `FogTile`\`UnfogTile`?
+        // Но для начала мне нужно реализовать одновременные действия.
+        //
         let player_info = self.player_info.get_mut(self.core.player_id());
         let fow = &mut player_info.fow_info;
         let state = &player_info.game_state;
@@ -692,19 +715,20 @@ impl TacticalScreen {
         &self,
         context: &mut Context,
         node: &SceneNode,
-        m: cgmath::Matrix4<f32>,
+        mat: cgmath::Matrix4<f32>,
     ) {
         let tr_mat = cgmath::Matrix4::from_translation(node.pos.v);
         let rot_mat = cgmath::Matrix4::from(cgmath::Matrix3::from_angle_z(node.rot));
-        let m = m * tr_mat * rot_mat;
+        let scale_mat = cgmath::Matrix4::from_scale(node.scale);
+        let mat = mat * tr_mat * rot_mat * scale_mat;
         if let Some(mesh_id) = node.mesh_id {
-            context.set_mvp(m); // TODO: use separate model matrix
+            context.set_mvp(mat); // TODO: use separate model matrix
             context.set_basic_color(node.color);
             context.draw_mesh(self.meshes.get(mesh_id));
         }
         for &node_id in &node.children {
             let node = self.scene().node(node_id);
-            self.draw_scene_node(context, node, m);
+            self.draw_scene_node(context, node, mat);
         }
     }
 
@@ -715,18 +739,18 @@ impl TacticalScreen {
 
     fn draw_scene(&mut self, context: &mut Context) {
         self.sort_nodes();
-        let m = self.current_player_info().camera.mat();
+        let mat = self.current_player_info().camera.mat();
         // рисуем обычные объекты
         for &node_id in self.scene().normal_node_ids() {
-            self.draw_scene_node(context, self.scene().node(node_id), m);
+            self.draw_scene_node(context, self.scene().node(node_id), mat);
         }
         // рисуем слои
         for &node_id in self.scene().static_plane_node_ids() {
-            self.draw_scene_node(context, self.scene().node(node_id), m);
+            self.draw_scene_node(context, self.scene().node(node_id), mat);
         }
         // рисуем прозрачные объекты
         for &node_id in self.scene().transparent_node_ids() {
-            self.draw_scene_node(context, self.scene().node(node_id), m);
+            self.draw_scene_node(context, self.scene().node(node_id), mat);
         }
     }
 
