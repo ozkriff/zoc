@@ -267,20 +267,28 @@ Can I use something else to do it?..
 TODO:
 
 - before:
-  - [ ] fix smoke transparacy
+  - [x] fix smoke transparacy
+    - forgot to set mesh to NoDepth! :(
   - [ ] fix FoW
+    - Convert to Actions. How?
+      Add some specialized actions? Like `FogTile`\`UnfogTile`?
+      Но для начала мне нужно реализовать одновременные действия.
   - [ ] fork action
   - [ ] fix text labels
   - [ ] arc trajectory for mortar
+  - [ ] change selecting ring size based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
   - [ ] `new -> Box<Action>` -> `new -> Self`
+  - [ ] remove all other new TODOs
+  - [ ] check it still works on android
+  - [ ] `git rm` this file
 - after:
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
   - src/screens/main/mod.rs
   - src/screens/end_turn/mod.rs
-  - независимость гуя от размера экрана!111
-  - тени!11
+  - независимость гуя от размера экрана
+  - shadows
   - update gfx
-  - SceneNode -> Node
+  - rename `SceneNode` to just `Node`
   - logging
