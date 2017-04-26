@@ -123,8 +123,8 @@ fn visualize_event_create_unit(
     let from = WorldPos{v: to.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
     let node_id = context.scene.allocate_node_id();
     vec![
-        action::CreateUnit::new(unit.clone(), from, node_id),
-        action::MoveTo::new(node_id, Speed{n: 2.0}, to),
+        Box::new(action::CreateUnit::new(unit.clone(), from, node_id)),
+        Box::new(action::MoveTo::new(node_id, Speed{n: 2.0}, to)),
     ]
 }
 
@@ -155,14 +155,14 @@ fn visualize_event_move(
     unit_id: UnitId,
     destination: ExactPos,
 ) -> Vec<Box<Action>> {
-    let mut actions = Vec::new();
+    let mut actions: Vec<Box<Action>> = vec![];
     let type_id = state.unit(unit_id).type_id;
     let visual_info = context.visual_info.get(type_id);
     let node_id = context.scene.unit_id_to_node_id(unit_id);
     let to = geom::exact_pos_to_world_pos(state, destination);
     let speed = visual_info.move_speed;
-    actions.push(action::RotateTo::new(node_id, to));
-    actions.push(action::MoveTo::new(node_id, speed, to));
+    actions.push(Box::new(action::RotateTo::new(node_id, to)));
+    actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions
 }
 
@@ -171,7 +171,7 @@ fn visualize_event_attack(
     context: &mut ActionContext,
     attack_info: &AttackInfo,
 ) -> Vec<Box<Action>> {
-    let mut actions = Vec::new();
+    let mut actions: Vec<Box<Action>> = Vec::new();
     let target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
     if let Some(attacker_id) = attack_info.attacker_id {
         let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
@@ -187,14 +187,14 @@ fn visualize_event_attack(
             mesh_id: Some(context.mesh_ids.shell_mesh_id),
             .. Default::default()
         };
-        actions.push(action::CreateNode::new(node_id, node));
+        actions.push(Box::new(action::CreateNode::new(node_id, node)));
         // TODO: simulate arc for inderect fire in Move:
         // if attack_info.is_inderect {
         //     pos.v.z += (shell_move.progress() * PI).sin() * 5.0;
         // }
-        actions.push(action::MoveTo::new(node_id, Speed{n: 10.0}, target_pos));
-        actions.push(action::RemoveNode::new(node_id));
-        actions.push(action::Sleep::new(Time{n: 0.5}));
+        actions.push(Box::new(action::MoveTo::new(node_id, Speed{n: 10.0}, target_pos)));
+        actions.push(Box::new(action::RemoveNode::new(node_id)));
+        actions.push(Box::new(action::Sleep::new(Time{n: 0.5})));
     }
     if attack_info.is_ambush {
         actions.extend(action::visualize_show_text(
@@ -208,18 +208,19 @@ fn visualize_event_show(
     context: &mut ActionContext,
     unit: &Unit,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     let pos = geom::exact_pos_to_world_pos(state, unit.pos);
     let node_id = context.scene.allocate_node_id();
-    actions.push(action::CreateUnit::new(unit.clone(), pos, node_id));
+    actions.push(Box::new(
+        action::CreateUnit::new(unit.clone(), pos, node_id)));
     if let Some(attached_unit_id) = unit.attached_unit_id {
-        actions.push(action::TryFixAttachedUnit::new(
-            unit.id, attached_unit_id));
+        actions.push(Box::new(
+            action::TryFixAttachedUnit::new(unit.id, attached_unit_id)));
     }
     for unit in state.units_at(unit.pos.map_pos) {
         if let Some(attached_unit_id) = unit.attached_unit_id {
-            actions.push(action::TryFixAttachedUnit::new(
-                unit.id, attached_unit_id));
+            actions.push(Box::new(action::TryFixAttachedUnit::new(
+                unit.id, attached_unit_id)));
         }
     }
     actions.extend(action::visualize_show_text(
@@ -231,7 +232,7 @@ fn visualize_event_hide(
     context: &mut ActionContext,
     unit_id: UnitId,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     // passenger doesn't have any scene node
     if let Some(_ /*node_id*/) = context.scene.unit_id_to_node_id_opt(unit_id) { // TODO
         // We can't read 'pos' from `state.unit(unit_id).pos`
@@ -252,7 +253,7 @@ fn visualize_event_hide(
         // TODO: disabled for now (не забудь починить)
         // let world_pos = context.scene.node(node_id).pos;
         // let map_pos = geom::world_pos_to_map_pos(world_pos);
-        actions.push(action::RemoveUnit::new(unit_id));
+        actions.push(Box::new(action::RemoveUnit::new(unit_id)));
         // actions.extend(action::visualize_show_text(context, map_pos, "lost"));
     }
     actions
@@ -271,10 +272,10 @@ fn visualize_event_unload(
     let node_id = context.scene.allocate_node_id();
     let speed = visual_info.move_speed;
     let text_pos = unit.pos.map_pos;
-    let mut actions = vec![];
-    actions.push(action::CreateUnit::new(unit, from, node_id));
-    actions.push(action::RotateTo::new(node_id, to));
-    actions.push(action::MoveTo::new(node_id, speed, to));
+    let mut actions: Vec<Box<Action>> = vec![];
+    actions.push(Box::new(action::CreateUnit::new(unit, from, node_id)));
+    actions.push(Box::new(action::RotateTo::new(node_id, to)));
+    actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions.extend(action::visualize_show_text(context, text_pos, "unloaded"));
     actions
 }
@@ -292,10 +293,10 @@ fn visualize_event_load(
     let to = geom::exact_pos_to_world_pos(state, transporter_pos);
     let node_id = context.scene.unit_id_to_node_id(passenger_id);
     let speed = visual_info.move_speed;
-    let mut actions = vec![];
-    actions.push(action::RotateTo::new(node_id, to));
-    actions.push(action::MoveTo::new(node_id, speed, to));
-    actions.push(action::RemoveUnit::new(passenger_id));
+    let mut actions: Vec<Box<Action>> = vec![];
+    actions.push(Box::new(action::RotateTo::new(node_id, to)));
+    actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
+    actions.push(Box::new(action::RemoveUnit::new(passenger_id)));
     actions.extend(action::visualize_show_text(context, text_pos, "loaded"));
     actions
 }
@@ -336,7 +337,7 @@ fn visualize_event_smoke(
 
     object_id: ObjectId,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: MoveTo
     actions.extend(action::visualize_show_text(context, pos, "smoke"));
@@ -354,8 +355,10 @@ fn visualize_event_smoke(
         node.pos.v.z += z_step;
         node.rot += Rad(thread_rng().gen_range(0.0, PI * 2.0));
         let node_id = context.scene.allocate_node_id();
-        actions.push(action::AddObject::new(object_id, node.clone(), node_id));
-        actions.push(action::ChangeColor::new(node_id, final_color, time));
+        actions.push(Box::new(action::AddObject::new(
+            object_id, node.clone(), node_id)));
+        actions.push(Box::new(action::ChangeColor::new(
+            node_id, final_color, time)));
     }
     actions
 }
@@ -365,15 +368,16 @@ fn visualize_event_remove_smoke(
     context: &mut ActionContext,
     object_id: ObjectId,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     let pos = state.objects()[&object_id].pos.map_pos;
     let node_ids = context.scene.object_id_to_node_id(object_id).clone();
     let final_color = [1.0, 1.0, 1.0, 0.0];
     let time = Time{n: 0.5};
     for node_id in node_ids {
-        actions.push(action::ChangeColor::new(node_id, final_color, time));
+        actions.push(Box::new(action::ChangeColor::new(
+            node_id, final_color, time)));
     }
-    actions.push(action::RemoveObject::new(object_id));
+    actions.push(Box::new(action::RemoveObject::new(object_id)));
     actions.extend(action::visualize_show_text(context, pos, "smoke cleared"));
     actions
 }
@@ -393,11 +397,13 @@ fn visualize_event_attach(
     let text_pos = transporter.pos.map_pos;
     let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
     let speed = visual_info.move_speed;
-    let mut actions = vec![];
-    actions.push(action::RotateTo::new(transporter_node_id, to));
-    actions.push(action::MoveTo::new(transporter_node_id, speed, to));
-    actions.push(action::TryFixAttachedUnit::new(
-        transporter_id, attached_unit_id));
+    let mut actions: Vec<Box<Action>> = vec![];
+    actions.push(Box::new(action::RotateTo::new(
+        transporter_node_id, to)));
+    actions.push(Box::new(action::MoveTo::new(
+        transporter_node_id, speed, to)));
+    actions.push(Box::new(action::TryFixAttachedUnit::new(
+        transporter_id, attached_unit_id)));
     actions.extend(action::visualize_show_text(
         context, text_pos, "attached"));
     actions
@@ -409,7 +415,7 @@ fn visualize_event_detach(
     transporter_id: UnitId,
     pos: ExactPos,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     let transporter = state.unit(transporter_id);
     let attached_unit_id = transporter.attached_unit_id.unwrap();
     let attached_unit = state.unit(attached_unit_id);
@@ -420,15 +426,18 @@ fn visualize_event_detach(
     let to = geom::exact_pos_to_world_pos(state, pos);
     let transporter_node_id = context.scene.unit_id_to_node_id(transporter_id);
     let speed = transporter_visual_info.move_speed;
-    actions.push(action::CreateUnit::new(
+    actions.push(Box::new(action::CreateUnit::new(
         attached_unit.clone(),
         geom::exact_pos_to_world_pos(state, attached_unit.pos),
         attached_unit_node_id,
-    ));
-    actions.push(action::Detach::new_from_to(transporter_node_id, from, to));
+    )));
+    actions.push(Box::new(action::Detach::new_from_to(
+        transporter_node_id, from, to)));
     // TODO: action::RotateTo?
-    actions.push(action::MoveTo::new(transporter_node_id, speed, to));
-    actions.extend(action::visualize_show_text(context, pos.map_pos, "detached"));
+    actions.push(Box::new(action::MoveTo::new(
+        transporter_node_id, speed, to)));
+    actions.extend(action::visualize_show_text(
+        context, pos.map_pos, "detached"));
     actions
 }
 
@@ -438,7 +447,7 @@ fn visualize_event_sector_owner_changed(
     sector_id: SectorId,
     owner_id: Option<PlayerId>,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     // TODO: fix msg
     // "Sector {} secured by an enemy"
     // "Sector {} secured"
@@ -450,7 +459,7 @@ fn visualize_event_sector_owner_changed(
         Some(_) => unimplemented!(),
     };
     let node_id = context.scene.sector_id_to_node_id(sector_id);
-    actions.push(action::SetColor::new(node_id, color));
+    actions.push(Box::new(action::SetColor::new(node_id, color)));
     let sector = &state.sectors()[&sector_id];
     let pos = sector.center();
     let text = match owner_id {

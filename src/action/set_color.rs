@@ -8,11 +8,11 @@ pub struct SetColor {
 }
 
 impl SetColor {
-    pub fn new(node_id: NodeId, color: [f32; 4]) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(node_id: NodeId, color: [f32; 4]) -> Self {
+        Self {
             node_id: node_id,
             color: color,
-        })
+        }
     }
 }
 

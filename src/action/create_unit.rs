@@ -22,12 +22,12 @@ impl CreateUnit {
         unit: Unit,
         pos: WorldPos, // TODO: этот аргумент не пердавать, заменить на action::SetPos
         node_id: NodeId,
-    ) -> Box<Action> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             unit: unit,
             pos: pos,
             node_id: node_id,
-        })
+        }
     }
 }
 

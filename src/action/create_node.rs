@@ -8,11 +8,11 @@ pub struct CreateNode {
 }
 
 impl CreateNode {
-    pub fn new(node_id: NodeId, node: SceneNode) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(node_id: NodeId, node: SceneNode) -> Self {
+        Self {
             node_id: node_id,
             node: node,
-        })
+        }
     }
 }
 

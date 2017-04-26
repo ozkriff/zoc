@@ -14,12 +14,12 @@ impl AddObject {
         object_id: ObjectId,
         node: SceneNode,
         node_id: NodeId,
-    ) -> Box<Action> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             object_id: object_id,
             node: node,
             node_id: node_id,
-        })
+        }
     }
 }
 

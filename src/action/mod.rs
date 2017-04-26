@@ -111,11 +111,11 @@ pub fn visualize_show_text(
         .. Default::default()
     };
     vec![
-        CreateTextMesh::new(text.into(), mesh_id),
-        CreateNode::new(node_id, node),
-        MoveTo::new(node_id, Speed{n: 1.0}, to),
-        RemoveNode::new(node_id),
-        RemoveMesh::new(mesh_id),
+        Box::new(CreateTextMesh::new(text.into(), mesh_id)),
+        Box::new(CreateNode::new(node_id, node)),
+        Box::new(MoveTo::new(node_id, Speed{n: 1.0}, to)),
+        Box::new(RemoveNode::new(node_id)),
+        Box::new(RemoveMesh::new(mesh_id)),
     ]
 }
 
@@ -179,7 +179,7 @@ pub fn visualize_effect_attacked(
     target_id: UnitId,
     effect: &effect::Attacked,
 ) -> Vec<Box<Action>> {
-    let mut actions = vec![];
+    let mut actions: Vec<Box<Action>> = vec![];
     let target = state.unit(target_id);
     actions.extend(visualize_show_text(
         context, target.pos.map_pos, "attacked"));
@@ -198,30 +198,35 @@ pub fn visualize_effect_attacked(
         assert!(killed <= children.len());
         for i in 0 .. killed {
             if effect.leave_wrecks {
-                actions.push(SetColor::new(children[i], WRECKS_COLOR));
+                actions.push(Box::new(SetColor::new(
+                    children[i], WRECKS_COLOR)));
             } else {
                 {
                     let pos = context.scene.node(children[i]).pos;
                     let to = WorldPos{v: pos.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-                    actions.push(MoveTo::new(children[i], Speed{n: 1.0}, to));
+                    actions.push(Box::new(MoveTo::new(
+                        children[i], Speed{n: 1.0}, to)));
                 }
-                actions.push(RemoveChild::new(target_node_id, 0));
+                actions.push(Box::new(RemoveChild::new(
+                    target_node_id, 0)));
             }
         }
         let is_target_destroyed = target.count - effect.killed <= 0;
         if is_target_destroyed {
             if target.attached_unit_id.is_some() {
-                actions.push(RemoveChild::new(target_node_id, 0));
+                actions.push(Box::new(RemoveChild::new(
+                    target_node_id, 0)));
             }
             let marker_child_id = if effect.leave_wrecks {
                 children.len() as i32
             } else {
                 (children.len() - killed) as i32
             } - 1;
-            actions.push(RemoveChild::new(target_node_id, marker_child_id));
+            actions.push(Box::new(RemoveChild::new(
+                target_node_id, marker_child_id)));
             if !effect.leave_wrecks {
                 // assert_eq!(children.len(), 0); // TODO: how can i check this now?
-                actions.push(RemoveUnit::new(target_id));
+                actions.push(Box::new(RemoveUnit::new(target_id)));
             }
         }
     }

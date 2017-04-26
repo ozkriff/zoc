@@ -12,14 +12,14 @@ pub struct ChangeColor {
 }
 
 impl ChangeColor {
-    pub fn new(node_id: NodeId, color: [f32; 4], duration: Time) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(node_id: NodeId, color: [f32; 4], duration: Time) -> Self {
+        Self {
             node_id: node_id,
             target_color: color,
             start_color: [0.0, 0.0, 0.0, 0.0],
             duration: duration,
             time: Time{n: 0.0},
-        })
+        }
     }
 }
 

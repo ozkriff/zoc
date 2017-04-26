@@ -8,11 +8,11 @@ pub struct RemoveChild {
 }
 
 impl RemoveChild {
-    pub fn new(parent_id: NodeId, child_id: i32) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(parent_id: NodeId, child_id: i32) -> Self {
+        Self {
             parent_id: parent_id,
             child_id: child_id,
-        })
+        }
     }
 }
 

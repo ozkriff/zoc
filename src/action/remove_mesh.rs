@@ -7,10 +7,10 @@ pub struct RemoveMesh {
 }
 
 impl RemoveMesh {
-    pub fn new(mesh_id: MeshId) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(mesh_id: MeshId) -> Self {
+        Self {
             mesh_id: mesh_id,
-        })
+        }
     }
 }
 

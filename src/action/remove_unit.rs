@@ -7,10 +7,10 @@ pub struct RemoveUnit {
 }
 
 impl RemoveUnit {
-    pub fn new(unit_id: UnitId) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(unit_id: UnitId) -> Self {
+        Self {
             unit_id: unit_id,
-        })
+        }
     }
 }
 

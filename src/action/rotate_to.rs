@@ -10,11 +10,11 @@ pub struct RotateTo {
 }
 
 impl RotateTo {
-    pub fn new(node_id: NodeId, to: WorldPos) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(node_id: NodeId, to: WorldPos) -> Self {
+        Self {
             node_id: node_id,
             to: to,
-        })
+        }
     }
 }
 

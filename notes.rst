@@ -270,27 +270,38 @@ TODO:
   - [x] fix smoke transparacy
     - forgot to set mesh to NoDepth! :(
   - [ ] fix FoW
-    - Convert to Actions. How?
-      Add some specialized actions? Like `FogTile`\`UnfogTile`?
-      Но для начала мне нужно реализовать одновременные действия.
+    - [ ] Convert to Actions. How?
+          Add some specialized actions? Like `FogTile`\`UnfogTile`?
+          But first I need to implement similtanius actions
   - [ ] shadows
-    I need to rework map creation in order to implement this properly
+    - [x] basic
+    - [ ] make them darker
+    - [ ] I need to rework map creation in order to implement this properly
+  - [ ] more crisp tile's border (redraw texture)
   - [ ] fork action
+  - [ ] FIX RANDOM FREEZES during enemy's turn
   - [ ] fix text labels
   - [ ] arc trajectory for mortar
   - [ ] change selecting ring size based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
-  - [ ] `new -> Box<Action>` -> `new -> Self`
+  - [x] `new -> Box<Action>` -> `new -> Self`
   - [ ] remove all other new TODOs
   - [ ] check it still works on android
   - [ ] `git rm` this file
-- after:
+- separate commits for:
+  - transparent node type?
+  - effects-actions
+  - shadows
+- after (in separate branches):
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
   - src/screens/main/mod.rs
   - src/screens/end_turn/mod.rs
-  - независимость гуя от размера экрана
-    - для этого мне надо сначала избавиться от Size2 как-то
+  - make gui independant of screen's size
+    - i need to get rid of the Size2 somehow
+  - replace walk and attack lines with colored tile (like FoW)
   - update gfx
+  - replace tree models!
   - rename `SceneNode` to just `Node`
   - logging
+  - Add `prototype of strategic mode city-building modes` to roadmap

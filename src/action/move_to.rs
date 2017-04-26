@@ -21,13 +21,13 @@ impl MoveTo {
         node_id: NodeId,
         speed: Speed,
         to: WorldPos,
-    ) -> Box<Action> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             node_id: node_id,
             speed: speed,
             to: to,
             move_helper: None,
-        })
+        }
     }
 }
 

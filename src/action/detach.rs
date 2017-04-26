@@ -15,16 +15,16 @@ impl Detach {
         transporter_node_id: NodeId,
         from: WorldPos,
         to: WorldPos,
-    ) -> Box<Action> {
+    ) -> Self {
         let rot = geom::get_rot_angle(from, to);
         Self::new(transporter_node_id, rot)
     }
 
-    pub fn new(transporter_node_id: NodeId, rot: Rad<f32>) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(transporter_node_id: NodeId, rot: Rad<f32>) -> Self {
+        Self {
             rot: rot,
             transporter_node_id: transporter_node_id,
-        })
+        }
     }
 }
 

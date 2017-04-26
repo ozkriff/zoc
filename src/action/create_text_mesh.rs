@@ -11,11 +11,11 @@ pub struct CreateTextMesh {
 }
 
 impl CreateTextMesh {
-    pub fn new(text: String, mesh_id: MeshId) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(text: String, mesh_id: MeshId) -> Self {
+        Self {
             text: text,
             mesh_id: mesh_id,
-        })
+        }
     }
 }
 

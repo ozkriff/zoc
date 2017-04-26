@@ -12,11 +12,11 @@ pub struct TryFixAttachedUnit {
 }
 
 impl TryFixAttachedUnit {
-    pub fn new(unit_id: UnitId, attached_unit_id: UnitId) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(unit_id: UnitId, attached_unit_id: UnitId) -> Self {
+        Self {
             unit_id: unit_id,
             attached_unit_id: attached_unit_id,
-        })
+        }
     }
 }
 

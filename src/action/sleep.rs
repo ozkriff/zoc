@@ -8,11 +8,11 @@ pub struct Sleep {
 }
 
 impl Sleep {
-    pub fn new(duration: Time) -> Box<Action> {
-        Box::new(Self {
+    pub fn new(duration: Time) -> Self {
+        Self {
             duration: duration,
             time: Time{n: 0.0},
-        })
+        }
     }
 }
 
