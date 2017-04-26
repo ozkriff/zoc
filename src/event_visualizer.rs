@@ -233,17 +233,27 @@ fn visualize_event_hide(
 ) -> Vec<Box<Action>> {
     let mut actions = vec![];
     // passenger doesn't have any scene node
-    if let Some(node_id) = context.scene.unit_id_to_node_id_opt(unit_id) {
+    if let Some(_ /*node_id*/) = context.scene.unit_id_to_node_id_opt(unit_id) { // TODO
         // We can't read 'pos' from `state.unit(unit_id).pos`
         // because this unit may be in a fogged tile now
         // so State will filter him out.
         //
+        // Но и из узла прямо сейчас такое читать тоже нельзя,
+        // потому что позиция узла будет действительной только
+        // на момент `Action::begin`!
+        //
+        // Я хз что делать.
+        //
+        // Все что приходит в голову - вместо MapPos иметь возможность передать
+        // NodeId, у которого в момент исполнения уже и будет взята позиция.
+        //
         // TODO: Read the position in begin action!
         //
-        let world_pos = context.scene.node(node_id).pos;
-        let map_pos = geom::world_pos_to_map_pos(world_pos);
+        // TODO: disabled for now (не забудь починить)
+        // let world_pos = context.scene.node(node_id).pos;
+        // let map_pos = geom::world_pos_to_map_pos(world_pos);
         actions.push(action::RemoveUnit::new(unit_id));
-        actions.extend(action::visualize_show_text(context, map_pos, "lost"));
+        // actions.extend(action::visualize_show_text(context, map_pos, "lost"));
     }
     actions
 }
