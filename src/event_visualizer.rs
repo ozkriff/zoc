@@ -174,14 +174,8 @@ fn visualize_event_attack(
     let mut actions = Vec::new();
     let target_pos = geom::exact_pos_to_world_pos(state, attack_info.target_pos);
     if let Some(attacker_id) = attack_info.attacker_id {
-
-        // TODO: do this in some begin method?
-        let attacker_node_id = context.scene.unit_id_to_node_id(attacker_id);
-
-        // TODO: this position is wrong in the other player's replay!
-        let attacker_pos = context.scene.node(attacker_node_id).pos;
-
         let attacker_map_pos = state.unit(attacker_id).pos.map_pos;
+        let attacker_pos = geom::map_pos_to_world_pos(attacker_map_pos);
         if attack_info.mode == FireMode::Reactive {
             actions.extend(action::visualize_show_text(
                 context, attacker_map_pos, "reaction fire"));
