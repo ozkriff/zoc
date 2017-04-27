@@ -45,18 +45,15 @@ pub fn get_unit_type_visual_info(
         ("smg", "submachine", 2.0, 1.0),
         ("scout", "scout", 2.5, 1.0),
         ("mortar", "mortar", 1.5, 1.0),
-        ("field_gun", "field_gun", 1.5, 1.3),
-        ("light_spg", "light_spg", 3.0, 1.5),
-        ("light_tank", "light_tank", 3.0, 1.5),
-        ("medium_tank", "medium_tank", 2.5, 2.0),
-        ("heavy_tank", "tank", 2.0, 3.0),
-        ("mammoth_tank", "mammoth", 1.5, 4.0),
-        ("truck", "truck", 3.0, 3.0),
-        ("jeep", "jeep", 3.5, 2.0),
-
-        // TODO: what should i do with helicopter's shadow?
-        // it's not even on the ground! :'-(
-        ("helicopter", "helicopter", 3.0, 0.1),
+        ("field_gun", "field_gun", 1.5, 1.2),
+        ("light_spg", "light_spg", 3.0, 1.4),
+        ("light_tank", "light_tank", 3.0, 1.4),
+        ("medium_tank", "medium_tank", 2.5, 1.7),
+        ("heavy_tank", "tank", 2.0, 2.1),
+        ("mammoth_tank", "mammoth", 1.5, 2.8),
+        ("truck", "truck", 3.0, 1.4),
+        ("jeep", "jeep", 3.5, 1.2),
+        ("helicopter", "helicopter", 3.0, 2.6),
     ] {
         manager.add_info(db.unit_type_id(unit_name), UnitTypeVisualInfo {
             mesh_id: meshes.add(load_object_mesh(context, model_name)),

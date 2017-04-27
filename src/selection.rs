@@ -10,6 +10,7 @@ use types::{WorldPos};
 use mesh::{MeshId};
 use mesh::{Mesh};
 use pipeline::{Vertex};
+use unit_type_visual_info::{UnitTypeVisualInfoManager};
 
 #[derive(Clone, Debug)]
 pub struct SelectionManager {
@@ -37,19 +38,24 @@ impl SelectionManager {
     // TODO: учитывать размер выделенного отряда!
     pub fn create_selection_marker(
         &mut self,
+        visual_info: &UnitTypeVisualInfoManager,
         state: &State,
         scene: &mut Scene,
         unit_id: UnitId,
     ) {
+        let unit = state.unit(unit_id);
         self.unit_id = Some(unit_id);
         if let Some(node_id) = self.selection_marker_node_id {
             if scene.nodes().get(&node_id).is_some() {
                 scene.remove_node(node_id);
             }
         }
+        let size = visual_info.get(unit.type_id).size;
         let node = SceneNode {
             pos: self.get_pos(state),
             mesh_id: Some(self.mesh_id),
+            scale: size * 0.5, // TODO: подобрать размеры получше
+            // TODO: еще смущает что толщина линии меняется :(
             .. Default::default()
         };
         self.selection_marker_node_id = Some(scene.add_node(node));

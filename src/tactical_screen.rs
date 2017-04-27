@@ -533,7 +533,7 @@ impl TacticalScreen {
         self.meshes.set(self.mesh_ids.targets_mesh_id, new_targets_mesh);
         let scene = &mut player_info.scene;
         self.selection_manager.create_selection_marker(
-            state, scene, unit_id);
+            &self.unit_type_visual_info, state, scene, unit_id);
         {
             let pos = ScreenPos{v: Vector2{x: 10, y: context.win_size().h - 10}};
             let text = {
