@@ -277,18 +277,21 @@ TODO:
     - [x] basic
     - [ ] make them darker
     - [ ] I need to rework map creation in order to implement this properly
-  - [ ] more crisp tile's border (redraw texture)
-  - [ ] fork action
+  - [x] more crisp tile's border (redraw texture)
+  - [.] fork action
   - [ ] FIX RANDOM FREEZES during enemy's turn
+  - [ ] split effect::Attacked into many effects
+  - [ ] add effect RemoveMovePoints caused by hard terrain
   - [ ] fix text labels
     - [ ] rotate with camera
     - [ ] appear from alpha
     - [ ] fade to alpha
   - [ ] arc trajectory for mortar
-  - [ ] change selecting ring size based on unit's size
+  - [x] change selecting ring size based on unit's size
   - [ ] change towing distance based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
   - [x] `new -> Box<Action>` -> `new -> Self`
+  - [ ] reinforcement_points in gui are not updated sometimes
   - [ ] remove all other new TODOs
   - [ ] check it still works on android
   - [ ] `git rm` this file
@@ -297,6 +300,7 @@ TODO:
   - effects-actions
   - shadows
   - visual unit sizes
+  - made roads a little longer
 - after (in separate branches):
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
