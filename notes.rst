@@ -281,8 +281,12 @@ TODO:
   - [ ] fork action
   - [ ] FIX RANDOM FREEZES during enemy's turn
   - [ ] fix text labels
+    - [ ] rotate with camera
+    - [ ] appear from alpha
+    - [ ] fade to alpha
   - [ ] arc trajectory for mortar
   - [ ] change selecting ring size based on unit's size
+  - [ ] change towing distance based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
   - [x] `new -> Box<Action>` -> `new -> Self`
   - [ ] remove all other new TODOs
@@ -292,6 +296,7 @@ TODO:
   - transparent node type?
   - effects-actions
   - shadows
+  - visual unit sizes
 - after (in separate branches):
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
@@ -304,4 +309,5 @@ TODO:
   - replace tree models!
   - rename `SceneNode` to just `Node`
   - logging
+  - delayed textures loading
   - Add `prototype of strategic mode city-building modes` to roadmap
