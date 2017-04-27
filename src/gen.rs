@@ -184,7 +184,7 @@ pub fn get_shell_mesh(context: &mut Context) -> Mesh {
 
 pub fn get_road_mesh(context: &mut Context) -> Mesh {
     let w = geom::HEX_EX_RADIUS * 0.3;
-    let l = geom::HEX_EX_RADIUS;
+    let l = geom::HEX_EX_RADIUS * 1.04;
     let h = geom::MIN_LIFT_HEIGHT / 2.0;
     let vertices = [
         Vertex{pos: [-w, -l, h], uv: [0.0, 0.0]},
