@@ -119,58 +119,6 @@ pub fn visualize_show_text(
     ]
 }
 
-// TODO: Remove
-/*
-#[derive(Debug)]
-pub struct EventAttackUnitVisualizer {
-    shell_move: Option<MoveHelper>,
-    shell_node_id: Option<NodeId>,
-    attack_info: AttackInfo,
-}
-*/
-
-// this code was removed from `visualize_event_attack`
-/*
-    let attack_info = attack_info.clone();
-    let to = WorldPos{v: from.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-    let speed = Speed{n: 1.0};
-    let move_helper = MoveHelper::new(from, to, speed);
-    let is_target_destroyed = defender.count - attack_info.killed <= 0;
-    if attack_info.killed > 0 {
-        context.text.add_text(
-            defender.pos.map_pos,
-            &format!("-{}", attack_info.killed),
-        );
-    } else {
-        context.text.add_text(defender.pos.map_pos, "miss");
-    }
-    let is_target_suppressed = defender.morale < 50
-        && defender.morale + attack_info.suppression >= 50;
-    if is_target_destroyed {
-        if let Some(attached_unit_id) = defender.attached_unit_id {
-            let attached_unit = state.unit(attached_unit_id);
-            let attached_unit_mesh_id = visual_info
-                .get(attached_unit.type_id).mesh_id;
-            show_unit_at(
-                state,
-                scene,
-                attached_unit,
-                attached_unit_mesh_id,
-                mesh_ids.marker_mesh_id,
-            );
-            // TODO: fix attached unit pos
-        }
-    } else {
-        context.text.add_text(
-            defender.pos.map_pos,
-            &format!("morale: -{}", attack_info.suppression),
-        );
-        if is_target_suppressed {
-            context.text.add_text(defender.pos.map_pos, "suppressed");
-        }
-    }
-*/
-
 // TODO: split this effect into many
 // TODO: move to event_visualizer.rs
 pub fn visualize_effect_attacked(
@@ -181,8 +129,6 @@ pub fn visualize_effect_attacked(
 ) -> Vec<Box<Action>> {
     let mut actions: Vec<Box<Action>> = vec![];
     let target = state.unit(target_id);
-    actions.extend(visualize_show_text(
-        context, target.pos.map_pos, "attacked"));
     if effect.killed > 0 {
         actions.extend(visualize_show_text(
             context, target.pos.map_pos, &format!("killed: {}", effect.killed)));
@@ -190,10 +136,13 @@ pub fn visualize_effect_attacked(
         actions.extend(visualize_show_text(
             context, target.pos.map_pos, "miss")); // TODO: check position
     }
-    // TODO: вертолеты, прицепы?
+    // TODO: helicopters?
+    // TODO: loaded units?
+    // TODO: attached units?
     let target_node_id = context.scene.unit_id_to_node_id(target_id);
     if effect.killed > 0 {
-        let children = context.scene.node_mut(target_node_id).children.clone(); // TODO: remove clone
+        let children = context.scene.node_mut(target_node_id)
+            .children.clone(); // TODO: remove clone
         let killed = effect.killed as usize;
         assert!(killed <= children.len());
         for i in 0 .. killed {
@@ -228,7 +177,19 @@ pub fn visualize_effect_attacked(
                 // assert_eq!(children.len(), 0); // TODO: how can i check this now?
                 actions.push(Box::new(RemoveUnit::new(target_id)));
             }
+        } else {
+            actions.extend(visualize_show_text(
+                context,
+                target.pos.map_pos,
+                &format!("morale: -{}", effect.suppression),
+            ));
         }
+    }
+    let is_target_suppressed = target.morale >= 50
+        && target.morale - effect.suppression < 50;
+    if is_target_suppressed {
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, "suppressed"));
     }
     /*
     let mut text = String::new();
@@ -251,4 +212,3 @@ pub fn visualize_effect_attacked(
     // TODO: визуализировать как-то
     actions
 }
-

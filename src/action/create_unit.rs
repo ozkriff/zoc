@@ -2,6 +2,7 @@ use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use cgmath::{Vector3, Rad};
 use core::unit::{Unit};
+use core::position::{SlotId};
 use types::{WorldPos};
 use mesh::{MeshId};
 use geom;
@@ -42,15 +43,17 @@ impl Action for CreateUnit {
         });
         set_children(context, self.node_id, &self.unit, mesh_id);
         if self.unit.is_alive {
-            let shadow_node_id = context.scene.allocate_node_id();
-            context.scene.set_child_node(self.node_id, shadow_node_id, SceneNode {
-                pos: WorldPos{v: geom::vec3_z(0.01)},
-                scale: 0.5 * size, // TODO: magic?
-                mesh_id: Some(context.mesh_ids.shadow_mesh_id),
-                color: [1.0, 0.0, 0.0, 0.8],
-                node_type: scene::SceneNodeType::Transparent,
-                .. Default::default()
-            });
+            if self.unit.pos.slot_id != SlotId::Air {
+                let shadow_node_id = context.scene.allocate_node_id();
+                context.scene.set_child_node(self.node_id, shadow_node_id, SceneNode {
+                    pos: WorldPos{v: geom::vec3_z(0.01)},
+                    scale: 0.5 * size, // TODO: magic?
+                    mesh_id: Some(context.mesh_ids.shadow_mesh_id),
+                    color: [1.0, 0.0, 0.0, 1.0],
+                    node_type: scene::SceneNodeType::Transparent,
+                    .. Default::default()
+                });
+            }
             let id = context.scene.allocate_node_id();
             context.scene.set_child_node(self.node_id, id, SceneNode {
                 pos: WorldPos{v: geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)},
