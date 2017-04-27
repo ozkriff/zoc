@@ -251,7 +251,10 @@ fn make_scene(state: &State, mesh_ids: &MeshIdManager) -> Scene {
                     pos: WorldPos{v: pos.v + geom::vec3_z(0.01)},
                     mesh_id: Some(mesh_ids.shadow_mesh_id),
                     color: [1.0, 0.0, 0.0, 0.9],
-                    scale: 1.5, // TODO: учесть, большое это здание или нет
+                    scale: match object.pos.slot_id {
+                        SlotId::Id(_) => 1.3,
+                        _ => 3.0,
+                    },
                     node_type: SceneNodeType::Transparent,
                     .. Default::default()
                 });
