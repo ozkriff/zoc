@@ -97,7 +97,7 @@ fn visualize_effect(
     }
     match effect.effect {
         Effect::Attacked(ref e) => {
-            actions.extend(action::visualize_effect_attacked(
+            actions.extend(visualize_effect_attacked(
                 state, context, target_id, e));
         },
         // TODO: Implement the rest of the effects
@@ -179,7 +179,7 @@ fn visualize_event_attack(
         let attacker_world_pos = geom::exact_pos_to_world_pos(
             state, attacker_pos);
         if attack_info.mode == FireMode::Reactive {
-            actions.extend(action::visualize_show_text(
+            actions.extend(visualize_show_text(
                 context, attacker_pos.map_pos, "reaction fire"));
         }
         let node_id = context.scene.allocate_node_id();
@@ -199,7 +199,7 @@ fn visualize_event_attack(
         actions.push(Box::new(action::Sleep::new(Time{n: 0.5})));
     }
     if attack_info.is_ambush {
-        actions.extend(action::visualize_show_text(
+        actions.extend(visualize_show_text(
             context, attack_info.target_pos.map_pos, "Ambushed"));
     };
     actions
@@ -225,7 +225,7 @@ fn visualize_event_show(
                 unit.id, attached_unit_id)));
         }
     }
-    actions.extend(action::visualize_show_text(
+    actions.extend(visualize_show_text(
         context, unit.pos.map_pos, "spotted"));
     actions
 }
@@ -256,7 +256,7 @@ fn visualize_event_hide(
         // let world_pos = context.scene.node(node_id).pos;
         // let map_pos = geom::world_pos_to_map_pos(world_pos);
         actions.push(Box::new(action::RemoveUnit::new(unit_id)));
-        // actions.extend(action::visualize_show_text(context, map_pos, "lost"));
+        // actions.extend(visualize_show_text(context, map_pos, "lost"));
     }
     actions
 }
@@ -278,7 +278,7 @@ fn visualize_event_unload(
     actions.push(Box::new(action::CreateUnit::new(unit, from, node_id)));
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
-    actions.extend(action::visualize_show_text(context, text_pos, "unloaded"));
+    actions.extend(visualize_show_text(context, text_pos, "unloaded"));
     actions
 }
 
@@ -299,7 +299,7 @@ fn visualize_event_load(
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions.push(Box::new(action::RemoveUnit::new(passenger_id)));
-    actions.extend(action::visualize_show_text(context, text_pos, "loaded"));
+    actions.extend(visualize_show_text(context, text_pos, "loaded"));
     actions
 }
 
@@ -314,7 +314,7 @@ fn visualize_event_set_reaction_fire_mode(
         ReactionFireMode::Normal => "Normal fire mode",
         ReactionFireMode::HoldFire => "Hold fire",
     };
-    action::visualize_show_text(context, pos, text)
+    visualize_show_text(context, pos, text)
 }
 
 fn visualize_event_victory_point(
@@ -324,7 +324,7 @@ fn visualize_event_victory_point(
 ) -> Vec<Box<Action>> {
     let text = format!("+{} VP!", count);
     // TODO: Sleep for 1 second
-    action::visualize_show_text(context, pos, &text)
+    visualize_show_text(context, pos, &text)
 }
 
 fn visualize_event_smoke(
@@ -342,7 +342,7 @@ fn visualize_event_smoke(
     let mut actions: Vec<Box<Action>> = vec![];
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: MoveTo
-    actions.extend(action::visualize_show_text(context, pos, "smoke"));
+    actions.extend(visualize_show_text(context, pos, "smoke"));
     let z_step = 0.30; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
@@ -380,7 +380,7 @@ fn visualize_event_remove_smoke(
             node_id, final_color, time)));
     }
     actions.push(Box::new(action::RemoveObject::new(object_id)));
-    actions.extend(action::visualize_show_text(context, pos, "smoke cleared"));
+    actions.extend(visualize_show_text(context, pos, "smoke cleared"));
     actions
 }
 
@@ -406,7 +406,7 @@ fn visualize_event_attach(
         transporter_node_id, speed, to)));
     actions.push(Box::new(action::TryFixAttachedUnit::new(
         transporter_id, attached_unit_id)));
-    actions.extend(action::visualize_show_text(
+    actions.extend(visualize_show_text(
         context, text_pos, "attached"));
     actions
 }
@@ -438,7 +438,7 @@ fn visualize_event_detach(
     // TODO: action::RotateTo?
     actions.push(Box::new(action::MoveTo::new(
         transporter_node_id, speed, to)));
-    actions.extend(action::visualize_show_text(
+    actions.extend(visualize_show_text(
         context, pos.map_pos, "detached"));
     actions
 }
@@ -468,6 +468,147 @@ fn visualize_event_sector_owner_changed(
         Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
         None => format!("Sector {}: owner changed: None", sector_id.id),
     };
-    actions.extend(action::visualize_show_text(context, pos, &text));
+    actions.extend(visualize_show_text(context, pos, &text));
+    actions
+}
+
+// TODO Черт, меня бесит что теперь повсюду будут летать
+// изменяемые ссылки на ActionContext, в котором ВСЕ.
+//
+// По хорошему, при создании новых действий,
+// ссылка должна быть только на чтение для всего,
+// кроме выделение nide_id, mesh_id.
+// Тут без имзеняемости, видимо, никак.
+//
+// Что в Action::begin и т.п. будет изменяемый &mut ActionContext
+// меня уже не так волнует.
+//
+// Может, есть способ избавиться от mut тут?
+// Эти айдишники мне нужны только же для связи Action'ов
+// между собой. Хмм, могу я что-то другое использовать для этого?
+//
+//
+// TODO: is a visualize_** function? In what file should I put it?
+//
+// TODO: action::Chain?
+//
+pub fn visualize_show_text(
+    context: &mut ActionContext,
+    destination: MapPos,
+    text: &str,
+) -> Vec<Box<Action>> {
+    let node_id = context.scene.allocate_node_id();
+    let mesh_id = context.meshes.allocate_id();
+    let mut from = geom::map_pos_to_world_pos(destination);
+    from.v.z += 0.3;
+    let mut to = geom::map_pos_to_world_pos(destination);
+    to.v.z += 1.5;
+    let node = SceneNode {
+        pos: from,
+        rot: context.camera.get_z_angle(), // TODO: !?
+        mesh_id: Some(mesh_id),
+        color: [0.0, 0.0, 1.0, 1.0],
+        node_type: SceneNodeType::Transparent,
+        .. Default::default()
+    };
+    vec![
+        Box::new(action::CreateTextMesh::new(text.into(), mesh_id)),
+        Box::new(action::CreateNode::new(node_id, node)),
+        Box::new(action::MoveTo::new(node_id, Speed{n: 1.0}, to)),
+        Box::new(action::RemoveNode::new(node_id)),
+        Box::new(action::RemoveMesh::new(mesh_id)),
+    ]
+}
+
+// TODO: split this effect into many
+pub fn visualize_effect_attacked(
+    state: &State,
+    context: &mut ActionContext,
+    target_id: UnitId,
+    effect: &effect::Attacked,
+) -> Vec<Box<Action>> {
+    let mut actions: Vec<Box<Action>> = vec![];
+    let target = state.unit(target_id);
+    if effect.killed > 0 {
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, &format!("killed: {}", effect.killed)));
+    } else {
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, "miss")); // TODO: check position
+    }
+    // TODO: helicopters?
+    // TODO: loaded units?
+    // TODO: attached units?
+    let target_node_id = context.scene.unit_id_to_node_id(target_id);
+    if effect.killed > 0 {
+        let children = context.scene.node_mut(target_node_id)
+            .children.clone(); // TODO: remove clone
+        let killed = effect.killed as usize;
+        assert!(killed <= children.len());
+        for i in 0 .. killed {
+            if effect.leave_wrecks {
+                actions.push(Box::new(action::SetColor::new(
+                    children[i], action::WRECKS_COLOR)));
+            } else {
+                {
+                    let pos = context.scene.node(children[i]).pos;
+                    let to = WorldPos{v: pos.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+                    actions.push(Box::new(action::MoveTo::new(
+                        children[i], Speed{n: 1.0}, to)));
+                }
+                actions.push(Box::new(action::RemoveChild::new(
+                    target_node_id, 0)));
+            }
+        }
+        let is_target_destroyed = target.count - effect.killed <= 0;
+        if is_target_destroyed {
+            if target.attached_unit_id.is_some() {
+                actions.push(Box::new(action::RemoveChild::new(
+                    target_node_id, 0)));
+            }
+            let marker_child_id = if effect.leave_wrecks {
+                children.len() as i32
+            } else {
+                (children.len() - killed) as i32
+            } - 1;
+            actions.push(Box::new(action::RemoveChild::new(
+                target_node_id, marker_child_id)));
+            if !effect.leave_wrecks {
+                // assert_eq!(children.len(), 0); // TODO: how can i check this now?
+                actions.push(Box::new(action::RemoveUnit::new(target_id)));
+            }
+        } else {
+            actions.extend(visualize_show_text(
+                context,
+                target.pos.map_pos,
+                &format!("morale: -{}", effect.suppression),
+            ));
+        }
+    }
+    let is_target_suppressed = target.morale >= 50
+        && target.morale - effect.suppression < 50;
+    if is_target_suppressed {
+        actions.extend(visualize_show_text(
+            context, target.pos.map_pos, "suppressed"));
+    }
+    /*
+    let mut text = String::new();
+    text += match effect.effect {
+        Effect::Immobilized => "Immobilized",
+        Effect::WeaponBroken => "WeaponBroken",
+        Effect::ReducedMovement => "ReducedMovement",
+        Effect::ReducedAttackPoints => "ReducedAttackPoints",
+        Effect::Pinned => "Pinned",
+    };
+    text += ": ";
+    text += match effect.time {
+        effect::Time::Forever => "Forever",
+        // TODO: показать число ходов:
+        effect::Time::Turns(_) => "Turns(n)",
+        effect::Time::Instant => "Instant",
+    };
+    context.text.add_text(unit_pos, &text);
+    */
+    // TODO: визуализировать как-то
     actions
 }
