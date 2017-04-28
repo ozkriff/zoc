@@ -179,8 +179,8 @@ fn visualize_event_attack(
         let attacker_world_pos = geom::exact_pos_to_world_pos(
             state, attacker_pos);
         if attack_info.mode == FireMode::Reactive {
-            actions.extend(visualize_show_text(
-                context, attacker_pos.map_pos, "reaction fire"));
+            actions.push(Box::new(visualize_show_text(
+                context, attacker_pos.map_pos, "reaction fire")));
         }
         let node_id = context.scene.allocate_node_id();
         let node = SceneNode {
@@ -199,8 +199,8 @@ fn visualize_event_attack(
         actions.push(Box::new(action::Sleep::new(Time{n: 0.5})));
     }
     if attack_info.is_ambush {
-        actions.extend(visualize_show_text(
-            context, attack_info.target_pos.map_pos, "Ambushed"));
+        actions.push(Box::new(visualize_show_text(
+            context, attack_info.target_pos.map_pos, "Ambushed")));
     };
     actions
 }
@@ -225,8 +225,8 @@ fn visualize_event_show(
                 unit.id, attached_unit_id)));
         }
     }
-    actions.extend(visualize_show_text(
-        context, unit.pos.map_pos, "spotted"));
+    actions.push(Box::new(visualize_show_text(
+        context, unit.pos.map_pos, "spotted")));
     actions
 }
 
@@ -256,7 +256,7 @@ fn visualize_event_hide(
         // let world_pos = context.scene.node(node_id).pos;
         // let map_pos = geom::world_pos_to_map_pos(world_pos);
         actions.push(Box::new(action::RemoveUnit::new(unit_id)));
-        // actions.extend(visualize_show_text(context, map_pos, "lost"));
+        // actions.push(Box::new(visualize_show_text(context, map_pos, "lost"));
     }
     actions
 }
@@ -278,7 +278,7 @@ fn visualize_event_unload(
     actions.push(Box::new(action::CreateUnit::new(unit, from, node_id)));
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
-    actions.extend(visualize_show_text(context, text_pos, "unloaded"));
+    actions.push(Box::new(visualize_show_text(context, text_pos, "unloaded")));
     actions
 }
 
@@ -299,7 +299,7 @@ fn visualize_event_load(
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions.push(Box::new(action::RemoveUnit::new(passenger_id)));
-    actions.extend(visualize_show_text(context, text_pos, "loaded"));
+    actions.push(Box::new(visualize_show_text(context, text_pos, "loaded")));
     actions
 }
 
@@ -314,7 +314,9 @@ fn visualize_event_set_reaction_fire_mode(
         ReactionFireMode::Normal => "Normal fire mode",
         ReactionFireMode::HoldFire => "Hold fire",
     };
-    visualize_show_text(context, pos, text)
+    vec![
+        Box::new(visualize_show_text(context, pos, text)),
+    ]
 }
 
 fn visualize_event_victory_point(
@@ -324,7 +326,9 @@ fn visualize_event_victory_point(
 ) -> Vec<Box<Action>> {
     let text = format!("+{} VP!", count);
     // TODO: Sleep for 1 second
-    visualize_show_text(context, pos, &text)
+    vec![
+        Box::new(visualize_show_text(context, pos, &text)),
+    ]
 }
 
 fn visualize_event_smoke(
@@ -342,7 +346,7 @@ fn visualize_event_smoke(
     let mut actions: Vec<Box<Action>> = vec![];
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: MoveTo
-    actions.extend(visualize_show_text(context, pos, "smoke"));
+    actions.push(Box::new(visualize_show_text(context, pos, "smoke")));
     let z_step = 0.30; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
@@ -380,7 +384,7 @@ fn visualize_event_remove_smoke(
             node_id, final_color, time)));
     }
     actions.push(Box::new(action::RemoveObject::new(object_id)));
-    actions.extend(visualize_show_text(context, pos, "smoke cleared"));
+    actions.push(Box::new(visualize_show_text(context, pos, "smoke cleared")));
     actions
 }
 
@@ -406,8 +410,8 @@ fn visualize_event_attach(
         transporter_node_id, speed, to)));
     actions.push(Box::new(action::TryFixAttachedUnit::new(
         transporter_id, attached_unit_id)));
-    actions.extend(visualize_show_text(
-        context, text_pos, "attached"));
+    actions.push(Box::new(visualize_show_text(
+        context, text_pos, "attached")));
     actions
 }
 
@@ -438,8 +442,8 @@ fn visualize_event_detach(
     // TODO: action::RotateTo?
     actions.push(Box::new(action::MoveTo::new(
         transporter_node_id, speed, to)));
-    actions.extend(visualize_show_text(
-        context, pos.map_pos, "detached"));
+    actions.push(Box::new(visualize_show_text(
+        context, pos.map_pos, "detached")));
     actions
 }
 
@@ -468,7 +472,7 @@ fn visualize_event_sector_owner_changed(
         Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
         None => format!("Sector {}: owner changed: None", sector_id.id),
     };
-    actions.extend(visualize_show_text(context, pos, &text));
+    actions.push(Box::new(visualize_show_text(context, pos, &text)));
     actions
 }
 
@@ -492,11 +496,11 @@ fn visualize_event_sector_owner_changed(
 //
 // TODO: action::Chain?
 //
-pub fn visualize_show_text(
+fn visualize_show_text(
     context: &mut ActionContext,
     destination: MapPos,
     text: &str,
-) -> Vec<Box<Action>> {
+) -> action::Sequence {
     let node_id = context.scene.allocate_node_id();
     let mesh_id = context.meshes.allocate_id();
     let mut from = geom::map_pos_to_world_pos(destination);
@@ -511,13 +515,13 @@ pub fn visualize_show_text(
         node_type: SceneNodeType::Transparent,
         .. Default::default()
     };
-    vec![
+    action::Sequence::new(vec![
         Box::new(action::CreateTextMesh::new(text.into(), mesh_id)),
         Box::new(action::CreateNode::new(node_id, node)),
         Box::new(action::MoveTo::new(node_id, Speed{n: 1.0}, to)),
         Box::new(action::RemoveNode::new(node_id)),
         Box::new(action::RemoveMesh::new(mesh_id)),
-    ]
+    ])
 }
 
 // TODO: split this effect into many
@@ -530,11 +534,14 @@ pub fn visualize_effect_attacked(
     let mut actions: Vec<Box<Action>> = vec![];
     let target = state.unit(target_id);
     if effect.killed > 0 {
-        actions.extend(visualize_show_text(
-            context, target.pos.map_pos, &format!("killed: {}", effect.killed)));
+        actions.push(Box::new(visualize_show_text(
+            context,
+            target.pos.map_pos,
+            &format!("killed: {}", effect.killed),
+        )));
     } else {
-        actions.extend(visualize_show_text(
-            context, target.pos.map_pos, "miss")); // TODO: check position
+        actions.push(Box::new(visualize_show_text(
+            context, target.pos.map_pos, "miss"))); // TODO: check position
     }
     // TODO: helicopters?
     // TODO: loaded units?
@@ -578,18 +585,18 @@ pub fn visualize_effect_attacked(
                 actions.push(Box::new(action::RemoveUnit::new(target_id)));
             }
         } else {
-            actions.extend(visualize_show_text(
+            actions.push(Box::new(visualize_show_text(
                 context,
                 target.pos.map_pos,
                 &format!("morale: -{}", effect.suppression),
-            ));
+            )));
         }
     }
     let is_target_suppressed = target.morale >= 50
         && target.morale - effect.suppression < 50;
     if is_target_suppressed {
-        actions.extend(visualize_show_text(
-            context, target.pos.map_pos, "suppressed"));
+        actions.push(Box::new(visualize_show_text(
+            context, target.pos.map_pos, "suppressed")));
     }
     /*
     let mut text = String::new();

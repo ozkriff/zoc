@@ -295,6 +295,7 @@ TODO:
   - [ ] remove all other new TODOs
   - [ ] check it still works on android
   - [ ] `git rm` this file
+  - [ ] FIX NEW GLUTIN ON ANDROID
 - separate commits for:
   - transparent node type?
   - effects-actions
@@ -302,6 +303,7 @@ TODO:
   - visual unit sizes
   - made roads a little longer
 - after (in separate branches):
+  - UnitTypeVisualInfo -> VisualInfo, UnitTypeVisualInfoManager -> VisualInfoManager
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
   - src/screens/main/mod.rs

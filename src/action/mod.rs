@@ -22,7 +22,9 @@ mod detach;
 mod create_text_mesh;
 mod create_node;
 mod remove_node;
+mod sequence;
 
+pub use self::sequence::Sequence;
 pub use self::remove_child::RemoveChild;
 pub use self::add_object::AddObject;
 pub use self::remove_object::RemoveObject;
@@ -45,17 +47,31 @@ pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 
 // TODO: RENAME
 // TODO: Move to tactical_screen.rs?
+//
+// Мне не нравится что в tactical_screen.rs много раз конструируется
+// эта структура руками из полей. Но при этом я не могу сделат функцию,
+// которая бы ее собрала, потому что из self еще нужена изменемая
+// ссылка на само проигрываемое действие.
+//
+// Напрашивается решение: собрать все эти поля в отдельную от action
+// структуру, которая будет просто полем TacticalScreen.
+//
+// TODO: Add somehow easing adopters-wrappers
+//
 pub struct ActionContext<'a> {
+    // TODO: Player-specific fields
     pub camera: &'a Camera,
-    pub mesh_ids: &'a MeshIdManager,
     pub scene: &'a mut Scene,
+    // TODO: pub state: &State, // TODO: Do I need this?
+
+    // TODO: Common fields
+    pub mesh_ids: &'a MeshIdManager,
     pub context: &'a mut Context,
     pub meshes: &'a mut MeshManager,
     pub visual_info: &'a UnitTypeVisualInfoManager,
-
-    // TODO: pub state: &State, // ???
 }
 
+// TODO: action::Sequence и action::Fork
 pub trait Action: Debug {
     fn is_finished(&self) -> bool { true }
 
@@ -64,4 +80,8 @@ pub trait Action: Debug {
     fn begin(&mut self, _: &mut ActionContext) {}
     fn update(&mut self, _: &mut ActionContext, _: Time) {}
     fn end(&mut self, _: &mut ActionContext) {}
+
+    fn fork(&mut self) -> Option<Box<Action>> {
+        None
+    }
 }

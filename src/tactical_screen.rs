@@ -293,13 +293,12 @@ pub struct TacticalScreen {
 
     actions: VecDeque<Box<Action>>,
 
+    // TODO: затолкать эти 4 поля в какую-то структуру типа StaticActionContext?
     mesh_ids: MeshIdManager,
-
     meshes: MeshManager,
-
+    unit_type_visual_info: UnitTypeVisualInfoManager,
     player_info: PlayerInfoManager,
 
-    unit_type_visual_info: UnitTypeVisualInfoManager,
     selected_unit_id: Option<UnitId>,
     selection_manager: SelectionManager,
     context_menu_popup_rx: Option<Receiver<context_menu_popup::Command>>,

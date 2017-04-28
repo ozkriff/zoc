@@ -6,6 +6,7 @@ use mesh::{MeshId};
 use types::{Speed};
 use mesh_manager::{MeshManager, load_object_mesh};
 
+// TODO: rename to VisualInfo?
 #[derive(Clone, Debug)]
 pub struct UnitTypeVisualInfo {
     pub mesh_id: MeshId,
