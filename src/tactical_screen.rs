@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver};
 use std::f32::consts::{PI};
 use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
 use glutin::{self, VirtualKeyCode, MouseButton, TouchPhase};
 use glutin::ElementState::{Released};
@@ -291,7 +291,10 @@ pub struct TacticalScreen {
     // must be
     // `fn get_events(&mut self) -> Vec<CoreEvent>`.
 
-    actions: VecDeque<Box<Action>>,
+    // TODO: заставить эти действия выполняться одновременно,
+    // а цепочки действия представлять как action::Sequence
+    // actions: VecDeque<Box<Action>>,
+    actions: Vec<Box<Action>>,
 
     // TODO: затолкать эти 4 поля в какую-то структуру типа StaticActionContext?
     mesh_ids: MeshIdManager,
@@ -327,7 +330,7 @@ impl TacticalScreen {
             gui: gui,
             player_info: player_info,
             core: core,
-            actions: VecDeque::new(),
+            actions: Vec::new(),
             mesh_ids: mesh_ids,
             meshes: meshes,
             unit_type_visual_info: unit_type_visual_info,
@@ -378,9 +381,9 @@ impl TacticalScreen {
         // Add some specialized actions? Like `FogTile`\`UnfogTile`?
         // Но для начала мне нужно реализовать одновременные действия.
         //
-        let player_info = self.player_info.get_mut(self.core.player_id());
-        let fow = &mut player_info.fow_info;
-        let state = &player_info.game_state;
+        let i = self.player_info.get_mut(self.core.player_id());
+        let fow = &mut i.fow_info;
+        let state = &i.game_state;
         for pos in state.map().get_iter() {
             let is_visible = state.is_ground_tile_visible(pos);
             if is_visible {
@@ -397,7 +400,7 @@ impl TacticalScreen {
             if !is_visible && fow.map.tile(pos).is_none() {
                 let mut world_pos = geom::map_pos_to_world_pos(pos);
                 world_pos.v.z += 0.02; // TODO: magic
-                let node_id = player_info.scene.add_node(SceneNode {
+                let node_id = i.scene.add_node(SceneNode {
                     pos: world_pos,
                     mesh_id: Some(self.mesh_ids.fow_tile_mesh_id),
                     color: [0.0, 0.1, 0.0, 0.0],
@@ -412,9 +415,9 @@ impl TacticalScreen {
 
     fn update_fow(&mut self, dtime: Time) {
         let max_alpha = 0.4;
-        let player_info = self.player_info.get_mut(self.core.player_id());
-        let scene = &mut player_info.scene;
-        let fow = &mut player_info.fow_info;
+        let i = self.player_info.get_mut(self.core.player_id());
+        let scene = &mut i.scene;
+        let fow = &mut i.fow_info;
         for (&node_id, time) in &mut fow.forthcoming_node_ids {
             time.n += dtime.n;
             let mut a = (time.n / FOW_FADING_TIME) * max_alpha;
@@ -439,14 +442,12 @@ impl TacticalScreen {
     }
 
     fn bobble_helicopters(&mut self, context: &Context, dtime: Time) {
-        let player_info = self.player_info.get_mut(self.core.player_id());
-        let state = &player_info.game_state;
-        let scene = &mut player_info.scene;
-        for (_, unit) in state.units() {
+        let i = self.player_info.get_mut(self.core.player_id());
+        for (_, unit) in i.game_state.units() {
             let unit_type = self.core.db().unit_type(unit.type_id);
             if unit_type.is_air {
-                let node_id = scene.unit_id_to_node_id(unit.id);
-                let node = scene.node_mut(node_id);
+                let node_id = i.scene.unit_id_to_node_id(unit.id);
+                let node = i.scene.node_mut(node_id);
                 let n = context.current_time().n + unit.id.id as f32;
                 node.pos.v.z += (n * 1.5).sin() * 0.4 * dtime.n;
             }
@@ -565,9 +566,9 @@ impl TacticalScreen {
 
     fn move_unit(&mut self, pos: ExactPos, move_mode: MoveMode) {
         let unit_id = self.selected_unit_id.unwrap();
-        let player_info = self.player_info.get_mut(self.core.player_id());
+        let i = self.player_info.get_mut(self.core.player_id());
         // TODO: duplicated get_path =\
-        let path = player_info.pathfinder.get_path(pos).unwrap();
+        let path = i.pathfinder.get_path(pos).unwrap();
         self.core.do_command(Command::Move {
             unit_id: unit_id,
             path: path,
@@ -659,6 +660,12 @@ impl TacticalScreen {
             },
             VirtualKeyCode::I => {
                 self.print_info(context);
+            },
+            VirtualKeyCode::P => {
+                println!("self.actions: {:#?}", self.actions);
+                for action in &self.actions {
+                    println!("action: is_finished = {}", action.is_finished());
+                }
             },
             VirtualKeyCode::Subtract | VirtualKeyCode::Key1 => {
                 self.current_player_info_mut().camera.change_zoom(1.3);
@@ -777,7 +784,7 @@ impl TacticalScreen {
             Some(CoreEvent{event: Event::AttackUnit{ref attack_info}, ..}) => attack_info,
             _ => return,
         };
-        let player_info = self.player_info.get(self.core.player_id());
+        let i = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let selected_unit_id = match self.selected_unit_id {
             Some(id) => id,
@@ -820,9 +827,9 @@ impl TacticalScreen {
     }
 
     fn switch_wireframe(&mut self) {
-        let player_info = self.player_info.get_mut(self.core.player_id());
-        let scene = &mut player_info.scene;
-        let state = &mut player_info.game_state;
+        let i = self.player_info.get_mut(self.core.player_id());
+        let scene = &mut i.scene;
+        let state = &mut i.game_state;
         'object_loop: for (&object_id, object) in state.objects() {
             if object.class != ObjectClass::Building {
                 continue;
@@ -849,21 +856,11 @@ impl TacticalScreen {
         }
     }
 
+    // TODO: переименовать, теперь это просто метод, который вызывается когда
+    // больше уже нет никаких событий
     fn end_action(&mut self, context: &mut Context) {
+        // TODO: тут сойдет? или вообще удалить?
         self.attacker_died_from_reaction_fire();
-        {
-            let player_info = self.player_info.get_mut(self.core.player_id());
-            let action = self.actions.front_mut().unwrap();
-            let action_context = &mut action::ActionContext {
-                context: context,
-                scene: &mut player_info.scene,
-                camera: &player_info.camera,
-                meshes: &mut self.meshes,
-                mesh_ids: &self.mesh_ids,
-                visual_info: &self.unit_type_visual_info,
-            };
-            action.end(action_context);
-        }
         self.switch_wireframe();
         if let Some(label_id) = self.gui.label_unit_info_id.take() {
             self.gui.button_manager.remove_button(label_id);
@@ -876,58 +873,131 @@ impl TacticalScreen {
     }
 
     fn begin_action(&mut self, context: &mut Context) {
-        assert!(self.actions.len() > 0);
+        {
+            // TODO: do this for every action every turn
+            //
+            // Получается, надо вызывать форк каждый кадр
+            // (ведь последовательность никак не может нам сообщить о том,
+            // что у нее там внутри сменилось действие), а внутри
+            // последовательности реализовать ветвление вызовом у текущего
+            // активного действия.
+            //
+            /*
+            if let Some(action) = self.actions.front_mut().unwrap().fork() {
+                // TODO: add act
+            }
+            */
+        }
+        // assert!(self.actions.len() > 0);
         self.hide_selected_unit_meshes(context);
-        let player_info = self.player_info.get_mut(self.core.player_id());
+        /*
+        let i = self.player_info.get_mut(self.core.player_id());
         let action = self.actions.front_mut().unwrap();
         println!("begin_action: {:?}", action); // TODO
         // TODO: try to remove duplication of ActionContext c-tor
         let action_context = &mut action::ActionContext {
             context: context,
-            scene: &mut player_info.scene,
-            camera: &player_info.camera,
+            scene: &mut i.scene,
+            camera: &i.camera,
             meshes: &mut self.meshes,
             mesh_ids: &self.mesh_ids,
             visual_info: &self.unit_type_visual_info,
         };
         action.begin(action_context);
+        */
+    }
+
+    fn try_get_new_action_rename_me(&mut self, context: &mut Context) {
+        // TODO: надо пройтись по всем событиям,
+        // склеить все их действия в одну последовательность,
+        // а ее уже добавить в self.actions
+        let mut actions: Vec<Box<Action>> = Vec::new();
+        while let Some(event) = self.core.get_event() {
+            let action = {
+                let current_player_id = self.core.player_id();
+                let mut i = self.player_info.get_mut(current_player_id);
+                let mut action_context = &mut action::ActionContext {
+                    context: context,
+                    scene: &mut i.scene,
+                    camera: &i.camera,
+                    meshes: &mut self.meshes,
+                    mesh_ids: &self.mesh_ids,
+                    visual_info: &self.unit_type_visual_info,
+                };
+                let state = &i.game_state;
+                visualize_event(state, &mut action_context, &event)
+            };
+            self.current_state_mut().apply_event(&event);
+            if let Some(action) = action {
+                actions.push(action);
+            }
+        }
+        if !actions.is_empty() {
+            self.begin_action(context);
+
+            // TODO: удалить дублирование!
+            let current_player_id = self.core.player_id();
+            let mut i = self.player_info.get_mut(current_player_id);
+            let mut action_context = &mut action::ActionContext {
+                context: context,
+                scene: &mut i.scene,
+                camera: &i.camera,
+                meshes: &mut self.meshes,
+                mesh_ids: &self.mesh_ids,
+                visual_info: &self.unit_type_visual_info,
+            };
+            let mut action_sequence = if actions.len() > 1 {
+                Box::new(action::Sequence::new(actions))
+            } else {
+                actions.pop().unwrap()
+            };
+            action_sequence.begin(action_context);
+            self.actions.push(action_sequence);
+            println!("self.actions: {:#?}\n", self.actions);
+        }
     }
 
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
-        if let Some(action) = self.actions.front_mut() {
-            let player_info = self.player_info.get_mut(self.core.player_id());
+        if self.actions.is_empty() {
+            self.try_get_new_action_rename_me(context);
+        }
+        {
+            // TODO: extruct to separate method
+            let mut forked_actions = Vec::new();
+            for action in &mut self.actions {
+                if let Some(action) = action.fork() {
+                    forked_actions.push(action);
+                }
+            }
+            for mut forked_action in forked_actions {
+                // TODO: duplication
+                let i = self.player_info.get_mut(self.core.player_id());
+                let action_context = &mut action::ActionContext {
+                    context: context,
+                    scene: &mut i.scene,
+                    camera: &i.camera,
+                    meshes: &mut self.meshes,
+                    mesh_ids: &self.mesh_ids,
+                    visual_info: &self.unit_type_visual_info,
+                };
+                forked_action.begin(action_context);
+                self.actions.push(forked_action);
+            }
+        }
+        for action in &mut self.actions {
+            let i = self.player_info.get_mut(self.core.player_id());
             let action_context = &mut action::ActionContext {
                 context: context,
-                scene: &mut player_info.scene,
-                camera: &player_info.camera,
+                scene: &mut i.scene,
+                camera: &i.camera,
                 meshes: &mut self.meshes,
                 mesh_ids: &self.mesh_ids,
                 visual_info: &self.unit_type_visual_info,
             };
             action.update(action_context, dtime);
         }
-        while let Some(event) = self.core.get_event() {
-            let is_new = self.actions.is_empty();
-            let actions = {
-                let current_player_id = self.core.player_id();
-                let mut player_info = self.player_info.get_mut(current_player_id);
-                let state = &player_info.game_state;
-                let mut action_context = &mut action::ActionContext {
-                    context: context,
-                    scene: &mut player_info.scene,
-                    camera: &player_info.camera,
-                    meshes: &mut self.meshes,
-                    mesh_ids: &self.mesh_ids,
-                    visual_info: &self.unit_type_visual_info,
-                };
-                visualize_event(state, &mut action_context, &event)
-            };
-            self.actions.extend(actions);
-            self.current_state_mut().apply_event(&event);
-            if is_new && !self.actions.is_empty() {
-                self.begin_action(context);
-            }
-        }
+
+        /*
         if !self.actions.is_empty()
             && self.actions.front_mut().unwrap().is_finished()
         {
@@ -938,7 +1008,24 @@ impl TacticalScreen {
                 self.begin_action(context);
             }
         }
+        */
+        for action in &mut self.actions {
+            if action.is_finished() {
+                let i = self.player_info.get_mut(self.core.player_id());
+                let action_context = &mut action::ActionContext {
+                    context: context,
+                    scene: &mut i.scene,
+                    camera: &i.camera,
+                    meshes: &mut self.meshes,
+                    mesh_ids: &self.mesh_ids,
+                    visual_info: &self.unit_type_visual_info,
+                };
+                action.end(action_context);
+            }
+        }
+        self.actions.retain(|action| !action.is_finished());
         if self.actions.is_empty() {
+            self.end_action(context);
             // TODO: should this really be exectuted every frame? =\
             // Maybe it should be moved to end_action func
             self.update_score_labels(context);

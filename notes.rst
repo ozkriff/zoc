@@ -264,6 +264,21 @@ Can I use something else to do it?..
 
 ------
 
+TODO: do this for every action every turn
+
+TODO: вот еще интересный вопрос:
+что мне делать с ветвлением действий в последовательностях?
+ведь fork последовательности ничего не сделает, а у действия
+внутри последовательности форки никто не вызовет!
+
+Получается, надо вызывать форк каждый кадр
+(ведь последовательность никак не может нам сообщить о том,
+что у нее там внутри сменилось действие), а внутри
+последовательности реализовать ветвление вызовом у текущего
+активного действия.
+
+------
+
 TODO:
 
 - before:
@@ -278,7 +293,7 @@ TODO:
     - [ ] make them darker
     - [ ] I need to rework map creation in order to implement this properly
   - [x] more crisp tile's border (redraw texture)
-  - [.] fork action
+  - [x] fork action
   - [ ] FIX RANDOM FREEZES during enemy's turn
   - [ ] split effect::Attacked into many effects
   - [ ] add effect RemoveMovePoints caused by hard terrain
@@ -307,11 +322,15 @@ TODO:
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
   - src/screens/main/mod.rs
+  - писать при создании-обнаружении-потери-из-вида отряда его тип
+  - s/vec![]/Vec::new/g
   - src/screens/end_turn/mod.rs
   - make gui independant of screen's size
     - i need to get rid of the Size2 somehow
   - replace walk and attack lines with colored tile (like FoW)
   - update gfx
+  - simple sprite smoke on a destroyed vehicle? birned earhs sprite?
+  - blood on the ground near killed solduers?
   - replace tree models!
   - rename `SceneNode` to just `Node`
   - logging

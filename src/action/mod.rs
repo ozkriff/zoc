@@ -23,6 +23,7 @@ mod create_text_mesh;
 mod create_node;
 mod remove_node;
 mod sequence;
+mod fork;
 
 pub use self::sequence::Sequence;
 pub use self::remove_child::RemoveChild;
@@ -41,6 +42,7 @@ pub use self::detach::Detach;
 pub use self::create_text_mesh::CreateTextMesh;
 pub use self::create_node::CreateNode;
 pub use self::remove_node::RemoveNode;
+pub use self::fork::Fork;
 
 // TODO: Move to some other place
 pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];

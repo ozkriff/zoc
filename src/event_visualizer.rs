@@ -20,11 +20,13 @@ use action::{self, Action, ActionContext};
 //
 // Actually, I need `&mut Scene` for calling `allocate_node_id` :(
 //
+// TODO: сделать так, что бы все эти функции сразу возвращали action::Sequence
+//
 pub fn visualize_event(
     state: &State,
     context: &mut ActionContext,
     event: &CoreEvent,
-) -> Vec<Box<Action>> {
+) -> Option<Box<Action>> {
     println!("visualize_event: event: {:?}\n", event);
     let mut actions = match event.event {
         Event::Move{unit_id, to, ..} => {
@@ -54,8 +56,7 @@ pub fn visualize_event(
                 state, context, transporter_id, attached_unit_id)
         },
         Event::Detach{transporter_id, to, ..} => {
-            visualize_event_detach(
-                state, context, transporter_id, to)
+            visualize_event_detach(state, context, transporter_id, to)
         },
         Event::SetReactionFireMode{unit_id, mode} => {
             visualize_event_set_reaction_fire_mode(
@@ -66,21 +67,23 @@ pub fn visualize_event(
                 state, context, sector_id, new_owner_id)
         }
         Event::VictoryPoint{pos, count, ..} => {
-            visualize_event_victory_point(
-                context, pos, count)
+            visualize_event_victory_point(context, pos, count)
         }
         Event::Smoke{pos, unit_id, id} => {
-            visualize_event_smoke(
-                context, pos, unit_id, id)
+            visualize_event_smoke(context, pos, unit_id, id)
         }
         Event::RemoveSmoke{id} => {
-            visualize_event_remove_smoke(
-                state, context, id)
+            visualize_event_remove_smoke(state, context, id)
         }
         Event::Reveal{..} => unreachable!(),
     };
     actions.extend(visualize_effects(state, context, event));
-    actions
+    // TODO: паковать не тут!
+    match actions.len() {
+        0 => None,
+        1 => Some(actions.pop().unwrap()),
+        _ => Some(Box::new(action::Sequence::new(actions))),
+    }
 }
 
 fn visualize_effect(
@@ -161,6 +164,13 @@ fn visualize_event_move(
     let node_id = context.scene.unit_id_to_node_id(unit_id);
     let to = geom::exact_pos_to_world_pos(state, destination);
     let speed = visual_info.move_speed;
+    {
+        // TODO: Employ fork
+        let action_move = Box::new(visualize_show_text(
+            context, destination.map_pos, "Moved"));
+        actions.push(Box::new(action::Fork::new(action_move)));
+        // actions.push(action_move);
+    }
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions

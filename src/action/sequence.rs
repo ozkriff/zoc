@@ -28,6 +28,9 @@ impl Action for Sequence {
     // Надо бы как-то тут цикл вставить.
     //
     // TODO: заменить логику в TacticalScreen на вот эту
+    //
+    // TODO: SIMPLIFY
+    //
     fn update(&mut self, context: &mut ActionContext, dtime: Time) {
         if !self.actions.is_empty() {
             self.actions.front_mut().unwrap().update(context, dtime);
@@ -47,5 +50,13 @@ impl Action for Sequence {
 
     fn end(&mut self, _: &mut ActionContext) {
         assert!(self.actions.is_empty());
+    }
+
+    fn fork(&mut self) -> Option<Box<Action>> {
+        if !self.actions.is_empty() {
+            self.actions.front_mut().unwrap().fork()
+        } else {
+            None
+        }
     }
 }
