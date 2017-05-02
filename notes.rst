@@ -282,9 +282,11 @@ TODO: вот еще интересный вопрос:
 TODO:
 
 - before:
+  - [x] more crisp tile's border (redraw texture)
   - [x] fix smoke transparacy
     - forgot to set mesh to NoDepth! :(
-  - [ ] fix FoW
+  - [x] fork action
+  - [.] fix FoW
     - [ ] Convert to Actions. How?
           Add some specialized actions? Like `FogTile`\`UnfogTile`?
           But first I need to implement similtanius actions
@@ -292,11 +294,10 @@ TODO:
     - [x] basic
     - [ ] make them darker
     - [ ] I need to rework map creation in order to implement this properly
-  - [x] more crisp tile's border (redraw texture)
-  - [x] fork action
   - [ ] FIX RANDOM FREEZES during enemy's turn
   - [ ] split effect::Attacked into many effects
   - [ ] add effect RemoveMovePoints caused by hard terrain
+  - [ ] вынести поля для ActionContext во вложенную структуру по отношению к TacticalScreen
   - [ ] fix text labels
     - [ ] rotate with camera
     - [ ] appear from alpha
@@ -306,7 +307,7 @@ TODO:
   - [ ] change towing distance based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
   - [x] `new -> Box<Action>` -> `new -> Self`
-  - [ ] reinforcement_points in gui are not updated sometimes
+  - [x] reinforcement_points in gui are not updated sometimes
   - [ ] remove all other new TODOs
   - [ ] check it still works on android
   - [ ] `git rm` this file
