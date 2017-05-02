@@ -12,6 +12,9 @@ repository = "https://github.com/ozkriff/zoc"
 [package.metadata.android]
 assets = "assets"
 
+[workspace]
+members = ["core"]
+
 [dependencies.core]
 path = "core"
 
