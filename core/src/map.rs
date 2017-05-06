@@ -35,7 +35,21 @@ impl<T: Clone + Default> Map<T> {
             size: size,
         }
     }
+}
 
+// TODO: Add some tests
+impl<T> Map<T> {
+    pub fn from_callback(size: Size2, cb: &mut FnMut(MapPos) -> T) -> Map<T> {
+        let tiles_count = (size.w * size.h) as usize;
+        let mut tiles = Vec::with_capacity(tiles_count);
+        for pos in MapPosIter::new(size) {
+            tiles.push(cb(pos));
+        }
+        Map{tiles, size}
+    }
+}
+
+impl<T: Clone> Map<T> {
     pub fn size(&self) -> Size2 {
         self.size
     }

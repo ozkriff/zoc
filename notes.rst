@@ -279,6 +279,54 @@ TODO: вот еще интересный вопрос:
 
 ------
 
+и вот тут (при вызове visualize_event) создавать события с
+созданием новых узлов сцены с туманом войны или их удалением.
+и что бы все было плавно!
+
+вот какая есть мысль:
+надо при создании карты сразу завести узлы сцены
+на все клетки тумана. и действиями просто менять их
+прозрачность в относительных величинах.
+Таким образом, если действия будут включать-выключать
+ячеку тумана, то все будет выглядеть ровно как сейчас.
+
+------
+
+```rust
+// TODO: this doesn't help at all!
+fn yyy(&mut self, context: &mut Context) {
+    let i = self.player_info.get_mut(self.core.player_id());
+    let state = &i.game_state;
+    let action_context = &mut action::ActionContext {
+        context: context,
+        scene: &mut i.scene,
+        camera: &i.camera,
+        meshes: &mut self.meshes,
+        mesh_ids: &self.mesh_ids,
+        visual_info: &self.unit_type_visual_info,
+    };
+    for object in state.objects().values() {
+        match object.class {
+            ObjectClass::ReinforcementSector => {
+                if object.owner_id != Some(self.core.player_id()) {
+                    continue;
+                }
+                // let pos = MapPos{v: Vector2{x:2, y: 2}};
+                let pos = object.pos.map_pos;
+                let mut actions = event_visualizer::visualize_show_text(
+                    action_context, pos, "CLICK_ME");
+                actions.begin(action_context);
+                self.actions.push(Box::new(actions));
+            }
+            _ => {}
+        }
+    }
+}
+```
+
+------
+
+
 TODO:
 
 - before:
@@ -286,10 +334,11 @@ TODO:
   - [x] fix smoke transparacy
     - forgot to set mesh to NoDepth! :(
   - [x] fork action
-  - [.] fix FoW
-    - [ ] Convert to Actions. How?
+  - [x] fix FoW
+    - [x] Convert to Actions. How?
           Add some specialized actions? Like `FogTile`\`UnfogTile`?
           But first I need to implement similtanius actions
+    - [ ] Add ability to skip many Fork actions during one frame
   - [ ] shadows
     - [x] basic
     - [ ] make them darker
@@ -318,7 +367,10 @@ TODO:
   - shadows
   - visual unit sizes
   - made roads a little longer
+  - cgmath's and collision's updates
+  - cargo workspace
 - after (in separate branches):
+  - Hotseat -> HotSeat
   - UnitTypeVisualInfo -> VisualInfo, UnitTypeVisualInfoManager -> VisualInfoManager
   - src/screens/tactical/mod.rs
     - .../action/mod.rs
@@ -328,7 +380,7 @@ TODO:
   - src/screens/end_turn/mod.rs
   - make gui independant of screen's size
     - i need to get rid of the Size2 somehow
-  - replace walk and attack lines with colored tile (like FoW)
+  - replace walk and attack lines with colored tiles (like FoW)
   - update gfx
   - simple sprite smoke on a destroyed vehicle? birned earhs sprite?
   - blood on the ground near killed solduers?

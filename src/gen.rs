@@ -86,6 +86,7 @@ pub fn empty_mesh(context: &mut Context) -> Mesh {
     Mesh::new_wireframe(context, &[], &[])
 }
 
+// TODO: работать на подобие тумана войны, создавая новые полупрозрачные узлы сцены
 pub fn build_walkable_mesh(
     context: &mut Context,
     pf: &Pathfinder,
@@ -129,6 +130,7 @@ pub fn build_walkable_mesh(
     Mesh::new_wireframe(context, &vertices, &indices)
 }
 
+// TODO: работать на подобие тумана войны, создавая новые полупрозрачные узлы сцены
 pub fn build_targets_mesh(
     db: &Db,
     context: &mut Context,

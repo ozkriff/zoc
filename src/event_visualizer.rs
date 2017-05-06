@@ -20,7 +20,7 @@ use action::{self, Action, ActionContext};
 //
 // Actually, I need `&mut Scene` for calling `allocate_node_id` :(
 //
-// TODO: сделать так, что бы все эти функции сразу возвращали action::Sequence
+// TODO: make all the `visualize_event_*` functions return `action::Sequence`
 //
 pub fn visualize_event(
     state: &State,
@@ -78,7 +78,7 @@ pub fn visualize_event(
         Event::Reveal{..} => unreachable!(),
     };
     actions.extend(visualize_effects(state, context, event));
-    // TODO: паковать не тут!
+    // TODO: pack this in some other place
     match actions.len() {
         0 => None,
         1 => Some(actions.pop().unwrap()),
@@ -506,7 +506,7 @@ fn visualize_event_sector_owner_changed(
 //
 // TODO: action::Chain?
 //
-fn visualize_show_text(
+pub fn visualize_show_text(
     context: &mut ActionContext,
     destination: MapPos,
     text: &str,
@@ -562,17 +562,15 @@ pub fn visualize_effect_attacked(
             .children.clone(); // TODO: remove clone
         let killed = effect.killed as usize;
         assert!(killed <= children.len());
-        for i in 0 .. killed {
+        for &child in children.iter().take(killed) {
             if effect.leave_wrecks {
                 actions.push(Box::new(action::SetColor::new(
-                    children[i], action::WRECKS_COLOR)));
+                    child, action::WRECKS_COLOR)));
             } else {
-                {
-                    let pos = context.scene.node(children[i]).pos;
-                    let to = WorldPos{v: pos.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
-                    actions.push(Box::new(action::MoveTo::new(
-                        children[i], Speed{n: 1.0}, to)));
-                }
+                let pos = context.scene.node(child).pos;
+                let to = WorldPos{v: pos.v - geom::vec3_z(geom::HEX_EX_RADIUS / 2.0)};
+                actions.push(Box::new(action::MoveTo::new(
+                    child, Speed{n: 1.0}, to)));
                 actions.push(Box::new(action::RemoveChild::new(
                     target_node_id, 0)));
             }

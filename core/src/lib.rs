@@ -201,7 +201,7 @@ impl Core {
             attacker_id: Some(attacker_id),
             mode: fire_mode,
             is_ambush: is_ambush,
-            is_inderect: weapon_type.is_inderect,
+            is_inderect: weapon_type.is_inderect, // TODO: typo: is_indirect
             target_pos: defender.pos,
         };
         Some(CoreEvent {
@@ -320,7 +320,7 @@ impl Core {
             Command::EndTurn => {
                 let old_id = self.current_player_id;
                 let new_id = self.next_player_id(old_id);
-                // TODO: extruct func
+                // TODO: extract func
                 let mut end_turn_events = Vec::new();
                 for sector in self.state.sectors().values() {
                     if let Some(player_id) = sector.owner_id {
