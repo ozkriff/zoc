@@ -943,10 +943,6 @@ impl TacticalScreen {
         context: &mut Context,
         command: context_menu_popup::Command,
     ) {
-        if let context_menu_popup::Command::Select{id} = command {
-            self.select_unit(context, id);
-            return;
-        }
         match command {
             context_menu_popup::Command::Select{id} => {
                 self.select_unit(context, id);
