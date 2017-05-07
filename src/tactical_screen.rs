@@ -672,7 +672,6 @@ impl TacticalScreen {
     }
 
     fn draw_scene(&mut self, context: &mut Context) {
-        self.sort_nodes();
         let mat = self.current_player_info().camera.mat();
         for &node_id in self.scene().normal_node_ids() {
             self.draw_scene_node(context, self.scene().node(node_id), mat);
@@ -936,7 +935,7 @@ impl TacticalScreen {
     fn update(&mut self, context: &mut Context, dtime: Time) {
         self.update_actions(context, dtime);
         self.bobble_helicopters(context, dtime);
-        // TODO: sort transparent nodes HERE, not in draw()
+        self.sort_nodes();
     }
 
     fn handle_context_menu_popup_command(
