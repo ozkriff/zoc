@@ -164,13 +164,9 @@ fn visualize_event_move(
     let node_id = context.scene.unit_id_to_node_id(unit_id);
     let to = geom::exact_pos_to_world_pos(state, destination);
     let speed = visual_info.move_speed;
-    {
-        // TODO: Employ fork
-        let action_move = Box::new(visualize_show_text(
-            context, destination.map_pos, "Moved"));
-        actions.push(Box::new(action::Fork::new(action_move)));
-        // actions.push(action_move);
-    }
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(
+            context, destination.map_pos, "Moved")))));
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions
@@ -189,8 +185,9 @@ fn visualize_event_attack(
         let attacker_world_pos = geom::exact_pos_to_world_pos(
             state, attacker_pos);
         if attack_info.mode == FireMode::Reactive {
-            actions.push(Box::new(visualize_show_text(
-                context, attacker_pos.map_pos, "reaction fire")));
+            actions.push(Box::new(action::Fork::new(
+                Box::new(visualize_show_text(
+                    context, attacker_pos.map_pos, "reaction fire")))));
         }
         let node_id = context.scene.allocate_node_id();
         let node = SceneNode {
@@ -209,8 +206,9 @@ fn visualize_event_attack(
         actions.push(Box::new(action::Sleep::new(Time{n: 0.5})));
     }
     if attack_info.is_ambush {
-        actions.push(Box::new(visualize_show_text(
-            context, attack_info.target_pos.map_pos, "Ambushed")));
+        actions.push(Box::new(action::Fork::new(
+            Box::new(visualize_show_text(
+                context, attack_info.target_pos.map_pos, "Ambushed")))));
     };
     actions
 }
@@ -235,8 +233,9 @@ fn visualize_event_show(
                 unit.id, attached_unit_id)));
         }
     }
-    actions.push(Box::new(visualize_show_text(
-        context, unit.pos.map_pos, "spotted")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(
+            context, unit.pos.map_pos, "spotted")))));
     actions
 }
 
@@ -251,18 +250,18 @@ fn visualize_event_hide(
         // because this unit may be in a fogged tile now
         // so State will filter him out.
         //
-        // Но и из узла прямо сейчас такое читать тоже нельзя,
-        // потому что позиция узла будет действительной только
-        // на момент `Action::begin`!
+        // But we can't either read the position from th node right now
+        // because it's actual only when `Action::begin` is called!
         //
-        // Я хз что делать.
+        // I don't know what to do.
         //
-        // Все что приходит в голову - вместо MapPos иметь возможность передать
-        // NodeId, у которого в момент исполнения уже и будет взята позиция.
+        // The only thing that comes to my mind is use something like
+        // `enum ActionPos {MapPos(MapPos), NodeId(NodeId)}` and
+        // get pos from `NodeId` variant int the `begin` func.
         //
         // TODO: Read the position in begin action!
         //
-        // TODO: disabled for now (не забудь починить)
+        // TODO: disabled for now (don't forget to fix it)
         // let world_pos = context.scene.node(node_id).pos;
         // let map_pos = geom::world_pos_to_map_pos(world_pos);
         actions.push(Box::new(action::RemoveUnit::new(unit_id)));
@@ -288,7 +287,8 @@ fn visualize_event_unload(
     actions.push(Box::new(action::CreateUnit::new(unit, from, node_id)));
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
-    actions.push(Box::new(visualize_show_text(context, text_pos, "unloaded")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, text_pos, "unloaded")))));
     actions
 }
 
@@ -309,7 +309,8 @@ fn visualize_event_load(
     actions.push(Box::new(action::RotateTo::new(node_id, to)));
     actions.push(Box::new(action::MoveTo::new(node_id, speed, to)));
     actions.push(Box::new(action::RemoveUnit::new(passenger_id)));
-    actions.push(Box::new(visualize_show_text(context, text_pos, "loaded")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, text_pos, "loaded")))));
     actions
 }
 
@@ -325,7 +326,8 @@ fn visualize_event_set_reaction_fire_mode(
         ReactionFireMode::HoldFire => "Hold fire",
     };
     vec![
-        Box::new(visualize_show_text(context, pos, text)),
+        Box::new(action::Fork::new(
+            Box::new(visualize_show_text(context, pos, text)))),
     ]
 }
 
@@ -337,7 +339,8 @@ fn visualize_event_victory_point(
     let text = format!("+{} VP!", count);
     // TODO: Sleep for 1 second
     vec![
-        Box::new(visualize_show_text(context, pos, &text)),
+        Box::new(action::Fork::new(
+            Box::new(visualize_show_text(context, pos, &text)))),
     ]
 }
 
@@ -348,7 +351,7 @@ fn visualize_event_smoke(
     // TODO: I would be glad to show shell from the unit,
     // BUT there should be only one shell for multiple events...
     //
-    // Should I convert EventSmoke to effect? What whould be the event then? 
+    // Should I convert EventSmoke to effect? What would be the event then? 
     _: Option<UnitId>, // TODO
 
     object_id: ObjectId,
@@ -356,7 +359,8 @@ fn visualize_event_smoke(
     let mut actions: Vec<Box<Action>> = vec![];
     let smoke_mesh_id = context.mesh_ids.smoke_mesh_id;
     // TODO: show shell animation: MoveTo
-    actions.push(Box::new(visualize_show_text(context, pos, "smoke")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, pos, "smoke")))));
     let z_step = 0.30; // TODO: magic
     let mut node = SceneNode {
         pos: geom::map_pos_to_world_pos(pos),
@@ -394,7 +398,8 @@ fn visualize_event_remove_smoke(
             node_id, final_color, time)));
     }
     actions.push(Box::new(action::RemoveObject::new(object_id)));
-    actions.push(Box::new(visualize_show_text(context, pos, "smoke cleared")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, pos, "smoke cleared")))));
     actions
 }
 
@@ -420,8 +425,9 @@ fn visualize_event_attach(
         transporter_node_id, speed, to)));
     actions.push(Box::new(action::TryFixAttachedUnit::new(
         transporter_id, attached_unit_id)));
-    actions.push(Box::new(visualize_show_text(
-        context, text_pos, "attached")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(
+            context, text_pos, "attached")))));
     actions
 }
 
@@ -452,8 +458,8 @@ fn visualize_event_detach(
     // TODO: action::RotateTo?
     actions.push(Box::new(action::MoveTo::new(
         transporter_node_id, speed, to)));
-    actions.push(Box::new(visualize_show_text(
-        context, pos.map_pos, "detached")));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, pos.map_pos, "detached")))));
     actions
 }
 
@@ -482,25 +488,24 @@ fn visualize_event_sector_owner_changed(
         Some(id) => format!("Sector {}: owner changed: Player {}", sector_id.id, id.id),
         None => format!("Sector {}: owner changed: None", sector_id.id),
     };
-    actions.push(Box::new(visualize_show_text(context, pos, &text)));
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(context, pos, &text)))));
     actions
 }
 
-// TODO Черт, меня бесит что теперь повсюду будут летать
-// изменяемые ссылки на ActionContext, в котором ВСЕ.
 //
-// По хорошему, при создании новых действий,
-// ссылка должна быть только на чтение для всего,
-// кроме выделение nide_id, mesh_id.
-// Тут без имзеняемости, видимо, никак.
+// TODO: I hate all this mutable references to Xxx everywhere!
+// Xxx contains all tactical screen state :-\
 //
-// Что в Action::begin и т.п. будет изменяемый &mut ActionContext
-// меня уже не так волнует.
+// I want the creation of new actions to be fully declarative
+// and non-destroying.
+// But how can I allocate new `mesh_id` or `node_id` withut mutability?
 //
-// Может, есть способ избавиться от mut тут?
-// Эти айдишники мне нужны только же для связи Action'ов
-// между собой. Хмм, могу я что-то другое использовать для этого?
+// I don't care much about `&mut Xxx` in Action::begin/update/end.
 //
+// How can I get rid of the mut here?
+// This IDs are needed only to connect Actions.
+// Can I use something else to do it?..
 //
 // TODO: is a visualize_** function? In what file should I put it?
 //
@@ -543,16 +548,17 @@ pub fn visualize_effect_attacked(
 ) -> Vec<Box<Action>> {
     let mut actions: Vec<Box<Action>> = vec![];
     let target = state.unit(target_id);
-    if effect.killed > 0 {
-        actions.push(Box::new(visualize_show_text(
-            context,
-            target.pos.map_pos,
-            &format!("killed: {}", effect.killed),
-        )));
+    let message = if effect.killed > 0 {
+        format!("killed: {}", effect.killed)
     } else {
-        actions.push(Box::new(visualize_show_text(
-            context, target.pos.map_pos, "miss"))); // TODO: check position
-    }
+        format!("miss")
+    };
+    // TODO: there're a lot of Fork::new(Box::new(visualize_show_text())
+    // in the code. I think it may be better to create a separate
+    // function like `visualize_show_text_forked`.
+    actions.push(Box::new(action::Fork::new(
+        Box::new(visualize_show_text(
+            context, target.pos.map_pos, &message)))));
     // TODO: helicopters?
     // TODO: loaded units?
     // TODO: attached units?
@@ -618,12 +624,12 @@ pub fn visualize_effect_attacked(
     text += ": ";
     text += match effect.time {
         effect::Time::Forever => "Forever",
-        // TODO: показать число ходов:
+        // TODO: show number of turns
         effect::Time::Turns(_) => "Turns(n)",
         effect::Time::Instant => "Instant",
     };
     context.text.add_text(unit_pos, &text);
     */
-    // TODO: визуализировать как-то
+    // TODO: visualize somehow
     actions
 }

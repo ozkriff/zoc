@@ -789,6 +789,10 @@ impl TacticalScreen {
         if let Some(unit_id) = self.selected_unit_id {
             self.select_unit(context, unit_id);
         }
+        // TODO: should this really be executed every frame? =\
+        // Maybe it should be moved to end_action func
+        self.update_score_labels(context);
+        self.check_game_end(context);
     }
 
     // TODO: rename
@@ -904,11 +908,9 @@ impl TacticalScreen {
         self.actions.retain(|action| !action.is_finished());
     }
 
-    // TODO: teach this thing to fastforward action::Fork events in one frame
-    fn update_actions(&mut self, context: &mut Context, dtime: Time) {
-        if self.actions.is_empty() {
-            self.try_get_new_action_rename_me(context);
-        }
+    // TODO: rename
+    // How? I already have ne `update_actions` :(
+    fn try_actually_update(&mut self, context: &mut Context, dtime: Time) {
         for action in &mut self.actions {
             let i = self.player_info.get_mut(self.core.player_id());
             let action_context = &mut action::ActionContext {
@@ -921,14 +923,18 @@ impl TacticalScreen {
             };
             action.update(action_context, dtime);
         }
+    }
+
+    // TODO: teach this thing to fastforward action::Fork events in one frame
+    fn update_actions(&mut self, context: &mut Context, dtime: Time) {
+        if self.actions.is_empty() {
+            self.try_get_new_action_rename_me(context);
+        }
+        self.try_actually_update(context, dtime);
         self.try_fork_action(context);
         self.try_end_action(context);
         if self.actions.is_empty() {
             self.end_action(context);
-            // TODO: should this really be executed every frame? =\
-            // Maybe it should be moved to end_action func
-            self.update_score_labels(context);
-            self.check_game_end(context);
         }
     }
 
