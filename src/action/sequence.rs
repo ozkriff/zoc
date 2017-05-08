@@ -8,7 +8,8 @@ pub struct Sequence {
 }
 
 impl Sequence {
-    // TODO: Раз я все равно преобразую к VecDeque, может мне не вектор принимать?
+    // TODO: Maybe I should receive not Vec if
+    // I convert it to VecDeque later anyway?
     pub fn new(actions: Vec<Box<Action>>) -> Self {
         Self {
             actions: actions.into(),
@@ -23,14 +24,8 @@ impl Action for Sequence {
         }
     }
 
-    // TODO: косяк реализации в том, что некоторые действия могут быть мгновенными,
-    // но займут все равно целый кадр.
-    // Надо бы как-то тут цикл вставить.
-    //
-    // TODO: заменить логику в TacticalScreen на вот эту
-    //
     // TODO: SIMPLIFY
-    //
+    // TODO: Use some cycle to skip instant actions
     fn update(&mut self, context: &mut ActionContext, dtime: Time) {
         if !self.actions.is_empty() {
             self.actions.front_mut().unwrap().update(context, dtime);

@@ -926,6 +926,10 @@ impl TacticalScreen {
     }
 
     // TODO: teach this thing to fastforward action::Fork events in one frame
+    //
+    // TODO: rename all the subfunctions!
+    // I may actually not need these functions anymore when I simplify
+    // the creation of the ActionContext.
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
         if self.actions.is_empty() {
             self.try_get_new_action_rename_me(context);
