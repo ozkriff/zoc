@@ -804,7 +804,7 @@ impl TacticalScreen {
         for pos in state.map().get_iter() {
             let is_visible = state.is_ground_tile_visible(pos);
             let old_tile_info = fow.tile(pos).clone(); // TODO: rename?
-            let duration = Time{n: 0.2};
+            let duration = Time{n: thread_rng().gen_range(0.6, 0.9)};
             if is_visible && !old_tile_info.is_visible {
                 let color = [0.0, 0.0, 0.0, 0.0];
                 actions.push(Box::new(action::Fork::new(
@@ -869,7 +869,17 @@ impl TacticalScreen {
     fn try_fork_action(&mut self, context: &mut Context) {
         let mut forked_actions = Vec::new();
         for action in &mut self.actions {
-            if let Some(action) = action.fork() {
+            // TODO: remove duplication
+            let i = self.player_info.get_mut(self.core.player_id());
+            let action_context = &mut action::ActionContext {
+                context: context,
+                scene: &mut i.scene,
+                camera: &i.camera,
+                meshes: &mut self.meshes,
+                mesh_ids: &self.mesh_ids,
+                visual_info: &self.unit_type_visual_info,
+            };
+            while let Some(action) = action.fork(action_context) {
                 forked_actions.push(action);
             }
         }
@@ -930,6 +940,10 @@ impl TacticalScreen {
     // TODO: rename all the subfunctions!
     // I may actually not need these functions anymore when I simplify
     // the creation of the ActionContext.
+    //
+    // TODO: Add test: sequence of 50x SetColor - this will show if instant
+    // actions still require a full frame!
+    //
     fn update_actions(&mut self, context: &mut Context, dtime: Time) {
         if self.actions.is_empty() {
             self.try_get_new_action_rename_me(context);

@@ -338,7 +338,7 @@ TODO:
     - [x] Convert to Actions. How?
           Add some specialized actions? Like `FogTile`\`UnfogTile`?
           But first I need to implement similtanius actions
-    - [ ] Add ability to skip many Fork actions during one frame
+    - [x] Add ability to skip many Fork actions during one frame
   - [ ] shadows
     - [x] basic
     - [ ] make them darker
@@ -346,14 +346,15 @@ TODO:
   - [ ] FIX RANDOM FREEZES during enemy's turn
   - [ ] split effect::Attacked into many effects
   - [ ] add effect RemoveMovePoints caused by hard terrain
-  - [ ] вынести поля для ActionContext во вложенную структуру по отношению к TacticalScreen
+  - [ ] extract fields needed for ActionContext from TacticalScreen to
+        some substructure and make it a field of TacticalScreen
   - [ ] fix text labels
     - [ ] rotate with camera
     - [ ] appear from alpha
     - [ ] fade to alpha
   - [ ] arc trajectory for mortar
   - [x] change selecting ring size based on unit's size
-  - [ ] change towing distance based on unit's size
+  - [ ] change visual towing distance based on unit's size
   - [ ] smoke event -> smoke effect + shell visualization
   - [x] `new -> Box<Action>` -> `new -> Self`
   - [x] reinforcement_points in gui are not updated sometimes

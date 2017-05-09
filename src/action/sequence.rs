@@ -8,11 +8,26 @@ pub struct Sequence {
 }
 
 impl Sequence {
-    // TODO: Maybe I should receive not Vec if
-    // I convert it to VecDeque later anyway?
+    // TODO: Maybe I should receive not Vec but VecDeque
+    // if I convert this arg to VecDeque later anyway?
     pub fn new(actions: Vec<Box<Action>>) -> Self {
         Self {
             actions: actions.into(),
+        }
+    }
+
+    /// Current action
+    fn action(&mut self) -> &mut Action {
+        &mut **self.actions.front_mut().unwrap() // TODO: Can this be simplified?
+    }
+
+    fn end_current_action_and_start_next(&mut self, context: &mut ActionContext) {
+        assert!(!self.actions.is_empty());
+        assert!(self.action().is_finished());
+        self.action().end(context);
+        self.actions.pop_front().unwrap();
+        if !self.actions.is_empty() {
+            self.action().begin(context);
         }
     }
 }
@@ -20,22 +35,18 @@ impl Sequence {
 impl Action for Sequence {
     fn begin(&mut self, context: &mut ActionContext) {
         if !self.actions.is_empty() {
-            self.actions.front_mut().unwrap().begin(context);
+            self.action().begin(context);
         }
     }
 
-    // TODO: SIMPLIFY
-    // TODO: Use some cycle to skip instant actions
     fn update(&mut self, context: &mut ActionContext, dtime: Time) {
-        if !self.actions.is_empty() {
-            self.actions.front_mut().unwrap().update(context, dtime);
-            if self.actions.front_mut().unwrap().is_finished() {
-                self.actions.front_mut().unwrap().end(context);
-                self.actions.pop_front().unwrap();
-                if !self.actions.is_empty() {
-                    self.actions.front_mut().unwrap().begin(context);
-                }
-            }
+        if self.actions.is_empty() {
+            return;
+        }
+        self.action().update(context, dtime);
+        // Skipping instant actions
+        while !self.actions.is_empty() && self.action().is_finished() {
+            self.end_current_action_and_start_next(context);
         }
     }
 
@@ -47,11 +58,14 @@ impl Action for Sequence {
         assert!(self.actions.is_empty());
     }
 
-    fn fork(&mut self) -> Option<Box<Action>> {
-        if !self.actions.is_empty() {
-            self.actions.front_mut().unwrap().fork()
-        } else {
-            None
+    fn fork(&mut self, context: &mut ActionContext) -> Option<Box<Action>> {
+        if self.actions.is_empty() {
+            return None;
         }
+        let forked_action = self.action().fork(context);
+        if forked_action.is_some() && self.action().is_finished() {
+            self.end_current_action_and_start_next(context);
+        }
+        forked_action
     }
 }

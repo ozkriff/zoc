@@ -14,7 +14,7 @@ impl Fork {
 }
 
 impl Action for Fork {
-    fn fork(&mut self) -> Option<Box<Action>> {
+    fn fork(&mut self, _: &mut ActionContext) -> Option<Box<Action>> {
         self.action.take()
     }
 

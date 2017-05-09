@@ -50,15 +50,16 @@ pub const WRECKS_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 // TODO: RENAME
 // TODO: Move to tactical_screen.rs?
 //
-// Мне не нравится что в tactical_screen.rs много раз конструируется
-// эта структура руками из полей. Но при этом я не могу сделат функцию,
-// которая бы ее собрала, потому что из self еще нужена изменемая
-// ссылка на само проигрываемое действие.
+// I don't like that this struct is constructed in tactical_screen.rs
+// manually from fields. But I can't just pack it into some
+// method because it'll create mutability problems with
+// thereference to action itself.
 //
-// Напрашивается решение: собрать все эти поля в отдельную от action
-// структуру, которая будет просто полем TacticalScreen.
+// The simplest solution is to extract this fields into
+// some other struct ad make it a new field of TacticalScreen.
+// ........
 //
-// TODO: Add somehow easing adopters-wrappers
+// TODO: Add easing adopters-wrappers
 //
 pub struct ActionContext<'a> {
     // TODO: Player-specific fields
@@ -83,7 +84,8 @@ pub trait Action: Debug {
     fn update(&mut self, _: &mut ActionContext, _: Time) {}
     fn end(&mut self, _: &mut ActionContext) {}
 
-    fn fork(&mut self) -> Option<Box<Action>> {
+    // TODO: I don't like that fork needs ActionCOntext now!
+    fn fork(&mut self, _: &mut ActionContext) -> Option<Box<Action>> {
         None
     }
 }
