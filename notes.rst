@@ -341,9 +341,11 @@ TODO:
     - [x] Add ability to skip many Fork actions during one frame
   - [ ] shadows
     - [x] basic
-    - [ ] make them darker
+    - [ ] make the center darker
     - [ ] I need to rework map creation in order to implement this properly
-  - [ ] FIX RANDOM FREEZES during enemy's turn
+  - [ ] fix freezes during enemy's turn
+    - stable reproduction:
+      double reaction atack of moving full smg squad
   - [ ] split effect::Attacked into many effects
   - [ ] add effect RemoveMovePoints caused by hard terrain
   - [ ] extract fields needed for ActionContext from TacticalScreen to
@@ -352,6 +354,7 @@ TODO:
     - [ ] rotate with camera
     - [ ] appear from alpha
     - [ ] fade to alpha
+    - [ ] add some delay
   - [ ] arc trajectory for mortar
   - [x] change selecting ring size based on unit's size
   - [ ] change visual towing distance based on unit's size
