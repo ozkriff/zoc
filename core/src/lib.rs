@@ -161,8 +161,6 @@ impl Core {
             get_killed_count(&self.db, &self.state, attacker, defender),
         );
         /*
-        // TODO: создать отдельное событие CoreEvent::Effect
-        //
         // Ээээм, ок, допустим что я отменяю убийства и создаю еще события с эффектами
         // Но что мне в событии сохранить тогда?
         // Будет странно, если визуализатор напишет "Missed", а машину
@@ -186,7 +184,7 @@ impl Core {
                     effect: Effect::Pinned,
                 });
             }
-            // TODO: добавить другие эффекты
+            // TODO: add other effects
         }
         */
         let fow = self.players_info[&defender.player_id].fow();
@@ -269,19 +267,23 @@ impl Core {
                 }
                 let event = self.command_attack_unit_to_event(
                     enemy_unit.id, unit_id, event::FireMode::Reactive);
-                if let Some(CoreEvent{event: Event::AttackUnit{attack_info}, ..}) = event {
-                    let hit_chance = attack::hit_chance(
-                        &self.db, &self.state, enemy_unit, unit);
-                    let unit_type = self.db.unit_type(unit.type_id);
-                    // if hit_chance.n > 15 && !unit_type.is_air && stop_on_attack {
-                    if hit_chance.n > 15 && unit_type.is_infantry && stop_on_attack {
-                        // attack_info.remove_move_points = true;
-                        // TODO: создать новое событие - Effect::Pinned
-                    }
-                    Event::AttackUnit{attack_info: attack_info}.to_core_event()
-                } else {
-                    continue;
+                let mut event = match event {
+                    Some(event) => event,
+                    None => continue,
+                };
+                let hit_chance = attack::hit_chance(
+                    &self.db, &self.state, enemy_unit, unit);
+                let unit_type = self.db.unit_type(unit.type_id);
+                if hit_chance.n > 15 && unit_type.is_infantry && stop_on_attack {
+                    let effect = Effect::ReducedMovementPoints(MovePoints{n: 1}); // TODO: 1??
+                    let timed_effect = TimedEffect {
+                        time: Time::Instant,
+                        effect: effect,
+                    };
+                    event.effects.get_mut(&unit_id).unwrap()
+                        .push(timed_effect);
                 }
+                event
             };
             self.do_core_event(&event);
             result = ReactionFireResult::Attacked;

@@ -381,6 +381,9 @@ impl State {
                     }
                 }
             },
+            Effect::ReducedMovementPoints(..) => {
+                // TODO: actually remove move points here
+            },
             _ => unimplemented!(),
         }
     }
