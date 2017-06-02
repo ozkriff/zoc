@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
-use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase};
+use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase, MouseScrollDelta};
 use glutin::ElementState::{Released};
 use core;
 use core::map::{Terrain};
@@ -41,6 +41,7 @@ use player_info::{PlayerInfoManager, PlayerInfo};
 use mesh_manager::{MeshIdManager, MeshManager};
 
 const FOW_FADING_TIME: f32 = 0.6;
+const ZOOM_LEVEL: f32 = 0.3;
 
 fn score_text(state: &State) -> String {
     let target_score = state.target_score();
@@ -669,9 +670,25 @@ impl TacticalScreen {
                 self.select_unit(context, next_id);
             }
         } else if button_id == self.gui.button_zoom_in_id {
-            self.current_player_info_mut().camera.change_zoom(0.7);
+            self.current_player_info_mut().camera.change_zoom(1.0 - ZOOM_LEVEL);
         } else if button_id == self.gui.button_zoom_out_id {
-            self.current_player_info_mut().camera.change_zoom(1.3);
+            self.current_player_info_mut().camera.change_zoom(1.0 + ZOOM_LEVEL);
+        }
+    }
+
+    fn handle_event_mouse_scroll(&mut self, delta: MouseScrollDelta) {
+        let delta_y;
+        match delta {
+            MouseScrollDelta::LineDelta(_, y) => {
+                delta_y = y;
+            },
+            MouseScrollDelta::PixelDelta(_, y) => {
+                delta_y = y;
+            },
+        };
+        if delta_y.abs() > 0.1 {
+            let zoom = if delta_y > 0.0 {1.0 - ZOOM_LEVEL} else {1.0 + ZOOM_LEVEL};
+            self.current_player_info_mut().camera.change_zoom(zoom);
         }
     }
 
@@ -1153,6 +1170,9 @@ impl Screen for TacticalScreen {
             },
             Event::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
+            },
+            Event::MouseWheel(delta, _) => {
+                self.handle_event_mouse_scroll(delta);
             },
             Event::KeyboardInput(Released, _, Some(key)) => {
                 self.handle_event_key_press(context, key);
