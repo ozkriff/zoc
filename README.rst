@@ -56,9 +56,6 @@ https://github.com/ozkriff/zoc_assets
 
 Run ``make assets`` (or ``git clone https://github.com/ozkriff/zoc_assets assets``) to download them.
 
-NOTE: If I don't abandon the game in the early stages of development
-I'll release actual game resources under proprietary license.
-
 
 Building
 --------
