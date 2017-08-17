@@ -6,15 +6,12 @@ Zone of Control
 |loc|_
 |travis-ci|_
 |appveyor-ci|_
-|gitter|_
 
 
-News
-----
+The project is discontinued
+---------------------------
 
-This project is a work in progress and is still rough at the edges.
-
-Read a summary of what happened last month in `This Month in ZoC`_.
+Sorry, friends. ZoC is discontinued. See https://ozkriff.github.io/2017-08-17--devlog.html
 
 
 Downloads
@@ -68,8 +65,6 @@ Running
 
 ``make run`` or ``cargo run`` or ``./target/zoc``.
 
-(Tested in ubuntu 14.04 and win 8.1.)
-
 
 Android
 -------
@@ -78,22 +73,6 @@ For instructions on setting up your environment see
 https://github.com/tomaka/android-rs-glue#setting-up-your-environment.
 
 Then just: ``make android_run`` - this will build .apk, install and run it.
-
-
-Contribute
-----------
-
-Feel free to report bugs and patches using GitHub's pull requests
-system on https://github.com/ozkriff/zoc. Any feedback would be much
-appreciated!
-
-NOTE: You have to apologize my English, I'm trying as best as I can.
-Please open an issue if anything in docs or comments is strange/unclear/can
-be improved.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license,
-shall be dual licensed as above, without any additional terms or conditions.
 
 
 License
@@ -108,7 +87,6 @@ See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 .. |loc| image:: https://tokei.rs/b1/github/ozkriff/zoc
 .. |travis-ci| image:: https://travis-ci.org/ozkriff/zoc.svg?branch=master
 .. |appveyor-ci| image:: https://ci.appveyor.com/api/projects/status/49kqaol7dlt2xrec/branch/master?svg=true
-.. |gitter| image:: https://badges.gitter.im/....svg
 .. _`This Month in ZoC`: https://users.rust-lang.org/t/this-month-in-zone-of-control/6993
 .. _Rust: https://rust-lang.org
 .. _LICENSE-MIT: LICENSE-MIT
@@ -116,4 +94,3 @@ See `LICENSE-APACHE`_ and `LICENSE-MIT`_ for details.
 .. _loc: https://github.com/Aaronepower/tokei
 .. _travis-ci: https://travis-ci.org/ozkriff/zoc
 .. _appveyor-ci: https://ci.appveyor.com/project/ozkriff/zoc
-.. _gitter: https://gitter.im/ozkriff/zoc
