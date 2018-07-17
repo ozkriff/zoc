@@ -51,7 +51,7 @@ impl Screen for EndTurnScreen {
 
     fn handle_event(&mut self, context: &mut Context, event: &WindowEvent) -> EventStatus {
         match *event {
-            WindowEvent::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput { state: Released, button: MouseButton::Left, .. } => {
                 self.handle_event_lmb_release(context);
             },
             WindowEvent::Touch(glutin::Touch{phase, ..}) => {
@@ -59,7 +59,7 @@ impl Screen for EndTurnScreen {
                     self.handle_event_lmb_release(context);
                 }
             },
-            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
+            WindowEvent::KeyboardInput { input: glutin::KeyboardInput { state: Released, virtual_keycode: Some(key), .. }, .. } => {
                 self.handle_event_key_press(context, key);
             },
             _ => {},

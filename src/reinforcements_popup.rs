@@ -134,8 +134,8 @@ impl Screen for ReinforcementsPopup {
     ) -> EventStatus {
         let mut event_status = EventStatus::Handled;
         match *event {
-            WindowEvent::MouseMoved(..) => {},
-            WindowEvent::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseMoved{..} => {},
+            WindowEvent::MouseInput{ state: Released, button: MouseButton::Left, .. } => {
                 self.handle_event_lmb_release(context);
             },
             WindowEvent::Touch(glutin::Touch{phase, ..}) => {
@@ -143,7 +143,7 @@ impl Screen for ReinforcementsPopup {
                     self.handle_event_lmb_release(context);
                 }
             },
-            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
+            WindowEvent::KeyboardInput { input: glutin::KeyboardInput { state: Released, virtual_keycode: Some(key), .. }, .. } => {
                 self.handle_event_key_press(context, key);
             },
             _ => event_status = EventStatus::NotHandled,

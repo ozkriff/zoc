@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
-use glutin::{self, VirtualKeyCode, WindowEvent, MouseButton, TouchPhase, MouseScrollDelta};
+use glutin::{self, VirtualKeyCode, WindowEvent, MouseButton, KeyboardInput, TouchPhase, MouseScrollDelta};
 use glutin::ElementState::{Released};
 use core;
 use core::map::{Terrain};
@@ -1164,17 +1164,17 @@ impl Screen for TacticalScreen {
                     player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },
-            WindowEvent::MouseMoved(x, y) => {
+            WindowEvent::MouseMoved{ position: (x, y), .. } => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.handle_event_mouse_move(context, pos);
             },
-            WindowEvent::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput{ state: Released, button: MouseButton::Left, ..} => {
                 self.handle_event_lmb_release(context);
             },
-            WindowEvent::MouseWheel(delta, _) => {
+            WindowEvent::MouseWheel { delta, .. } => {
                 self.handle_event_mouse_scroll(delta);
             },
-            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
+            WindowEvent::KeyboardInput { input: KeyboardInput { state: Released, virtual_keycode: Some(key), ..}, .. } => {
                 self.handle_event_key_press(context, key);
             },
             WindowEvent::Touch(glutin::Touch{location: (x, y), phase, ..}) => {

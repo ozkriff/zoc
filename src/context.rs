@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Sender};
 use std::time;
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
-use glutin::{self, Api, WindowEvent, MouseButton, GlRequest};
+use glutin::{self, Api, GlContext, WindowEvent, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
 use rusttype;
 use gfx::traits::{FactoryExt, Device};
@@ -42,7 +42,7 @@ fn fragment_shader(api: Api) -> String {
 }
 
 fn new_shader(
-    window: &glutin::Window,
+    window: &glutin::GlWindow,
     factory: &mut gfx_gl::Factory,
 ) -> Program<gfx_gl::Resources> {
     let api = window.get_api();
@@ -70,17 +70,6 @@ fn new_font() -> rusttype::Font<'static> {
     collection.into_font().unwrap()
 }
 
-fn new_window_builder() -> glutin::WindowBuilder<'static> {
-    let gl_version = GlRequest::GlThenGles {
-        opengles_version: (2, 0),
-        opengl_version: (2, 1),
-    };
-    glutin::WindowBuilder::new()
-        .with_title("Zone of Control".to_string())
-        .with_pixel_format(24, 8)
-        .with_gl(gl_version)
-}
-
 fn get_win_size(window: &glutin::Window) -> Size2 {
     let (w, h) = window.get_inner_size().expect("Can`t get window size");
     Size2{w: w as i32, h: h as i32}
@@ -100,7 +89,7 @@ pub struct Context {
     mouse: MouseState,
     should_close: bool,
     commands_tx: Sender<ScreenCommand>,
-    window: glutin::Window,
+    window: glutin::GlWindow,
     clear_color: [f32; 4],
     device: gfx_gl::Device,
     encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
@@ -115,9 +104,18 @@ pub struct Context {
 
 impl Context {
     pub fn new(tx: Sender<ScreenCommand>) -> Context {
+        let gl_version = GlRequest::GlThenGles {
+            opengles_version: (2, 0),
+            opengl_version: (2, 1),
+        };
+        let window_builder = glutin::WindowBuilder::new()
+            .with_title("Zone of Control".to_string());
+        let context_builder = glutin::ContextBuilder::new()
+            .with_gl(gl_version)
+            .with_pixel_format(24, 8);
         let events_loop = glutin::EventsLoop::new();
         let (window, device, mut factory, main_color, main_depth)
-            = gfx_glutin::init(new_window_builder(), &events_loop);
+            = gfx_glutin::init(window_builder, context_builder, &events_loop);
         let encoder = factory.create_command_buffer().into();
         let program = new_shader(&window, &mut factory);
         let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
@@ -229,17 +227,17 @@ impl Context {
             WindowEvent::Closed => {
                 self.should_close = true;
             },
-            WindowEvent::MouseInput(Pressed, MouseButton::Left) => {
+            WindowEvent::MouseInput { state: Pressed, button: MouseButton::Left, ..} => {
                 self.mouse.is_left_button_pressed = true;
                 self.mouse.last_press_pos = self.mouse.pos;
             },
-            WindowEvent::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput{ state: Released, button: MouseButton::Left, ..} => {
                 self.mouse.is_left_button_pressed = false;
             },
-            WindowEvent::MouseInput(Pressed, MouseButton::Right) => {
+            WindowEvent::MouseInput{ state: Pressed, button: MouseButton::Right, ..} => {
                 self.mouse.is_right_button_pressed = true;
             },
-            WindowEvent::MouseInput(Released, MouseButton::Right) => {
+            WindowEvent::MouseInput{ state: Released, button: MouseButton::Right, ..} => {
                 self.mouse.is_right_button_pressed = false;
             },
             WindowEvent::Resized(w, h) => {
@@ -259,7 +257,7 @@ impl Context {
 
     pub fn handle_event_post(&mut self, event: &WindowEvent) {
         match *event {
-            WindowEvent::MouseMoved(x, y) => {
+            WindowEvent::MouseMoved{ position: (x, y), .. } => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.mouse.pos = pos;
             },
