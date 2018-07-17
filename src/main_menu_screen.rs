@@ -1,5 +1,5 @@
 use cgmath::{Vector2};
-use glutin::{self, Event, MouseButton, VirtualKeyCode};
+use glutin::{self, WindowEvent, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use screen::{Screen, ScreenCommand, EventStatus};
 use tactical_screen::{TacticalScreen};
@@ -125,17 +125,17 @@ impl Screen for MainMenuScreen {
         self.button_manager.draw(context);
     }
 
-    fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
+    fn handle_event(&mut self, context: &mut Context, event: &WindowEvent) -> EventStatus {
         match *event {
-            Event::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
             },
-            Event::Touch(glutin::Touch{phase, ..}) => {
+            WindowEvent::Touch(glutin::Touch{phase, ..}) => {
                 if phase == glutin::TouchPhase::Ended {
                     self.handle_event_lmb_release(context);
                 }
             },
-            glutin::Event::KeyboardInput(Released, _, Some(key)) => {
+            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
                 self.handle_event_key_press(context, key);
             },
             _ => {},

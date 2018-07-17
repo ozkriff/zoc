@@ -1,6 +1,6 @@
 use std::sync::mpsc::{Sender};
 use std::collections::{HashMap};
-use glutin::{self, Event, MouseButton, VirtualKeyCode};
+use glutin::{self, WindowEvent, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::player::{PlayerId};
 use core::position::{MapPos, ExactPos, get_free_exact_pos};
@@ -130,20 +130,20 @@ impl Screen for ReinforcementsPopup {
     fn handle_event(
         &mut self,
         context: &mut Context,
-        event: &glutin::Event,
+        event: &glutin::WindowEvent,
     ) -> EventStatus {
         let mut event_status = EventStatus::Handled;
         match *event {
-            Event::MouseMoved(..) => {},
-            Event::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseMoved(..) => {},
+            WindowEvent::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
             },
-            Event::Touch(glutin::Touch{phase, ..}) => {
+            WindowEvent::Touch(glutin::Touch{phase, ..}) => {
                 if phase == glutin::TouchPhase::Ended {
                     self.handle_event_lmb_release(context);
                 }
             },
-            glutin::Event::KeyboardInput(Released, _, Some(key)) => {
+            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
                 self.handle_event_key_press(context, key);
             },
             _ => event_status = EventStatus::NotHandled,

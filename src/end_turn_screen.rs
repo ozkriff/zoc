@@ -1,5 +1,5 @@
 use cgmath::{Vector2};
-use glutin::{self, Event, MouseButton, VirtualKeyCode};
+use glutin::{self, WindowEvent, MouseButton, VirtualKeyCode};
 use glutin::ElementState::{Released};
 use core::player::{PlayerId};
 use screen::{Screen, ScreenCommand, EventStatus};
@@ -49,17 +49,17 @@ impl Screen for EndTurnScreen {
         self.button_manager.draw(context);
     }
 
-    fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
+    fn handle_event(&mut self, context: &mut Context, event: &WindowEvent) -> EventStatus {
         match *event {
-            Event::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
             },
-            Event::Touch(glutin::Touch{phase, ..}) => {
+            WindowEvent::Touch(glutin::Touch{phase, ..}) => {
                 if glutin::TouchPhase::Ended == phase {
                     self.handle_event_lmb_release(context);
                 }
             },
-            glutin::Event::KeyboardInput(Released, _, Some(key)) => {
+            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
                 self.handle_event_key_press(context, key);
             },
             _ => {},

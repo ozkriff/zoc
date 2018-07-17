@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use std::iter::IntoIterator;
 use std::collections::{HashMap};
 use cgmath::{self, Array, Vector2, Vector3, Rad};
-use glutin::{self, VirtualKeyCode, Event, MouseButton, TouchPhase, MouseScrollDelta};
+use glutin::{self, VirtualKeyCode, WindowEvent, MouseButton, TouchPhase, MouseScrollDelta};
 use glutin::ElementState::{Released};
 use core;
 use core::map::{Terrain};
@@ -487,7 +487,7 @@ impl TacticalScreen {
             self.deselect_unit(context);
         }
         self.selected_unit_id = Some(unit_id);
-        let mut player_info = self.player_info.get_mut(self.core.player_id());
+        let player_info = self.player_info.get_mut(self.core.player_id());
         let state = &player_info.game_state;
         let pf = &mut player_info.pathfinder;
         pf.fill_map(state, state.unit(unit_id));
@@ -758,7 +758,7 @@ impl TacticalScreen {
         event: &CoreEvent,
     ) -> Box<event_visualizer::EventVisualizer> {
         let current_player_id = self.core.player_id();
-        let mut player_info = self.player_info.get_mut(current_player_id);
+        let player_info = self.player_info.get_mut(current_player_id);
         let scene = &mut player_info.scene;
         let state = &player_info.game_state;
         match *event {
@@ -1157,27 +1157,27 @@ impl Screen for TacticalScreen {
         self.handle_context_menu_popup_commands(context);
     }
 
-    fn handle_event(&mut self, context: &mut Context, event: &Event) -> EventStatus {
+    fn handle_event(&mut self, context: &mut Context, event: &WindowEvent) -> EventStatus {
         match *event {
-            Event::Resized(..) => {
+            WindowEvent::Resized(..) => {
                 for player_info in self.player_info.info.values_mut() {
                     player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },
-            Event::MouseMoved(x, y) => {
+            WindowEvent::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.handle_event_mouse_move(context, pos);
             },
-            Event::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput(Released, MouseButton::Left) => {
                 self.handle_event_lmb_release(context);
             },
-            Event::MouseWheel(delta, _) => {
+            WindowEvent::MouseWheel(delta, _) => {
                 self.handle_event_mouse_scroll(delta);
             },
-            Event::KeyboardInput(Released, _, Some(key)) => {
+            WindowEvent::KeyboardInput(Released, _, Some(key), _) => {
                 self.handle_event_key_press(context, key);
             },
-            Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
+            WindowEvent::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 match phase {
                     TouchPhase::Started | TouchPhase::Moved => {

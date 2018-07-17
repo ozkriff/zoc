@@ -1,6 +1,7 @@
 use std::{process, thread, time};
 use std::sync::mpsc::{channel, Receiver};
 use std::fs::{metadata};
+use glutin::Event;
 use screen::{Screen, ScreenCommand, EventStatus};
 use context::{Context};
 use main_menu_screen::{MainMenuScreen};
@@ -75,6 +76,9 @@ impl Visualizer {
     fn handle_events(&mut self) {
         let events = self.context.poll_events();
         for event in &events {
+            let event = match event {
+                Event::WindowEvent { ref event, ..} => event,
+            };
             self.context.handle_event_pre(event);
             let mut event_status = EventStatus::NotHandled;
             for i in (0 .. self.popups.len()).rev() {

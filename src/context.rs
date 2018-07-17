@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Sender};
 use std::time;
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
-use glutin::{self, Api, Event, MouseButton, GlRequest};
+use glutin::{self, Api, WindowEvent, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
 use rusttype;
 use gfx::traits::{FactoryExt, Device};
@@ -110,12 +110,14 @@ pub struct Context {
     font: rusttype::Font<'static>,
     data: pipe::Data<gfx_gl::Resources>,
     start_time: time::Instant,
+    events_loop: glutin::EventsLoop,
 }
 
 impl Context {
     pub fn new(tx: Sender<ScreenCommand>) -> Context {
+        let events_loop = glutin::EventsLoop::new();
         let (window, device, mut factory, main_color, main_depth)
-            = gfx_glutin::init(new_window_builder());
+            = gfx_glutin::init(new_window_builder(), &events_loop);
         let encoder = factory.create_command_buffer().into();
         let program = new_shader(&window, &mut factory);
         let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
@@ -153,6 +155,7 @@ impl Context {
                 pos: ScreenPos{v: Vector2::from_value(0)},
             },
             start_time: time::Instant::now(),
+            events_loop,
         }
     }
 
@@ -176,7 +179,9 @@ impl Context {
     }
 
     pub fn poll_events(&mut self) -> Vec<glutin::Event> {
-        self.window.poll_events().collect()
+        let mut events = Vec::new();
+        self.events_loop.poll_events(|e| events.push(e));
+        events
     }
 
     pub fn font(&self) -> &rusttype::Font {
@@ -219,25 +224,25 @@ impl Context {
             .expect("Can't send command to Visualizer");
     }
 
-    pub fn handle_event_pre(&mut self, event: &glutin::Event) {
+    pub fn handle_event_pre(&mut self, event: &WindowEvent) {
         match *event {
-            Event::Closed => {
+            WindowEvent::Closed => {
                 self.should_close = true;
             },
-            Event::MouseInput(Pressed, MouseButton::Left) => {
+            WindowEvent::MouseInput(Pressed, MouseButton::Left) => {
                 self.mouse.is_left_button_pressed = true;
                 self.mouse.last_press_pos = self.mouse.pos;
             },
-            Event::MouseInput(Released, MouseButton::Left) => {
+            WindowEvent::MouseInput(Released, MouseButton::Left) => {
                 self.mouse.is_left_button_pressed = false;
             },
-            Event::MouseInput(Pressed, MouseButton::Right) => {
+            WindowEvent::MouseInput(Pressed, MouseButton::Right) => {
                 self.mouse.is_right_button_pressed = true;
             },
-            Event::MouseInput(Released, MouseButton::Right) => {
+            WindowEvent::MouseInput(Released, MouseButton::Right) => {
                 self.mouse.is_right_button_pressed = false;
             },
-            Event::Resized(w, h) => {
+            WindowEvent::Resized(w, h) => {
                 if w == 0 || h == 0 {
                     return
                 }
@@ -252,13 +257,13 @@ impl Context {
         }
     }
 
-    pub fn handle_event_post(&mut self, event: &glutin::Event) {
+    pub fn handle_event_post(&mut self, event: &WindowEvent) {
         match *event {
-            Event::MouseMoved(x, y) => {
+            WindowEvent::MouseMoved(x, y) => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.mouse.pos = pos;
             },
-            Event::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
+            WindowEvent::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 match phase {
                     glutin::TouchPhase::Moved => {
