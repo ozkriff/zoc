@@ -38,8 +38,51 @@ Core game features are:
 
 .. image:: http://i.imgur.com/V4ZPCrT.png
 
+Player's objective is to capture and hold control zones for certain number of turns.
+
+Terrain types:
+
+- Plain
+- Trees
+- Water
+- Road/Bridge
+- City
+
+Unit types:
+
+- Infantry - weak, but can use terrain like Trees or City to get a defence bonus and hide from enemies; can be transported by trucks. Types:
+
+  - rifleman - basic infantry type, 4 soldiers in a squad;
+  - smg - more deadly on short distances, less deadly on full range, 3 soldiers in a squad;
+  - scout - weak, but have advances visibility range and can better detect hidden enemies, 2 soldiers in a squad;
+  - mortar - defenceless, but can shoot smokescreen rounds, slow;
+  - field gun - effective against vehicles, slow and can't be transported inside of track, but can be _towed_;
+
+- Vehicles - can't hide in terrain, can't occupy buildings. Can't see hidden infantry.  Leave a wreck when destroyed. Can take in a tow vehicle or wrecks lighter than themselves. Types:
+
+  - jeep - fast and effective against infantry and helicopters;
+  - truck - can transport infantry;
+  - light tank
+  - light self-propelled gun - has an armor of a light tank, but a gun of medium tank;
+  - medium tank
+  - heavy tank
+  - mammoth tank
+
+- Aircrafts - can fly above all terrain features; it's line of sight isn't blocked by terrain. Only one type was implemented:
+  - Helicopter 
+
+Morale/Suppression system:
+
+- every unit initially have 100 morale points and restore 10 points every turn
+- morale is reduced by half a a damage chance (hit chance / armor protection) when a unit is attacked even if attack missed;
+- if a soldier of the squad is killed additional suppression is added
+- if a unit's morale falls below 50, then it's suppressed and can't attack anymore
+
+------
+
 Videos:
 
+- Some playtest (recorded in 2019, but uses a game build from 2017): https://youtu.be/3_ZPtwnMQVU
 - AI, reaction fire and sectors (2016.06.08): https://youtu.be/hI6YmZeuZ3s
 - transporter, roads (2016.08.07): https://youtu.be/_0_U-h1KCAE
 - smoke, water and bridges (2016.08.20): https://youtu.be/WJHkuWwAb7A
