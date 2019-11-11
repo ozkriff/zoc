@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Sender};
 use std::time;
 use cgmath::{Vector2, Matrix4, SquareMatrix, Array};
-use glutin::{self, Api, GlContext, WindowEvent, MouseButton, GlRequest};
+use glutin::{self, ContextTrait, Api, WindowEvent, MouseButton, GlRequest};
 use glutin::ElementState::{Pressed, Released};
 use rusttype;
 use gfx::traits::{FactoryExt, Device};
@@ -42,10 +42,10 @@ fn fragment_shader(api: Api) -> String {
 }
 
 fn new_shader(
-    window: &glutin::GlWindow,
+    context: &glutin::Context,
     factory: &mut gfx_gl::Factory,
 ) -> Program<gfx_gl::Resources> {
-    let api = window.get_api();
+    let api = context.get_api();
     factory.link_program(
         vertex_shader(api).as_bytes(),
         fragment_shader(api).as_bytes(),
@@ -71,8 +71,8 @@ fn new_font() -> rusttype::Font<'static> {
 }
 
 fn get_win_size(window: &glutin::Window) -> Size2 {
-    let (w, h) = window.get_inner_size().expect("Can`t get window size");
-    Size2{w: w as i32, h: h as i32}
+    let size = window.get_inner_size().expect("Can`t get window size");
+    Size2{w: size.width as i32, h: size.height as i32}
 }
 
 #[derive(Clone, Debug)]
@@ -89,7 +89,7 @@ pub struct Context {
     mouse: MouseState,
     should_close: bool,
     commands_tx: Sender<ScreenCommand>,
-    window: glutin::GlWindow,
+    window: glutin::WindowedContext,
     clear_color: [f32; 4],
     device: gfx_gl::Device,
     encoder: gfx::Encoder<gfx_gl::Resources, gfx_gl::CommandBuffer>,
@@ -115,9 +115,9 @@ impl Context {
             .with_pixel_format(24, 8);
         let events_loop = glutin::EventsLoop::new();
         let (window, device, mut factory, main_color, main_depth)
-            = gfx_glutin::init(window_builder, context_builder, &events_loop);
+            = gfx_glutin::init(window_builder, context_builder, &events_loop).unwrap();
         let encoder = factory.create_command_buffer().into();
-        let program = new_shader(&window, &mut factory);
+        let program = new_shader(window.context(), &mut factory);
         let pso = new_pso(&mut factory, &program, gfx::Primitive::TriangleList);
         let pso_wire = new_pso(&mut factory, &program, gfx::Primitive::LineList);
         let sampler = factory.create_sampler_linear();
@@ -224,7 +224,7 @@ impl Context {
 
     pub fn handle_event_pre(&mut self, event: &WindowEvent) {
         match *event {
-            WindowEvent::Closed => {
+            WindowEvent::CloseRequested | WindowEvent::Destroyed => {
                 self.should_close = true;
             },
             WindowEvent::MouseInput { state: Pressed, button: MouseButton::Left, ..} => {
@@ -240,11 +240,11 @@ impl Context {
             WindowEvent::MouseInput{ state: Released, button: MouseButton::Right, ..} => {
                 self.mouse.is_right_button_pressed = false;
             },
-            WindowEvent::Resized(w, h) => {
-                if w == 0 || h == 0 {
+            WindowEvent::Resized(size) => {
+                if size.width as i32 == 0 || size.height as i32 == 0 {
                     return
                 }
-                self.win_size = Size2{w: w as i32, h: h as i32};
+                self.win_size = Size2{w: size.width as i32, h: size.height as i32};
                 gfx_glutin::update_views(
                     &self.window,
                     &mut self.data.out,
@@ -257,12 +257,12 @@ impl Context {
 
     pub fn handle_event_post(&mut self, event: &WindowEvent) {
         match *event {
-            WindowEvent::CursorMoved{ position: (x, y), .. } => {
-                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
+            WindowEvent::CursorMoved{ position: pos, .. } => {
+                let pos = ScreenPos{v: Vector2{x: pos.x as i32, y: pos.y as i32}};
                 self.mouse.pos = pos;
             },
-            WindowEvent::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
-                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
+            WindowEvent::Touch(glutin::Touch{location: pos, phase, ..}) => {
+                let pos = ScreenPos{v: Vector2{x: pos.x as i32, y: pos.y as i32}};
                 match phase {
                     glutin::TouchPhase::Moved => {
                         self.mouse.pos = pos;

@@ -682,8 +682,8 @@ impl TacticalScreen {
             MouseScrollDelta::LineDelta(_, y) => {
                 delta_y = y;
             },
-            MouseScrollDelta::PixelDelta(_, y) => {
-                delta_y = y;
+            MouseScrollDelta::PixelDelta(pos) => {
+                delta_y = pos.y as _;
             },
         };
         if delta_y.abs() > 0.1 {
@@ -1164,8 +1164,8 @@ impl Screen for TacticalScreen {
                     player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },
-            WindowEvent::CursorMoved{ position: (x, y), .. } => {
-                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
+            WindowEvent::CursorMoved{ position: pos, .. } => {
+                let pos = ScreenPos{v: Vector2{x: pos.x as i32, y: pos.y as i32}};
                 self.handle_event_mouse_move(context, pos);
             },
             WindowEvent::MouseInput{ state: Released, button: MouseButton::Left, ..} => {
@@ -1177,8 +1177,8 @@ impl Screen for TacticalScreen {
             WindowEvent::KeyboardInput { input: KeyboardInput { state: Released, virtual_keycode: Some(key), ..}, .. } => {
                 self.handle_event_key_press(context, key);
             },
-            WindowEvent::Touch(glutin::Touch{location: (x, y), phase, ..}) => {
-                let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
+            WindowEvent::Touch(glutin::Touch{location: pos, phase, ..}) => {
+                let pos = ScreenPos{v: Vector2{x: pos.x as i32, y: pos.y as i32}};
                 match phase {
                     TouchPhase::Started | TouchPhase::Moved => {
                         self.handle_event_mouse_move(context, pos);
