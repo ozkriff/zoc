@@ -1164,7 +1164,7 @@ impl Screen for TacticalScreen {
                     player_info.camera.regenerate_projection_mat(context.win_size());
                 }
             },
-            WindowEvent::MouseMoved{ position: (x, y), .. } => {
+            WindowEvent::CursorMoved{ position: (x, y), .. } => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.handle_event_mouse_move(context, pos);
             },

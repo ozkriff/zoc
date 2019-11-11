@@ -20,6 +20,7 @@ pub fn load_texture_raw<R, F>(factory: &mut F, size: Size2, data: &[u8]) -> Shad
     where R: gfx::Resources, F: gfx::Factory<R>
 {
     let kind = texture::Kind::D2(size.w as texture::Size, size.h as texture::Size, texture::AaMode::Single);
-    let (_, view) = factory.create_texture_immutable_u8::<ColorFormat>(kind, &[data]).unwrap();
+    let mipmap = gfx::texture::Mipmap::Provided;
+    let (_, view) = factory.create_texture_immutable_u8::<ColorFormat>(kind, mipmap, &[data]).unwrap();
     view
 }

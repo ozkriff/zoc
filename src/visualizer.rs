@@ -79,7 +79,7 @@ impl Visualizer {
             let event = match event {
                 Event::WindowEvent { ref event, ..} => event,
                 Event::DeviceEvent { .. } => continue,
-                Event::Awakened { .. } => unimplemented!("{:?}", event),
+                Event::Suspended { .. } | Event::Awakened { .. } => unimplemented!("{:?}", event),
             };
             self.context.handle_event_pre(event);
             let mut event_status = EventStatus::NotHandled;

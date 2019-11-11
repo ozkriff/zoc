@@ -511,7 +511,7 @@ impl Screen for ContextMenuPopup {
     ) -> EventStatus {
         let mut event_status = EventStatus::Handled;
         match *event {
-            WindowEvent::MouseMoved{..} => {},
+            WindowEvent::CursorMoved{..} => {},
             WindowEvent::MouseInput{ state: Released, button: MouseButton::Left, .. } => {
                 self.handle_event_lmb_release(context);
             },

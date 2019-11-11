@@ -257,7 +257,7 @@ impl Context {
 
     pub fn handle_event_post(&mut self, event: &WindowEvent) {
         match *event {
-            WindowEvent::MouseMoved{ position: (x, y), .. } => {
+            WindowEvent::CursorMoved{ position: (x, y), .. } => {
                 let pos = ScreenPos{v: Vector2{x: x as i32, y: y as i32}};
                 self.mouse.pos = pos;
             },
